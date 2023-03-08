@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "/Users/auer0770/Desktop/Lingage/Lingage.csproj": {}
+    "/Users/auer0770/Desktop/Project_Lineage/C#PlayGround/Lingage.csproj": {}
   },
   "projects": {
-    "/Users/auer0770/Desktop/Lingage/Lingage.csproj": {
+    "/Users/auer0770/Desktop/Project_Lineage/C#PlayGround/Lingage.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/auer0770/Desktop/Lingage/Lingage.csproj",
+        "projectUniqueName": "/Users/auer0770/Desktop/Project_Lineage/C#PlayGround/Lingage.csproj",
         "projectName": "Lingage",
-        "projectPath": "/Users/auer0770/Desktop/Lingage/Lingage.csproj",
+        "projectPath": "/Users/auer0770/Desktop/Project_Lineage/C#PlayGround/Lingage.csproj",
         "packagesPath": "/Users/auer0770/.nuget/packages/",
-        "outputPath": "/Users/auer0770/Desktop/Lingage/obj/",
+        "outputPath": "/Users/auer0770/Desktop/Project_Lineage/C#PlayGround/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "/Users/auer0770/.nuget/NuGet/NuGet.Config"

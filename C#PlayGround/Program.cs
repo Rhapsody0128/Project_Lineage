@@ -1,13 +1,28 @@
-﻿using System;
-using CharacterSystem;
+﻿using CharacterSystem;
+using WeaponSystem;
+using UtilSystem;
 
 
-public class MyMainClass {
+public class Program {
     static void Main(string[] args) {
-        Character person = new Character("apple");
-        string name = person.getName();
-        Console.WriteLine(person);
-        Console.WriteLine(name);
-        Console.WriteLine("name");
+        Character person = CharacterController.getRandomCharacter();
+        Character person2 = CharacterController.getRandomCharacter();
+        Character child = CharacterController.bornChild(person2,person);
+        Weapon weapon = WeaponController.getRandomWeapon();
+
+        // person.unEquipWeapon();
+        person.equipWeapon(weapon);
+        person.unEquipWeapon();
+        person2.equipWeapon(weapon);
+        if(person.holdingWeapon is not null){
+            Console.WriteLine(person.holdingWeapon.name);
+
+        }
+        if(person2.holdingWeapon is not null){
+            Console.WriteLine(person2.holdingWeapon.name);
+        }
+
+
+        // Console.WriteLine()
     }
 }

@@ -5,13 +5,13 @@ namespace CharacterSystem {
     public class Character {
         private Guid id ;
         public string name ;
-        public Ability ability;
+        public Potential potential;
         public Weapon? holdingWeapon;
         
-        public Character(string name,Ability ability){
+        public Character(string name,Potential potential){
             this.name = name;
             this.id = Guid.NewGuid();
-            this.ability = ability;
+            this.potential = potential;
         }       
         public void equipWeapon(Weapon weapon){
 

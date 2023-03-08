@@ -5,8 +5,8 @@ namespace CharacterSystem {
         
         public static Character getRandomCharacter(){
             string name = getRandomName();
-            Ability ability = getRandomAbility();
-            Character newCharacter = new Character(name,ability);
+            Potential potential = getRandomPotential();
+            Character newCharacter = new Character(name,potential);
             return newCharacter;
         }
         public static void getMarriage(Character self,Character target){
@@ -28,8 +28,7 @@ namespace CharacterSystem {
                 MenRatio:0.6
             ) ;
             Potential potential = new Potential(potentialList);
-            Ability abality = new Ability(potential);
-            Character child = new Character("newChild",abality);
+            Character child = new Character("newChild",potential);
             return child;
         }
 
@@ -38,12 +37,6 @@ namespace CharacterSystem {
             Random random = new Random();
             string name = "RandomPerson";
             return name;
-        }
-        private static Ability getRandomAbility(){
-            Random random = new Random();
-            Potential potential = getRandomPotential();
-            Ability ability = new Ability(potential);
-            return ability;
         }
         private static Potential getRandomPotential(){
             Random random = new Random();

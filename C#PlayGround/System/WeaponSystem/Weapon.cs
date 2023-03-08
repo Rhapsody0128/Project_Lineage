@@ -5,12 +5,12 @@ namespace WeaponSystem {
         private Guid id ;
         public string name ;
         public WeaponAttributes weaponAttributes ;
-        public Ability ability;
+        public Potential potential;
         public Boolean equipState;
-        public Weapon(string name,Ability ability,WeaponAttributes weaponAttributes){
+        public Weapon(string name,Potential potential,WeaponAttributes weaponAttributes){
             this.name = name;
             this.id = Guid.NewGuid();
-            this.ability = ability;
+            this.potential = potential;
             this.weaponAttributes = weaponAttributes;
             this.equipState = false;
         }

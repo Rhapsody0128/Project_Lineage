@@ -4,9 +4,9 @@ namespace WeaponSystem {
     public class WeaponController {
         public static Weapon getRandomWeapon(){
             string name = getRandomName();
-            Ability ability = getRandomAbility();
+            Potential potential = getRandomPotential();
             WeaponAttributes weaponAttributes = getWeaponAttributes();
-            Weapon newWeapon = new Weapon(name,ability,weaponAttributes);
+            Weapon newWeapon = new Weapon(name,potential,weaponAttributes);
             return newWeapon;
         }
 
@@ -19,12 +19,6 @@ namespace WeaponSystem {
             Random random = new Random();
             WeaponAttributes weaponAttributes = WeaponAttributesList.getWeaponAttributes(random.Next(0,WeaponAttributesList.getWeaponAttributesList().Count));
             return weaponAttributes;
-        }
-        private static Ability getRandomAbility(){
-            Random random = new Random();
-            Potential potential = getRandomPotential();
-            Ability ability = new Ability(potential);
-            return ability;
         }
         private static Potential getRandomPotential(){
             Random random = new Random();

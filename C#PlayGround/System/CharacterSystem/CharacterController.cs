@@ -1,16 +1,29 @@
 using UtilSystem;
+using SkillSystem;
 
 namespace CharacterSystem {
     public class CharacterController {
         
         public static Character getRandomCharacter(){
-            string name = getRandomName();
+            string name = Util.getRandomFromEnum<MaleCharacterName>().ToString();
+            string lastName = Util.getRandomFromEnum<MaleCharacterLastName>().ToString();
             Potential potential = getRandomPotential();
-            Character newCharacter = new Character(name,potential);
+            List<Skill>? skill = getRandomSkill(RankType.E) ;
+            Character newCharacter = new Character(name,lastName,potential,skill);
             return newCharacter;
         }
         public static void getMarriage(Character self,Character target){
             bornChild(self,target);
+        }
+        private static List<Skill>? getRandomSkill(RankType rankType){
+            List<Skill>? skill = SkillController.getSkill(rankType);
+            if(skill != null){
+                var randomSkill = skill[Util.getRandom(0,skill.Count)] ;
+                randomSkill.state = true ;
+                return new List<Skill>(){randomSkill} ;
+            }else{
+                return null;
+            }
         }
         public static Character bornChild(Character self,Character target){
             var potentialList = (
@@ -20,39 +33,31 @@ namespace CharacterSystem {
                 dexterity:31,
                 intelligence:5,
                 mentality:6,
-                StrRatio:1.12,
-                VitRatio:2.1,
-                DexRatio:1.05,
-                AgiRatio:0.7,
-                IntRatio:0.5,
-                MenRatio:0.6
+                strRatio:1.12,
+                vitRatio:2.1,
+                dexRatio:1.05,
+                agiRatio:0.7,
+                intRatio:0.5,
+                menRatio:0.6
             ) ;
             Potential potential = new Potential(potentialList);
-            Character child = new Character("newChild",potential);
+            Character child = new Character("newChild","lastName",potential,null);
             return child;
         }
-
-
-        private static string getRandomName(){
-            Random random = new Random();
-            string name = "RandomPerson";
-            return name;
-        }
         private static Potential getRandomPotential(){
-            Random random = new Random();
             var potentialList = (
-                strength:random.Next(0,50),
-                vitality:random.Next(0,50),
-                agility:random.Next(0,50),
-                dexterity:random.Next(0,50),
-                intelligence:random.Next(0,50),
-                mentality:random.Next(0,50),
-                StrRatio:random.Next(0,2),
-                VitRatio:random.Next(0,2),
-                DexRatio:random.Next(0,2),
-                AgiRatio:random.Next(0,2),
-                IntRatio:random.Next(0,2),
-                MenRatio:random.Next(0,2)
+                strength: Util.getRandom(0,50),
+                vitality: Util.getRandom(0,50),
+                agility: Util.getRandom(0,50),
+                dexterity: Util.getRandom(0,50),
+                intelligence: Util.getRandom(0,50),
+                mentality: Util.getRandom(0,50),
+                strRatio: Util.getRandom(0,50),
+                vitRatio: Util.getRandom(0,50),
+                dexRatio: Util.getRandom(0,50),
+                agiRatio: Util.getRandom(0,50),
+                intRatio: Util.getRandom(0,50),
+                menRatio: Util.getRandom(0,50)
             ) ;
             Potential potential = new Potential(potentialList);
             return potential;

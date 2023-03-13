@@ -13,39 +13,37 @@ namespace WeaponSystem {
         }
 
         private static string getRandomName(){
-            Random random = new Random();
             string name = "RandomWeapon";
             return name;
         }
         private static List<Skill>? getRandomSkill(WeaponType weaponType){
-            Random random = new Random();
             List<Skill>? skill = SkillController.getSkill(weaponType);
             if(skill != null){
-                var randomSkill = skill[random.Next(0,skill.Count)] ; 
+                var randomSkill = skill[Util.getRandom(0,skill.Count)] ;
+                randomSkill.state = true ;
                 return new List<Skill>(){randomSkill} ;
             }else{
                 return null;
             }
         }
         private static WeaponType getRandomWeaponType(){
-                Random random = new Random();
-                return (WeaponType) random.Next(Enum.GetNames(typeof(WeaponType)).Length);
+                // return Util.getRandomFromEnum<WeaponType>() ;
+                return WeaponType.bow ;
         }
         private static Potential getRandomPotential(){
-            Random random = new Random();
             var potentialList = (
-                strength:random.Next(0,50),
-                vitality:random.Next(0,50),
-                agility:random.Next(0,50),
-                dexterity:random.Next(0,50),
-                intelligence:random.Next(0,50),
-                mentality:random.Next(0,50),
-                StrRatio:random.Next(0,2),
-                VitRatio:random.Next(0,2),
-                DexRatio:random.Next(0,2),
-                AgiRatio:random.Next(0,2),
-                IntRatio:random.Next(0,2),
-                MenRatio:random.Next(0,2)
+                strength: Util.getRandom(0,50),
+                vitality: Util.getRandom(0,50),
+                agility: Util.getRandom(0,50),
+                dexterity: Util.getRandom(0,50),
+                intelligence: Util.getRandom(0,50),
+                mentality: Util.getRandom(0,50),
+                strRatio: Util.getRandom(0,50),
+                vitRatio: Util.getRandom(0,50),
+                dexRatio: Util.getRandom(0,50),
+                agiRatio: Util.getRandom(0,50),
+                intRatio: Util.getRandom(0,50),
+                menRatio: Util.getRandom(0,50)
             ) ;
             Potential potential = new Potential(potentialList);
             return potential;

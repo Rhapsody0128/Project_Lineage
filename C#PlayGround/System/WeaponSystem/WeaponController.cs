@@ -1,12 +1,14 @@
 using UtilSystem;
+using SkillSystem;
 
 namespace WeaponSystem {
     public class WeaponController {
         public static Weapon getRandomWeapon(){
             string name = getRandomName();
             Potential potential = getRandomPotential();
-            WeaponAttributes weaponAttributes = getWeaponAttributes();
-            Weapon newWeapon = new Weapon(name,potential,weaponAttributes);
+            WeaponType weaponType = getRandomWeaponType();
+            List<Skill>? skill = getRandomSkill(weaponType);
+            Weapon newWeapon = new Weapon(name,potential,weaponType,skill);
             return newWeapon;
         }
 
@@ -15,20 +17,29 @@ namespace WeaponSystem {
             string name = "RandomWeapon";
             return name;
         }
-        private static WeaponAttributes getWeaponAttributes(){
+        private static List<Skill>? getRandomSkill(WeaponType weaponType){
             Random random = new Random();
-            WeaponAttributes weaponAttributes = WeaponAttributesList.getWeaponAttributes(random.Next(0,WeaponAttributesList.getWeaponAttributesList().Count));
-            return weaponAttributes;
+            List<Skill>? skill = SkillController.getSkill(weaponType);
+            if(skill != null){
+                var randomSkill = skill[random.Next(0,skill.Count)] ; 
+                return new List<Skill>(){randomSkill} ;
+            }else{
+                return null;
+            }
+        }
+        private static WeaponType getRandomWeaponType(){
+                Random random = new Random();
+                return (WeaponType) random.Next(Enum.GetNames(typeof(WeaponType)).Length);
         }
         private static Potential getRandomPotential(){
             Random random = new Random();
             var potentialList = (
-                Strength:random.Next(0,50),
-                Vitality:random.Next(0,50),
-                Agility:random.Next(0,50),
-                Dexterity:random.Next(0,50),
-                Intelligence:random.Next(0,50),
-                Mentality:random.Next(0,50),
+                strength:random.Next(0,50),
+                vitality:random.Next(0,50),
+                agility:random.Next(0,50),
+                dexterity:random.Next(0,50),
+                intelligence:random.Next(0,50),
+                mentality:random.Next(0,50),
                 StrRatio:random.Next(0,2),
                 VitRatio:random.Next(0,2),
                 DexRatio:random.Next(0,2),

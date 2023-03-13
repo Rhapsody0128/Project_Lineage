@@ -1,6 +1,5 @@
 ﻿using CharacterSystem;
 using WeaponSystem;
-using UtilSystem;
 
 
 public class Program {
@@ -14,14 +13,13 @@ public class Program {
         person.equipWeapon(weapon);
         person.unEquipWeapon();
         person2.equipWeapon(weapon);
-        if(person.holdingWeapon is not null){
-            Console.WriteLine(person.holdingWeapon.name);
-
+        Console.WriteLine(weapon.name);
+        Console.WriteLine(weapon.weaponType);
+        if(weapon.skill != null){
+            Console.WriteLine(weapon.skill[0].name);
+        }else{
+            Console.WriteLine("no Skill");
         }
-        if(person2.holdingWeapon is not null){
-            Console.WriteLine(person2.holdingWeapon.name);
-        }
-
 
         // Console.WriteLine()
     }

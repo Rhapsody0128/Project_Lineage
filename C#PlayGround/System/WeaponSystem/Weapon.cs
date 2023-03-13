@@ -1,18 +1,27 @@
 using UtilSystem;
+using SkillSystem;
 
 namespace WeaponSystem {
     public class Weapon {
         private Guid id ;
         public string name ;
-        public WeaponAttributes weaponAttributes ;
-        public Potential potential;
-        public Boolean equipState;
-        public Weapon(string name,Potential potential,WeaponAttributes weaponAttributes){
+        public WeaponType weaponType ;
+        public Potential potential ;
+        public Boolean equipState ;
+        
+        public List<Skill>? skill ;
+        public Weapon(
+            string name,
+            Potential potential,
+            WeaponType weaponType,
+            List<Skill>? skill
+        ){
             this.name = name;
             this.id = Guid.NewGuid();
             this.potential = potential;
-            this.weaponAttributes = weaponAttributes;
+            this.weaponType = weaponType;
             this.equipState = false;
+            this.skill = skill;
         }
         public void changeEquipState(Boolean value){
             this.equipState = value;

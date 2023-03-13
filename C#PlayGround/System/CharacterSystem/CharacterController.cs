@@ -14,12 +14,12 @@ namespace CharacterSystem {
         }
         public static Character bornChild(Character self,Character target){
             var potentialList = (
-                Strength:102,
-                Vitality:102,
-                Agility:102,
-                Dexterity:31,
-                Intelligence:5,
-                Mentality:6,
+                strength:102,
+                vitality:102,
+                agility:102,
+                dexterity:31,
+                intelligence:5,
+                mentality:6,
                 StrRatio:1.12,
                 VitRatio:2.1,
                 DexRatio:1.05,
@@ -41,12 +41,12 @@ namespace CharacterSystem {
         private static Potential getRandomPotential(){
             Random random = new Random();
             var potentialList = (
-                Strength:random.Next(0,50),
-                Vitality:random.Next(0,50),
-                Agility:random.Next(0,50),
-                Dexterity:random.Next(0,50),
-                Intelligence:random.Next(0,50),
-                Mentality:random.Next(0,50),
+                strength:random.Next(0,50),
+                vitality:random.Next(0,50),
+                agility:random.Next(0,50),
+                dexterity:random.Next(0,50),
+                intelligence:random.Next(0,50),
+                mentality:random.Next(0,50),
                 StrRatio:random.Next(0,2),
                 VitRatio:random.Next(0,2),
                 DexRatio:random.Next(0,2),

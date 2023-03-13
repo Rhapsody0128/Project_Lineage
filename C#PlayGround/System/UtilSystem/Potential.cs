@@ -1,11 +1,11 @@
 namespace UtilSystem {
     public class Potential {
-      public double Strength;
-      public double Vitality;
-      public double Agility;
-      public double Dexterity;
-      public double Intelligence;
-      public double Mentality;
+      public double strength;
+      public double vitality;
+      public double agility;
+      public double dexterity;
+      public double intelligence;
+      public double mentality;
       public double StrRatio;
       public double VitRatio;
       public double DexRatio;
@@ -21,12 +21,12 @@ namespace UtilSystem {
 
     public Potential(
       (
-        double Strength,
-        double Vitality,
-        double Agility,
-        double Dexterity,
-        double Intelligence,
-        double Mentality,
+        double strength,
+        double vitality,
+        double agility,
+        double dexterity,
+        double intelligence,
+        double mentality,
         double StrRatio,
         double VitRatio,
         double DexRatio,
@@ -35,12 +35,12 @@ namespace UtilSystem {
         double MenRatio
         ) potentialData
     ) {
-        Strength = potentialData.Strength;
-        Vitality = potentialData.Vitality;
-        Agility = potentialData.Agility;
-        Dexterity = potentialData.Dexterity;
-        Intelligence = potentialData.Intelligence;
-        Mentality = potentialData.Mentality;
+        strength = potentialData.strength;
+        vitality = potentialData.vitality;
+        agility = potentialData.agility;
+        dexterity = potentialData.dexterity;
+        intelligence = potentialData.intelligence;
+        mentality = potentialData.mentality;
         StrRatio = potentialData.StrRatio;
         VitRatio = potentialData.VitRatio;
         DexRatio = potentialData.DexRatio;

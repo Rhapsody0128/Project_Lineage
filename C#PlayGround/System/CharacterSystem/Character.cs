@@ -1,17 +1,22 @@
 using UtilSystem;
 using WeaponSystem;
+using SkillSystem;
 
 namespace CharacterSystem {
     public class Character {
         private Guid id ;
         public string name ;
-        public Potential potential;
-        public Weapon? holdingWeapon;
+        public string lastName ;
+        public Potential potential ;
+        public Weapon? holdingWeapon ;
+        public List<Skill>? skill ;
         
-        public Character(string name,Potential potential){
+        public Character(string name,string lastName,Potential potential,List<Skill>? skill){
             this.name = name;
+            this.lastName = lastName;
             this.id = Guid.NewGuid();
             this.potential = potential;
+            this.skill = skill ;
         }       
         public void equipWeapon(Weapon weapon){
 

@@ -16,8 +16,8 @@ namespace WeaponSystem {
             WeaponType weaponType,
             List<Skill>? skill
         ){
-            this.name = name;
             this.id = Guid.NewGuid();
+            this.name = name;
             this.potential = potential;
             this.weaponType = weaponType;
             this.equipState = false;

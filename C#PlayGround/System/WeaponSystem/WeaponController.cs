@@ -4,16 +4,16 @@ using SkillSystem;
 namespace WeaponSystem {
     public class WeaponController {
         public static Weapon getRandomWeapon(){
-            string name = getRandomName();
             Potential potential = getRandomPotential();
             WeaponType weaponType = getRandomWeaponType();
+            string name = getRandomName(weaponType);
             List<Skill>? skill = getRandomSkill(weaponType);
             Weapon newWeapon = new Weapon(name,potential,weaponType,skill);
             return newWeapon;
         }
 
-        private static string getRandomName(){
-            string name = "RandomWeapon";
+        private static string getRandomName(WeaponType weaponType){
+            string name = weaponType.ToString();
             return name;
         }
         private static List<Skill>? getRandomSkill(WeaponType weaponType){
@@ -27,8 +27,7 @@ namespace WeaponSystem {
             }
         }
         private static WeaponType getRandomWeaponType(){
-                // return Util.getRandomFromEnum<WeaponType>() ;
-                return WeaponType.bow ;
+                return Util.getRandomFromEnum<WeaponType>() ;
         }
         private static Potential getRandomPotential(){
             var potentialList = (
@@ -38,12 +37,12 @@ namespace WeaponSystem {
                 dexterity: Util.getRandom(0,50),
                 intelligence: Util.getRandom(0,50),
                 mentality: Util.getRandom(0,50),
-                strRatio: Util.getRandom(0,50),
-                vitRatio: Util.getRandom(0,50),
-                dexRatio: Util.getRandom(0,50),
-                agiRatio: Util.getRandom(0,50),
-                intRatio: Util.getRandom(0,50),
-                menRatio: Util.getRandom(0,50)
+                strRatio: Util.getRandom(0.5,2),
+                vitRatio: Util.getRandom(0.5,2),
+                dexRatio: Util.getRandom(0.5,2),
+                agiRatio: Util.getRandom(0.5,2),
+                intRatio: Util.getRandom(0.5,2),
+                menRatio: Util.getRandom(0.5,2)
             ) ;
             Potential potential = new Potential(potentialList);
             return potential;

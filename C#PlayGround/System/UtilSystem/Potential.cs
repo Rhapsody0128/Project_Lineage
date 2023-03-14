@@ -12,12 +12,12 @@ namespace UtilSystem {
       public double agiRatio;
       public double intRatio;
       public double menRatio;
-      public RankType StrRank;
-      public RankType VitRank;
-      public RankType DexRank;
-      public RankType AgiRank;
-      public RankType IntRank;
-      public RankType MenRank;
+      public RankType strRank;
+      public RankType vitRank;
+      public RankType dexRank;
+      public RankType agiRank;
+      public RankType intRank;
+      public RankType menRank;
 
     public Potential(
       (
@@ -47,12 +47,12 @@ namespace UtilSystem {
         agiRatio = potentialData.agiRatio;
         intRatio = potentialData.intRatio;
         menRatio = potentialData.menRatio;
-        StrRank = ratioToRankToRank(potentialData.strRatio);
-        VitRank = ratioToRankToRank(potentialData.vitRatio);
-        DexRank = ratioToRankToRank(potentialData.dexRatio);
-        AgiRank = ratioToRankToRank(potentialData.agiRatio);
-        IntRank = ratioToRankToRank(potentialData.intRatio);
-        MenRank = ratioToRankToRank(potentialData.menRatio);
+        strRank = ratioToRankToRank(potentialData.strRatio);
+        vitRank = ratioToRankToRank(potentialData.vitRatio);
+        dexRank = ratioToRankToRank(potentialData.dexRatio);
+        agiRank = ratioToRankToRank(potentialData.agiRatio);
+        intRank = ratioToRankToRank(potentialData.intRatio);
+        menRank = ratioToRankToRank(potentialData.menRatio);
       }
     public RankType ratioToRankToRank(double ratio){
         double defaultGap = 0.5;

@@ -52,12 +52,12 @@ namespace CharacterSystem {
                 dexterity: Util.getRandom(0,50),
                 intelligence: Util.getRandom(0,50),
                 mentality: Util.getRandom(0,50),
-                strRatio: Util.getRandom(0,50),
-                vitRatio: Util.getRandom(0,50),
-                dexRatio: Util.getRandom(0,50),
-                agiRatio: Util.getRandom(0,50),
-                intRatio: Util.getRandom(0,50),
-                menRatio: Util.getRandom(0,50)
+                strRatio: Util.getRandom(0.5,2),
+                vitRatio: Util.getRandom(0.5,2),
+                dexRatio: Util.getRandom(0.5,2),
+                agiRatio: Util.getRandom(0.5,2),
+                intRatio: Util.getRandom(0.5,2),
+                menRatio: Util.getRandom(0.5,2)
             ) ;
             Potential potential = new Potential(potentialList);
             return potential;

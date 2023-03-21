@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
 using UtilSystem;
 using WeaponSystem;
 using SkillSystem;
+
 
 namespace CharacterSystem {
     public class Character {
@@ -9,7 +12,7 @@ namespace CharacterSystem {
         public string lastName ;
         public Potential potential ;
         public Weapon? holdingWeapon ;
-        public List<Skill>? skill ;
+        public List<Skill>? skill = new List<Skill>();
         public int military ;
         public LevelSystem levelSystem ;
         

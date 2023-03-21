@@ -7,9 +7,9 @@ namespace SkillSystem {
         public int range ;
         public int scope ;
         public PotentialType effectBasedOn ;
-        public Boolean effectTargetEnemy ;
+        public bool effectTargetEnemy ;
         public WeaponType? BindWeapon  ; 
-        public Boolean state = false; 
+        public bool state = false; 
         
         public Skill(
             string name,
@@ -17,7 +17,7 @@ namespace SkillSystem {
             int range,
             int scope,
             PotentialType effectBasedOn,
-            Boolean effectTargetEnemy,
+            bool effectTargetEnemy,
             WeaponType? BindWeapon
         ){
             this.name = name;

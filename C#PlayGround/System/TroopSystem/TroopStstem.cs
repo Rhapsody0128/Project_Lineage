@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UtilSystem;
 using CharacterSystem;
 
@@ -5,7 +6,7 @@ namespace TroopSystem {
     public class Troop {
       public string name ;
       public Character leader ;
-      public List<Character> members ;
+      public List<Character> members = new List<Character>();
       public Troop(string name,Character leader,List<Character> members){
         this.name = name ;
         this.leader = leader ;  

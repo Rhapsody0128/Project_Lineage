@@ -1,41 +1,34 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
 using UtilSystem;
+using PotentialSystem;
 using SkillSystem;
 
-using System.Collections.Generic;
-namespace WeaponSystem {
-    public class Weapon {
-        private System.Guid id ;
-        public string name ;
-        public WeaponType weaponType ;
-        public Potential potential ;
-        public bool equipState ;
+namespace TroopSystem {
+    public class Troop {
+      public string name ;
+      public int soldiersCount ;
+      public Potential potential ;
+      public List<Skill>? skill = new List<Skill>();
+      public LevelSystem? levelSystem = new LevelSystem() ;
 
-        public LevelSystem levelSystem ;
-        
-        public List<Skill>? skill = new List<Skill>();
-        public Weapon(
-            string name,
-            Potential potential,
-            WeaponType weaponType,
-            List<Skill>? skill,
-            LevelSystem? levelSystem = null
-        ){
-            this.id = System.Guid.NewSystem.Guid();
-            this.name = name;
-            this.potential = potential;
-            this.weaponType = weaponType;
-            this.equipState = false;
-            this.skill = skill;
-            if(levelSystem != null){
-                this.levelSystem = levelSystem ;
-            }else{
-                this.levelSystem = new LevelSystem() ;
-            }
-        }
-        public void changeEquipState(bool value){
-            this.equipState = value;
-        }
-        private double getRealPotential(
+      public Troop(            
+        string name,
+        Potential potential,
+        List<Skill>? skill,
+        LevelSystem? levelSystem = null
+      ){
+        this.name = name ;
+        this.soldiersCount = 200 ;  
+        this.potential = potential ;
+        this.skill = skill ;
+        this.levelSystem = levelSystem ?? new LevelSystem();
+      }
+
+
+      private double getRealPotential(
             double initialPotential,
             double ratio
         ){
@@ -73,5 +66,6 @@ namespace WeaponSystem {
                 return getRealPotential(potential.mentality,potential.menRatio);
             }
         }
+
     }
 }

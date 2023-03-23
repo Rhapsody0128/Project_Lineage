@@ -2,7 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-namespace UtilSystem {
+using UtilSystem;
+
+namespace PotentialSystem {
     public class Potential {
       public double strength;
       public double vitality;

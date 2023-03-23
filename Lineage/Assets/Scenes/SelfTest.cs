@@ -2,10 +2,12 @@ using System.Diagnostics;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UtilSystem;
+using PotentialSystem;
 using RoleSystem;
 using WeaponSystem;
 using TroopSystem;
-using UtilSystem;
+using BattalionSystem;
 
 public class SelfTest : MonoBehaviour
 {
@@ -22,8 +24,8 @@ public class SelfTest : MonoBehaviour
     }
     
     static public void TroopTry(){
-        var troop = TroopController.getRandomTroop(); 
-        UnityEngine.Debug.LogFormat("名稱:{0},行軍速度{1}",troop.name,123) ;
+        var battalion = BattalionController.getRandomBattalion(); 
+        UnityEngine.Debug.LogFormat("名稱:{0},行軍速度{1}",battalion.name,battalion.moveSpeed) ;
     }
     static public void RoleTryUpgrade(){
         Role person = RoleController.getRandomRole();

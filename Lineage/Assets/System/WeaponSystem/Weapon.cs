@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UtilSystem;
 using SkillSystem;
+using PotentialSystem;
 #nullable enable
 
 namespace WeaponSystem {
@@ -14,7 +15,7 @@ namespace WeaponSystem {
         public Potential potential ;
         public bool equipState ;
 
-        public LevelSystem levelSystem ;
+        public LevelSystem levelSystem;
         
         public List<Skill>? skill = new List<Skill>();
         public Weapon(
@@ -30,11 +31,7 @@ namespace WeaponSystem {
             this.weaponType = weaponType;
             this.equipState = false;
             this.skill = skill;
-            if(levelSystem != null){
-                this.levelSystem = levelSystem ;
-            }else{
-                this.levelSystem = new LevelSystem() ;
-            }
+            this.levelSystem = levelSystem ?? new LevelSystem();
         }
         public void changeEquipState(bool value){
             this.equipState = value;

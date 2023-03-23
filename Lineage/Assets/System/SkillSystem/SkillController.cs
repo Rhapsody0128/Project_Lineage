@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UtilSystem ;
-#nullable enable
+using PotentialSystem;
 
 namespace SkillSystem {
     public class SkillController {
@@ -31,6 +31,33 @@ namespace SkillSystem {
                 return (skill.skillRank == skillRank) ;
             })  ;
             return result ;
+        }
+
+        public static List<Skill>? getRandomSkill(){
+            var randomSkill = skillList[Util.getRandom(0,skillList.Count)] ;
+            randomSkill.state = true ;
+            return new List<Skill>(){randomSkill} ;
+        }
+        public static List<Skill>? getRandomSkill(WeaponType weaponType){
+            List<Skill> skill = SkillController.getSkill(weaponType);
+            if(skill != null){
+                var randomSkill = skill[Util.getRandom(0,skill.Count)] ;
+                randomSkill.state = true ;
+                return new (){randomSkill} ;
+            }else{
+                return null;
+            }
+        }
+
+        public static List<Skill>? getRandomSkill(RankType rankType){
+            List<Skill> skill = SkillController.getSkill(rankType);
+            if(skill != null){
+                var randomSkill = skill[Util.getRandom(0,skill.Count)] ;
+                randomSkill.state = true ;
+                return new (){randomSkill} ;
+            }else{
+                return null;
+            }
         }
     }
 }

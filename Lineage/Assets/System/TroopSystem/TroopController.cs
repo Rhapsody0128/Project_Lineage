@@ -3,16 +3,17 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UtilSystem;
+using PotentialSystem;
 using RoleSystem;
+using SkillSystem;
 
 namespace TroopSystem {
     public class TroopController{
         static public Troop getRandomTroop(){
-            List<Role> members = new List<Role>();
-            for (int i = 0; i < 6; i++){
-                members.Add(RoleController.getRandomRole());
-            }
-            var troop = new Troop(members[0].lastName + "的部隊" + members.Count,members[0],members) ;
+            var leader = RoleController.getRandomRole() ;
+            var potential = PotentialController.getRandomPotential() ;
+            var skill = SkillController.getRandomSkill() ;
+            var troop = new Troop("隨機的部隊",potential,skill) ;
             return troop ;
         }
     }

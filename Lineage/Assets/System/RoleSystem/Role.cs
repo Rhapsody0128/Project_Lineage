@@ -3,9 +3,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UtilSystem;
+using PotentialSystem;
 using WeaponSystem;
 using SkillSystem;
-#nullable enable
 
 namespace RoleSystem {
     public class Role {
@@ -15,27 +15,20 @@ namespace RoleSystem {
         public Potential potential ;
         public Weapon? holdingWeapon ;
         public List<Skill>? skill = new List<Skill>();
-        public int military ;
-        public LevelSystem levelSystem ;
+        public LevelSystem? levelSystem = null;
         
         public Role(
             string name,
             string lastName,
             Potential potential,
-            List<Skill>? skill,
-            LevelSystem? levelSystem = null
+            List<Skill> skill,
+            LevelSystem levelSystem = null
         ){
             this.name = name;
             this.lastName = lastName;
             this.id = Guid.NewGuid();
             this.potential = potential;
-            this.skill = skill ;
-            this.military = 1000 ; 
-            if(levelSystem != null){
-                this.levelSystem = levelSystem ;
-            }else{
-                this.levelSystem = new LevelSystem() ;
-            }
+            this.levelSystem = levelSystem ?? new LevelSystem();
         }       
         public void equipWeapon(Weapon weapon){
 

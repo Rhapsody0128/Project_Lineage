@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UtilSystem ;
+using PotentialSystem;
 
 namespace SkillSystem {
     public class Skill {

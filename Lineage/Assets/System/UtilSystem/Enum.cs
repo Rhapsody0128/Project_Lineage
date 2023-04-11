@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 namespace UtilSystem {
 
     public enum MaleRoleName { 約翰,保羅,喬治,亞歷克斯,馬克斯,大衛,丹尼爾,馬克,約瑟夫,派屈克,安德魯,安東尼,理查德,查爾斯,托馬斯,威廉,萊恩,雅各布,凱文,邁克爾,史蒂文,彌敦,愛德華,布蘭登,史考特,班傑明,埃里克,約書亞,菲利普,布賴恩,賈森,格雷戈里,撒迦 }

@@ -17,7 +17,7 @@ public class ToolTip : MonoBehaviour
         ToolTipObject.SetActive(false) ;
         
     }
-
+    
     // Update is called once per frame
     void Update()
     {

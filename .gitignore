@@ -67,3 +67,4 @@ crashlytics-build.properties
 *.DS_Store
 /PlayGround/bin/
 /PlayGround/obj/
+!/PlayGround/PlayGround.csproj

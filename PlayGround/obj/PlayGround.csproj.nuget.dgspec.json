@@ -1,25 +1,27 @@
 {
   "format": 1,
   "restore": {
-    "/Users/auer0770/Documents/others/Project_Lineage/PlayGround/PlayGround.csproj": {}
+    "D:\\Project_Lineage\\PlayGround\\PlayGround.csproj": {}
   },
   "projects": {
-    "/Users/auer0770/Documents/others/Project_Lineage/PlayGround/PlayGround.csproj": {
+    "D:\\Project_Lineage\\PlayGround\\PlayGround.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "/Users/auer0770/Documents/others/Project_Lineage/PlayGround/PlayGround.csproj",
+        "projectUniqueName": "D:\\Project_Lineage\\PlayGround\\PlayGround.csproj",
         "projectName": "PlayGround",
-        "projectPath": "/Users/auer0770/Documents/others/Project_Lineage/PlayGround/PlayGround.csproj",
-        "packagesPath": "/Users/auer0770/.nuget/packages/",
-        "outputPath": "/Users/auer0770/Documents/others/Project_Lineage/PlayGround/obj/",
+        "projectPath": "D:\\Project_Lineage\\PlayGround\\PlayGround.csproj",
+        "packagesPath": "C:\\Users\\rhaps\\.nuget\\packages\\",
+        "outputPath": "D:\\Project_Lineage\\PlayGround\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "/Users/auer0770/.nuget/NuGet/NuGet.Config"
+          "C:\\Users\\rhaps\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
           "net7.0"
         ],
         "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -53,7 +55,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "/usr/local/share/dotnet/sdk/7.0.202/RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.203\\RuntimeIdentifierGraph.json"
         }
       }
     }

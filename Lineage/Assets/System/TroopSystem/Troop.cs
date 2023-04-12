@@ -1,79 +1,95 @@
+using PotentialSystem;
+using SkillSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UtilSystem;
-using PotentialSystem;
-using SkillSystem;
 
-namespace TroopSystem {
-    public class Troop {
+namespace TroopSystem
+{
+    public class Troop
+    {
         //兵團名
-        public string name ;
+        public string name;
         //士兵數
-        public int soldiersCount ;
+        public int soldiersCount;
         //素質
-        public Potential potential ;
+        public Potential potential;
         //技能
         public List<Skill> skill = new List<Skill>();
         //等級
-        public LevelSystem levelSystem = new LevelSystem() ;
+        public LevelSystem levelSystem = new LevelSystem();
 
-        public Troop(            
+        public Troop(
           string name,
           Potential potential,
           List<Skill> skill,
           LevelSystem levelSystem
-        ){
-          this.name = name ;
-          this.soldiersCount = 200 ;  
-          this.potential = potential ;
-          this.skill = skill ;
-          this.levelSystem = levelSystem ?? new LevelSystem();
+        )
+        {
+            this.name = name;
+            this.soldiersCount = 200;
+            this.potential = potential;
+            this.skill = skill;
+            this.levelSystem = levelSystem ?? new LevelSystem();
         }
 
         //取得素質方法
         private double getRealPotential(
             double initialPotential,
             double ratio
-        ){
-            double total = initialPotential ;
-            total += ratio * levelSystem.potentialLevelConstant ;
-            return total ;
+        )
+        {
+            double total = initialPotential;
+            total += ratio * levelSystem.potentialLevelConstant;
+            return total;
         }
         //計算後力量
-        public double strength {
-            get {
-                return getRealPotential(potential.strength,potential.strRatio);
+        public double strength
+        {
+            get
+            {
+                return getRealPotential(potential.strength, potential.strRatio);
             }
         }
         //計算後敏捷
-        public double agility {
-            get {
-                return getRealPotential(potential.agility,potential.agiRatio);
+        public double agility
+        {
+            get
+            {
+                return getRealPotential(potential.agility, potential.agiRatio);
             }
         }
         //計算後靈巧
-        public double dexterity {
-            get {
-                return getRealPotential(potential.dexterity,potential.dexRatio);
+        public double dexterity
+        {
+            get
+            {
+                return getRealPotential(potential.dexterity, potential.dexRatio);
             }
         }
         //計算後體質
-        public double vitality {
-            get {
-                return getRealPotential(potential.vitality,potential.vitRatio);
+        public double vitality
+        {
+            get
+            {
+                return getRealPotential(potential.vitality, potential.vitRatio);
             }
         }
         //計算後智慧
-        public double intelligence {
-            get {
-                return getRealPotential(potential.intelligence,potential.intRatio);
+        public double intelligence
+        {
+            get
+            {
+                return getRealPotential(potential.intelligence, potential.intRatio);
             }
         }
         //計算後精神
-        public double mentality {
-            get {
-                return getRealPotential(potential.mentality,potential.menRatio);
+        public double mentality
+        {
+            get
+            {
+                return getRealPotential(potential.mentality, potential.menRatio);
             }
         }
         //從類型取得素質

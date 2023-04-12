@@ -64,6 +64,5 @@ sysinfo.txt
 # Crashlytics generated file
 crashlytics-build.properties
 
-.DS_Store
-
-/PlayGround
+*.DS_Store
+*PlayGround

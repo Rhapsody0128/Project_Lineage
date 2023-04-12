@@ -1,23 +1,26 @@
+using RoleSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UtilSystem;
-using RoleSystem;
 using TroopSystem;
+using UtilSystem;
 
-namespace BattalionSystem {
-    public class Battalion {
+namespace BattalionSystem
+{
+    public class Battalion
+    {
         //部隊名稱
-        public string name ;
+        public string name;
         //隊長
-        public Role leader ;
+        public Role leader;
         //兵團
         public List<Troop> troops;
 
-        public Battalion(string name,Role leader,List<Troop> troops){
-          this.name = name ;
-          this.leader = leader ;  
-          this.troops = troops ;
+        public Battalion(string name, Role leader, List<Troop> troops)
+        {
+            this.name = name;
+            this.leader = leader;
+            this.troops = troops;
         }
         //取得素質方法
         private double getRealPotential(
@@ -26,7 +29,8 @@ namespace BattalionSystem {
         {
             double totalPotential = 0;
             totalPotential += leader.getPotential(potentialType) * 0.5;
-            troops.ForEach(troop => {
+            troops.ForEach(troop =>
+            {
                 totalPotential += troop.getPotential(potentialType) * 0.1;
             });
             return totalPotential;

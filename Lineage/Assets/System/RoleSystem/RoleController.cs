@@ -7,18 +7,20 @@ using SkillSystem;
 
 namespace RoleSystem {
     public class  RoleController {
-        
+        //隨機角色
         public static Role getRandomRole(){
             var name = Util.getRandomFromEnum<MaleRoleName>().ToString();
             var lastName = Util.getRandomFromEnum<MaleRoleLastName>().ToString();
             var potential = PotentialController.getRandomPotential();
             var skill = SkillController.getRandomSkill(RankType.E) ;
-            var newRole = new Role(name,lastName,potential,skill);
+            var newRole = new Role(name,lastName,potential,skill,new LevelSystem());
             return newRole;
         }
+        //結婚
         public static void getMarriage(Role self,Role target){
             bornChild(self,target);
         }
+        //生子
         public static Role bornChild(Role self,Role target){
             var potentialList = (
                 strength:102,
@@ -35,7 +37,8 @@ namespace RoleSystem {
                 menRatio:0.6
             ) ;
             Potential potential = new Potential(potentialList);
-            Role child = new Role("newChild","lastName",potential,null);
+            List<Skill> skills = new List<Skill>();
+            Role child = new Role("newChild","lastName",potential, skills, new LevelSystem());
             return child;
         }
         

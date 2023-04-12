@@ -8,11 +8,12 @@ using SkillSystem;
 
 namespace TroopSystem {
     public class TroopController{
+        //隨機兵團
         static public Troop getRandomTroop(){
             var leader = RoleController.getRandomRole() ;
             var potential = PotentialController.getRandomPotential() ;
-            var skill = SkillController.getRandomSkill() ;
-            var troop = new Troop("隨機的部隊",potential,skill) ;
+            var skill = SkillController.getRandomSkillLibrary() ;
+            var troop = new Troop("隨機的部隊",potential,skill,new LevelSystem()) ;
             return troop ;
         }
     }

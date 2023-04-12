@@ -6,6 +6,7 @@ using UtilSystem;
 
 namespace PotentialSystem {
     public class PotentialController {
+        //取得隨機素質
         public static Potential getRandomPotential(){
             var potentialList = (
                 strength: Util.getRandom(0,50),

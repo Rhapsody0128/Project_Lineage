@@ -6,14 +6,20 @@ using PotentialSystem;
 
 namespace SkillSystem {
     public class Skill {
+        //技能名
         public string name ;
+        //技能評比
         public RankType skillRank ;
+        //施放距離
         public int range ;
+        //施放範圍
         public int scope ;
+        //素質基礎
         public PotentialType effectBasedOn ;
-        public bool effectTargetEnemy ;
-        public WeaponType? BindWeapon  ; 
-        public bool state = false; 
+        //技能類型
+        public SkillEffectType skillEffectType;
+        //綁定武器
+        public WeaponType? BindWeapon  ;
         
         public Skill(
             string name,
@@ -21,7 +27,7 @@ namespace SkillSystem {
             int range,
             int scope,
             PotentialType effectBasedOn,
-            bool effectTargetEnemy,
+            SkillEffectType skillEffectType,
             WeaponType? BindWeapon
         ){
             this.name = name;
@@ -29,7 +35,7 @@ namespace SkillSystem {
             this.range = range;
             this.scope = scope;
             this.effectBasedOn = effectBasedOn;
-            this.effectTargetEnemy = effectTargetEnemy;
+            this.skillEffectType = skillEffectType;
             this.BindWeapon = BindWeapon;
         }
     }

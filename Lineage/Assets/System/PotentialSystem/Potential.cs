@@ -5,61 +5,80 @@ using UtilSystem;
 
 namespace PotentialSystem {
     public class Potential {
-      public double strength;
-      public double vitality;
-      public double agility;
-      public double dexterity;
-      public double intelligence;
-      public double mentality;
-      public double strRatio;
-      public double vitRatio;
-      public double dexRatio;
-      public double agiRatio;
-      public double intRatio;
-      public double menRatio;
-      public RankType strRank;
-      public RankType vitRank;
-      public RankType dexRank;
-      public RankType agiRank;
-      public RankType intRank;
-      public RankType menRank;
+        //力量
+        public double strength;
+        //體質
+        public double vitality;
+        //敏捷
+        public double agility;
+        //靈巧
+        public double dexterity;
+        //智慧
+        public double intelligence;
+        //精神
+        public double mentality;
+        //力量等級比率
+        public double strRatio;
+        //體質等級比率
+        public double vitRatio;
+        //敏捷等級比率
+        public double agiRatio;
+        //靈巧等級比率
+        public double dexRatio;
+        //智慧等級比率
+        public double intRatio;
+        //精神等級比率
+        public double menRatio;
+        //力量表現評比
+        public RankType strRank;
+        //體質表現評比
+        public RankType vitRank;
+        //敏捷表現評比
+        public RankType agiRank;
+        //靈巧表現評比
+        public RankType dexRank;
+        //智慧表現評比
+        public RankType intRank;
+        //精神表現評比
+        public RankType menRank;
 
-    public Potential(
-      (
-        double strength,
-        double vitality,
-        double agility,
-        double dexterity,
-        double intelligence,
-        double mentality,
-        double strRatio,
-        double vitRatio,
-        double dexRatio,
-        double agiRatio,
-        double intRatio,
-        double menRatio
-        ) potentialData
-    ) {
-        strength = potentialData.strength;
-        vitality = potentialData.vitality;
-        agility = potentialData.agility;
-        dexterity = potentialData.dexterity;
-        intelligence = potentialData.intelligence;
-        mentality = potentialData.mentality;
-        strRatio = potentialData.strRatio;
-        vitRatio = potentialData.vitRatio;
-        dexRatio = potentialData.dexRatio;
-        agiRatio = potentialData.agiRatio;
-        intRatio = potentialData.intRatio;
-        menRatio = potentialData.menRatio;
-        strRank = ratioToRankToRank(potentialData.strRatio);
-        vitRank = ratioToRankToRank(potentialData.vitRatio);
-        dexRank = ratioToRankToRank(potentialData.dexRatio);
-        agiRank = ratioToRankToRank(potentialData.agiRatio);
-        intRank = ratioToRankToRank(potentialData.intRatio);
-        menRank = ratioToRankToRank(potentialData.menRatio);
-      }
-    public RankType ratioToRankToRank(double ratio){
+
+        public Potential(
+            (
+                double strength,
+                double vitality,
+                double agility,
+                double dexterity,
+                double intelligence,
+                double mentality,
+                double strRatio,
+                double vitRatio,
+                double dexRatio,
+                double agiRatio,
+                double intRatio,
+                double menRatio
+            ) potentialData
+        )   {
+              strength = potentialData.strength;
+              vitality = potentialData.vitality;
+              agility = potentialData.agility;
+              dexterity = potentialData.dexterity;
+              intelligence = potentialData.intelligence;
+              mentality = potentialData.mentality;
+              strRatio = potentialData.strRatio;
+              vitRatio = potentialData.vitRatio;
+              dexRatio = potentialData.dexRatio;
+              agiRatio = potentialData.agiRatio;
+              intRatio = potentialData.intRatio;
+              menRatio = potentialData.menRatio;
+              strRank = ratioToRankToRank(potentialData.strRatio);
+              vitRank = ratioToRankToRank(potentialData.vitRatio);
+              dexRank = ratioToRankToRank(potentialData.dexRatio);
+              agiRank = ratioToRankToRank(potentialData.agiRatio);
+              intRank = ratioToRankToRank(potentialData.intRatio);
+              menRank = ratioToRankToRank(potentialData.menRatio);
+            }
+    public static RankType ratioToRankToRank(double ratio){
         double defaultGap = 0.5;
         double gap = 0.2;
         if (ratio <= defaultGap) {

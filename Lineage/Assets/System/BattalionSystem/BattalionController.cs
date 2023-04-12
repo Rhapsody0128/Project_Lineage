@@ -5,8 +5,11 @@ using UtilSystem;
 using RoleSystem;
 using TroopSystem;
 
-namespace BattalionSystem {
-    public class BattalionController{
+namespace BattalionSystem
+{
+    public class BattalionController
+    {
+        //取得隨機部隊
         static public Battalion getRandomBattalion(){
             var leader = RoleController.getRandomRole();
             var troops = new List<Troop>() ; 

@@ -1,55 +1,46 @@
-using PotentialSystem;
-using SkillSystem;
+using RoleSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TroopSystem;
 using UtilSystem;
 
-namespace TroopSystem
+namespace BattalionSystem
 {
-    public class Troop
+    public class Battalion
     {
-        //兵團名
+        //部隊名稱
         public string name;
-        //士兵數
-        public int soldiersCount;
-        //素質
-        public Potential potential;
-        //技能
-        public List<Skill> skill = new List<Skill>();
-        //等級
-        public LevelSystem levelSystem = new LevelSystem();
+        //隊長
+        public Role leader;
+        //兵團
+        public List<Troop> troops;
 
-        public Troop(
-          string name,
-          Potential potential,
-          List<Skill> skill,
-          LevelSystem levelSystem
-        )
+        public Battalion(string name, Role leader, List<Troop> troops)
         {
             this.name = name;
-            this.soldiersCount = 200;
-            this.potential = potential;
-            this.skill = skill;
-            this.levelSystem = levelSystem ?? new LevelSystem();
+            this.leader = leader;
+            this.troops = troops;
         }
-
         //取得素質方法
         private double getRealPotential(
-            double initialPotential,
-            double ratio
+            PotentialType potentialType
         )
         {
-            double total = initialPotential;
-            total += ratio * levelSystem.potentialLevelConstant;
-            return total;
+            double totalPotential = 0;
+            totalPotential += leader.getPotential(potentialType) * 0.5;
+            troops.ForEach(troop =>
+            {
+                totalPotential += troop.getPotential(potentialType) * 0.1;
+            });
+            return totalPotential;
         }
         //計算後力量
         public double strength
         {
             get
             {
-                return getRealPotential(potential.strength, potential.strRatio);
+                return getRealPotential(PotentialType.strength);
             }
         }
         //計算後敏捷
@@ -57,7 +48,7 @@ namespace TroopSystem
         {
             get
             {
-                return getRealPotential(potential.agility, potential.agiRatio);
+                return getRealPotential(PotentialType.agility);
             }
         }
         //計算後靈巧
@@ -65,7 +56,7 @@ namespace TroopSystem
         {
             get
             {
-                return getRealPotential(potential.dexterity, potential.dexRatio);
+                return getRealPotential(PotentialType.dexterity);
             }
         }
         //計算後體質
@@ -73,7 +64,7 @@ namespace TroopSystem
         {
             get
             {
-                return getRealPotential(potential.vitality, potential.vitRatio);
+                return getRealPotential(PotentialType.vitality);
             }
         }
         //計算後智慧
@@ -81,7 +72,7 @@ namespace TroopSystem
         {
             get
             {
-                return getRealPotential(potential.intelligence, potential.intRatio);
+                return getRealPotential(PotentialType.intelligence);
             }
         }
         //計算後精神
@@ -89,7 +80,7 @@ namespace TroopSystem
         {
             get
             {
-                return getRealPotential(potential.mentality, potential.menRatio);
+                return getRealPotential(PotentialType.mentality);
             }
         }
         //從類型取得素質
@@ -113,6 +104,5 @@ namespace TroopSystem
                     return 0;
             }
         }
-
     }
 }

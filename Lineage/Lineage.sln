@@ -1,0 +1,41 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33530.505
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp", "Assembly-CSharp.csproj", "{ECFD8AEB-FDB4-50C6-5467-030E74E1A88C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Assembly-CSharp.Player", "Assembly-CSharp.Player.csproj", "{A9511E49-C819-5F2F-D201-1158BF3A4043}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PlayGround", "..\PlayGround\PlayGround.csproj", "{527A819C-593B-4DCC-B344-B2202F6BCFAE}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ECFD8AEB-FDB4-50C6-5467-030E74E1A88C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECFD8AEB-FDB4-50C6-5467-030E74E1A88C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECFD8AEB-FDB4-50C6-5467-030E74E1A88C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECFD8AEB-FDB4-50C6-5467-030E74E1A88C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A9511E49-C819-5F2F-D201-1158BF3A4043}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A9511E49-C819-5F2F-D201-1158BF3A4043}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A9511E49-C819-5F2F-D201-1158BF3A4043}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A9511E49-C819-5F2F-D201-1158BF3A4043}.Release|Any CPU.Build.0 = Release|Any CPU
+		{527A819C-593B-4DCC-B344-B2202F6BCFAE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{527A819C-593B-4DCC-B344-B2202F6BCFAE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{527A819C-593B-4DCC-B344-B2202F6BCFAE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{527A819C-593B-4DCC-B344-B2202F6BCFAE}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(MonoDevelopProperties) = preSolution
+		Policies = $0
+		$0.TextStylePolicy = $1
+		$1.FileWidth = 80
+		$1.TabsToSpaces = True
+		$1.scope = text/plain
+	EndGlobalSection
+EndGlobal

@@ -1,20 +1,28 @@
+using PartySystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UtilSystem;
-using PotentialSystem;
-using RoleSystem;
-using SkillSystem;
 
-namespace TroopSystem {
-    public class TroopController{
-        //隨機兵團
-        static public Troop getRandomTroop(){
-            var leader = RoleController.getRandomRole() ;
-            var potential = PotentialController.getRandomPotential() ;
-            var skill = SkillController.getRandomSkillLibrary() ;
-            var troop = new Troop("隨機的部隊",potential,skill,new LevelSystem()) ;
-            return troop ;
+
+namespace TroopSystem
+{
+    public class TroopController
+    {
+        //取得隨機軍團
+        static public Troop getRandomTroop()
+        {
+
+            Party partyLeader = PartyController.getRandomParty();
+            var parties = new List<Party>();
+            parties.Add(partyLeader);
+            for (int i = 0; i < 4; i++)
+            {
+                Party party = PartyController.getRandomParty();
+                parties.Add(party);
+            }
+            var troop = new Troop("隨機軍團", partyLeader, parties);
+            return troop;
         }
     }
 }

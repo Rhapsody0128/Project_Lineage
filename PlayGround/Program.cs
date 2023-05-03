@@ -1,21 +1,33 @@
 ﻿using UtilSystem;
-using RoleSystem;
-using RegimentSystem;
+using BattleSystem;
+using PartySystem;
+using TroopSystem;
+using System;
+using PotentialSystem;
+using HeroSystem;
+using SkillSystem;
+using WeaponSystem;
 
 internal class Program
 {
     private static void Main(string[] args)
     {
-        var regiment = RegimentController.getRandomRegiment();
-        Console.WriteLine("regiment strength:" + regiment.strength);
-        regiment.battalions.ForEach(battalion =>
-        {
-            Console.WriteLine("battalion strength:" + battalion.strength);
-            Console.WriteLine("leader strength:" + battalion.leader.strength);
-            battalion.troops.ForEach(troop =>
-            {
-                Console.WriteLine("troop strength:" + troop.strength);
-            });
-        });
+        var a = TroopController.getRandomTroop();
+        var b = TroopController.getRandomTroop();
+        var battle = new Battle(a, b);
+        Console.WriteLine(a.partyLeader.hero.potential.agility);
+        Console.WriteLine(a.partyLeader.hero.agility);
+        Console.WriteLine(a.partyLeader.agility);
+        Console.WriteLine(a.agility);
+        Console.WriteLine(battle.selfPartyLeader.party.agility);
+        Console.WriteLine(battle.selfPartyLeader.agility);
+        Console.WriteLine("--戰鬥完升級後--");
+        a.partyLeader.hero.potential.agility = 123;
+        Console.WriteLine(a.partyLeader.hero.potential.agility);
+        Console.WriteLine(a.partyLeader.hero.agility);
+        Console.WriteLine(a.partyLeader.agility);
+        Console.WriteLine(a.agility);
+        Console.WriteLine(battle.selfPartyLeader.party.agility);
+        Console.WriteLine(battle.selfPartyLeader.agility);
     }
 }

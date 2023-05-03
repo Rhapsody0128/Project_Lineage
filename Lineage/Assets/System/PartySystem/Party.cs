@@ -1,37 +1,47 @@
-using RoleSystem;
+using HeroSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using TroopSystem;
+using SoldierSystem;
 using UtilSystem;
+using SkillSystem;
+using WeaponSystem;
 
-namespace BattalionSystem
+namespace PartySystem
 {
-    public class Battalion
+    public class Party
     {
         //部隊名稱
         public string name;
         //隊長
-        public Role leader;
+        public Hero hero;
         //兵團
-        public List<Troop> troops;
+        public List<Soldier> soldiers;
+        //技能
+        public List<Skill> skillList ;
+        //武器
+        public Weapon weapon;
 
-        public Battalion(string name, Role leader, List<Troop> troops)
+        public Party(string name, Hero hero, List<Soldier> soldiers,Weapon weapon)
         {
             this.name = name;
-            this.leader = leader;
-            this.troops = troops;
+            this.hero = hero;
+            this.soldiers = soldiers;
+            this.skillList = hero.skillList;
+            this.weapon = weapon;
         }
+
         //取得素質方法
         private double getRealPotential(
             PotentialType potentialType
         )
         {
             double totalPotential = 0;
-            totalPotential += leader.getPotential(potentialType) * 0.5;
-            troops.ForEach(troop =>
+            totalPotential += hero.getPotential(potentialType) * 0.4;
+            totalPotential += weapon.getPotential(potentialType) * 0.3;
+            soldiers.ForEach(soldier =>
             {
-                totalPotential += troop.getPotential(potentialType) * 0.1;
+                totalPotential += soldier.getPotential(potentialType) * 0.06;
             });
             return totalPotential;
         }

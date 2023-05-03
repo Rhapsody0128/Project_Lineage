@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 
 namespace UtilSystem
 {
@@ -23,7 +24,18 @@ namespace UtilSystem
             var randonValue = values[getRandom(0, values.Length - 1)];
             return (T)Enum.Parse(typeof(T), randonValue);
         }
-
-
+        //複製一份unbind
+        public static T clone<T>(T obj)
+        {
+            string json = JsonConvert.SerializeObject(obj);
+            var result = JsonConvert.DeserializeObject<T>(json);
+            if (result != null) {
+                return result;
+            }
+            else {
+                return obj;
+            }
+        }
     }
+
 }

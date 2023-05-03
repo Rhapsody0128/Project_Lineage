@@ -15,8 +15,16 @@ namespace WeaponSystem
             Potential potential = PotentialController.getRandomPotential();
             WeaponType weaponType = getRandomWeaponType();
             string name = getRandomName(weaponType);
-            List<Skill> skill = SkillController.getRandomSkillLibrary(weaponType);
-            Weapon newWeapon = new Weapon(name, potential, weaponType, skill, new LevelSystem());
+            List<Skill> skillList = SkillController.getRandomSkillList(weaponType);
+            Weapon newWeapon = new Weapon(name, potential, weaponType, skillList, new LevelSystem());
+            return newWeapon;
+        }
+        public static Weapon getRandomWeapon(WeaponType weaponType)
+        {
+            Potential potential = PotentialController.getRandomPotential();
+            string name = getRandomName(weaponType);
+            List<Skill> skillList = SkillController.getRandomSkillList(weaponType);
+            Weapon newWeapon = new Weapon(name, potential, weaponType, skillList, new LevelSystem());
             return newWeapon;
         }
         //隨機某種類武器名

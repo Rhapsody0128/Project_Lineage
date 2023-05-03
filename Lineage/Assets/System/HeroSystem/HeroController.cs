@@ -5,27 +5,27 @@ using System.Collections;
 using System.Collections.Generic;
 using UtilSystem;
 
-namespace RoleSystem
+namespace HeroSystem
 {
-    public class RoleController
+    public class HeroController
     {
         //隨機角色
-        public static Role getRandomRole()
+        public static Hero getRandomHero()
         {
-            var name = Util.getRandomFromEnum<MaleRoleName>().ToString();
-            var lastName = Util.getRandomFromEnum<MaleRoleLastName>().ToString();
+            var name = Util.getRandomFromEnum<MaleHeroName>().ToString();
+            var lastName = Util.getRandomFromEnum<MaleHeroLastName>().ToString();
             var potential = PotentialController.getRandomPotential();
-            var skill = SkillController.getRandomSkill(RankType.E);
-            var newRole = new Role(name, lastName, potential, skill, new LevelSystem());
-            return newRole;
+            var skillList = SkillController.getRandomSkillList();
+            var newHero = new Hero(name, lastName, potential, skillList, new LevelSystem());
+            return newHero;
         }
         //結婚
-        public static void getMarriage(Role self, Role target)
+        public static void getMarriage(Hero self, Hero target)
         {
             bornChild(self, target);
         }
         //生子
-        public static Role bornChild(Role self, Role target)
+        public static Hero bornChild(Hero self, Hero target)
         {
             var potentialList = (
                 strength: 102,
@@ -43,7 +43,7 @@ namespace RoleSystem
             );
             Potential potential = new Potential(potentialList);
             List<Skill> skills = new List<Skill>();
-            Role child = new Role("newChild", "lastName", potential, skills, new LevelSystem());
+            Hero child = new Hero("newChild", "lastName", potential, skills, new LevelSystem());
             return child;
         }
 

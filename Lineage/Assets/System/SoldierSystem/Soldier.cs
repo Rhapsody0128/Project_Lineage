@@ -1,51 +1,55 @@
+using PotentialSystem;
+using SkillSystem;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using UtilSystem;
-using BattalionSystem;
 
-
-namespace RegimentSystem
+namespace SoldierSystem
 {
-    public class Regiment
+    public class Soldier
     {
-        //軍團名稱
+        //兵團名
         public string name;
-        //兵團
-        public List<Battalion> battalions;
-        //移動速度常數
-        public double moveSpeedConsant = 0.01;
+        //士兵數
+        public int soldiersCount;
+        //素質
+        public Potential potential;
+        //技能
+        public List<Skill> skillList = new List<Skill>();
+        //等級
+        public LevelSystem levelSystem = new LevelSystem();
 
-        public Regiment(string name,List<Battalion> battalions)
+        public Soldier(
+          string name,
+          Potential potential,
+          List<Skill> skillList,
+          LevelSystem levelSystem
+        )
         {
             this.name = name;
-            this.battalions = battalions; 
-        }
-
-        //移動速度
-        public double moveSpeed {
-            get {
-                return dexterity * moveSpeedConsant;
-            }
+            this.soldiersCount = 200;
+            this.potential = potential;
+            this.skillList = skillList;
+            this.levelSystem = levelSystem ?? new LevelSystem();
         }
 
         //取得素質方法
         private double getRealPotential(
-            PotentialType potentialType
+            double initialPotential,
+            double ratio
         )
         {
-            double totalPotential = 0;
-            battalions.ForEach(battalion => {
-                totalPotential += battalion.getPotential(potentialType);
-            });
-            return totalPotential;
+            double total = initialPotential;
+            total += ratio * levelSystem.potentialLevelConstant;
+            return total;
         }
         //計算後力量
         public double strength
         {
             get
             {
-                return getRealPotential(PotentialType.strength);
+                return getRealPotential(potential.strength, potential.strRatio);
             }
         }
         //計算後敏捷
@@ -53,7 +57,7 @@ namespace RegimentSystem
         {
             get
             {
-                return getRealPotential(PotentialType.agility);
+                return getRealPotential(potential.agility, potential.agiRatio);
             }
         }
         //計算後靈巧
@@ -61,7 +65,7 @@ namespace RegimentSystem
         {
             get
             {
-                return getRealPotential(PotentialType.dexterity);
+                return getRealPotential(potential.dexterity, potential.dexRatio);
             }
         }
         //計算後體質
@@ -69,7 +73,7 @@ namespace RegimentSystem
         {
             get
             {
-                return getRealPotential(PotentialType.vitality);
+                return getRealPotential(potential.vitality, potential.vitRatio);
             }
         }
         //計算後智慧
@@ -77,7 +81,7 @@ namespace RegimentSystem
         {
             get
             {
-                return getRealPotential(PotentialType.intelligence);
+                return getRealPotential(potential.intelligence, potential.intRatio);
             }
         }
         //計算後精神
@@ -85,7 +89,7 @@ namespace RegimentSystem
         {
             get
             {
-                return getRealPotential(PotentialType.mentality);
+                return getRealPotential(potential.mentality, potential.menRatio);
             }
         }
         //從類型取得素質
@@ -109,5 +113,6 @@ namespace RegimentSystem
                     return 0;
             }
         }
+
     }
 }

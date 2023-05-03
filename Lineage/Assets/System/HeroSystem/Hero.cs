@@ -4,45 +4,56 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UtilSystem;
+using WeaponSystem;
 
-namespace WeaponSystem
+namespace HeroSystem
 {
-    public class Weapon
+    public class Hero
     {
         //id
         public Guid id;
-        //名稱
+        //名字
         public string name;
-        //類型
-        public WeaponType weaponType;
+        //姓氏
+        public string lastName;
         //素質
         public Potential potential;
-        //裝備狀態
-        public bool equipState;
-        //等級
-        public LevelSystem levelSystem;
-        //武器技能
+        //習得技能
         public List<Skill> skillList;
-        public Weapon(
+        //等級系統
+        public LevelSystem levelSystem;
+
+        public Hero(
             string name,
+            string lastName,
             Potential potential,
-            WeaponType weaponType,
             List<Skill> skillList,
             LevelSystem levelSystem
         )
         {
             this.id = Guid.NewGuid();
             this.name = name;
+            this.lastName = lastName;
             this.potential = potential;
-            this.weaponType = weaponType;
-            this.equipState = false;
             this.skillList = skillList;
             this.levelSystem = levelSystem;
         }
-        //武器裝備狀態切換
-        public void changeEquipState(bool value)
+        //獲得經驗值
+        public void gainExp(int expNumber)
         {
-            this.equipState = value;
+            levelSystem.gainExp(expNumber);
+        }
+        //取得素質方法
+        private double getRealPotential(
+            double initialPotential,
+            double ratio,
+            double weaponPotential
+        )
+        {
+            double total = initialPotential;
+            total += ratio * levelSystem.potentialLevelConstant;
+            total += weaponPotential;
+            return total;
         }
         //取得素質方法
         private double getRealPotential(

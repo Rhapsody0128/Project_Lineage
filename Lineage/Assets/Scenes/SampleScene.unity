@@ -394,8 +394,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 713753024}
-        m_TargetAssemblyTypeName: CreateRoleBtn, Assembly-CSharp
-        m_MethodName: CreateRole
+        m_TargetAssemblyTypeName: CreateHeroBtn, Assembly-CSharp
+        m_MethodName: CreateHero
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

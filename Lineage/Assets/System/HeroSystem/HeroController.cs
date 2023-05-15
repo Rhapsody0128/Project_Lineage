@@ -20,32 +20,15 @@ namespace HeroSystem
             return newHero;
         }
         //結婚
-        public static void getMarriage(Hero self, Hero target)
-        {
-            bornChild(self, target);
-        }
+        //public static void getMarriage(Hero self, Hero target)
+        //{
+        //    bornChild(self, target);
+        //}
         //生子
-        public static Hero bornChild(Hero self, Hero target)
-        {
-            var potentialList = (
-                strength: 102,
-                vitality: 102,
-                agility: 102,
-                dexterity: 31,
-                intelligence: 5,
-                mentality: 6,
-                strRatio: 1.12,
-                vitRatio: 2.1,
-                dexRatio: 1.05,
-                agiRatio: 0.7,
-                intRatio: 0.5,
-                menRatio: 0.6
-            );
-            Potential potential = new Potential(potentialList);
-            List<Skill> skills = new List<Skill>();
-            Hero child = new Hero("newChild", "lastName", potential, skills, new LevelSystem());
-            return child;
-        }
+        //public static Hero bornChild(Hero self, Hero target)
+        //{
+
+        //}
 
     }
 }

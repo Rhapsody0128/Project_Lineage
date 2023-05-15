@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Generic;
 using UtilSystem;
 using PartySystem;
+using FormationSystem;
+using Microsoft.VisualBasic;
 
 
 namespace TroopSystem
@@ -11,22 +13,32 @@ namespace TroopSystem
     {
         //軍團名稱
         public string name;
-        //指揮軍團
-        public Party partyLeader;
         //全軍團
         public List<Party> parties;
         //移動速度常數
         public double moveSpeedConsant = 0.01;
+        //陣形
+        public Formation formation;
+        
 
         public Troop(
             string name,
-            Party partyLeader,
-            List<Party> parties
+            List<Party> parties,
+            Formation formation
         )
         {
             this.name = name;
-            this.partyLeader = partyLeader;
-            this.parties = parties; 
+            this.parties = parties;
+            this.formation = formation;
+        }
+
+        //軍團長
+        public Party partyLeader
+        {
+            get
+            {
+                return parties[0];
+            }
         }
 
         //移動速度

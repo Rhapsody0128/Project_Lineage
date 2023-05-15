@@ -6,6 +6,7 @@ using SoldierSystem;
 using UtilSystem;
 using SkillSystem;
 using WeaponSystem;
+using FormationSystem;
 
 namespace PartySystem
 {
@@ -19,16 +20,50 @@ namespace PartySystem
         public List<Soldier> soldiers;
         //技能
         public List<Skill> skillList ;
-        //武器
-        public Weapon weapon;
+        //在陣形中佔據的位置資訊
+        public FormationCell? formationCell;
 
-        public Party(string name, Hero hero, List<Soldier> soldiers,Weapon weapon)
+        public Party(string name, Hero hero, List<Soldier> soldiers)
         {
             this.name = name;
             this.hero = hero;
             this.soldiers = soldiers;
             this.skillList = hero.skillList;
-            this.weapon = weapon;
+        }
+
+        public void setFomationCell(FormationCell formationCell)
+        {
+            this.formationCell = formationCell;
+        }
+        // 陣形中陣形役(攻擊位,防禦位等等)
+        public SkillType? poistionSkillType
+        {
+            get
+            {
+                if (formationCell != null)
+                {
+                    return formationCell.poistionSkillType;
+                }
+                else
+                {
+                    return null;
+                }
+            }
+        }
+        //陣形中取得的武器
+        public Weapon? weapon
+        {
+            get
+            {
+                if (formationCell != null)
+                {
+                    return formationCell.weapon;
+                }
+                else
+                {
+                    return null;
+                }
+            }
         }
 
         //取得素質方法
@@ -38,7 +73,9 @@ namespace PartySystem
         {
             double totalPotential = 0;
             totalPotential += hero.getPotential(potentialType) * 0.4;
-            totalPotential += weapon.getPotential(potentialType) * 0.3;
+            if (weapon != null) {
+                totalPotential += weapon.getPotential(potentialType) * 0.3;
+            }
             soldiers.ForEach(soldier =>
             {
                 totalPotential += soldier.getPotential(potentialType) * 0.06;

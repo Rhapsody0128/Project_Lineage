@@ -6,7 +6,7 @@ using PartySystem;
 using HeroSystem;
 using SoldierSystem;
 using SkillSystem;
-using System.Reflection;
+using WeaponSystem;
 
 namespace BattleSystem
 {
@@ -57,6 +57,22 @@ namespace BattleSystem
         //
         public double getActionChance (string actionType) {
             return 0;
+        }
+        //武器
+        public Weapon? weapon
+        {
+            get
+            {
+                return party.weapon;
+            }
+        }
+        //
+        public SkillType? poistionSkillType
+        {
+            get
+            {
+                return party.poistionSkillType;
+            }
         }
         //名稱
         public string name

@@ -46,40 +46,38 @@ namespace PotentialSystem
 
 
         public Potential(
-            (
-                double strength,
-                double vitality,
-                double agility,
-                double dexterity,
-                double intelligence,
-                double mentality,
-                double strRatio,
-                double vitRatio,
-                double dexRatio,
-                double agiRatio,
-                double intRatio,
-                double menRatio
-            ) potentialData
+            double strength,
+            double vitality,
+            double agility,
+            double dexterity,
+            double intelligence,
+            double mentality,
+            double strRatio,
+            double vitRatio,
+            double dexRatio,
+            double agiRatio,
+            double intRatio,
+            double menRatio
         )
         {
-            strength = potentialData.strength;
-            vitality = potentialData.vitality;
-            agility = potentialData.agility;
-            dexterity = potentialData.dexterity;
-            intelligence = potentialData.intelligence;
-            mentality = potentialData.mentality;
-            strRatio = potentialData.strRatio;
-            vitRatio = potentialData.vitRatio;
-            dexRatio = potentialData.dexRatio;
-            agiRatio = potentialData.agiRatio;
-            intRatio = potentialData.intRatio;
-            menRatio = potentialData.menRatio;
-            strRank = ratioToRankToRank(potentialData.strRatio);
-            vitRank = ratioToRankToRank(potentialData.vitRatio);
-            dexRank = ratioToRankToRank(potentialData.dexRatio);
-            agiRank = ratioToRankToRank(potentialData.agiRatio);
-            intRank = ratioToRankToRank(potentialData.intRatio);
-            menRank = ratioToRankToRank(potentialData.menRatio);
+            this.strength = strength;
+            this.vitality = vitality;
+            this.agility = agility;
+            this.dexterity = dexterity;
+            this.intelligence = intelligence;
+            this.mentality = mentality;
+            this.strRatio = strRatio;
+            this.vitRatio = vitRatio;
+            this.dexRatio = dexRatio;
+            this.agiRatio = agiRatio;
+            this.intRatio = intRatio;
+            this.menRatio = menRatio;
+            strRank = ratioToRankToRank(strRatio);
+            vitRank = ratioToRankToRank(vitRatio);
+            dexRank = ratioToRankToRank(dexRatio);
+            agiRank = ratioToRankToRank(agiRatio);
+            intRank = ratioToRankToRank(intRatio);
+            menRank = ratioToRankToRank(menRatio);
         }
         public static RankType ratioToRankToRank(double ratio)
         {

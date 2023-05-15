@@ -46,18 +46,6 @@ namespace HeroSystem
         //取得素質方法
         private double getRealPotential(
             double initialPotential,
-            double ratio,
-            double weaponPotential
-        )
-        {
-            double total = initialPotential;
-            total += ratio * levelSystem.potentialLevelConstant;
-            total += weaponPotential;
-            return total;
-        }
-        //取得素質方法
-        private double getRealPotential(
-            double initialPotential,
             double ratio
         )
         {

@@ -15,7 +15,7 @@ namespace UtilSystem
     //六大武器種類
     public enum WeaponType { empty, sword, bow, shield, dagger, staff, scepter }
     //技能類型
-    public enum SkillEffectType { attack, buff, debuff, heal, defend, leaderSkill }
+    public enum SkillType { attack, buff, debuff, heal, defend }
     //戰鬥行動類型
     public enum ActionType { attack, daze, escape , confuse, skill }
     //外交狀態

@@ -20,7 +20,7 @@ namespace PartySystem
                 soldiers.Add(SoldierController.getRandomSoldier());
             }
             var weapon = WeaponController.getRandomWeapon();
-            var party = new Party(hero.name + "隊", hero, soldiers, weapon);
+            var party = new Party(hero.name + "隊", hero, soldiers);
             return party;
         }
     }

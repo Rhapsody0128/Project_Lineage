@@ -9,6 +9,15 @@ namespace WeaponSystem
 {
     public class WeaponController
     {
+        public static Weapon getDefaultWeapon()
+        {
+            Potential potential = new Potential(10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+            WeaponType weaponType = WeaponType.sword;
+            string name = "預設劍";
+            List<Skill> skillList = new List<Skill>();
+            Weapon newWeapon = new Weapon(name, potential, weaponType, skillList, new LevelSystem());
+            return newWeapon;
+        }
         //隨機武器
         public static Weapon getRandomWeapon()
         {

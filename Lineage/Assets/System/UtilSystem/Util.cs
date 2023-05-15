@@ -36,6 +36,21 @@ namespace UtilSystem
                 return obj;
             }
         }
+        public static KeyValuePair<T, double> getRandomChanceItem<T>(List<KeyValuePair<T, double>> chanceList) {
+            double allChance = chanceList.Sum(chance => chance.Value);
+            double random = getRandom(0, allChance);
+            KeyValuePair<T, double> result = default;
+            foreach (KeyValuePair<T, double> item in chanceList)
+            {
+                random -= item.Value;
+                if (random <= 0)
+                {
+                    result = item;
+                    break;
+                }
+            }
+            return result;
+        }
     }
 
 }

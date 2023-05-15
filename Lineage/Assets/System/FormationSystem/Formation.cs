@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Numerics;
 using UtilSystem;
 
 
@@ -20,6 +21,14 @@ namespace FormationSystem
         {
             this.name = name;
             this.formationCellList = formationCells;
+        }
+        public FormationCell? getFormationCell (Vector2 position)
+        {
+            var formationCell = formationCellList.Find((FormationCell formationCell) =>
+            {
+                return formationCell.position.X == position.X && formationCell.position.Y == position.Y;
+            });
+            return formationCell;
         }
     }
 }

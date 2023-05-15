@@ -17,19 +17,20 @@ namespace SkillSystem {
                 3,
                 2,
                 PotentialType.intelligence,
-                SkillEffectType.attack,
+                SkillType.attack,
                 WeaponType.staff,
+                false,
                 50,
                 (BattleParty selfParty,BattleParty enemyParty,Skill skill)=>{
                     Console.WriteLine(selfParty.name + skill.description + enemyParty.name);
                 }
             ),
-            //new Skill("百步穿揚",RankType.E,3,1,PotentialType.dexterity,SkillEffectType.attack, WeaponType.bow),
-            //new Skill("治癒術",RankType.E,3,1,PotentialType.mentality,SkillEffectType.heal, null),
-            //new Skill("奮力一擊",RankType.E,2,1,PotentialType.strength,SkillEffectType.attack, WeaponType.sword),
-            //new Skill("加速",RankType.E,1,1,PotentialType.mentality,SkillEffectType.buff,WeaponType.dagger),
-            //new Skill("挑釁",RankType.E,3,3,PotentialType.vitality,SkillEffectType.debuff,WeaponType.shield),
-            //new Skill("守護",RankType.E,5,1,PotentialType.vitality,SkillEffectType.defend,WeaponType.dagger)
+            //new Skill("百步穿揚",RankType.E,3,1,PotentialType.dexterity,SkillType.attack, WeaponType.bow),
+            //new Skill("治癒術",RankType.E,3,1,PotentialType.mentality,SkillType.heal, null),
+            //new Skill("奮力一擊",RankType.E,2,1,PotentialType.strength,SkillType.attack, WeaponType.sword),
+            //new Skill("加速",RankType.E,1,1,PotentialType.mentality,SkillType.buff,WeaponType.dagger),
+            //new Skill("挑釁",RankType.E,3,3,PotentialType.vitality,SkillType.debuff,WeaponType.shield),
+            //new Skill("守護",RankType.E,5,1,PotentialType.vitality,SkillType.defend,WeaponType.dagger)
         };
         //取得技能庫
         public static List<Skill> getSkillList(){

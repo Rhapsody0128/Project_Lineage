@@ -22,11 +22,13 @@ namespace SkillSystem {
         //素質基礎
         public PotentialType effectBasedOn ;
         //技能類型
-        public SkillEffectType skillEffectType;
+        public SkillType skillType;
         //綁定武器
         public WeaponType BindWeapon ;
         //基礎觸發機率
         public double baseChance;
+        //隊長技
+        public bool isLeaderSkill;
 
 
         [JsonIgnore]
@@ -39,8 +41,9 @@ namespace SkillSystem {
             int range,
             int scope,
             PotentialType effectBasedOn,
-            SkillEffectType skillEffectType,
+            SkillType skillType,
             WeaponType BindWeapon,
+            bool isLeaderSkill,
             double baseChance,
             Action<BattleParty,BattleParty,Skill> action
         )
@@ -52,8 +55,10 @@ namespace SkillSystem {
             this.range = range;
             this.scope = scope;
             this.effectBasedOn = effectBasedOn;
-            this.skillEffectType = skillEffectType;
+            this.skillType = skillType;
             this.BindWeapon = BindWeapon;
+            this.isLeaderSkill = isLeaderSkill;
+            this.baseChance = baseChance;
             this.action = action;
             
         }

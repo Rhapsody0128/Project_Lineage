@@ -23,12 +23,12 @@ namespace FormationSystem
             new Formation(
                 "方陣",
                 new List<FormationCell>{
-                    new FormationCell(new Vector2(1,1),SkillEffectType.attack),
-                    new FormationCell(new Vector2(1,2),SkillEffectType.defend),
-                    new FormationCell(new Vector2(2,1),SkillEffectType.buff),
-                    new FormationCell(new Vector2(2,2),SkillEffectType.debuff),
-                    new FormationCell(new Vector2(3,1),SkillEffectType.heal),
-                    new FormationCell(new Vector2(3,2),SkillEffectType.attack),
+                    new FormationCell(new Vector2(1,1),SkillType.attack),
+                    new FormationCell(new Vector2(1,2),SkillType.defend),
+                    new FormationCell(new Vector2(2,1),SkillType.buff),
+                    new FormationCell(new Vector2(2,2),SkillType.debuff),
+                    new FormationCell(new Vector2(3,1),SkillType.heal),
+                    new FormationCell(new Vector2(3,2),SkillType.attack),
                 }
             ),
         };

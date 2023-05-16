@@ -11,8 +11,12 @@ namespace SoldierSystem
     {
         //兵團名
         public string name;
-        //士兵數
-        public int soldiersCount;
+        //士兵最大數
+        public int soldiersCountMax;
+        //死亡士兵數
+        public int deathSoldiersCount;
+        //受傷士兵數
+        public int woundedSoldiersCount;
         //素質
         public Potential potential;
         //技能
@@ -28,10 +32,35 @@ namespace SoldierSystem
         )
         {
             this.name = name;
-            this.soldiersCount = 200;
+            this.soldiersCountMax = 200;
+            this.deathSoldiersCount = 0;
+            this.woundedSoldiersCount = 0;
             this.potential = potential;
             this.skillList = skillList;
             this.levelSystem = levelSystem ?? new LevelSystem();
+        }
+
+        public int soldiersCount {
+            get {
+                return this.soldiersCountMax - this.deathSoldiersCount - this.woundedSoldiersCount;
+            }
+        }
+
+        public void lossSoldiers(int deathCount, double avoidDeathRate) {
+            if (deathCount > soldiersCount)
+            {
+                var allDeathGap = soldiersCountMax - soldiersCount;
+                deathSoldiersCount += allDeathGap;
+                var avoidDeathCount = (int)Math.Round(allDeathGap * avoidDeathRate);
+                deathSoldiersCount -= avoidDeathCount;
+                woundedSoldiersCount += avoidDeathCount;
+            }
+            else {
+                deathSoldiersCount += deathCount;
+                var avoidDeathCount = (int)Math.Round(deathCount * avoidDeathRate);
+                deathSoldiersCount -= avoidDeathCount;
+                woundedSoldiersCount += avoidDeathCount;
+            }
         }
 
         //取得素質方法
@@ -49,7 +78,7 @@ namespace SoldierSystem
         {
             get
             {
-                return getRealPotential(potential.strength, potential.strRatio);
+                return getRealPotential(potential.strength, potential.strengthRatio);
             }
         }
         //計算後敏捷
@@ -57,15 +86,15 @@ namespace SoldierSystem
         {
             get
             {
-                return getRealPotential(potential.agility, potential.agiRatio);
+                return getRealPotential(potential.agility, potential.agilityRatio);
             }
         }
         //計算後靈巧
-        public double dexterity
+        public double perception
         {
             get
             {
-                return getRealPotential(potential.dexterity, potential.dexRatio);
+                return getRealPotential(potential.perception, potential.perceptionRatio);
             }
         }
         //計算後體質
@@ -73,7 +102,7 @@ namespace SoldierSystem
         {
             get
             {
-                return getRealPotential(potential.vitality, potential.vitRatio);
+                return getRealPotential(potential.vitality, potential.vitalityRatio);
             }
         }
         //計算後智慧
@@ -81,7 +110,7 @@ namespace SoldierSystem
         {
             get
             {
-                return getRealPotential(potential.intelligence, potential.intRatio);
+                return getRealPotential(potential.intelligence, potential.intelligenceRatio);
             }
         }
         //計算後精神
@@ -89,7 +118,7 @@ namespace SoldierSystem
         {
             get
             {
-                return getRealPotential(potential.mentality, potential.menRatio);
+                return getRealPotential(potential.mentality, potential.mentalityRatio);
             }
         }
         //從類型取得素質
@@ -101,8 +130,8 @@ namespace SoldierSystem
                     return strength;
                 case PotentialType.agility:
                     return agility;
-                case PotentialType.dexterity:
-                    return dexterity;
+                case PotentialType.perception:
+                    return perception;
                 case PotentialType.vitality:
                     return vitality;
                 case PotentialType.intelligence:

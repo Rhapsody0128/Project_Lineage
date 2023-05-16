@@ -14,11 +14,7 @@ internal class Program
 {
     private static void Main(string[] args)
     {
-        var troop = TroopController.getRandomTroop();
-        troop.parties.ForEach(party =>
-        {
-            Console.WriteLine(party.name);
-            Console.WriteLine(party.weapon);
-        });
+        var battle = BattleController.getRandomBattle();
+        battle.start();
     }
 }

@@ -59,7 +59,7 @@ namespace WeaponSystem
         {
             get
             {
-                return getRealPotential(potential.strength, potential.strRatio);
+                return getRealPotential(potential.strength, potential.strengthRatio);
             }
         }
         //計算後敏捷
@@ -67,15 +67,15 @@ namespace WeaponSystem
         {
             get
             {
-                return getRealPotential(potential.agility, potential.agiRatio);
+                return getRealPotential(potential.agility, potential.agilityRatio);
             }
         }
         //計算後靈巧
-        public double dexterity
+        public double perception
         {
             get
             {
-                return getRealPotential(potential.dexterity, potential.dexRatio);
+                return getRealPotential(potential.perception, potential.perceptionRatio);
             }
         }
         //計算後體質
@@ -83,7 +83,7 @@ namespace WeaponSystem
         {
             get
             {
-                return getRealPotential(potential.vitality, potential.vitRatio);
+                return getRealPotential(potential.vitality, potential.vitalityRatio);
             }
         }
         //計算後智慧
@@ -91,7 +91,7 @@ namespace WeaponSystem
         {
             get
             {
-                return getRealPotential(potential.intelligence, potential.intRatio);
+                return getRealPotential(potential.intelligence, potential.intelligenceRatio);
             }
         }
         //計算後精神
@@ -99,7 +99,7 @@ namespace WeaponSystem
         {
             get
             {
-                return getRealPotential(potential.mentality, potential.menRatio);
+                return getRealPotential(potential.mentality, potential.mentalityRatio);
             }
         }
         //從類型取得素質
@@ -111,8 +111,8 @@ namespace WeaponSystem
                     return strength;
                 case PotentialType.agility:
                     return agility;
-                case PotentialType.dexterity:
-                    return dexterity;
+                case PotentialType.perception:
+                    return perception;
                 case PotentialType.vitality:
                     return vitality;
                 case PotentialType.intelligence:

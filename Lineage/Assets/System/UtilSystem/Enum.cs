@@ -11,7 +11,7 @@ namespace UtilSystem
     //列出評比
     public enum RankType { E, D, C, B, A, S, SS, SSS }
     //六大素質
-    public enum PotentialType { strength, vitality, agility, dexterity, intelligence, mentality }
+    public enum PotentialType { strength, vitality, agility, perception, intelligence, mentality }
     //六大武器種類
     public enum WeaponType { empty, sword, bow, shield, dagger, staff, scepter }
     //技能類型

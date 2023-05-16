@@ -15,7 +15,7 @@ public class CreateHeroBtn : MonoBehaviour
         // GameObject obj = GameObject.Find("HeroInfo") ;
         // TMP_Text  text = obj.GetComponent<TMP_Text >();
         title.text = @$"{hero.name}·{hero.lastName}" ;
-        content.text = $"力量 {hero.strength}  敏捷 {hero.agility}\n體質 {hero.vitality}  靈巧 {hero.dexterity}\n智慧 {hero.intelligence}  信仰 {hero.mentality}";
+        content.text = $"力量 {hero.strength}  敏捷 {hero.agility}\n體質 {hero.vitality}  靈巧 {hero.perception}\n智慧 {hero.intelligence}  信仰 {hero.mentality}";
         GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         sphere.transform.position = new Vector3(Util.getRandom(0,400),Util.getRandom(0,200),0);
         sphere.transform.localScale  = new Vector3(40, 40, 40);

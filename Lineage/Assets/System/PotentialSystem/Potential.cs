@@ -13,71 +13,71 @@ namespace PotentialSystem
         public double vitality;
         //敏捷
         public double agility;
-        //靈巧
-        public double dexterity;
+        //感知
+        public double perception;
         //智慧
         public double intelligence;
         //精神
         public double mentality;
         //力量等級比率
-        public double strRatio;
+        public double strengthRatio;
         //體質等級比率
-        public double vitRatio;
+        public double vitalityRatio;
         //敏捷等級比率
-        public double agiRatio;
-        //靈巧等級比率
-        public double dexRatio;
+        public double agilityRatio;
+        //感知等級比率
+        public double perceptionRatio;
         //智慧等級比率
-        public double intRatio;
+        public double intelligenceRatio;
         //精神等級比率
-        public double menRatio;
+        public double mentalityRatio;
         //力量表現評比
-        public RankType strRank;
+        public RankType strengthRank;
         //體質表現評比
-        public RankType vitRank;
+        public RankType vitalityRank;
         //敏捷表現評比
-        public RankType agiRank;
-        //靈巧表現評比
-        public RankType dexRank;
+        public RankType agilityRank;
+        //感知表現評比
+        public RankType perceptionRank;
         //智慧表現評比
-        public RankType intRank;
+        public RankType intelligenceRank;
         //精神表現評比
-        public RankType menRank;
+        public RankType mentalityRank;
 
 
         public Potential(
             double strength,
             double vitality,
             double agility,
-            double dexterity,
+            double perception,
             double intelligence,
             double mentality,
-            double strRatio,
-            double vitRatio,
-            double dexRatio,
-            double agiRatio,
-            double intRatio,
-            double menRatio
+            double strengthRatio,
+            double vitalityRatio,
+            double perceptionRatio,
+            double agilityRatio,
+            double intelligenceRatio,
+            double mentalityRatio
         )
         {
             this.strength = strength;
             this.vitality = vitality;
             this.agility = agility;
-            this.dexterity = dexterity;
+            this.perception = perception;
             this.intelligence = intelligence;
             this.mentality = mentality;
-            this.strRatio = strRatio;
-            this.vitRatio = vitRatio;
-            this.dexRatio = dexRatio;
-            this.agiRatio = agiRatio;
-            this.intRatio = intRatio;
-            this.menRatio = menRatio;
-            strRank = ratioToRankToRank(strRatio);
-            vitRank = ratioToRankToRank(vitRatio);
-            dexRank = ratioToRankToRank(dexRatio);
-            agiRank = ratioToRankToRank(agiRatio);
-            intRank = ratioToRankToRank(intRatio);
-            menRank = ratioToRankToRank(menRatio);
+            this.strengthRatio = strengthRatio;
+            this.vitalityRatio = vitalityRatio;
+            this.perceptionRatio = perceptionRatio;
+            this.agilityRatio = agilityRatio;
+            this.intelligenceRatio = intelligenceRatio;
+            this.mentalityRatio = mentalityRatio;
+            strengthRank = ratioToRankToRank(strengthRatio);
+            vitalityRank = ratioToRankToRank(vitalityRatio);
+            perceptionRank = ratioToRankToRank(perceptionRatio);
+            agilityRank = ratioToRankToRank(agilityRatio);
+            intelligenceRank = ratioToRankToRank(intelligenceRatio);
+            mentalityRank = ratioToRankToRank(mentalityRatio);
         }
         public static RankType ratioToRankToRank(double ratio)
         {

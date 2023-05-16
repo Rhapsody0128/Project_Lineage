@@ -99,11 +99,11 @@ namespace PartySystem
             }
         }
         //計算後靈巧
-        public double dexterity
+        public double perception
         {
             get
             {
-                return getRealPotential(PotentialType.dexterity);
+                return getRealPotential(PotentialType.perception);
             }
         }
         //計算後體質
@@ -139,8 +139,8 @@ namespace PartySystem
                     return strength;
                 case PotentialType.agility:
                     return agility;
-                case PotentialType.dexterity:
-                    return dexterity;
+                case PotentialType.perception:
+                    return perception;
                 case PotentialType.vitality:
                     return vitality;
                 case PotentialType.intelligence:

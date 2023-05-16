@@ -25,7 +25,7 @@ namespace SkillSystem {
                     Console.WriteLine(selfParty.name + skill.description + enemyParty.name);
                 }
             ),
-            //new Skill("百步穿揚",RankType.E,3,1,PotentialType.dexterity,SkillType.attack, WeaponType.bow),
+            //new Skill("百步穿揚",RankType.E,3,1,PotentialType.perception,SkillType.attack, WeaponType.bow),
             //new Skill("治癒術",RankType.E,3,1,PotentialType.mentality,SkillType.heal, null),
             //new Skill("奮力一擊",RankType.E,2,1,PotentialType.strength,SkillType.attack, WeaponType.sword),
             //new Skill("加速",RankType.E,1,1,PotentialType.mentality,SkillType.buff,WeaponType.dagger),

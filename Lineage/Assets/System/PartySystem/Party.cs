@@ -19,7 +19,7 @@ namespace PartySystem
         //兵團
         public List<Soldier> soldiers;
         //技能
-        public List<Skill> skillList ;
+        public List<Skill> skillList;
         //在陣形中佔據的位置資訊
         public FormationCell? formationCell;
 
@@ -65,6 +65,28 @@ namespace PartySystem
                 }
             }
         }
+        //全部待命中士兵
+        public int totalSoilderCount
+        {
+            get {
+                return soldiers.Sum(soldiers => soldiers.soldiersCount );
+            }
+        }
+        //全部受傷士兵
+        public int totalWondedSoilderCount
+        {
+            get
+            {
+                return soldiers.Sum(soldiers => soldiers.woundedSoldiersCount);
+            }
+        }
+        //全部無法行動士兵
+        public bool totalSoliderIsDisabled
+        {
+            get {
+                return soldiers.All(soldiers => soldiers.isDisabled);
+            }
+        }
 
         //取得素質方法
         private double getRealPotential(
@@ -78,7 +100,9 @@ namespace PartySystem
             }
             soldiers.ForEach(soldier =>
             {
-                totalPotential += soldier.getPotential(potentialType) * 0.06;
+                if (!soldier.isDisabled) {
+                    totalPotential += soldier.getPotential(potentialType) * 0.06;
+                }
             });
             return totalPotential;
         }

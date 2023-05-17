@@ -7,8 +7,8 @@ using HeroSystem;
 using SoldierSystem;
 using SkillSystem;
 using WeaponSystem;
-using static System.Net.Mime.MediaTypeNames;
 using Newtonsoft.Json.Linq;
+using System.Linq;
 
 namespace BattleSystem
 {
@@ -46,9 +46,20 @@ namespace BattleSystem
             this.party = party;
             this.battle = battle;
             this.isEnemy = isEnemy;
+            setActionChance();
+        }
+
+        private void setActionChance()
+        {
             party.skillList.ForEach(skill =>
             {
-                actionList.Add(new KeyValuePair<string, double>(skill.id.ToString(), skill.baseChance ));
+                if (skill.bindWeapon == weapon?.weaponType || skill.bindWeapon == WeaponType.empty) {
+                    var chance = skill.baseChance;
+                    if (skill.skillType == poistionSkillType) {
+                        chance *= 1.5;
+                    };
+                    actionList.Add(new KeyValuePair<string, double>(skill.id.ToString(), chance));
+                }
             });
         }
         // 每回合的行動
@@ -81,7 +92,14 @@ namespace BattleSystem
         //攻擊
         public void attack (BattleParty target) {
             Console.WriteLine(this.name + " attack " + target.name);
-            target.beAttacked(this, strength);
+            if (judgeDodge(this,target))
+            {
+                return;
+            }
+            var damageBase = strength;
+            var reduceBase = target.vitality;
+            var damage = damageBase - (damageBase * (reduceBase / 200));
+            target.beAttacked(damage);
         }
         //發呆
         public void daze()
@@ -100,31 +118,55 @@ namespace BattleSystem
             return emeny[random];
         }
         //受到攻擊時
-        public void beAttacked(BattleParty attacker,double damage) {
-            if (judgeDodge(attacker,this)) {
-                return;
-            }
-            int damagePoints = (int)Math.Round(damage - (damage * (vitality / 200)));
-            Console.WriteLine(attacker.name + " damage to " + this.name +  " about " + result + " points ");
+        public void beAttacked(double damage)
+        {
 
+            int damagePoints = (int)Math.Round(damage);
 
+            Console.WriteLine(this.name + " got " + damagePoints + " damage");
 
-            int death = damagePoints;
-            double avoidDeathRate = 20 + Util.getRandom(0, 20) + (vitality / 200) * 40;
-            List<int> deathList = new List<int>();
-            for (int i = 0;i< this.party.soldiers.Count; i++)
+            List<Soldier> soldiers = party.soldiers;
+            while (damagePoints > 0)
             {
-                var deathCount = Util.getRandom(0, death);
-                deathList.Add(deathCount);
-            }
-            Random rand = new Random();
-            deathList = deathList.OrderBy(e => rand.Next()).ToList();
-            for (int i = 0; i < this.party.soldiers.Count; i++) {
-                var solider = this.party.soldiers[i];
-                var deathCount = deathList[i];
-                solider.lossSoldiers(deathCount, avoidDeathRate);
+                if (party.totalSoliderIsDisabled)
+                {
+                    Console.WriteLine(this.name + " all soliiders is disabled ");
+                    return;
+                }
+                var random = Util.getRandom(0, soldiers.Count);
+                Soldier soldier = soldiers[random];
+
+                if (soldier.isDisabled)
+                {
+                    continue;
+                }
+
+                double avoidDeathRate = (20 + Util.getRandom(0, 20) + (vitality / 200) * 40) / 100;
+
+                if (soldier.soldiersCount >= damagePoints)
+                {
+                    int deathCount = (int)Math.Round(damagePoints * (1 - avoidDeathRate));
+                    int woundedCount = (int)Math.Round(damagePoints * avoidDeathRate);
+                    soldier.deathSoldiersCount += deathCount;
+                    soldier.woundedSoldiersCount += woundedCount;
+                    damagePoints = 0;
+                    Console.WriteLine(this.name + " 的 " + soldier.name + " death: " + deathCount + " and wounded: " + woundedCount);
+                }
+                else
+                {
+                    var remainSoldier = soldier.soldiersCount;
+                    int deathCount = (int)Math.Round(remainSoldier * (1 - avoidDeathRate));
+                    int woundedCount = (int)Math.Round(remainSoldier * avoidDeathRate);
+                    soldier.deathSoldiersCount += deathCount;
+                    soldier.woundedSoldiersCount += woundedCount;
+                    damagePoints -= remainSoldier;
+                    Console.WriteLine(this.name + " 的 " + soldier.name + " death: " + deathCount + " and wounded: " + woundedCount);
+                }
             }
         }
+
+
+
         //判斷是否閃避
         public bool judgeDodge(BattleParty attacker, BattleParty defenser) {
             double dodgeRate = (defenser.agility - attacker.perception * 1.2) * 0.45;
@@ -144,10 +186,10 @@ namespace BattleSystem
             get{
                 if (!isEnemy)
                 {
-                    return battle.enemyParties;
+                    return battle.enemyParties.Where(party=> !party.totalSoliderIsDisabled ).ToList();
                 }
                 else {
-                    return battle.selfParties;
+                    return battle.selfParties.Where(party => !party.totalSoliderIsDisabled).ToList();
                 }
             }
         }
@@ -168,6 +210,30 @@ namespace BattleSystem
         }
 
 
+        //全部待命中士兵
+        public int totalSoilderCount
+        {
+            get
+            {
+                return party.soldiers.Sum(soldiers => soldiers.soldiersCount);
+            }
+        }
+        //全部受傷士兵
+        public int totalWondedSoilderCount
+        {
+            get
+            {
+                return party.soldiers.Sum(soldiers => soldiers.woundedSoldiersCount);
+            }
+        }
+        //全部無法行動士兵
+        public bool totalSoliderIsDisabled
+        {
+            get
+            {
+                return party.soldiers.All(soldiers => soldiers.isDisabled);
+            }
+        }
 
         //武器
         public Weapon? weapon
@@ -177,7 +243,7 @@ namespace BattleSystem
                 return party.weapon;
             }
         }
-        //
+        //陣形役
         public SkillType? poistionSkillType
         {
             get

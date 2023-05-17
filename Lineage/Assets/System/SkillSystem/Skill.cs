@@ -24,7 +24,7 @@ namespace SkillSystem {
         //技能類型
         public SkillType skillType;
         //綁定武器
-        public WeaponType BindWeapon ;
+        public WeaponType bindWeapon ;
         //基礎觸發機率
         public double baseChance;
         //隊長技
@@ -42,7 +42,7 @@ namespace SkillSystem {
             int scope,
             PotentialType effectBasedOn,
             SkillType skillType,
-            WeaponType BindWeapon,
+            WeaponType bindWeapon,
             bool isLeaderSkill,
             double baseChance,
             Action<BattleParty,BattleParty,Skill> action
@@ -56,7 +56,7 @@ namespace SkillSystem {
             this.scope = scope;
             this.effectBasedOn = effectBasedOn;
             this.skillType = skillType;
-            this.BindWeapon = BindWeapon;
+            this.bindWeapon = bindWeapon;
             this.isLeaderSkill = isLeaderSkill;
             this.baseChance = baseChance;
             this.action = action;

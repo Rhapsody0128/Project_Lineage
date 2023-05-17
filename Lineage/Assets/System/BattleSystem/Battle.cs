@@ -48,10 +48,15 @@ namespace BattleSystem
             get {
                 List<BattleParty> battleParties = new List<BattleParty>();
                 selfParties.ForEach(party => {
-                    battleParties.Add(party);
+                    if (!party.totalSoliderIsDisabled) {
+                        battleParties.Add(party);
+                    }
                 });
                 enemyParties.ForEach(party => {
-                    battleParties.Add(party);
+                    if (!party.totalSoliderIsDisabled)
+                    {
+                        battleParties.Add(party);
+                    }
                 });
                 battleParties.Sort((x, y) =>
                     y.actionSpeed.CompareTo(x.actionSpeed)
@@ -65,6 +70,10 @@ namespace BattleSystem
         {
             initBattle();
             while (round < totalRound) {
+                if (judgeOver())
+                {
+                    return;
+                }
                 roundStart();
                 roundProgress();
                 roundEnd();
@@ -78,25 +87,42 @@ namespace BattleSystem
         // 回合開始
         private void roundStart()
         {
-            Console.WriteLine("------------第{0}回------------", round);
+            Console.WriteLine("------------第{0}回------------", round + 1);
         }
         //回合進行
         public void roundProgress() {
             actionOrder.ForEach(party =>
             {
-                party.action();
+                if (judgeOver())
+                {
+                    return;
+                }
+                if (!party.totalSoliderIsDisabled) {
+                    party.action();
+                }
             });
             
         }
         // 回合結束
         private void roundEnd()
         {
-            //actionOrder.ForEach(party =>
-            //{
-            //});
             Console.WriteLine("回合結束");
             round++;
         }
-
+        private bool judgeOver() {
+            var selfLeaderDisabled = selfPartyLeader.totalSoliderIsDisabled;
+            if (selfLeaderDisabled)
+            {
+                Console.WriteLine("我方總大將" + selfPartyLeader.name + "敗退");
+                return selfLeaderDisabled;
+            }
+            var enemyLeaderDisabled = enemyPartyLeader.totalSoliderIsDisabled;
+            if (enemyLeaderDisabled)
+            {
+                Console.WriteLine("敵方總大將" + enemyPartyLeader.name + "敗退");
+                return enemyLeaderDisabled;
+            }
+            return false;
+        }
     }
 }

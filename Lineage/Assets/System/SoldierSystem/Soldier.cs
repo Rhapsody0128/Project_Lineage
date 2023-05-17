@@ -40,26 +40,16 @@ namespace SoldierSystem
             this.levelSystem = levelSystem ?? new LevelSystem();
         }
 
+        //待命中士兵數量
         public int soldiersCount {
             get {
                 return this.soldiersCountMax - this.deathSoldiersCount - this.woundedSoldiersCount;
             }
         }
-
-        public void lossSoldiers(int deathCount, double avoidDeathRate) {
-            if (deathCount > soldiersCount)
-            {
-                var allDeathGap = soldiersCountMax - soldiersCount;
-                deathSoldiersCount += allDeathGap;
-                var avoidDeathCount = (int)Math.Round(allDeathGap * avoidDeathRate);
-                deathSoldiersCount -= avoidDeathCount;
-                woundedSoldiersCount += avoidDeathCount;
-            }
-            else {
-                deathSoldiersCount += deathCount;
-                var avoidDeathCount = (int)Math.Round(deathCount * avoidDeathRate);
-                deathSoldiersCount -= avoidDeathCount;
-                woundedSoldiersCount += avoidDeathCount;
+        //是否有可用士兵
+        public bool isDisabled {
+            get {
+                return soldiersCount <= 0;
             }
         }
 

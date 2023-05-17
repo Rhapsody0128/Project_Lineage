@@ -20,9 +20,13 @@ namespace SkillSystem {
                 SkillType.attack,
                 WeaponType.staff,
                 false,
-                50,
+                25,
                 (BattleParty selfParty,BattleParty enemyParty,Skill skill)=>{
+                    var damageBase = selfParty.intelligence * 10;
+                    var reduceBase = enemyParty.mentality;
+                    var damage = damageBase  - (damageBase * (reduceBase / 200 ) );
                     Console.WriteLine(selfParty.name + skill.description + enemyParty.name);
+                    enemyParty.beAttacked(damage) ;
                 }
             ),
             //new Skill("百步穿揚",RankType.E,3,1,PotentialType.perception,SkillType.attack, WeaponType.bow),
@@ -43,7 +47,7 @@ namespace SkillSystem {
         //取得某武器的技能庫(含通用)
         public static List<Skill> getSkillList (WeaponType weaponType){
             var result = skillLibrary.FindAll((skill)=>{
-                return (skill.BindWeapon == weaponType || weaponType == WeaponType.empty) ;
+                return (skill.bindWeapon == weaponType || weaponType == WeaponType.empty) ;
             }) ;
             return result ;
         }

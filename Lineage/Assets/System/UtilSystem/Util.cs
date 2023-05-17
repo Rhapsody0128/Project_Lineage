@@ -8,7 +8,7 @@ namespace UtilSystem
         //取得隨機數(整數)
         public static int getRandom(int min, int max)
         {
-            return new Random().Next(min, max);
+            return new Random().Next(min, max) + min;
         }
         //取得隨機數(小數)
         public static double getRandom(double min, double max)

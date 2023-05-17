@@ -25,13 +25,22 @@ namespace SkillSystem {
                     var damageBase = selfParty.intelligence * 10;
                     var reduceBase = enemyParty.mentality;
                     var damage = damageBase  - (damageBase * (reduceBase / 200 ) );
-                    Console.WriteLine(selfParty.name + skill.description + enemyParty.name);
+                    Console.WriteLine(selfParty.name + " use skill " + skill.name + " to " + enemyParty.name);
+                    enemyParty.beAttacked(damage) ;
+                }
+            ),
+            new Skill("奮力一擊","全力使用力量一擊",RankType.E,2,1,PotentialType.strength,SkillType.attack, WeaponType.empty,false,35,
+                (BattleParty selfParty,BattleParty enemyParty,Skill skill)=>
+                {
+                    var damageBase = selfParty.strength * 8;
+                    var reduceBase = enemyParty.vitality;
+                    var damage = damageBase  - (damageBase * (reduceBase / 200 ) );
+                    Console.WriteLine(selfParty.name + " use skill " + skill.name + " to " + enemyParty.name);
                     enemyParty.beAttacked(damage) ;
                 }
             ),
             //new Skill("百步穿揚",RankType.E,3,1,PotentialType.perception,SkillType.attack, WeaponType.bow),
             //new Skill("治癒術",RankType.E,3,1,PotentialType.mentality,SkillType.heal, null),
-            //new Skill("奮力一擊",RankType.E,2,1,PotentialType.strength,SkillType.attack, WeaponType.sword),
             //new Skill("加速",RankType.E,1,1,PotentialType.mentality,SkillType.buff,WeaponType.dagger),
             //new Skill("挑釁",RankType.E,3,3,PotentialType.vitality,SkillType.debuff,WeaponType.shield),
             //new Skill("守護",RankType.E,5,1,PotentialType.vitality,SkillType.defend,WeaponType.dagger)
@@ -63,7 +72,7 @@ namespace SkillSystem {
             List<Skill> skillList = SkillController.getSkillList();
             if (skillList.Count != 0)
             {
-                var randomSkill = skillList[Util.getRandom(0, skillList.Count - 1)];
+                var randomSkill = skillList[Util.getRandom(0, skillList.Count)];
                 return new List<Skill>(){ randomSkill } ;
             }
             else {
@@ -75,7 +84,7 @@ namespace SkillSystem {
             List<Skill> skillList = SkillController.getSkillList(weaponType);
             if(skillList.Count != 0)
             {
-                var randomSkill = skillList[Util.getRandom(0, skillList.Count -1 )] ;
+                var randomSkill = skillList[Util.getRandom(0, skillList.Count)] ;
                 return new (){randomSkill} ;
             }else{
                 return new() { };
@@ -86,7 +95,7 @@ namespace SkillSystem {
             List<Skill> skillList = SkillController.getSkillList(rankType);
             if(skillList.Count != 0)
             {
-                var randomSkill = skillList[Util.getRandom(0, skillList.Count - 1)] ;
+                var randomSkill = skillList[Util.getRandom(0, skillList.Count)] ;
                 return new (){randomSkill} ;
             }else{
                 return new() { };

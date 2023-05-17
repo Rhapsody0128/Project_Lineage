@@ -7,6 +7,7 @@ using UtilSystem;
 using SkillSystem;
 using WeaponSystem;
 using FormationSystem;
+using System.Linq;
 
 namespace PartySystem
 {

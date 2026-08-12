@@ -1,6 +1,9 @@
 class_name Hero
 extends RefCounted
 
+## 角色目前統一固定血量上限,尚未有依素質/等級計算血量的公式,先寫死
+const HP_MAX := 600
+
 var id: String
 var name: String
 var last_name: String
@@ -10,6 +13,7 @@ var traits: Array[CharacterTrait]
 var potential: Potential
 var skill_list: Array[Skill]
 var level_system: LevelSystem
+var hp: int
 
 func _init(
 	p_name: String,
@@ -30,9 +34,19 @@ func _init(
 	potential = p_potential
 	skill_list = p_skill_list
 	level_system = p_level_system
+	hp = HP_MAX
 
 var full_name: String:
 	get: return "%s·%s" % [name, last_name]
+
+var hp_max: int:
+	get: return HP_MAX
+
+var is_disabled: bool:
+	get: return hp <= 0
+
+func take_damage(damage_points: int) -> void:
+	hp = maxi(hp - damage_points, 0)
 
 func gain_exp(exp_amount: int) -> void:
 	level_system.gain_exp(exp_amount)

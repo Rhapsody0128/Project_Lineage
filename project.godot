@@ -8,16 +8,16 @@
 
 config_version=5
 
-[autoload]
-
-CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
-
 [application]
 
 config/name="Project L"
 run/main_scene="uid://bksb6osavtmgu"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
+
+[autoload]
+
+CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
 
 [display]
 

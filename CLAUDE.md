@@ -33,27 +33,38 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 | 資料夾 | 內容 |
 |---|---|
-| `hero/` | 角色(騎士本人),含 `face_path`/`age`/`traits` |
-| `soldier/` | 兵團(部隊底下的士兵單位) |
+| `hero/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600) |
 | `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/PERCEPTION/INTELLIGENCE/MENTALITY) |
 | `skill/` | 技能池與效果 |
-| `weapon/` | 武器種類與對應技能 |
 | `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
-| `formation/` | 陣形與陣形格(目前只有一種寫死的方陣) |
-| `party/` | 部隊(隊長+士兵+陣形格) |
-| `troop/` | 軍團(`TroopController.get_random_troop()` 固定產生 6 個 Party) |
+| `party/` | 小隊,由多個 `Hero` 組成(`Party.heroes`) |
+| `troop/` | 軍團,由多個 `Party` 組成(`Troop.parties`) |
 | `battle/` | 自動戰鬥流程與戰報 |
 | `util/` | `GameEnums`(所有列舉)、`Util`(隨機/UUID)、`level_system.gd` |
+
+士兵/武器/陣形系統已整個移除(暫時不需要這些設計)。編制階層是
+`Hero`(角色)⊂ `Party`(小隊)⊂ `Troop`(軍團),但這只是組織上的分組——
+**戰場上沒有「小隊」這個作戰單位**,`BattleController.get_random_battle()` 會把
+軍團底下所有小隊的角色整個攤平,每個角色各自佔一格獨立作戰(見 `System/battle/
+battle_hero.gd` 的 `BattleHero`,直接包一個 `Hero`)。小隊/軍團的人數之後會開放
+玩家配置與科技研發提升,目前寫死:1 軍團 = 1 小隊、1 小隊 = 6 名隨機角色
+(對應戰場 6 路縱隊)。
 
 ## 戰鬥系統(System/battle + Scenes/Battle)
 
 `Battle.start()` 一次性把整場戰鬥模擬完,事件存進 `battle.battle_log`;`battle.gd` 事後
-依序重播,不影響模擬。事件合約細節、戰場座標/移動/閃避公式見 Spec.md 一、二。
+依序重播,不影響模擬。事件合約細節、戰場座標/移動/閃避/勝負公式見 Spec.md 一、二。
+固定跑 10 回合,沒有總大將設計,回合結束比雙方剩餘總 HP 多的一方獲勝;角色 HP 歸零
+視為戰敗(`defeated` 事件)。
 
-畫面元件已拆分單一職責:`battle.gd`(整合層)、`battle_board.gd`(格線/座標換算,必須是
-獨立節點,插在 `BoardPanel` 之後、`UnitsLayer` 之前,否則會被根節點不透明子節點蓋住)、
-`battle_unit_visual.gd`(單一角色動畫/受擊反應/傷害飄字)、`battle_party_roster.gd`
-(頭像列,含血條、點擊頭像開啟 `CharacterPanel`)、`battle_log_panel.gd`(戰報文字)。
+畫面元件已拆分單一職責:`battle.gd`(整合層,重播時連續的 `move`/`daze` 事件會併發
+播放 2~3 個加速演示;`attack`/`skill` 則跟緊接在後面的 `dodge`/`damage` 反應事件
+合併同時播放,不分先後拍)、`battle_board.gd`(格線/座標換算,必須是獨立節點,插在
+`BoardPanel` 之後、`UnitsLayer` 之前,否則會被根節點不透明子節點蓋住)、
+`battle_unit_visual.gd`(單一角色動畫/受擊反應/閃避反應/傷害飄字——未命中只晃一下,
+不閃白,不再顯示技能名稱橫幅)、`battle_party_roster.gd`(頭像列,含血條、點擊頭像
+開啟 `CharacterPanel`;角色行動時頭像會往戰場方向靠近一點提示輪到誰,放技能時
+頭像框額外變色高亮,取代舊版頭上飄字)、`battle_log_panel.gd`(戰報文字)。
 
 角色美術暫代:全部共用 `Images/Warrier/animated_sprite_2d.tscn`,動畫全設 loop,
 `animation_finished` 不會觸發,等待動畫改用「幀數/播放速度」算時長(`wait_for_animation()`)。
@@ -67,9 +78,8 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 ## Unity → Godot 移植備忘
 
-`Guid` → `Util.generate_uuid()`;GDScript 無多載 →
-`get_skill_list_by_weapon()`/`get_skill_list_by_rank()`;`Skill.range` → `skill_range`
-(避免蓋掉內建 `range()`)。完整清單見 Spec.md 四。
+`Guid` → `Util.generate_uuid()`;GDScript 無多載 → 改用 `get_skill_list_by_rank()` 這種
+獨立命名;`Skill.range` → `skill_range`(避免蓋掉內建 `range()`)。完整清單見 Spec.md 四。
 
 ## 已知待辦
 

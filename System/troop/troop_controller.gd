@@ -1,14 +1,11 @@
 class_name TroopController
 extends RefCounted
 
+## 軍團底下小隊數量,之後會是可被科技研發提升的變數,目前先固定 1 個
+const RANDOM_PARTY_COUNT := 1
+
 static func get_random_troop() -> Troop:
 	var parties: Array[Party] = []
-	var formation := FormationController.get_random_formation()
-	for i in range(6):
-		var party := PartyController.get_random_party()
-		var weapon := WeaponController.get_random_weapon()
-		var formation_cell: FormationCell = formation.formation_cell_list[i]
-		formation_cell.set_weapon(weapon)
-		party.set_formation_cell(formation_cell)
-		parties.append(party)
-	return Troop.new("隨機軍團", parties, formation)
+	for i in range(RANDOM_PARTY_COUNT):
+		parties.append(PartyController.get_random_party())
+	return Troop.new("隨機軍團", parties)

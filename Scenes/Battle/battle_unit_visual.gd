@@ -3,10 +3,10 @@ extends Node2D
 
 # =========================================================
 # 場上單一角色的畫面呈現(動畫、位置補間)。
-# 頭上不常駐顯示名字/兵力,只有放技能時才浮現技能名稱橫幅;
-# 名字與血量改由左右頭像列(BattlePartyRoster)常駐顯示。
+# 頭上不常駐顯示名字/HP,也不顯示技能名稱橫幅——放技能時改成左右頭像列
+# (BattlePartyRoster)的頭像框高亮+靠近戰場提示,名字與 HP 也是由頭像列常駐顯示。
 # 只負責畫面表現,不含任何戰鬥判定邏輯 —— 判定全部來自
-# System/battle 的 BattleParty,棋盤座標/像素座標換算則由
+# System/battle 的 BattleHero,棋盤座標/像素座標換算則由
 # battle.gd(棋盤)負責,本檔案只依照傳進來的結果播放。
 # =========================================================
 
@@ -19,9 +19,6 @@ const SPRITE_SCALE := Vector2(1.3, 1.3)
 # 因此攻擊/技能動畫改用「動畫長度計時」等待,不依賴該訊號。
 const ATTACK_ANIM_FALLBACK_TIME := 0.4
 
-# 技能名稱浮字顯示時間
-const SKILL_BANNER_RISE_TIME := 0.6
-
 # 傷害數字浮字顯示時間
 const DAMAGE_NUMBER_RISE_TIME := 0.5
 
@@ -29,25 +26,23 @@ const DAMAGE_NUMBER_RISE_TIME := 0.5
 const HIT_FLASH_COLOR := Color(3.0, 3.0, 3.0, 1.0)
 const HIT_SHAKE_OFFSET := 6.0
 
-var battle_party: BattleParty
+# 閃避反應:側身晃一下的位移(像素),不閃白、不震動,跟受擊反應明確區分開來
+const DODGE_STEP_OFFSET := Vector2(10.0, -6.0)
+
+var battle_hero: BattleHero
 var is_enemy: bool
 var grid_pos: Vector2i
-var total_max: int
 
 var sprite: AnimatedSprite2D
 
 
 ## 建立角色顯示(動畫),pixel_pos 為棋盤換算好的初始位置
-func setup(p_battle_party: BattleParty, p_is_enemy: bool, character_scene: PackedScene, pixel_pos: Vector2) -> void:
-	battle_party = p_battle_party
+func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedScene, pixel_pos: Vector2) -> void:
+	battle_hero = p_battle_hero
 	is_enemy = p_is_enemy
-	grid_pos = battle_party.grid_pos
+	grid_pos = battle_hero.grid_pos
 	position = pixel_pos
 	z_index = grid_pos.y
-
-	total_max = 0
-	for soldier in battle_party.party.soldiers:
-		total_max += soldier.soldiers_count_max
 
 	var character := character_scene.instantiate()
 	add_child(character)
@@ -92,7 +87,7 @@ func _play_dir_anim(dir: Vector2i, prefix: String) -> String:
 	if sprite.sprite_frames.has_animation(anim):
 		sprite.play(anim)
 	else:
-		printerr("找不到動畫：", anim, " / 角色：", battle_party.name)
+		printerr("找不到動畫：", anim, " / 角色：", battle_hero.name)
 
 	return anim
 
@@ -154,29 +149,6 @@ func wait_for_animation(anim_name: String) -> void:
 	await get_tree().create_timer(duration).timeout
 
 
-## 放招時在角色頭上顯示招式名稱,往上飄並淡出
-func show_skill_banner(skill_name: String) -> void:
-	var banner := Label.new()
-	banner.text = skill_name
-	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	banner.add_theme_font_size_override("font_size", 18)
-	banner.add_theme_color_override("font_color", Color(1.0, 0.85, 0.2))
-	banner.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	banner.add_theme_constant_override("outline_size", 5)
-	banner.position = Vector2(-56, -106)
-	banner.size = Vector2(112, 22)
-	banner.modulate = Color(1, 1, 1, 0)
-	banner.z_as_relative = true
-	add_child(banner)
-
-	var tw := banner.create_tween()
-	tw.tween_property(banner, "modulate:a", 1.0, 0.1)
-	tw.parallel().tween_property(banner, "position:y", banner.position.y - 16.0, SKILL_BANNER_RISE_TIME)
-	tw.tween_interval(0.2)
-	tw.tween_property(banner, "modulate:a", 0.0, 0.3)
-	tw.tween_callback(banner.queue_free)
-
-
 ## 受到傷害時在頭上跳出傷害數字,往上飄並淡出
 func show_damage_number(amount: int) -> void:
 	var label := Label.new()
@@ -200,6 +172,19 @@ func show_damage_number(amount: int) -> void:
 	tw.tween_callback(label.queue_free)
 
 
+## 被攻擊但閃避成功時的反應:側身晃一下,不閃白、不震動,跟 play_hit_reaction() 區分,
+## 讓玩家一眼看出這一擊沒有命中。
+func play_dodge_reaction() -> void:
+	if sprite == null:
+		return
+
+	var base_pos := sprite.position
+
+	var tw := create_tween()
+	tw.tween_property(sprite, "position", base_pos + DODGE_STEP_OFFSET, 0.08)
+	tw.tween_property(sprite, "position", base_pos, 0.12)
+
+
 ## 受到傷害時的受擊反應:快速閃白 + 左右震動,提示這次攻擊有造成傷害。
 ## 只動 sprite 的區域座標(不動 self.position),避免跟移動補間搶同一個屬性。
 func play_hit_reaction() -> void:
@@ -217,6 +202,6 @@ func play_hit_reaction() -> void:
 	tw.tween_property(sprite, "position", base_pos, 0.04)
 
 
-func apply_all_disabled() -> void:
+func apply_defeated() -> void:
 	var tw := create_tween()
 	tw.tween_property(self, "modulate:a", COLOR_DEAD_ALPHA, 0.3)

@@ -10,7 +10,8 @@ config_version=5
 
 [application]
 
-run/main_scene="res://TestScene.tscn"
+config/name="Project L"
+run/main_scene="uid://bksb6osavtmgu"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 

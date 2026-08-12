@@ -7,6 +7,10 @@ enum WeaponType {EMPTY, SWORD, BOW, SHIELD, DAGGER, STAFF, SCEPTER}
 enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND}
 enum ActionType {ATTACK, DAZE, ESCAPE, CONFUSE, SKILL}
 enum Relations {SELF, ALLIES, NEUTRAL, HOSTILE, UNKNOWN}
+enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
+
+## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
+const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 const MALE_HERO_NAMES: Array[String] = [
 	"約翰", "保羅", "喬治", "亞歷克斯", "馬克斯", "大衛", "丹尼爾", "馬克", "約瑟夫", "派屈克",

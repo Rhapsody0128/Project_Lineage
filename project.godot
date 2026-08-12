@@ -8,6 +8,10 @@
 
 config_version=5
 
+[autoload]
+
+CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
+
 [application]
 
 config/name="Project L"
@@ -17,6 +21,8 @@ config/icon="res://icon.svg"
 
 [display]
 
+window/size/viewport_width=1600
+window/size/viewport_height=900
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 

@@ -2,9 +2,9 @@ class_name Battle
 extends RefCounted
 
 ## 戰場格子大小,參考信喵之野望的縱向戰場:玩家在下方、敵方在上方,
-## 6 路縱隊往中間推進交戰。
-const GRID_COLS := 6
-const GRID_ROWS := 12
+## 6 路縱隊往中間推進交戰。左右(GRID_COLS)12 格、上下(GRID_ROWS)6 格。
+const GRID_COLS := 12
+const GRID_ROWS := 6
 
 var self_parties: Array[BattleParty]
 var self_party_leader: BattleParty
@@ -33,20 +33,25 @@ func _attach_battle_params(is_enemy: bool, parties: Array[Party]) -> Array[Battl
 		battle_parties.append(BattleParty.new(party, self, is_enemy))
 	return battle_parties
 
-## 初始佈陣:我方沿最下排、敵方沿最上排,各自排成一列縱隊的隊頭
+## 初始佈陣:我方沿最左列、敵方沿最右列,各自置中排成一列縱隊的隊頭
 func _deploy_initial_positions() -> void:
+	var self_start_y := (GRID_ROWS - self_parties.size()) / 2
 	for i in range(self_parties.size()):
-		self_parties[i].grid_pos = Vector2i(i % GRID_COLS, GRID_ROWS - 1)
-	for i in range(enemy_parties.size()):
-		enemy_parties[i].grid_pos = Vector2i(i % GRID_COLS, 0)
+		self_parties[i].grid_pos = Vector2i(0, self_start_y + i)
 
-## 該格子是否已有存活隊伍佔據
-func is_occupied(pos: Vector2i) -> bool:
+	var enemy_start_y := (GRID_ROWS - enemy_parties.size()) / 2
+	for i in range(enemy_parties.size()):
+		enemy_parties[i].grid_pos = Vector2i(GRID_COLS - 1, enemy_start_y + i)
+
+## 該格子是否已有「其他」存活隊伍佔據(排除 exclude 自己)。
+## 已陣亡(全軍覆沒)的隊伍不算佔用 —— 移動途中可以直接穿過己方存活角色,
+## 最終落腳點只需要避開所有「存活中」的角色(不分陣營),陣亡角色的位置可以站上去。
+func is_occupied_excluding(pos: Vector2i, exclude: BattleParty) -> bool:
 	for party in self_parties:
-		if not party.total_soldier_is_disabled and party.grid_pos == pos:
+		if party != exclude and not party.total_soldier_is_disabled and party.grid_pos == pos:
 			return true
 	for party in enemy_parties:
-		if not party.total_soldier_is_disabled and party.grid_pos == pos:
+		if party != exclude and not party.total_soldier_is_disabled and party.grid_pos == pos:
 			return true
 	return false
 

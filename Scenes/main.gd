@@ -12,7 +12,7 @@ func _process(delta: float) -> void:
 
 func _on_start_pressed() -> void:
 	print("Starting Battle...")
-	var error = get_tree().change_scene_to_file("res://Secnes/Battle/battle.tscn") # ***请将此路径改为您的Battle场景的实际路径***
+	var error = get_tree().change_scene_to_file("res://Scenes/Battle/battle.tscn") # ***请将此路径改为您的Battle场景的实际路径***
 	if error != OK:
 		printerr("Error changing scene to battle: ", error)
 

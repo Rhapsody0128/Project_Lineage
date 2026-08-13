@@ -22,7 +22,7 @@ const POTENTIAL_TYPES := [
 	GameEnums.PotentialType.STRENGTH,
 	GameEnums.PotentialType.VITALITY,
 	GameEnums.PotentialType.AGILITY,
-	GameEnums.PotentialType.PERCEPTION,
+	GameEnums.PotentialType.DEXTERITY,
 	GameEnums.PotentialType.INTELLIGENCE,
 	GameEnums.PotentialType.MENTALITY,
 ]
@@ -88,7 +88,8 @@ func _draw_labels(center: Vector2, radius: float) -> void:
 	var font_size := FONT_SIZE
 
 	for i in range(AXIS_COUNT):
-		var label: String = GameEnums.POTENTIAL_TYPE_LABELS[i]
+		var rank: int = _hero.get_potential_rank(POTENTIAL_TYPES[i])
+		var label := "%s %s" % [GameEnums.POTENTIAL_TYPE_LABELS[i], GameEnums.RANK_TYPE_LABELS[rank]]
 		var anchor := _axis_point(center, radius + LABEL_MARGIN * 0.7, i)
 		var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)
 		draw_string(

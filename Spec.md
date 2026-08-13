@@ -21,6 +21,9 @@
 - `attack`/`skill` 事件在 log 裡永遠緊接著 `dodge` 或 `damage`(`BattleHero.attack()`
   的實作保證),`battle.gd._play_battle_log()` 會把這兩筆合併同時播放(見四)——新增
   「攻擊類」事件時如果還是這種「動作+反應」的兩段式,直接沿用這個合併機制即可
+- 事件可選帶 `detail: String`(判定/骰值/公式全文),`battle.gd._hint()` 會用
+  RichTextLabel 的 `[hint=...]` 標籤包住對應戰報文字,滑鼠移過去就彈出完整說明;
+  detail 內容不能含方括號 `[` `]`,會被誤判成 BBCode 標籤提早截斷
 
 ## 二、戰鬥數值細節
 
@@ -39,31 +42,34 @@
   `Battle.result`(`GameEnums.BattleResultType`)只看雙方總大將死活決定 `SELF_WIN`/
   `ENEMY_WIN`/`DRAW`,跑滿 10 回合時雙方總大將必定都還存活(否則早就提前結束),此時直接
   判 `DRAW`,不比較 HP。`self_total_hp`/`enemy_total_hp` 只保留給畫面展示用。
-- 行動(`BattleHero.action()`):`search_enemy()` 找格子曼哈頓距離最近的敵人;權重表
-  抽 `ActionType`(ATTACK/DAZE/SKILL 固定各 25,ESCAPE 只在 `hp_ratio<50%` 才列入,
-  CONFUSE 保留但抽選池暫關)。基本攻擊(ATTACK)依武器決定攻擊距離
-  (`GameEnums.WEAPON_BASIC_ATTACK_RANGE`:近戰劍/盾/匕首=1、遠程弓/法杖/權杖=2),
-  在範圍內才出手,否則先往目標移動一次再重新檢查。SKILL 改成先抽出實際要放的技能,
-  用該技能自己的 `Skill.range` 判斷能不能出手(不是武器距離),不夠近一樣先移動、以該
-  技能射程為目標距離,移動後仍搆不到就不出手,不會退化亂放。技能施放權重目前直接採技能
-  本身的 `base_chance`(沒有武器/陣形位置加成)。
-- 傷害公式:基本攻擊與技能共用 `SkillEffectLibrary` 裡「武器 → 攻擊素質/防禦素質」的
-  配對(`_attack_value()`/`_defense_value()`,法杖智慧 vs 信仰、弓靈巧 vs 體質、盾
-  力量*0.4+體質*0.6 vs 體質、匕首力量*0.4+敏捷*0.6 vs 體質、權杖智慧*0.4+信仰*0.6 vs
-  信仰、劍與徒手 EMPTY 都是力量 vs 體質),差異只在倍率:基本攻擊固定
-  `SkillEffectLibrary.basic_attack_damage()` 用倍率 1,技能用 `Skill.skill_ratio`
-  (目前 2~3)。
-- 範圍效果:`Skill.area_shape`(`GameEnums.AreaShape`:SINGLE 單體、RADIUS 以命中目標為
-  中心的菱形範圍、LINE 貫穿、SQUARE 正方形範圍)+ `Skill.area_size` 決定技能命中目標後
-  實際波及的敵人,`Skill.resolve_targets()` 算出完整命中清單,範圍內每個目標各自按自己
-  的防禦素質算傷害(不因波及多人而讓輸出膨脹或衰減)。目前只有火球術是 `RADIUS, 2`,
-  其餘技能都是 `SINGLE, 1`。技能目前仍不判定閃避(`judge_dodge()` 只用在基本攻擊)。
+- 行動(`BattleHero.action()`):`search_enemy()` 找格子曼哈頓距離最近的敵人(ATTACK/
+  ESCAPE 用);權重表抽 `ActionType`(ATTACK/DAZE/SKILL 固定各 25,ESCAPE 只在
+  `hp_ratio<50%` 才列入,CONFUSE 保留但抽選池暫關)。基本攻擊(ATTACK)依武器決定攻擊
+  距離(`GameEnums.WEAPON_BASIC_ATTACK_RANGE`:近戰劍/盾/匕首=1、遠程弓/法杖/權杖=2),
+  在範圍內才出手,否則先往目標移動一次再重新檢查;若已經在射程內但距離小於射程(遠程
+  武器才有意義,`atk_range>1`),會先用 `_kite_to_max_range()` 退到剛好等於射程再出手,
+  拉開跟敵人的距離、不會退出射程外浪費這次攻擊。SKILL 改成先抽出實際要放的技能,再用
+  `_pick_aoe_primary_target()` 從存活敵人中選「以該敵人為中心可以命中最多目標」的一個
+  當主要目標(單體技能命中數恆為 1,同分退化成選最近敵人,行為等同舊版);用該技能自己
+  的 `Skill.range` 判斷能不能出手(不是武器距離),不夠近一樣先移動、以該技能射程為目標
+  距離,已經在範圍內但距離小於射程一樣會 `_kite_to_max_range()` 退到剛好等於射程,移動
+  後仍搆不到就不出手,不會退化亂放。技能施放權重目前直接採技能本身的 `base_chance`
+  (沒有武器/陣形位置加成)。
+- 傷害公式:基本攻擊與技能共用 `SkillEffectLibrary`「武器→攻擊素質/防禦素質」配對
+  (`_attack_value()`/`_defense_value()`),差異只在倍率(基本攻擊 1、技能用
+  `Skill.skill_ratio`);`_skill_damage()` 的封頂比例只看素質本身,倍率只放大最終傷害。
+- 範圍效果:`Skill.area_shape`(SINGLE/RADIUS/LINE/SQUARE)+ `area_size` 決定
+  `resolve_targets()` 算出的命中清單,範圍內每個目標各自獨立判定閃避/暴擊/傷害,
+  不互相牽連。目前只有火球術是 `RADIUS, 2`,其餘都是 `SINGLE, 1`。
 - 移動:`BASE_MOVE_STEPS=2`,敏捷每滿 `AGILITY_PER_EXTRA_STEP=25` 多走 1 格;可穿過
-  己方存活角色,只有敵方存活角色擋路,被擋會側移繞路(`_next_step()`);整趟只記一筆
-  `move` 事件(含完整 `path`),畫面端連續播放不逐格停頓。
-- 閃避:`judge_dodge()`,防禦方 AGI vs 攻擊方 DEX(借用 `perception` 欄位)。
-  `dodge_rate = clamp(50 + (防禦AGI-攻擊DEX)*0.225, 5, 95)`,雙方數值 0~200,兩極值都
-  保留 5% 保底。
+  己方存活角色,只有敵方存活角色擋路,被擋會側移繞路;遠程武器/技能在射程內但距離
+  小於射程時會用 `_kite_to_max_range()` 退到剛好等於射程再出手。
+- 閃避:`judge_dodge()`,魔法攻擊(`GameEnums.WEAPON_IS_MAGIC`)無視閃避必定命中;
+  物理攻擊依防禦方 AGI vs 攻擊方 DEX 算閃避率,公式與常數見函式註解。
+- 暴擊:`judge_crit()`,物理、魔法攻擊都會判定,攻擊方一律吃 DEX,防禦方抵抗素質
+  依攻擊種類換(物理吃 VIT、魔法吃 MEN),命中且觸發暴擊時傷害乘上
+  `CRIT_DAMAGE_MULTIPLIER`(1.6),公式與常數見函式註解。畫面端一般傷害顯示白字、
+  暴擊顯示紅字放大。
 
 ## 三、驗證方式
 
@@ -94,13 +100,11 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 - 士兵(`Soldier`)、武器(`Weapon`)、陣形(`Formation`)系統已整個移除,暫時不需要這些
   設計;角色 HP 現在統一固定 `Hero.HP_MAX=600`,還沒有依素質/等級計算血量的公式
 - 小隊編制(`Party.heroes`)目前是寫死的隨機 6 人小隊,還沒有玩家自訂編隊 UI
-- 技能目前不判定閃避(只有基本攻擊會呼叫 `judge_dodge()`),範圍技能命中判定也還沒有
-  「目標死活以外」的地形/隊形加成
+- 範圍技能命中判定還沒有「目標死活以外」的地形/隊形加成
 - `Scenes/Battle/battle_unit_visual.gd` 角色右下角常駐的武器類型文字是測試階段除錯用
   (`WEAPON_LABEL_POSITION`),正式美術/UI 定案後要整段移除或改成圖示
 - 個性/特質(`System/trait/`)只有資料模型(名稱+描述+正負中性)與抽樣池(目盲/勇猛/
   膽小三選二),機制效果(命中率/AI 傾向等)尚未接上
 - 血統/學院/婚姻/城鎮/英靈殿等企劃概念尚無對應 System 模組
 - CONFUSE(叛變攻擊己方)機制已寫好但抽選池暫時關閉,等魅惑狀態系統接上再開放
-- 專案尚無獨立 DEX 屬性,閃避公式暫借用 `perception` 欄位代替
 - `Hero.age` 目前只是產生時隨機指定的靜態數值,尚無老化/死亡/婚姻等生命週期機制

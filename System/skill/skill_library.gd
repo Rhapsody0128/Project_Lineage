@@ -8,10 +8,11 @@ extends RefCounted
 
 static func build() -> Array[Skill]:
 	var library: Array[Skill] = []
-	library.append_array(_weapon_rank_skills())
+	library.append_array(_weapon_skills())
+	library.append_array(_passive_skills())
 	return library
 
-static func _weapon_rank_skills() -> Array[Skill]:
+static func _weapon_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
 
 	skills.append(Skill.new(
@@ -53,7 +54,7 @@ static func _weapon_rank_skills() -> Array[Skill]:
 		4,
 		GameEnums.AreaShape.SINGLE,
 		1,
-		GameEnums.PotentialType.PERCEPTION,
+		GameEnums.PotentialType.DEXTERITY,
 		GameEnums.SkillType.ATTACK,
 		GameEnums.WeaponType.BOW,
 		false,
@@ -111,3 +112,23 @@ static func _weapon_rank_skills() -> Array[Skill]:
 	))
 
 	return skills
+
+
+static func _passive_skills() -> Array[Skill]:
+	var skills: Array[Skill] = []
+
+	skills.append(Skill.new(
+		"", #	名稱
+		"對範圍敵人造成遠距離範圍傷害", #	描述
+		GameEnums.RankType.E, #	Rank
+		3, #	距離
+		GameEnums.AreaShape.RADIUS, #	範圍形狀
+		2, #	範圍大小
+		GameEnums.PotentialType.INTELLIGENCE, #	影響屬性
+		GameEnums.SkillType.ATTACK, #	技能類型
+		GameEnums.WeaponType.STAFF, #	綁定武器
+		false, #	是否為領袖技能
+		25.0, #	多技能時施放權重,
+		2.0, #	技能倍率,
+		Callable(SkillEffectLibrary, "staff_attack") #	技能效果 function
+	))

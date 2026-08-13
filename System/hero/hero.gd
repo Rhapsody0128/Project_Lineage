@@ -66,8 +66,8 @@ var strength: float:
 	get: return _get_real_potential(potential.strength, potential.strength_ratio)
 var agility: float:
 	get: return _get_real_potential(potential.agility, potential.agility_ratio)
-var perception: float:
-	get: return _get_real_potential(potential.perception, potential.perception_ratio)
+var dexterity: float:
+	get: return _get_real_potential(potential.dexterity, potential.dexterity_ratio)
 var vitality: float:
 	get: return _get_real_potential(potential.vitality, potential.vitality_ratio)
 var intelligence: float:
@@ -81,8 +81,8 @@ func get_potential(potential_type: int) -> float:
 			return strength
 		GameEnums.PotentialType.AGILITY:
 			return agility
-		GameEnums.PotentialType.PERCEPTION:
-			return perception
+		GameEnums.PotentialType.DEXTERITY:
+			return dexterity
 		GameEnums.PotentialType.VITALITY:
 			return vitality
 		GameEnums.PotentialType.INTELLIGENCE:
@@ -91,3 +91,22 @@ func get_potential(potential_type: int) -> float:
 			return mentality
 		_:
 			return 0.0
+
+## 素質的成長評級(GameEnums.RankType,依 Potential 建立當下算好的 ratio 決定,
+## 不隨等級變動),UI 顯示用,例如角色面板的雷達圖標籤。
+func get_potential_rank(potential_type: int) -> int:
+	match potential_type:
+		GameEnums.PotentialType.STRENGTH:
+			return potential.strength_rank
+		GameEnums.PotentialType.AGILITY:
+			return potential.agility_rank
+		GameEnums.PotentialType.DEXTERITY:
+			return potential.dexterity_rank
+		GameEnums.PotentialType.VITALITY:
+			return potential.vitality_rank
+		GameEnums.PotentialType.INTELLIGENCE:
+			return potential.intelligence_rank
+		GameEnums.PotentialType.MENTALITY:
+			return potential.mentality_rank
+		_:
+			return GameEnums.RankType.E

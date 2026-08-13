@@ -34,7 +34,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | 資料夾 | 內容 |
 |---|---|
 | `hero/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600) |
-| `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/PERCEPTION/INTELLIGENCE/MENTALITY) |
+| `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/DEXTERITY/INTELLIGENCE/MENTALITY) |
 | `skill/` | 技能池與效果 |
 | `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
 | `party/` | 小隊,由多個 `Hero` 組成(`Party.heroes`) |
@@ -57,7 +57,8 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 畫面元件已拆分單一職責:`battle.gd`(整合層,重播時連續的 `move`/`daze` 事件會併發
 播放 2~3 個加速演示;`attack`/`skill` 則跟緊接在後面的 `dodge`/`damage` 反應事件
-合併同時播放,不分先後拍)、`battle_board.gd`(格線/座標換算,必須是獨立節點,插在
+合併同時播放,不分先後拍;戰報文字可滑鼠懸停看判定明細,見 Spec.md 一;另有暫停/
+繼續按鈕與戰鬥結束結果 Dialog)、`battle_board.gd`(格線/座標換算,必須是獨立節點,插在
 `BoardPanel` 之後、`UnitsLayer` 之前,否則會被根節點不透明子節點蓋住)、
 `battle_unit_visual.gd`(單一角色動畫/受擊反應/閃避反應/傷害飄字——未命中只晃一下,
 不閃白,不再顯示技能名稱橫幅)、`battle_party_roster.gd`(頭像列,含血條、點擊頭像

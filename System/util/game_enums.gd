@@ -2,7 +2,7 @@ class_name GameEnums
 extends RefCounted
 
 enum RankType {E, D, C, B, A, S, SS, SSS}
-enum PotentialType {STRENGTH, VITALITY, AGILITY, PERCEPTION, INTELLIGENCE, MENTALITY}
+enum PotentialType {STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 enum WeaponType {EMPTY, SWORD, BOW, SHIELD, DAGGER, STAFF, SCEPTER}
 enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND}
 enum ActionType {ATTACK, DAZE, ESCAPE, CONFUSE, SKILL}
@@ -18,12 +18,18 @@ enum AreaShape {SINGLE, RADIUS, LINE, SQUARE}
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
+## 評級 UI 顯示用標籤,順序對應 RankType enum
+const RANK_TYPE_LABELS: Array[String] = ["E", "D", "C", "B", "A", "S", "SS", "SSS"]
+
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
 const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "權杖"]
 
 ## 基本攻擊距離(曼哈頓格數):近戰(劍/盾/匕首)1 格、遠程(弓/法杖/權杖)2 格,
 ## 順序對應 WeaponType enum
 const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 1, 2, 1, 1, 2, 2]
+
+## 是否為魔法攻擊(法杖/權杖):魔法攻擊無視閃避,一定命中,順序對應 WeaponType enum
+const WEAPON_IS_MAGIC: Array[bool] = [false, false, false, false, false, true, true]
 
 const MALE_HERO_NAMES: Array[String] = [
 	"約翰", "保羅", "喬治", "亞歷克斯", "馬克斯", "大衛", "丹尼爾", "馬克", "約瑟夫", "派屈克",

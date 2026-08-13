@@ -46,9 +46,11 @@ func _init(
 	skill_ratio = p_skill_ratio
 	action = p_action
 
-func effect(self_party, target_party) -> void:
+## cast_detail 是施法前(選技能/選目標)的判定明細文字,原封不動轉交給 action 綁定的
+## 效果 function,讓它併進最終 skill 事件的 detail 給戰報 UI 顯示。
+func effect(self_party, target_party, cast_detail: String = "") -> void:
 	if action.is_valid():
-		action.call(self_party, target_party, self)
+		action.call(self_party, target_party, self, cast_detail)
 
 ## 依 area_shape/area_size 算出這次攻擊實際命中的目標(至少包含 primary_target 本身)。
 ## caster 只用來取存活中的敵人清單(caster.enemies)與 LINE 形狀的延伸方向。

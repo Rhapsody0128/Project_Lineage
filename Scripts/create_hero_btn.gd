@@ -13,7 +13,7 @@ func create_hero() -> void:
 		hero.strength,
 		hero.agility,
 		hero.vitality,
-		hero.perception,
+		hero.dexterity,
 		hero.intelligence,
 		hero.mentality,
 	]

@@ -189,7 +189,8 @@ func _format_event(event: Dictionary) -> String:
 		"skill":
 			return "%s 對 %s 使用技能「%s」" % [event.actor_name, event.target_name, event.skill_name]
 		"damage":
-			return "%s 受到 %d 點傷害(剩餘 HP %d)" % [event.target_name, event.damage_points, event.remaining_hp]
+			var crit_text := "(暴擊！)" if event.get("is_critical", false) else ""
+			return "%s 受到 %d 點傷害%s(剩餘 HP %d)" % [event.target_name, event.damage_points, crit_text, event.remaining_hp]
 		"defeated":
 			return "%s 戰敗" % event.party_name
 		"battle_end":

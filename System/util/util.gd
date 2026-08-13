@@ -44,12 +44,19 @@ static func clone(value):
 
 ## 依照 Dictionary[String, float] 的權重表,隨機取得一個 key
 static func get_random_chance_item(chance_map: Dictionary) -> String:
+	return get_random_chance_item_detailed(chance_map).key
+
+## 跟 get_random_chance_item() 同一套邏輯,但額外回傳這次骰到的值與權重總和
+## ({"key": String, "roll": float, "total": float}),給戰報 UI 組出「骰到多少 / 總權重
+## 多少 → 選到哪個」的完整說明用,避免呼叫端各自重算一次權重總和。
+static func get_random_chance_item_detailed(chance_map: Dictionary) -> Dictionary:
 	var total_chance := 0.0
 	for value in chance_map.values():
 		total_chance += value
 	var roll := get_random_float(0.0, total_chance)
+	var remaining := roll
 	for key in chance_map.keys():
-		roll -= chance_map[key]
-		if roll <= 0:
-			return key
-	return chance_map.keys()[-1]
+		remaining -= chance_map[key]
+		if remaining <= 0:
+			return {"key": key, "roll": roll, "total": total_chance}
+	return {"key": chance_map.keys()[-1], "roll": roll, "total": total_chance}

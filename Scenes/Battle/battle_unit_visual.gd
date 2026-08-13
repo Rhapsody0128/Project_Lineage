@@ -25,12 +25,18 @@ const ATTACK_ANIM_FALLBACK_TIME := 0.4
 # 傷害數字浮字顯示時間
 const DAMAGE_NUMBER_RISE_TIME := 0.5
 
+# 傷害數字:一般傷害用白字,暴擊用紅字放更大顯示,一眼就能看出這下是不是暴擊
+const DAMAGE_NUMBER_FONT_SIZE := 28
+const CRIT_DAMAGE_NUMBER_FONT_SIZE := 40
+const DAMAGE_NUMBER_COLOR := Color(1.0, 1.0, 1.0)
+const CRIT_DAMAGE_NUMBER_COLOR := Color(1.0, 0.15, 0.15)
+
 # 受擊反應:閃白顏色與左右震動幅度(像素)
 const HIT_FLASH_COLOR := Color(3.0, 3.0, 3.0, 1.0)
 const HIT_SHAKE_OFFSET := 6.0
 
 # 閃避反應:側身晃一下的位移(像素),不閃白、不震動,跟受擊反應明確區分開來
-const DODGE_STEP_OFFSET := Vector2(10.0, -6.0)
+const DODGE_STEP_OFFSET := Vector2(26.0, -16.0)
 
 # 施放技能反應:角色腳底炸出一道光,而不是角色本身閃白——
 # 快速放大淡入 → 停格 1 秒(讓玩家看清楚是誰放了技能)→ 快速淡出消失。
@@ -188,20 +194,23 @@ func wait_for_animation(anim_name: String) -> void:
 
 	if not is_inside_tree():
 		return
-	await get_tree().create_timer(duration).timeout
+	# process_always=false:跟著 SceneTree.paused 一起暫停,配合戰報的暫停按鈕。
+	await get_tree().create_timer(duration, false).timeout
 
 
-## 受到傷害時在頭上跳出傷害數字,往上飄並淡出
-func show_damage_number(amount: int) -> void:
+## 受到傷害時在頭上跳出傷害數字,往上飄並淡出。is_critical 決定用一般(白字)還是
+## 暴擊(紅字,字級更大)樣式,讓玩家不用看戰報文字就能一眼分辨這下有沒有暴擊。
+func show_damage_number(amount: int, is_critical: bool = false) -> void:
 	var label := Label.new()
 	label.text = "-%d" % amount
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 20)
-	label.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+	var font_size := CRIT_DAMAGE_NUMBER_FONT_SIZE if is_critical else DAMAGE_NUMBER_FONT_SIZE
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", CRIT_DAMAGE_NUMBER_COLOR if is_critical else DAMAGE_NUMBER_COLOR)
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	label.add_theme_constant_override("outline_size", 5)
-	label.position = Vector2(-40, -96)
-	label.size = Vector2(80, 24)
+	label.position = Vector2(-60, -110)
+	label.size = Vector2(120, 40)
 	label.modulate = Color(1, 1, 1, 0)
 	label.z_as_relative = true
 	add_child(label)
@@ -223,8 +232,8 @@ func play_dodge_reaction() -> void:
 	var base_pos := sprite.position
 
 	var tw := create_tween()
-	tw.tween_property(sprite, "position", base_pos + DODGE_STEP_OFFSET, 0.08)
-	tw.tween_property(sprite, "position", base_pos, 0.12)
+	tw.tween_property(sprite, "position", base_pos + DODGE_STEP_OFFSET, 0.1)
+	tw.tween_property(sprite, "position", base_pos, 0.16)
 
 
 ## 受到傷害時的受擊反應:快速閃白 + 左右震動,提示這次攻擊有造成傷害。

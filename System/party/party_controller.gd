@@ -10,4 +10,5 @@ static func get_random_party() -> Party:
 		var hero := HeroController.get_random_hero()
 		hero.level_system.gain_exp(1740)
 		heroes.append(hero)
-	return Party.new("隨機小隊", heroes)
+	var leader: Hero = Util.get_random_from_array(heroes)
+	return Party.new("隨機小隊", heroes, leader)

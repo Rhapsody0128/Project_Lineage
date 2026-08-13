@@ -35,11 +35,17 @@ var visuals: Dictionary = {} # BattleHero -> BattleUnitVisual
 var is_battling := false
 var _pending_batch_actions := 0
 
+# 播放模式:從戰報列表選一份戰報進來重播,而不是自己生一場新的隨機戰鬥。
+# battle 已經跑完 start(),這裡只重播固定好的 battle_log,不會重新模擬。
+var is_report_playback := false
+var report: BattleReport
+
 var character_scene: PackedScene
 var portrait_texture: AtlasTexture
 
 @onready var board: BattleBoard = $BoardCanvas
 @onready var units_layer: Control = $UnitsLayer
+@onready var title_label: Label = $Title
 @onready var start_button: Button = $UI/TopBar/StartButton
 @onready var back_button: Button = $UI/TopBar/BackButton
 @onready var status_label: Label = $UI/StatusPanel/StatusLabel
@@ -62,8 +68,27 @@ func _ready() -> void:
 	portrait_texture.atlas = load(PORTRAIT_ATLAS_PATH)
 	portrait_texture.region = PORTRAIT_REGION
 
-	_new_simulation()
-	_log("按下「開始戰鬥」按鈕，播放戰報！")
+	if BattleReportStore.pending_report != null:
+		_enter_playback_mode(BattleReportStore.pending_report)
+		BattleReportStore.pending_report = null
+	else:
+		_new_simulation()
+		_log("按下「開始戰鬥」按鈕，播放戰報！")
+
+
+## 進入戰報播放模式:battle 已經是模擬完成、記錄好 battle_log 的舊戰報,
+## 不呼叫 battle.start()、只重播;按鈕文字與返回目的地也跟著換成戰報列表情境。
+func _enter_playback_mode(p_report: BattleReport) -> void:
+	is_report_playback = true
+	report = p_report
+	battle = report.battle
+	battle.reset_for_replay()
+	_setup_battlefield()
+
+	title_label.text = "戰報播放：%s" % report.title
+	start_button.text = "播放戰報"
+	back_button.text = "返回戰報列表"
+	_log("按下「播放戰報」按鈕，重現這場戰鬥的完整過程！")
 
 
 # =========================================================
@@ -73,11 +98,16 @@ func _ready() -> void:
 # System/troop,本函式只負責把回傳的 BattleHero 對應到畫面元件上。
 # =========================================================
 func _new_simulation() -> void:
+	battle = BattleController.get_random_battle()
+	_setup_battlefield()
+
+
+## 依目前的 battle(self_heroes/enemy_heroes 的站位與 HP)重建畫面上的單位與頭像列。
+## 一般模式(_new_simulation)跟戰報播放模式(_enter_playback_mode/重播)共用。
+func _setup_battlefield() -> void:
 	for child in units_layer.get_children():
 		child.queue_free()
 	visuals.clear()
-
-	battle = BattleController.get_random_battle()
 
 	for battle_hero in battle.self_heroes:
 		_spawn_unit_visual(battle_hero, false)
@@ -112,31 +142,51 @@ func _on_start_pressed() -> void:
 
 	is_battling = true
 	start_button.disabled = true
-	status_label.text = "戰鬥中..."
 	log_panel.clear_log()
 
-	# 注意:這裡不能呼叫 _new_simulation()——battle 是 _ready()(或上一場結束時)
-	# 就已經產生好、畫面上正在顯示的那一場,重新產生會讓玩家開戰前看到的隊伍
-	# 跟實際開打的隊伍對不上。
-	# System 層一次性跑完整場戰鬥模擬,結果寫入 battle.battle_log
-	battle.start()
+	if is_report_playback:
+		# 戰報播放:不重新模擬,只是把畫面(站位/HP)歸回開戰當下,
+		# 再重播同一份 battle_log——保證第一次跟第二次播放的招式、扣血量完全相同。
+		status_label.text = "播放中..."
+		battle.reset_for_replay()
+		_setup_battlefield()
+	else:
+		# 注意:這裡不能呼叫 _new_simulation()——battle 是 _ready()(或上一場結束時)
+		# 就已經產生好、畫面上正在顯示的那一場,重新產生會讓玩家開戰前看到的隊伍
+		# 跟實際開打的隊伍對不上。
+		# System 層一次性跑完整場戰鬥模擬,結果寫入 battle.battle_log
+		status_label.text = "戰鬥中..."
+		battle.start()
 
 	# 場景層依序重播戰報,只負責動畫與畫面呈現
 	await _play_battle_log()
+
+	# 播放期間如果場景被切走(節點離開樹但還沒釋放),就不要再碰任何 UI
+	# 或重新產生下一場模擬,直接放棄剩下的收尾流程。
+	if not is_inside_tree():
+		return
 
 	is_battling = false
 	start_button.disabled = false
 	_announce_result()
 
-	# 為下一次按「開始戰鬥」預先產生新的一場,玩家看到的隊伍就是下次會打的隊伍
-	_new_simulation()
-	_log("按下「開始戰鬥」按鈕，播放戰報！")
+	if is_report_playback:
+		start_button.text = "重新播放"
+		_log("按下「重新播放」按鈕，可以再看一次同樣的過程！")
+	else:
+		# 為下一次按「開始戰鬥」預先產生新的一場,玩家看到的隊伍就是下次會打的隊伍
+		_new_simulation()
+		_log("按下「開始戰鬥」按鈕，播放戰報！")
 
 
-## 10 回合結算:比較雙方剩餘總 HP,HP 多的一方獲勝
+## 10 回合結算:比較雙方剩餘總 HP,HP 多的一方獲勝。
+## 直接讀 battle_log 的 battle_end 事件,不用 battle.self_total_hp/enemy_total_hp
+## 現算——戰報播放前會呼叫 reset_for_replay() 把 HP 還原成開戰時的滿血,
+## 那兩個 getter 讀到的會是還原後的數字,不是戰鬥結束時的結算數字。
 func _announce_result() -> void:
-	var self_total := battle.self_total_hp
-	var enemy_total := battle.enemy_total_hp
+	var totals := _final_totals()
+	var self_total: int = totals.self_total
+	var enemy_total: int = totals.enemy_total
 
 	if self_total > enemy_total:
 		status_label.text = "我方勝利！"
@@ -149,8 +199,16 @@ func _announce_result() -> void:
 		_log("雙方剩餘 HP 相同(%d : %d),戰鬥平手。" % [self_total, enemy_total])
 
 
+func _final_totals() -> Dictionary:
+	for event in battle.battle_log:
+		if event.type == "battle_end":
+			return {"self_total": event.self_total, "enemy_total": event.enemy_total}
+	return {"self_total": battle.self_total_hp, "enemy_total": battle.enemy_total_hp}
+
+
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://Scenes/main.tscn")
+	var target := "res://Scenes/BattleReportList/battle_report_list.tscn" if is_report_playback else "res://Scenes/main.tscn"
+	get_tree().change_scene_to_file(target)
 
 
 # =========================================================
@@ -166,6 +224,12 @@ func _play_battle_log() -> void:
 	var log_size := battle.battle_log.size()
 
 	while i < log_size:
+		# 播放期間場景可能被切走(例如中途按「返回」),節點會離開場景樹但
+		# 尚未被釋放,協程恢復執行時若繼續呼叫 get_tree() 會拿到 null 而炸掉,
+		# 所以每輪都先確認自己還在樹上,不在就直接放棄剩餘播放。
+		if not is_inside_tree():
+			return
+
 		var event: Dictionary = battle.battle_log[i]
 
 		if event.type in BATCHABLE_EVENT_TYPES:
@@ -175,7 +239,7 @@ func _play_battle_log() -> void:
 				batch.append(battle.battle_log[i])
 				i += 1
 			await _play_event_batch(batch)
-			await get_tree().create_timer(MOVE_STEP_DELAY).timeout
+			await _safe_wait(MOVE_STEP_DELAY)
 			continue
 
 		if (event.type == "attack" or event.type == "skill") and i + 1 < log_size:
@@ -183,12 +247,12 @@ func _play_battle_log() -> void:
 			if reaction_event.type in REACTION_EVENT_TYPES:
 				await _play_action_with_reaction(event, reaction_event)
 				i += 2
-				await get_tree().create_timer(STEP_DELAY).timeout
+				await _safe_wait(STEP_DELAY)
 				continue
 
 		await _play_single_event(event)
 		i += 1
-		await get_tree().create_timer(STEP_DELAY).timeout
+		await _safe_wait(STEP_DELAY)
 
 
 ## 同時播放一批可併發事件:每個各自跑 _play_tracked_event(),用 _pending_batch_actions
@@ -198,7 +262,24 @@ func _play_event_batch(batch: Array[Dictionary]) -> void:
 	for event in batch:
 		_play_tracked_event(event)
 	while _pending_batch_actions > 0:
-		await get_tree().process_frame
+		await _safe_wait_frame()
+		if not is_inside_tree():
+			return
+
+
+## 場景可能在播放期間被切走,節點離開樹但還沒真的被釋放;這兩個 helper
+## 先確認還在樹上才呼叫 get_tree(),避免 await 恢復時對 null 呼叫 process_frame
+## /create_timer 而噴錯。
+func _safe_wait_frame() -> void:
+	if not is_inside_tree():
+		return
+	await get_tree().process_frame
+
+
+func _safe_wait(seconds: float) -> void:
+	if not is_inside_tree():
+		return
+	await get_tree().create_timer(seconds).timeout
 
 
 func _play_tracked_event(event: Dictionary) -> void:
@@ -219,7 +300,7 @@ func _play_single_event(event: Dictionary) -> void:
 			_log("[b]—— 第 %d 回合 ——[/b]" % event.round)
 		"round_end":
 			_log("回合結束")
-			await get_tree().process_frame
+			await _safe_wait_frame()
 		"attack":
 			await _anim_attack(event)
 		"skill":
@@ -229,7 +310,7 @@ func _play_single_event(event: Dictionary) -> void:
 		"defeated":
 			_apply_defeated(event)
 		"battle_end":
-			_log("已達第 %d 回合，戰鬥結算。" % Battle.TOTAL_ROUND)
+			_log("戰鬥結束(共 %d 回合)，進行結算。" % event.round)
 
 
 ## attack/skill 動畫與緊接在後的閃避/受傷反應同時播放,不要分先後拍:
@@ -242,7 +323,8 @@ func _play_action_with_reaction(action_event: Dictionary, reaction_event: Dictio
 
 	if action_event.type == "skill":
 		_log("%s 使用技能「%s」攻擊 %s！" % [action_event.actor_name, action_event.skill_name, action_event.target_name])
-		_roster_for(action_event.actor).pulse_skill(action_event.actor)
+		_roster_for(action_event.actor).pulse_skill(action_event.actor, action_event.skill_name)
+		actor.play_skill_light()
 	else:
 		_log("%s 攻擊 %s！" % [action_event.actor_name, action_event.target_name])
 		_roster_for(action_event.actor).pulse_active(action_event.actor)
@@ -319,7 +401,8 @@ func _anim_skill(event: Dictionary) -> void:
 		return
 
 	_log("%s 使用技能「%s」攻擊 %s！" % [event.actor_name, event.skill_name, event.target_name])
-	_roster_for(event.actor).pulse_skill(event.actor)
+	_roster_for(event.actor).pulse_skill(event.actor, event.skill_name)
+	actor.play_skill_light()
 
 	var anim := actor.play_attack_towards(target.grid_pos)
 	await actor.wait_for_animation(anim)

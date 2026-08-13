@@ -11,8 +11,11 @@ extends Node2D
 # =========================================================
 
 const ENEMY_TINT := Color(1.0, 0.55, 0.55)
-const COLOR_DEAD_ALPHA := 0.3
 const SPRITE_SCALE := Vector2(1.3, 1.3)
+
+# 戰敗淡出:先停頓一下讓玩家看清楚倒下的瞬間,再緩緩淡到全透明消失
+const DEATH_FADE_DELAY := 0.4
+const DEATH_FADE_TIME := 1.0
 
 # Warrier 的動畫素材(sprite_frames)全部設為循環播放(loop),
 # 代表 AnimatedSprite2D 的 animation_finished 訊號永遠不會觸發,
@@ -28,6 +31,21 @@ const HIT_SHAKE_OFFSET := 6.0
 
 # 閃避反應:側身晃一下的位移(像素),不閃白、不震動,跟受擊反應明確區分開來
 const DODGE_STEP_OFFSET := Vector2(10.0, -6.0)
+
+# 施放技能反應:角色腳底炸出一道光,而不是角色本身閃白——
+# 快速放大淡入 → 停格 1 秒(讓玩家看清楚是誰放了技能)→ 快速淡出消失。
+const SKILL_LIGHT_TEXTURE := preload("res://Images/Effect/skill_light.webp")
+const SKILL_LIGHT_SCALE := 0.6
+const SKILL_LIGHT_POP_START_SCALE := 0.2
+const SKILL_LIGHT_POP_TIME := 0.12
+const SKILL_LIGHT_HOLD_TIME := 1.0
+const SKILL_LIGHT_FADE_OUT_TIME := 0.2
+
+# 隊長標記:腳下畫一圈金色外框,跟其他角色區分開來
+const LEADER_RING_COLOR := Color(1.0, 0.85, 0.2, 1.0)
+const LEADER_RING_RADIUS := 20.0
+const LEADER_RING_WIDTH := 3.0
+const LEADER_RING_CENTER := Vector2(0, -6)
 
 var battle_hero: BattleHero
 var is_enemy: bool
@@ -60,6 +78,9 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 			sprite.modulate = ENEMY_TINT
 		else:
 			sprite.play("idle_Right")
+
+	queue_redraw()
+
 
 
 # =========================================================
@@ -146,6 +167,8 @@ func wait_for_animation(anim_name: String) -> void:
 		if speed > 0.0 and frame_count > 0:
 			duration = frame_count / speed
 
+	if not is_inside_tree():
+		return
 	await get_tree().create_timer(duration).timeout
 
 
@@ -202,6 +225,37 @@ func play_hit_reaction() -> void:
 	tw.tween_property(sprite, "position", base_pos, 0.04)
 
 
+## 施放技能瞬間在角色腳底炸出一道光,提示這是技能而不是普通攻擊,跟頭像列的對話框
+## 同時播放。光效貼在角色腳下(本節點原點,貼圖底邊對齊),疊在角色前面,
+## 快速放大淡入後停格 1 秒,再淡出釋放。
+func play_skill_light() -> void:
+	var effect := Sprite2D.new()
+	effect.texture = SKILL_LIGHT_TEXTURE
+	effect.centered = true
+
+	# 角色腳底 = BattleUnitVisual 的原點
+	effect.position = Vector2(0, 0)
+
+	effect.z_index = -1
+	effect.modulate.a = 0.0
+	effect.scale = Vector2.ONE * SKILL_LIGHT_POP_START_SCALE
+	add_child(effect)
+
+	var tw := create_tween()
+	tw.tween_property(effect, "modulate:a", 1.0, SKILL_LIGHT_POP_TIME)
+	tw.parallel().tween_property(
+		effect,
+		"scale",
+		Vector2.ONE * SKILL_LIGHT_SCALE,
+		SKILL_LIGHT_POP_TIME
+	)
+	tw.tween_interval(SKILL_LIGHT_HOLD_TIME)
+	tw.tween_property(effect, "modulate:a", 0.0, SKILL_LIGHT_FADE_OUT_TIME)
+	tw.tween_callback(effect.queue_free)
+
+
 func apply_defeated() -> void:
 	var tw := create_tween()
-	tw.tween_property(self, "modulate:a", COLOR_DEAD_ALPHA, 0.3)
+	tw.tween_interval(DEATH_FADE_DELAY)
+	tw.tween_property(self, "modulate:a", 0.0, DEATH_FADE_TIME)
+	tw.tween_callback(func() -> void: visible = false)

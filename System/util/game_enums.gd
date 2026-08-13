@@ -12,6 +12,9 @@ enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
+## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
+const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "權杖"]
+
 const MALE_HERO_NAMES: Array[String] = [
 	"約翰", "保羅", "喬治", "亞歷克斯", "馬克斯", "大衛", "丹尼爾", "馬克", "約瑟夫", "派屈克",
 	"安德魯", "安東尼", "理查德", "查爾斯", "托馬斯", "威廉", "萊恩", "雅各布", "凱文", "邁克爾",

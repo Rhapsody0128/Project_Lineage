@@ -22,6 +22,7 @@ func _init(self_troop: Troop, enemy_troop: Troop) -> void:
 	self_heroes = _attach_battle_heroes(false, self_troop)
 	enemy_heroes = _attach_battle_heroes(true, enemy_troop)
 	_deploy_initial_positions()
+	_capture_start_state()
 
 ## 軍團底下有多個小隊、每個小隊有多個角色,但戰場上沒有「小隊」這個作戰單位——
 ## 攤平成一整排角色,每人各自佔一格獨立作戰。
@@ -29,7 +30,8 @@ func _attach_battle_heroes(is_enemy: bool, troop: Troop) -> Array[BattleHero]:
 	var battle_heroes: Array[BattleHero] = []
 	for party in troop.parties:
 		for hero in party.heroes:
-			battle_heroes.append(BattleHero.new(hero, self, is_enemy))
+			var is_leader := hero == party.leader
+			battle_heroes.append(BattleHero.new(hero, self, is_enemy, is_leader))
 	return battle_heroes
 
 ## 初始佈陣:我方沿最左列、敵方沿最右列,各自置中排成一列縱隊的隊頭
@@ -70,7 +72,7 @@ var action_order: Array[BattleHero]:
 ## 開始戰鬥,一次性跑完整場模擬並寫入 battle_log
 func start() -> void:
 	_init_battle()
-	while _round < TOTAL_ROUND:
+	while _round < TOTAL_ROUND and not is_decided:
 		_round_start()
 		round_progress()
 		_round_end()
@@ -83,20 +85,39 @@ func _round_start() -> void:
 	log_event({"type": "round_start", "round": _round + 1})
 
 ## 回合進行:全滅的一方沒有敵人可打,action() 內部 search_enemy() 找不到目標會自動
-## 提前 return,不需要另外判斷戰鬥是否已經分出勝負
+## 提前 return,不需要另外判斷戰鬥是否已經分出勝負;但只要有一方隊長陣亡
+## (is_decided 變 true),就要當場中斷本回合剩餘角色的行動,不等回合跑完。
 func round_progress() -> void:
 	for battle_hero in action_order:
 		if not battle_hero.is_disabled:
 			battle_hero.action()
+		if is_decided:
+			break
 
 func _round_end() -> void:
 	log_event({"type": "round_end", "round": _round + 1})
 	_round += 1
 
-## 跑滿 TOTAL_ROUND 回合後結算:比較雙方剩餘總 HP,HP 多的一方獲勝
+## 沒有總大將設計,但隊長陣亡視為戰鬥分出勝負,立即結束整場戰鬥
+## (不必等到跑滿 TOTAL_ROUND)。找不到隊長(理論上不會發生)時視為不會提前結束。
+var is_decided: bool:
+	get:
+		var self_leader := _find_leader(self_heroes)
+		var enemy_leader := _find_leader(enemy_heroes)
+		return (self_leader != null and self_leader.is_disabled) or (enemy_leader != null and enemy_leader.is_disabled)
+
+func _find_leader(battle_heroes: Array[BattleHero]) -> BattleHero:
+	for battle_hero in battle_heroes:
+		if battle_hero.is_leader:
+			return battle_hero
+	return null
+
+## 結算時機:跑滿 TOTAL_ROUND 回合,或有一方隊長提前陣亡(is_decided)。
+## 兩種情況都一樣比較雙方剩餘總 HP,HP 多的一方獲勝。
 func _conclude_battle() -> void:
 	log_event({
 		"type": "battle_end",
+		"round": _round,
 		"self_total": self_total_hp,
 		"enemy_total": enemy_total_hp,
 	})
@@ -111,6 +132,22 @@ func _sum_hp(battle_heroes: Array[BattleHero]) -> int:
 	for battle_hero in battle_heroes:
 		total += battle_hero.hp
 	return total
+
+## 開戰當下每個角色的 HP/座標快照,供戰報重複播放時還原畫面用——battle_log
+## 本身的招式/傷害數字已經是模擬完固定好的,重播不會、也不該重新跑一次 start(),
+## 只需要把 HP 條跟站位歸回開戰當下,再依序重播同一份 battle_log。
+var _start_state: Dictionary = {} # BattleHero -> {hp: int, grid_pos: Vector2i}
+
+func _capture_start_state() -> void:
+	for battle_hero in self_heroes + enemy_heroes:
+		_start_state[battle_hero] = {"hp": battle_hero.hp, "grid_pos": battle_hero.grid_pos}
+
+## 戰報重播用:把所有角色 HP 與棋盤座標還原到開戰當下的狀態
+func reset_for_replay() -> void:
+	for battle_hero: BattleHero in _start_state:
+		var state: Dictionary = _start_state[battle_hero]
+		battle_hero.hero.hp = state.hp
+		battle_hero.grid_pos = state.grid_pos
 
 ## 記錄一筆結構化戰報事件,並同步輸出除錯文字
 func log_event(event: Dictionary) -> void:
@@ -142,6 +179,6 @@ func _format_event(event: Dictionary) -> String:
 		"defeated":
 			return "%s 戰敗" % event.party_name
 		"battle_end":
-			return "戰鬥結束，我方剩餘 HP %d，敵方剩餘 HP %d" % [event.self_total, event.enemy_total]
+			return "戰鬥結束(共 %d 回合)，我方剩餘 HP %d，敵方剩餘 HP %d" % [event.round, event.self_total, event.enemy_total]
 		_:
 			return str(event)

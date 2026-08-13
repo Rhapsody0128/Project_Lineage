@@ -18,11 +18,16 @@ const TRAIT_COLOR_POSITIVE := Color(0.55, 0.85, 0.55)
 const TRAIT_COLOR_NEGATIVE := Color(0.9, 0.5, 0.5)
 const TRAIT_COLOR_NEUTRAL := Color(0.8, 0.8, 0.8)
 
+## 技能綁定的武器跟目前手持武器不符時,整格反灰(半透明)提示無法施放
+const SKILL_DISABLED_MODULATE := Color(1, 1, 1, 0.4)
+const SKILL_ENABLED_MODULATE := Color(1, 1, 1, 1)
+
 @onready var root: Control = $Root
 @onready var avatar_texture: TextureRect = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/LeftHeader/AvatarFrame/AvatarTexture
 @onready var full_name_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/LeftHeader/FullNameLabel
 @onready var age_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow/AgeLabel
 @onready var level_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow/LevelLabel
+@onready var weapon_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow/WeaponLabel
 @onready var standee_texture: TextureRect = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StandeeFrame/StandeeTexture
 @onready var radar: CharacterPotentialRadar = $Root/CenterContainer/PanelBox/Margin/Content/RadarSection/PotentialRadar
 @onready var skill_row: HBoxContainer = $Root/CenterContainer/PanelBox/Margin/Content/SkillSection/SkillRow
@@ -44,12 +49,13 @@ func open_for_hero(hero: Hero) -> void:
 	full_name_label.text = hero.full_name
 	age_label.text = "年齡：%d" % hero.age
 	level_label.text = "等級：%d" % hero.level_system.level
+	weapon_label.text = "武器：%s" % GameEnums.WEAPON_TYPE_LABELS[hero.weapon]
 	avatar_texture.texture = _load_face_texture(hero.face_path)
 	standee_texture.texture = _build_standee_texture()
 
 	radar.set_hero(hero)
 
-	_populate_skills(hero.skill_list)
+	_populate_skills(hero)
 	_populate_traits(hero.traits)
 
 	root.visible = true
@@ -72,11 +78,14 @@ func _build_standee_texture() -> Texture2D:
 	return standee
 
 
-## 技能格固定 4 格,角色技能不足 4 個時留空
-func _populate_skills(skill_list: Array[Skill]) -> void:
+## 技能格固定 4 格,角色技能不足 4 個時留空;技能綁定的武器跟目前手持武器不符時
+## (Hero.can_use_skill 判斷),整格反灰並在提示文字加註需要的武器,而不是直接不顯示——
+## 玩家仍要看得到「學過這招,只是現在打不出來」。
+func _populate_skills(hero: Hero) -> void:
 	for child in skill_row.get_children():
 		child.queue_free()
 
+	var skill_list := hero.skill_list
 	for i in range(SKILL_SLOT_COUNT):
 		var slot := PanelContainer.new()
 		slot.custom_minimum_size = SKILL_SLOT_MIN_SIZE
@@ -100,8 +109,14 @@ func _populate_skills(skill_list: Array[Skill]) -> void:
 		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD
 		if i < skill_list.size():
-			label.text = skill_list[i].name
-			slot.tooltip_text = skill_list[i].description
+			var skill: Skill = skill_list[i]
+			label.text = skill.name
+			if hero.can_use_skill(skill):
+				slot.tooltip_text = skill.description
+				slot.modulate = SKILL_ENABLED_MODULATE
+			else:
+				slot.tooltip_text = "%s\n（需裝備：%s）" % [skill.description, GameEnums.WEAPON_TYPE_LABELS[skill.bind_weapon]]
+				slot.modulate = SKILL_DISABLED_MODULATE
 		slot.add_child(label)
 
 		skill_row.add_child(slot)

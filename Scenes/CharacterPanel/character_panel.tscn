@@ -136,6 +136,11 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "等級：--"
 
+[node name="WeaponLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "武器：--"
+
 [node name="StandeeFrame" type="PanelContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader"]
 custom_minimum_size = Vector2(0, 220)
 layout_mode = 2

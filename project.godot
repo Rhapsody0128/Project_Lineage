@@ -18,6 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
+BattleReportStore="*res://System/battle/battle_report_store.gd"
 
 [display]
 

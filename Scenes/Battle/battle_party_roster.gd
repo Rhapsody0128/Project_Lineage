@@ -26,6 +26,19 @@ const ACTIVE_RETURN_TIME := 0.2
 # 放技能時頭像框的高亮顏色
 const SKILL_FRAME_COLOR := Color(1.0, 0.85, 0.2, 1.0)
 
+# 隊長頭像框:固定金色邊框,取代原本紅/藍陣營色,一眼認出隊長
+const LEADER_FRAME_COLOR := Color(1.0, 0.85, 0.2, 1.0)
+const LEADER_FRAME_BORDER_WIDTH := 3
+
+# 技能名稱對話框(魔法漫畫風):偏紫的底色 + 金色邊框,跟頭像框高亮同色系
+const SKILL_BUBBLE_BG := Color(0.16, 0.05, 0.28, 0.95)
+const SKILL_BUBBLE_BORDER := Color(1.0, 0.85, 0.2, 1.0)
+const SKILL_BUBBLE_TEXT_COLOR := Color(1.0, 0.95, 0.75)
+const SKILL_BUBBLE_GAP := 6.0
+const SKILL_BUBBLE_TAIL_SIZE := 12.0
+const SKILL_BUBBLE_FADE_TIME := 0.15
+const SKILL_BUBBLE_HOLD_TIME := 0.45
+
 class RosterSlot:
 	var slot: VBoxContainer
 	var portrait_frame: PanelContainer
@@ -36,6 +49,7 @@ class RosterSlot:
 	var max_count: int
 	var active_tween: Tween
 	var skill_tween: Tween
+	var skill_bubble: PanelContainer
 
 var _is_enemy := false
 var _slots: Dictionary = {} # BattleHero -> RosterSlot
@@ -72,13 +86,15 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	portrait_frame.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	portrait_frame.gui_input.connect(_on_portrait_gui_input.bind(battle_hero))
 
-	var border_color := ENEMY_TINT if is_enemy else SELF_TINT
+	var is_leader := battle_hero.is_leader
+	var border_color := LEADER_FRAME_COLOR if is_leader else (ENEMY_TINT if is_enemy else SELF_TINT)
+	var border_width := LEADER_FRAME_BORDER_WIDTH if is_leader else 2
 	var frame_style := StyleBoxFlat.new()
 	frame_style.bg_color = Color(0.08, 0.08, 0.1, 0.6)
-	frame_style.border_width_left = 2
-	frame_style.border_width_top = 2
-	frame_style.border_width_right = 2
-	frame_style.border_width_bottom = 2
+	frame_style.border_width_left = border_width
+	frame_style.border_width_top = border_width
+	frame_style.border_width_right = border_width
+	frame_style.border_width_bottom = border_width
 	frame_style.border_color = border_color
 	frame_style.content_margin_left = 2.0
 	frame_style.content_margin_top = 2.0
@@ -169,9 +185,9 @@ func pulse_active(battle_hero: BattleHero) -> void:
 	s.active_tween.tween_property(s.slot, "position:x", 0.0, ACTIVE_RETURN_TIME)
 
 
-## 放技能時:頭像照樣靠近戰場(pulse_active),另外把頭像框變色高亮一下,
-## 取代舊版「頭上飄技能名稱」的畫面效果。
-func pulse_skill(battle_hero: BattleHero) -> void:
+## 放技能時:頭像照樣靠近戰場(pulse_active),頭像框變色高亮一下,
+## 另外在頭像面向戰場那一側彈出一個漫畫風格的對話框,寫出招式名稱。
+func pulse_skill(battle_hero: BattleHero, skill_name: String) -> void:
 	var s: RosterSlot = _slots.get(battle_hero)
 	if s == null:
 		return
@@ -186,6 +202,98 @@ func pulse_skill(battle_hero: BattleHero) -> void:
 	s.skill_tween.tween_property(s.frame_style, "border_color", SKILL_FRAME_COLOR, ACTIVE_OUT_TIME)
 	s.skill_tween.tween_interval(ACTIVE_HOLD_TIME)
 	s.skill_tween.tween_property(s.frame_style, "border_color", s.base_border_color, ACTIVE_RETURN_TIME)
+
+	_show_skill_bubble(s, skill_name)
+
+
+## 在頭像旁(面向戰場的那一側)彈出一個邊框+底色的漫畫對話框,寫出招式名稱,
+## 淡入停留一下後淡出釋放。對話框跟尖角尾巴掛在場景根節點下(而不是頭像列自己的
+## VBoxContainer),因為 Container 會用自己的排版邏輯強制覆蓋子節點座標,沒辦法
+## 手動定位在頭像外側。
+func _show_skill_bubble(s: RosterSlot, skill_name: String) -> void:
+	if s.skill_bubble != null and is_instance_valid(s.skill_bubble):
+		s.skill_bubble.queue_free()
+
+	var bubble := PanelContainer.new()
+	bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	bubble.modulate.a = 0.0
+
+	bubble.z_index = 2 # 確保在頭像列上方,不被頭像框蓋住
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = SKILL_BUBBLE_BG
+	style.border_color = SKILL_BUBBLE_BORDER
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(6)
+	bubble.add_theme_stylebox_override("panel", style)
+
+	var label := Label.new()
+	label.text = skill_name
+	label.add_theme_font_size_override("font_size", 40)
+	label.add_theme_color_override("font_color", SKILL_BUBBLE_TEXT_COLOR)
+	bubble.add_child(label)
+
+	var tail := Panel.new()
+	tail.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tail.modulate.a = 0.0
+	tail.size = Vector2(SKILL_BUBBLE_TAIL_SIZE, SKILL_BUBBLE_TAIL_SIZE)
+	tail.pivot_offset = tail.size * 2
+	tail.rotation_degrees = 45
+
+	var tail_style := StyleBoxFlat.new()
+	tail_style.bg_color = SKILL_BUBBLE_BG
+	tail_style.border_color = SKILL_BUBBLE_BORDER
+	tail_style.set_border_width_all(2)
+	tail.add_theme_stylebox_override("panel", tail_style)
+
+	var overlay: Node = get_tree().current_scene if get_tree() != null else null
+	if overlay == null:
+		overlay = self
+	overlay.add_child(bubble)
+	overlay.add_child(tail)
+	s.skill_bubble = bubble
+
+	_animate_skill_bubble(s, bubble, tail)
+
+
+## 等一影格讓對話框依內容算出實際尺寸,再依頭像位置(面向戰場那一側)定位對話框
+## 與尖角尾巴,接著淡入 → 停留 → 淡出 → 釋放。
+func _animate_skill_bubble(s: RosterSlot, bubble: PanelContainer, tail: Panel) -> void:
+	await get_tree().process_frame
+
+	if not is_instance_valid(bubble) or not is_instance_valid(s.portrait_frame):
+		if is_instance_valid(bubble):
+			bubble.queue_free()
+		if is_instance_valid(tail):
+			tail.queue_free()
+		return
+
+	bubble.size = bubble.get_combined_minimum_size()
+
+	var anchor := s.portrait_frame.global_position
+	var anchor_size := s.portrait_frame.size
+
+	var bubble_pos: Vector2
+	var tail_pos: Vector2
+	if _is_enemy:
+		bubble_pos = anchor + Vector2(-SKILL_BUBBLE_GAP - bubble.size.x, anchor_size.y * 0.5 - bubble.size.y * 0.5)
+		tail_pos = anchor + Vector2(-SKILL_BUBBLE_GAP * 0.5 - SKILL_BUBBLE_TAIL_SIZE * 0.5, anchor_size.y * 0.5 - SKILL_BUBBLE_TAIL_SIZE * 0.5)
+	else:
+		bubble_pos = anchor + Vector2(anchor_size.x + SKILL_BUBBLE_GAP, anchor_size.y * 0.5 - bubble.size.y * 0.5)
+		tail_pos = anchor + Vector2(anchor_size.x + SKILL_BUBBLE_GAP * 0.5 - SKILL_BUBBLE_TAIL_SIZE * 0.5, anchor_size.y * 0.5 - SKILL_BUBBLE_TAIL_SIZE * 0.5)
+
+	bubble.global_position = bubble_pos
+	tail.global_position = tail_pos
+
+	var tw := bubble.create_tween()
+	tw.tween_property(bubble, "modulate:a", 1.0, SKILL_BUBBLE_FADE_TIME)
+	tw.parallel().tween_property(tail, "modulate:a", 1.0, SKILL_BUBBLE_FADE_TIME)
+	tw.tween_interval(SKILL_BUBBLE_HOLD_TIME)
+	tw.tween_property(bubble, "modulate:a", 0.0, SKILL_BUBBLE_FADE_TIME)
+	tw.parallel().tween_property(tail, "modulate:a", 0.0, SKILL_BUBBLE_FADE_TIME)
+	tw.tween_callback(bubble.queue_free)
+	tw.tween_callback(tail.queue_free)
 
 
 ## 隊長的個人頭像(Images/Face 隨機圖);沒有頭像時退回 Warrier 佔位圖

@@ -4,10 +4,14 @@ extends RefCounted
 ## 每回合預設移動步數
 const BASE_MOVE_STEPS := 2
 ## 每累積這麼多敏捷,多走 1 格
-const AGILITY_PER_EXTRA_STEP := 25.0
+const AGILITY_PER_EXTRA_STEP := 50.0
 
 var hero: Hero
 var battle: Battle
+
+## 是否為所屬小隊的隊長:戰場上顯示金色外框,陣亡會立即結束整場戰鬥
+## (見 Battle.is_decided)
+var is_leader: bool
 
 var _is_enemy: bool
 
@@ -25,16 +29,18 @@ var grid_pos: Vector2i
 ## 用這張表決定實際施放哪一個技能)
 var action_chance_map: Dictionary = {}
 
-func _init(p_hero: Hero, p_battle: Battle, p_is_enemy: bool) -> void:
+func _init(p_hero: Hero, p_battle: Battle, p_is_enemy: bool, p_is_leader: bool = false) -> void:
 	hero = p_hero
 	battle = p_battle
 	_is_enemy = p_is_enemy
+	is_leader = p_is_leader
 	_set_action_chance()
 
-## 目前沒有武器/陣形系統,角色的技能一律都能用,權重直接採技能本身的基礎機率
+## 只有手持武器與技能相符(或技能沒綁武器)才能被抽到,權重直接採技能本身的基礎機率
 func _set_action_chance() -> void:
 	for skill in hero.skill_list:
-		action_chance_map[skill.id] = skill.base_chance
+		if hero.can_use_skill(skill):
+			action_chance_map[skill.id] = skill.base_chance
 
 ## 每回合抽一次行動類型的權重表:ATTACK/DAZE/SKILL 固定各 25,
 ## ESCAPE 只有在 HP 低於 50% 時才會被列入(權重 25),
@@ -68,12 +74,18 @@ func action() -> void:
 			if _in_attack_range(target):
 				_cast_random_skill(target)
 			else:
+				# 移動只是為了接近目標的子步驟,一旦這步移動後就進入攻擊範圍,
+				# 本回合仍要接著把「放技能」這個主步驟執行掉,而不是移動完就結束。
 				move(target)
+				if _in_attack_range(target):
+					_cast_random_skill(target)
 		_: # "ATTACK"
 			if _in_attack_range(target):
 				attack(target)
 			else:
 				move(target)
+				if _in_attack_range(target):
+					attack(target)
 
 ## SKILL 類型:依 action_chance_map 抽一個技能施放,沒有可用技能時退化成一般攻擊
 func _cast_random_skill(target: BattleHero) -> void:
@@ -111,7 +123,9 @@ func attack(target: BattleHero) -> void:
 		return
 	var damage_base: float = strength
 	var reduce_base: float = target.vitality
-	var damage: float = damage_base - (damage_base * (reduce_base / 200.0))
+	var damage_ratio: float = min(damage_base / reduce_base, 1.0)
+  
+	var damage: float = damage_base * damage_ratio
 	target.be_attacked(damage)
 
 func daze() -> void:

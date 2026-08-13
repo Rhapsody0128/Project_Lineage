@@ -7,11 +7,12 @@ var description: String
 var skill_rank: int
 var skill_range: int
 var scope: int
-var effect_based_on: int
+var effect_stat: int
 var skill_type: int
 var bind_weapon: int
 var is_leader_skill: bool
 var base_chance: float
+var skill_ratio: float
 var action: Callable
 
 func _init(
@@ -20,11 +21,12 @@ func _init(
 	p_skill_rank: int,
 	p_range: int,
 	p_scope: int,
-	p_effect_based_on: int,
+	p_effect_stat: int,
 	p_skill_type: int,
 	p_bind_weapon: int,
 	p_is_leader_skill: bool,
 	p_base_chance: float,
+	p_skill_ratio: float,
 	p_action: Callable
 ) -> void:
 	id = Util.generate_uuid()
@@ -33,11 +35,12 @@ func _init(
 	skill_rank = p_skill_rank
 	skill_range = p_range
 	scope = p_scope
-	effect_based_on = p_effect_based_on
+	effect_stat = p_effect_stat
 	skill_type = p_skill_type
 	bind_weapon = p_bind_weapon
 	is_leader_skill = p_is_leader_skill
 	base_chance = p_base_chance
+	skill_ratio = p_skill_ratio
 	action = p_action
 
 func effect(self_party, target_party) -> void:

@@ -11,6 +11,8 @@ var age: int
 var face_path: String
 var traits: Array[CharacterTrait]
 var potential: Potential
+## 目前手持的武器(GameEnums.WeaponType),決定哪些 bind_weapon 技能能施放
+var weapon: int
 var skill_list: Array[Skill]
 var level_system: LevelSystem
 var hp: int
@@ -22,6 +24,7 @@ func _init(
 	p_face_path: String,
 	p_traits: Array[CharacterTrait],
 	p_potential: Potential,
+	p_weapon: int,
 	p_skill_list: Array[Skill],
 	p_level_system: LevelSystem
 ) -> void:
@@ -32,9 +35,14 @@ func _init(
 	face_path = p_face_path
 	traits = p_traits
 	potential = p_potential
+	weapon = p_weapon
 	skill_list = p_skill_list
 	level_system = p_level_system
 	hp = HP_MAX
+
+## 該技能目前是否能施放:未綁武器(EMPTY)一律可用,綁了武器則要手持相符武器
+func can_use_skill(skill: Skill) -> bool:
+	return skill.bind_weapon == GameEnums.WeaponType.EMPTY or skill.bind_weapon == weapon
 
 var full_name: String:
 	get: return "%s·%s" % [name, last_name]

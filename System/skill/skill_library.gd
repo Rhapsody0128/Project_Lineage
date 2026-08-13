@@ -18,8 +18,9 @@ static func _weapon_rank_skills() -> Array[Skill]:
 		"火球術", #	名稱
 		"對範圍敵人造成遠距離範圍傷害", #	描述
 		GameEnums.RankType.E, #	Rank
-		3, #	範圍
-		2, #	作用範圍
+		3, #	距離
+		GameEnums.AreaShape.RADIUS, #	範圍形狀
+		2, #	範圍大小
 		GameEnums.PotentialType.INTELLIGENCE, #	影響屬性
 		GameEnums.SkillType.ATTACK, #	技能類型
 		GameEnums.WeaponType.STAFF, #	綁定武器
@@ -34,6 +35,7 @@ static func _weapon_rank_skills() -> Array[Skill]:
 		"手持長劍捲起一陣旋風,連消帶打劈向敵人",
 		GameEnums.RankType.E,
 		1,
+		GameEnums.AreaShape.SINGLE,
 		1,
 		GameEnums.PotentialType.STRENGTH,
 		GameEnums.SkillType.ATTACK,
@@ -49,6 +51,7 @@ static func _weapon_rank_skills() -> Array[Skill]:
 		"拉滿弓弦射出一箭,能擊中遠距離敵人",
 		GameEnums.RankType.E,
 		4,
+		GameEnums.AreaShape.SINGLE,
 		1,
 		GameEnums.PotentialType.PERCEPTION,
 		GameEnums.SkillType.ATTACK,
@@ -64,6 +67,7 @@ static func _weapon_rank_skills() -> Array[Skill]:
 		"以盾牌邊緣狠狠撞擊敵人",
 		GameEnums.RankType.E,
 		1,
+		GameEnums.AreaShape.SINGLE,
 		1,
 		GameEnums.PotentialType.VITALITY,
 		GameEnums.SkillType.ATTACK,
@@ -79,6 +83,7 @@ static func _weapon_rank_skills() -> Array[Skill]:
 		"欺近敵人身側,以匕首找出防禦空隙突刺",
 		GameEnums.RankType.E,
 		1,
+		GameEnums.AreaShape.SINGLE,
 		1,
 		GameEnums.PotentialType.AGILITY,
 		GameEnums.SkillType.ATTACK,
@@ -94,6 +99,7 @@ static func _weapon_rank_skills() -> Array[Skill]:
 		"高舉權杖召喚聖光,攻擊敵方",
 		GameEnums.RankType.E,
 		2,
+		GameEnums.AreaShape.SINGLE,
 		1,
 		GameEnums.PotentialType.MENTALITY,
 		GameEnums.SkillType.ATTACK,

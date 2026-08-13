@@ -6,8 +6,9 @@ extends RefCounted
 const GRID_COLS := 12
 const GRID_ROWS := 6
 
-## 固定跑 10 回合結算,沒有「總大將陣亡即分勝負」的設計——回合數到了就比較
-## 雙方剩餘總 HP,哪邊多哪邊贏
+## 固定跑 10 回合結算。總大將沿用現有隊長機制(Party.leader/BattleHero.is_leader):
+## 隊長陣亡立即分出勝負(見 is_decided);雙方隊長都撐過 10 回合則直接判平手,
+## 不比較 HP(見 result)。
 const TOTAL_ROUND := 10
 
 var self_heroes: Array[BattleHero]
@@ -18,20 +19,18 @@ var _round: int = 0
 ## 結構化戰報,依序記錄戰鬥中發生的每一個事件,供外部(UI/場景)重播使用
 var battle_log: Array[Dictionary] = []
 
-func _init(self_troop: Troop, enemy_troop: Troop) -> void:
-	self_heroes = _attach_battle_heroes(false, self_troop)
-	enemy_heroes = _attach_battle_heroes(true, enemy_troop)
+func _init(self_party: Party, enemy_party: Party) -> void:
+	self_heroes = _attach_battle_heroes(false, self_party)
+	enemy_heroes = _attach_battle_heroes(true, enemy_party)
 	_deploy_initial_positions()
 	_capture_start_state()
 
-## 軍團底下有多個小隊、每個小隊有多個角色,但戰場上沒有「小隊」這個作戰單位——
-## 攤平成一整排角色,每人各自佔一格獨立作戰。
-func _attach_battle_heroes(is_enemy: bool, troop: Troop) -> Array[BattleHero]:
+## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。
+func _attach_battle_heroes(is_enemy: bool, party: Party) -> Array[BattleHero]:
 	var battle_heroes: Array[BattleHero] = []
-	for party in troop.parties:
-		for hero in party.heroes:
-			var is_leader := hero == party.leader
-			battle_heroes.append(BattleHero.new(hero, self, is_enemy, is_leader))
+	for hero in party.heroes:
+		var is_leader := hero == party.leader
+		battle_heroes.append(BattleHero.new(hero, self, is_enemy, is_leader))
 	return battle_heroes
 
 ## 初始佈陣:我方沿最左列、敵方沿最右列,各自置中排成一列縱隊的隊頭
@@ -98,8 +97,8 @@ func _round_end() -> void:
 	log_event({"type": "round_end", "round": _round + 1})
 	_round += 1
 
-## 沒有總大將設計,但隊長陣亡視為戰鬥分出勝負,立即結束整場戰鬥
-## (不必等到跑滿 TOTAL_ROUND)。找不到隊長(理論上不會發生)時視為不會提前結束。
+## 隊長(總大將)陣亡視為戰鬥分出勝負,立即結束整場戰鬥(不必等到跑滿 TOTAL_ROUND)。
+## 找不到隊長(理論上不會發生)時視為不會提前結束。
 var is_decided: bool:
 	get:
 		var self_leader := _find_leader(self_heroes)
@@ -112,14 +111,29 @@ func _find_leader(battle_heroes: Array[BattleHero]) -> BattleHero:
 			return battle_hero
 	return null
 
+## 勝負判定:只看雙方總大將(隊長)死活,不比較 HP。跑滿 10 回合時雙方隊長必定都還
+## 存活(否則 is_decided 早就提前結束了),此時直接判平手。
+var result: int:
+	get:
+		var self_leader := _find_leader(self_heroes)
+		var enemy_leader := _find_leader(enemy_heroes)
+		var self_dead: bool = self_leader != null and self_leader.is_disabled
+		var enemy_dead: bool = enemy_leader != null and enemy_leader.is_disabled
+		if enemy_dead and not self_dead:
+			return GameEnums.BattleResultType.SELF_WIN
+		if self_dead and not enemy_dead:
+			return GameEnums.BattleResultType.ENEMY_WIN
+		return GameEnums.BattleResultType.DRAW
+
 ## 結算時機:跑滿 TOTAL_ROUND 回合,或有一方隊長提前陣亡(is_decided)。
-## 兩種情況都一樣比較雙方剩餘總 HP,HP 多的一方獲勝。
+## HP 總量純粹保留給畫面展示用,實際勝負一律看 result。
 func _conclude_battle() -> void:
 	log_event({
 		"type": "battle_end",
 		"round": _round,
 		"self_total": self_total_hp,
 		"enemy_total": enemy_total_hp,
+		"result": result,
 	})
 
 var self_total_hp: int:
@@ -179,6 +193,14 @@ func _format_event(event: Dictionary) -> String:
 		"defeated":
 			return "%s 戰敗" % event.party_name
 		"battle_end":
-			return "戰鬥結束(共 %d 回合)，我方剩餘 HP %d，敵方剩餘 HP %d" % [event.round, event.self_total, event.enemy_total]
+			var result_text: String
+			match event.result:
+				GameEnums.BattleResultType.SELF_WIN:
+					result_text = "我方勝利"
+				GameEnums.BattleResultType.ENEMY_WIN:
+					result_text = "敵方勝利"
+				_:
+					result_text = "平手"
+			return "戰鬥結束(共 %d 回合)，%s(我方剩餘 HP %d，敵方剩餘 HP %d)" % [event.round, result_text, event.self_total, event.enemy_total]
 		_:
 			return str(event)

@@ -80,12 +80,13 @@ func _spawn_report_row(report: BattleReport) -> void:
 
 
 func _result_color(report: BattleReport) -> Color:
-	if report.self_total_hp > report.enemy_total_hp:
-		return WIN_COLOR
-	elif report.enemy_total_hp > report.self_total_hp:
-		return LOSE_COLOR
-	else:
-		return DRAW_COLOR
+	match report.result:
+		GameEnums.BattleResultType.SELF_WIN:
+			return WIN_COLOR
+		GameEnums.BattleResultType.ENEMY_WIN:
+			return LOSE_COLOR
+		_:
+			return DRAW_COLOR
 
 
 func _on_play_pressed(report: BattleReport) -> void:

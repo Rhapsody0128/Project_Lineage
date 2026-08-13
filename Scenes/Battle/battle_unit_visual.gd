@@ -47,6 +47,11 @@ const LEADER_RING_RADIUS := 20.0
 const LEADER_RING_WIDTH := 3.0
 const LEADER_RING_CENTER := Vector2(0, -6)
 
+# 測試階段除錯用:角色右下角常駐顯示目前所持武器文字,方便肉眼核對武器與距離/傷害
+# 行為是否對得上;正式美術/UI 定案後可以整段移除或改成圖示。
+const WEAPON_LABEL_POSITION := Vector2(20, 12)
+const WEAPON_LABEL_FONT_SIZE := 12
+
 var battle_hero: BattleHero
 var is_enemy: bool
 var grid_pos: Vector2i
@@ -79,7 +84,21 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 		else:
 			sprite.play("idle_Right")
 
+	_setup_weapon_label()
+
 	queue_redraw()
+
+
+## 測試階段除錯用,見 WEAPON_LABEL_POSITION 常數說明
+func _setup_weapon_label() -> void:
+	var label := Label.new()
+	label.text = GameEnums.WEAPON_TYPE_LABELS[battle_hero.hero.weapon]
+	label.add_theme_font_size_override("font_size", WEAPON_LABEL_FONT_SIZE)
+	label.add_theme_color_override("font_color", Color.WHITE)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 4)
+	label.position = WEAPON_LABEL_POSITION
+	add_child(label)
 
 
 

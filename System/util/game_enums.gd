@@ -8,12 +8,22 @@ enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND}
 enum ActionType {ATTACK, DAZE, ESCAPE, CONFUSE, SKILL}
 enum Relations {SELF, ALLIES, NEUTRAL, HOSTILE, UNKNOWN}
 enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
+## 戰鬥結果:依總大將(Party.leader/BattleHero.is_leader)死活判定,見 Battle.result
+enum BattleResultType {SELF_WIN, ENEMY_WIN, DRAW}
+## 技能範圍效果的形狀:SINGLE 只打中鎖定的那個目標;RADIUS 以命中目標為中心的菱形範圍
+## (曼哈頓距離 ≤ area_size-1);LINE 從目標往施法者的反方向延伸 area_size 格「貫穿」;
+## SQUARE 以命中目標為中心的正方形範圍(切比雪夫距離 ≤ area_size-1)
+enum AreaShape {SINGLE, RADIUS, LINE, SQUARE}
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
 const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "權杖"]
+
+## 基本攻擊距離(曼哈頓格數):近戰(劍/盾/匕首)1 格、遠程(弓/法杖/權杖)2 格,
+## 順序對應 WeaponType enum
+const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 1, 2, 1, 1, 2, 2]
 
 const MALE_HERO_NAMES: Array[String] = [
 	"約翰", "保羅", "喬治", "亞歷克斯", "馬克斯", "大衛", "丹尼爾", "馬克", "約瑟夫", "派屈克",

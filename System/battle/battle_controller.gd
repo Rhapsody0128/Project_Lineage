@@ -2,9 +2,9 @@ class_name BattleController
 extends RefCounted
 
 static func get_random_battle() -> Battle:
-	var self_troop := TroopController.get_random_troop()
-	var enemy_troop := TroopController.get_random_troop()
-	return Battle.new(self_troop, enemy_troop)
+	var self_party := PartyController.get_random_party()
+	var enemy_party := PartyController.get_random_party()
+	return Battle.new(self_party, enemy_party)
 
 ## 產生一份戰報:快速跑完一整場隨機戰鬥模擬(不進場景播放),把結果包成
 ## BattleReport 存進戰報列表。戰報本身只是「已經跑完的 Battle」,重播時

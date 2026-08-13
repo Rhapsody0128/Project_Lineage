@@ -21,7 +21,7 @@ static func get_random_hero() -> Hero:
 	var face_path := FaceController.get_random_face_path()
 	var traits := TraitController.get_random_traits(2)
 	var potential := PotentialController.get_random_potential()
-	var weapon: int = Util.get_random_from_array(RANDOM_WEAPON_POOL)
+	var weapon: int = GameEnums.WeaponType.STAFF
 	var skill_list := SkillController.get_skill_list()
 	return Hero.new(hero_name, last_name, age, face_path, traits, potential, weapon, skill_list, LevelSystem.new())
 

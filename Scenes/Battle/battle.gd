@@ -94,8 +94,8 @@ func _enter_playback_mode(p_report: BattleReport) -> void:
 # =========================================================
 # 產生一場新的隨機戰鬥
 #
-# 軍團/小隊/角色資料、初始佈陣與戰鬥判定全部呼叫 System/battle、
-# System/troop,本函式只負責把回傳的 BattleHero 對應到畫面元件上。
+# 小隊/角色資料、初始佈陣與戰鬥判定全部呼叫 System/battle、
+# System/party,本函式只負責把回傳的 BattleHero 對應到畫面元件上。
 # =========================================================
 func _new_simulation() -> void:
 	battle = BattleController.get_random_battle()
@@ -179,31 +179,32 @@ func _on_start_pressed() -> void:
 		_log("按下「開始戰鬥」按鈕，播放戰報！")
 
 
-## 10 回合結算:比較雙方剩餘總 HP,HP 多的一方獲勝。
-## 直接讀 battle_log 的 battle_end 事件,不用 battle.self_total_hp/enemy_total_hp
-## 現算——戰報播放前會呼叫 reset_for_replay() 把 HP 還原成開戰時的滿血,
-## 那兩個 getter 讀到的會是還原後的數字,不是戰鬥結束時的結算數字。
+## 10 回合結算:總大將(隊長)死活決定勝負,雙方隊長都撐過 10 回合直接判平手,不比較 HP。
+## 直接讀 battle_log 的 battle_end 事件(內含 System 層算好的 result),不用
+## battle.self_total_hp/enemy_total_hp 現算——戰報播放前會呼叫 reset_for_replay() 把
+## HP 還原成開戰時的滿血,那兩個 getter 讀到的會是還原後的數字,不是戰鬥結束時的數字。
 func _announce_result() -> void:
 	var totals := _final_totals()
 	var self_total: int = totals.self_total
 	var enemy_total: int = totals.enemy_total
 
-	if self_total > enemy_total:
-		status_label.text = "我方勝利！"
-		_log("[color=yellow][b]我方獲得勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
-	elif enemy_total > self_total:
-		status_label.text = "敵方勝利！"
-		_log("[color=red][b]敵方獲得勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
-	else:
-		status_label.text = "平手"
-		_log("雙方剩餘 HP 相同(%d : %d),戰鬥平手。" % [self_total, enemy_total])
+	match totals.result:
+		GameEnums.BattleResultType.SELF_WIN:
+			status_label.text = "我方勝利！"
+			_log("[color=yellow][b]我方擊敗敵方總大將，我方勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
+		GameEnums.BattleResultType.ENEMY_WIN:
+			status_label.text = "敵方勝利！"
+			_log("[color=red][b]我方總大將陣亡，敵方勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
+		_:
+			status_label.text = "平手"
+			_log("雙方總大將皆存活至第 10 回合，戰鬥平手。(剩餘 HP %d : %d)" % [self_total, enemy_total])
 
 
 func _final_totals() -> Dictionary:
 	for event in battle.battle_log:
 		if event.type == "battle_end":
-			return {"self_total": event.self_total, "enemy_total": event.enemy_total}
-	return {"self_total": battle.self_total_hp, "enemy_total": battle.enemy_total_hp}
+			return {"self_total": event.self_total, "enemy_total": event.enemy_total, "result": event.result}
+	return {"self_total": battle.self_total_hp, "enemy_total": battle.enemy_total_hp, "result": battle.result}
 
 
 func _on_back_pressed() -> void:
@@ -242,13 +243,18 @@ func _play_battle_log() -> void:
 			await _safe_wait(MOVE_STEP_DELAY)
 			continue
 
-		if (event.type == "attack" or event.type == "skill") and i + 1 < log_size:
-			var reaction_event: Dictionary = battle.battle_log[i + 1]
-			if reaction_event.type in REACTION_EVENT_TYPES:
-				await _play_action_with_reaction(event, reaction_event)
-				i += 2
-				await _safe_wait(STEP_DELAY)
-				continue
+		if (event.type == "attack" or event.type == "skill") and i + 1 < log_size and battle.battle_log[i + 1].type in REACTION_EVENT_TYPES:
+			# 範圍技能可能一次波及多個目標,緊接著的反應事件(dodge/damage)不保證只有一筆,
+			# 把連續出現的都收進同一批,一起套用。
+			var reaction_events: Array[Dictionary] = []
+			var j := i + 1
+			while j < log_size and battle.battle_log[j].type in REACTION_EVENT_TYPES:
+				reaction_events.append(battle.battle_log[j])
+				j += 1
+			await _play_action_with_reaction(event, reaction_events)
+			i = j
+			await _safe_wait(STEP_DELAY)
+			continue
 
 		await _play_single_event(event)
 		i += 1
@@ -315,7 +321,9 @@ func _play_single_event(event: Dictionary) -> void:
 
 ## attack/skill 動畫與緊接在後的閃避/受傷反應同時播放,不要分先後拍:
 ## 攻擊方的揮擊動畫一開始播放,就立刻套用防禦方的反應,兩邊動畫同時進行。
-func _play_action_with_reaction(action_event: Dictionary, reaction_event: Dictionary) -> void:
+## reaction_events 可能不只一筆——範圍技能一次波及多個目標時,每個目標各自的
+## 受擊/閃避反應會同時套用在各自的角色身上。
+func _play_action_with_reaction(action_event: Dictionary, reaction_events: Array[Dictionary]) -> void:
 	var actor: BattleUnitVisual = visuals.get(action_event.actor)
 	var target: BattleUnitVisual = visuals.get(action_event.target)
 	if actor == null or target == null:
@@ -332,7 +340,8 @@ func _play_action_with_reaction(action_event: Dictionary, reaction_event: Dictio
 	var anim := actor.play_attack_towards(target.grid_pos)
 
 	# 不 await,讓反應動畫跟攻擊動畫同時播放
-	_apply_reaction(reaction_event)
+	for reaction_event in reaction_events:
+		_apply_reaction(reaction_event)
 
 	await actor.wait_for_animation(anim)
 	actor.idle_towards(target.grid_pos)

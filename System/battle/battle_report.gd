@@ -22,19 +22,23 @@ var self_total_hp: int:
 var enemy_total_hp: int:
 	get: return _result_totals().enemy_total
 
+## GameEnums.BattleResultType:只看雙方總大將死活,不比較 HP——供需要依勝負分色/分支的
+## 呼叫端使用(例如戰報列表),不要自己另外比較 self_total_hp/enemy_total_hp。
+var result: int:
+	get: return _result_totals().result
+
 var result_text: String:
 	get:
-		var self_total := self_total_hp
-		var enemy_total := enemy_total_hp
-		if self_total > enemy_total:
-			return "我方勝利"
-		elif enemy_total > self_total:
-			return "敵方勝利"
-		else:
-			return "平手"
+		match result:
+			GameEnums.BattleResultType.SELF_WIN:
+				return "我方勝利"
+			GameEnums.BattleResultType.ENEMY_WIN:
+				return "敵方勝利"
+			_:
+				return "平手"
 
 func _result_totals() -> Dictionary:
 	for event in battle.battle_log:
 		if event.type == "battle_end":
-			return {"self_total": event.self_total, "enemy_total": event.enemy_total}
-	return {"self_total": 0, "enemy_total": 0}
+			return {"self_total": event.self_total, "enemy_total": event.enemy_total, "result": event.result}
+	return {"self_total": 0, "enemy_total": 0, "result": GameEnums.BattleResultType.DRAW}

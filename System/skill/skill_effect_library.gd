@@ -5,28 +5,62 @@ extends RefCounted
 ## SkillLibrary 只負責組裝技能資料(名稱/rank/範圍/綁定武器…),實際效果一律
 ## 透過 Callable(SkillEffectLibrary, "xxx") 帶入 Skill.action。
 ##
-## 新增效果時優先重用 _potential_damage()/_log_and_attack() 這兩個共用計算,
-## 保持每個效果 function 只需描述「用哪個素質打、打誰的哪個素質」。
+## 新增效果時優先重用 _attack_value()/_defense_value()/_cast_attack_skill() 這幾個
+## 共用計算(基本攻擊 BattleHero.attack() 也共用同一份武器素質配對),保持每個效果
+## function 只需描述「綁定哪個武器」。
 
 ## 素質對素質的傷害公式:base = 攻擊素質 * multiplier,
 ## 依防禦素質(0~200 範圍)按比例減傷,概念與 BattleHero.attack() 的普攻公式一致。
 static func _skill_damage(attack_value: float, defense_value: float, multiplier: float) -> float:
 	var damage_ratio: float = min(attack_value * multiplier / defense_value, 1.0)
-	var damage: float = attack_value * multiplier * damage_ratio 
+	var damage: float = attack_value * multiplier * damage_ratio
 	return damage
 
-## 攻擊類技能共用的表現:記一筆 skill 事件、對目標造成傷害
-static func _log_and_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill, damage: float) -> void:
+## 依武器決定攻擊方要用哪個(或哪幾個)素質當輸出:法杖=智慧、弓=靈巧、
+## 盾=力量*0.4+體質*0.6、匕首=力量*0.4+敏捷*0.6、權杖=智慧*0.4+信仰*0.6,
+## 其餘(劍、徒手 EMPTY)一律用力量。
+static func _attack_value(self_hero: BattleHero, weapon: int) -> float:
+	match weapon:
+		GameEnums.WeaponType.STAFF:
+			return self_hero.intelligence
+		GameEnums.WeaponType.BOW:
+			return self_hero.perception
+		GameEnums.WeaponType.SHIELD:
+			return self_hero.strength * 0.4 + self_hero.vitality * 0.6
+		GameEnums.WeaponType.DAGGER:
+			return self_hero.strength * 0.4 + self_hero.agility * 0.6
+		GameEnums.WeaponType.SCEPTER:
+			return self_hero.intelligence * 0.4 + self_hero.mentality * 0.6
+		_: # SWORD、EMPTY(徒手比照劍)
+			return self_hero.strength
+
+## 依武器決定防禦方要用哪個素質:法杖/權杖打的是信仰,其餘一律是體質。
+static func _defense_value(enemy_hero: BattleHero, weapon: int) -> float:
+	match weapon:
+		GameEnums.WeaponType.STAFF, GameEnums.WeaponType.SCEPTER:
+			return enemy_hero.mentality
+		_:
+			return enemy_hero.vitality
+
+## 基本攻擊(BattleHero.attack() 專用):套用跟技能一樣的武器素質配對,倍率固定 1。
+static func basic_attack_damage(self_hero: BattleHero, enemy_hero: BattleHero, weapon: int) -> float:
+	return _skill_damage(_attack_value(self_hero, weapon), _defense_value(enemy_hero, weapon), 1.0)
+
+## 攻擊類技能共用的表現:記一筆 skill 事件(以 primary_target 決定動畫朝向與戰報文字),
+## 再對 skill.resolve_targets() 算出的每個目標各自造成傷害——範圍內每個目標各自觸發
+## 自己的 damage/defeated 事件,供畫面端逐一套用受擊反應,不因為波及多人而讓輸出膨脹
+## 或衰減。
+static func _cast_attack_skill(self_hero: BattleHero, primary_target: BattleHero, skill: Skill, weapon: int) -> void:
 	self_hero.battle.log_event({
 		"type": "skill", "actor": self_hero, "actor_name": self_hero.name,
-		"target": enemy_hero, "target_name": enemy_hero.name, "skill_name": skill.name,
+		"target": primary_target, "target_name": primary_target.name, "skill_name": skill.name,
 	})
-	enemy_hero.be_attacked(damage)
 
+	var attack_value := _attack_value(self_hero, weapon)
+	for enemy_hero in skill.resolve_targets(self_hero, primary_target):
+		var damage := _skill_damage(attack_value, _defense_value(enemy_hero, weapon), skill.skill_ratio)
+		enemy_hero.be_attacked(damage)
 
-# =========================================================
-# 通用技能(不綁武器,徒手也能放)
-# =========================================================
 
 # =========================================================
 # 六種武器專屬技能 E
@@ -34,30 +68,24 @@ static func _log_and_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill
 
 ## 法杖:智慧 vs 信仰
 static func staff_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill) -> void:
-	var damage := _skill_damage(self_hero.intelligence, enemy_hero.mentality, skill.skill_ratio)
-	_log_and_attack(self_hero, enemy_hero, skill, damage)
+	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.STAFF)
 
 ## 劍:力量 vs 體質
 static func sword_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill) -> void:
-	var damage := _skill_damage(self_hero.strength, enemy_hero.vitality, skill.skill_ratio)
-	_log_and_attack(self_hero, enemy_hero, skill, damage)
+	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.SWORD)
 
 ## 弓:靈巧 vs 體質
 static func bow_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill) -> void:
-	var damage := _skill_damage(self_hero.perception, enemy_hero.vitality, skill.skill_ratio)
-	_log_and_attack(self_hero, enemy_hero, skill, damage)
+	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.BOW)
 
-## 盾:力量 + 體質 vs 體質
+## 盾:力量*0.4 + 體質*0.6 vs 體質
 static func shield_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill) -> void:
-	var damage := _skill_damage(self_hero.strength * 0.4 + self_hero.vitality * 0.6, enemy_hero.vitality, skill.skill_ratio)
-	_log_and_attack(self_hero, enemy_hero, skill, damage)
+	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.SHIELD)
 
-## 匕首:力量 + 敏捷 vs 體質
+## 匕首:力量*0.4 + 敏捷*0.6 vs 體質
 static func dagger_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill) -> void:
-	var damage := _skill_damage(self_hero.strength * 0.4 + self_hero.agility * 0.6  , enemy_hero.vitality, skill.skill_ratio)
-	_log_and_attack(self_hero, enemy_hero, skill, damage)
+	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.DAGGER)
 
-## 權杖:智慧 + 信仰 vs 信仰
+## 權杖:智慧*0.4 + 信仰*0.6 vs 信仰
 static func scepter_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill) -> void:
-	var damage := _skill_damage(self_hero.intelligence * 0.4 + self_hero.mentality * 0.6, enemy_hero.mentality, skill.skill_ratio)
-	_log_and_attack(self_hero, enemy_hero, skill, damage)
+	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.SCEPTER)

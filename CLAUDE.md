@@ -38,23 +38,21 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | `skill/` | 技能池與效果 |
 | `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
 | `party/` | 小隊,由多個 `Hero` 組成(`Party.heroes`) |
-| `troop/` | 軍團,由多個 `Party` 組成(`Troop.parties`) |
 | `battle/` | 自動戰鬥流程與戰報 |
 | `util/` | `GameEnums`(所有列舉)、`Util`(隨機/UUID)、`level_system.gd` |
 
 士兵/武器/陣形系統已整個移除(暫時不需要這些設計)。編制階層是
-`Hero`(角色)⊂ `Party`(小隊)⊂ `Troop`(軍團),但這只是組織上的分組——
-**戰場上沒有「小隊」這個作戰單位**,`BattleController.get_random_battle()` 會把
-軍團底下所有小隊的角色整個攤平,每個角色各自佔一格獨立作戰(見 `System/battle/
-battle_hero.gd` 的 `BattleHero`,直接包一個 `Hero`)。小隊/軍團的人數之後會開放
-玩家配置與科技研發提升,目前寫死:1 軍團 = 1 小隊、1 小隊 = 6 名隨機角色
-(對應戰場 6 路縱隊)。
+`Hero`(角色)⊂ `Party`(小隊),`BattleController.get_random_battle()` 直接拿
+`Party` 對戰,每個角色各自佔一格獨立作戰(見 `System/battle/battle_hero.gd` 的
+`BattleHero`,直接包一個 `Hero`)。小隊人數之後會開放玩家配置與科技研發提升,
+目前寫死:1 小隊 = 6 名隨機角色(對應戰場 6 路縱隊)。原本小隊之上還有一層
 
 ## 戰鬥系統(System/battle + Scenes/Battle)
 
 `Battle.start()` 一次性把整場戰鬥模擬完,事件存進 `battle.battle_log`;`battle.gd` 事後
 依序重播,不影響模擬。事件合約細節、戰場座標/移動/閃避/勝負公式見 Spec.md 一、二。
-固定跑 10 回合,沒有總大將設計,回合結束比雙方剩餘總 HP 多的一方獲勝;角色 HP 歸零
+固定跑 10 回合,總大將沿用現有隊長機制(`Party.leader`/`BattleHero.is_leader`):總大將
+陣亡立即分出勝負,雙方總大將都撐過 10 回合則直接判平手,不比較雙方剩餘 HP;角色 HP 歸零
 視為戰敗(`defeated` 事件)。
 
 畫面元件已拆分單一職責:`battle.gd`(整合層,重播時連續的 `move`/`daze` 事件會併發

@@ -56,7 +56,8 @@ func _build_action_type_chance_map() -> Dictionary:
 	return map
 
 ## 每回合的行動:先依權重抽出行動類型,再依類型決定實際行為。
-## ATTACK/SKILL 需要進入攻擊範圍才能出手,尚未進入範圍時改為往目標移動;
+## ATTACK 需要進入武器對應的攻擊距離才能出手(見 basic_attack_range),尚未進入範圍時
+## 改為往目標移動;SKILL 的範圍判斷交給 _cast_random_skill(每個技能距離不同);
 ## DAZE 原地不動;ESCAPE(HP 低於 50% 才可能抽到)遠離目標。
 func action() -> void:
 	var target := search_enemy()
@@ -71,39 +72,47 @@ func action() -> void:
 		"ESCAPE":
 			move_away(target)
 		"SKILL":
-			if _in_attack_range(target):
-				_cast_random_skill(target)
-			else:
-				# 移動只是為了接近目標的子步驟,一旦這步移動後就進入攻擊範圍,
-				# 本回合仍要接著把「放技能」這個主步驟執行掉,而不是移動完就結束。
-				move(target)
-				if _in_attack_range(target):
-					_cast_random_skill(target)
+			_cast_random_skill(target)
 		_: # "ATTACK"
-			if _in_attack_range(target):
+			if _in_range(target, basic_attack_range):
 				attack(target)
 			else:
-				move(target)
-				if _in_attack_range(target):
+				move(target, basic_attack_range)
+				if _in_range(target, basic_attack_range):
 					attack(target)
 
-## SKILL 類型:依 action_chance_map 抽一個技能施放,沒有可用技能時退化成一般攻擊
+## SKILL 類型:依 action_chance_map 抽一個技能,再用該技能自己的 range 判斷能不能出手
+## (不夠近就先移動一次、以該技能的射程為目標距離,移動後再重新檢查);沒有可用技能、
+## 或移動後仍搆不到,都退化成一般攻擊(退化仍要走一般攻擊自己的距離判斷)。
 func _cast_random_skill(target: BattleHero) -> void:
-	if action_chance_map.is_empty():
-		attack(target)
+	var skill := _pick_random_skill()
+	if skill == null:
+		if _in_range(target, basic_attack_range):
+			attack(target)
+		else:
+			move(target, basic_attack_range)
+			if _in_range(target, basic_attack_range):
+				attack(target)
 		return
 
+	if _in_range(target, skill.range):
+		skill.effect(self, target)
+		return
+
+	move(target, skill.range)
+	if _in_range(target, skill.range):
+		skill.effect(self, target)
+	# 移動後仍搆不到:比照一般攻擊「移動不到位就不出手」,本回合到此結束。
+
+func _pick_random_skill() -> Skill:
+	if action_chance_map.is_empty():
+		return null
+
 	var chosen_id: String = Util.get_random_chance_item(action_chance_map)
-	var skill: Skill = null
 	for s in hero.skill_list:
 		if s.id == chosen_id:
-			skill = s
-			break
-
-	if skill != null:
-		skill.effect(self, target)
-	else:
-		attack(target)
+			return s
+	return null
 
 ## CONFUSE:叛變攻擊己方隊友。目前 action() 暫時不會抽到這個類型
 ## (等魅惑狀態系統接上、能限定只有被魅惑時才抽得到再開放),
@@ -121,35 +130,32 @@ func attack(target: BattleHero) -> void:
 	battle.log_event({"type": "attack", "actor": self, "actor_name": name, "target": target, "target_name": target.name})
 	if judge_dodge(self, target):
 		return
-	var damage_base: float = strength
-	var reduce_base: float = target.vitality
-	var damage_ratio: float = min(damage_base / reduce_base, 1.0)
-  
-	var damage: float = damage_base * damage_ratio
+	var damage := SkillEffectLibrary.basic_attack_damage(self, target, hero.weapon)
 	target.be_attacked(damage)
 
 func daze() -> void:
 	battle.log_event({"type": "daze", "actor": self, "actor_name": name})
 
-## 往目標方向移動,最多走 move_steps 格(先水平、後垂直);
+## 往目標方向移動,最多走 move_steps 格(先水平、後垂直),一旦進入 atk_range
+## (呼叫端傳入普攻距離或該次要施放的技能距離)就停止,不會多走進更近的格子;
 ## 途中會直接穿過己方角色(不擋路),只有敵方角色會擋路,
 ## 遇到敵方卡住主方向時會側移繞路,而不是直接卡死不動。
 ## 整趟移動只記一筆 move 事件(內含完整路徑),讓畫面端可以連續播放,
 ## 不必每格都停頓。
-func move(target: BattleHero) -> void:
-	_move_towards_or_away(target, false)
+func move(target: BattleHero, atk_range: int) -> void:
+	_move_towards_or_away(target, false, atk_range)
 
 ## ESCAPE 類型用:往目標的反方向移動(遠離戰場),其餘規則與 move() 相同
 ## (可穿過己方、只有敵方擋路、最終落腳點需淨空)。
 func move_away(target: BattleHero) -> void:
-	_move_towards_or_away(target, true)
+	_move_towards_or_away(target, true, 0)
 
-func _move_towards_or_away(target: BattleHero, away: bool) -> void:
+func _move_towards_or_away(target: BattleHero, away: bool, atk_range: int) -> void:
 	var start_pos := grid_pos
 	var path: Array[Vector2i] = []
 
 	for i in range(move_steps):
-		if not away and _in_attack_range(target):
+		if not away and _in_range(target, atk_range):
 			break
 
 		var new_pos := _next_step(target, away)
@@ -236,10 +242,16 @@ func _manhattan(a: Vector2i, b: Vector2i) -> int:
 var move_steps: int:
 	get: return BASE_MOVE_STEPS + int(agility / AGILITY_PER_EXTRA_STEP)
 
-## 是否進入攻擊範圍(以格子曼哈頓距離判定,相鄰即可)
-func _in_attack_range(target: BattleHero) -> bool:
+## 是否進入攻擊範圍(以格子曼哈頓距離判定):atk_range 由呼叫端決定——
+## 普攻依武器種類(見 basic_attack_range),技能依技能自己的 range。
+func _in_range(target: BattleHero, atk_range: int) -> bool:
 	var d: int = abs(target.grid_pos.x - grid_pos.x) + abs(target.grid_pos.y - grid_pos.y)
-	return d <= 1
+	return d <= atk_range
+
+## 基本攻擊距離:近戰武器(劍/盾/匕首)1 格、遠程武器(弓/法杖/權杖)2 格,
+## 徒手(EMPTY)比照近戰
+var basic_attack_range: int:
+	get: return GameEnums.WEAPON_BASIC_ATTACK_RANGE[hero.weapon]
 
 ## 找尋最近的敵人(以格子曼哈頓距離判定)
 func search_enemy() -> BattleHero:

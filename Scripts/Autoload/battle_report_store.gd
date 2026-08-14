@@ -1,7 +1,9 @@
 extends Node
 
 # =========================================================
-# 全域戰報存取點(autoload,見 project.godot)。
+# 全域戰報存取點(autoload,見 project.godot)。屬於 Scenes 導覽/session 狀態
+# (戰報列表 ↔ Battle 場景間的交接),不是戰鬥規則,所以放在 Scripts/ 而不是 System/——
+# System/ 底下的類別全部是 RefCounted、不碰場景樹,這個檔案需要當 autoload(Node)。
 # 存取方式先簡單用記憶體陣列裝著——戰報列表場景讀 reports 顯示清單,
 # 播放戰報時把要播的那份存進 pending_report,再切去 Battle 場景,
 # Battle 場景 _ready() 抓到 pending_report 就進入「播放模式」而不是

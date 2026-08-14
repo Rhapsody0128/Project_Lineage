@@ -17,7 +17,7 @@ var enemy_heroes: Array[BattleHero]
 var _round: int = 0
 
 ## 結構化戰報,依序記錄戰鬥中發生的每一個事件,供外部(UI/場景)重播使用
-var battle_log: Array[Dictionary] = []
+var battle_log: Array[BattleEvent] = []
 
 func _init(self_party: Party, enemy_party: Party) -> void:
 	self_heroes = _attach_battle_heroes(false, self_party)
@@ -78,10 +78,10 @@ func start() -> void:
 	_conclude_battle()
 
 func _init_battle() -> void:
-	log_event({"type": "battle_start"})
+	log_event(BattleStartEvent.new())
 
 func _round_start() -> void:
-	log_event({"type": "round_start", "round": _round + 1})
+	log_event(RoundStartEvent.new(_round + 1))
 
 ## 回合進行:全滅的一方沒有敵人可打,action() 內部 search_enemy() 找不到目標會自動
 ## 提前 return,不需要另外判斷戰鬥是否已經分出勝負;但只要有一方隊長陣亡
@@ -100,7 +100,7 @@ func round_progress() -> void:
 			break
 
 func _round_end() -> void:
-	log_event({"type": "round_end", "round": _round + 1})
+	log_event(RoundEndEvent.new(_round + 1))
 	_round += 1
 
 ## 單一角色的限時素質修正(見 BattleHero.add_stat_modifier())各自倒數 1 回合,到期就
@@ -112,8 +112,8 @@ func _tick_status_effects(battle_hero: BattleHero) -> void:
 	if expired.is_empty():
 		return
 
-	var buff_types: Array = []
-	var debuff_types: Array = []
+	var buff_types: Array[int] = []
+	var debuff_types: Array[int] = []
 	for m in expired:
 		if m.multiplier > 0.0:
 			buff_types.append(m.potential_type)
@@ -121,17 +121,9 @@ func _tick_status_effects(battle_hero: BattleHero) -> void:
 			debuff_types.append(m.potential_type)
 
 	if not buff_types.is_empty():
-		log_event({
-			"type": "stat_effect_expired",
-			"target": battle_hero, "target_name": battle_hero.name,
-			"potential_types": buff_types, "is_buff": true,
-		})
+		log_event(StatEffectExpiredEvent.new(battle_hero, buff_types, true))
 	if not debuff_types.is_empty():
-		log_event({
-			"type": "stat_effect_expired",
-			"target": battle_hero, "target_name": battle_hero.name,
-			"potential_types": debuff_types, "is_buff": false,
-		})
+		log_event(StatEffectExpiredEvent.new(battle_hero, debuff_types, false))
 
 ## 隊長(總大將)陣亡視為戰鬥分出勝負,立即結束整場戰鬥(不必等到跑滿 TOTAL_ROUND)。
 ## 找不到隊長(理論上不會發生)時視為不會提前結束。
@@ -149,7 +141,7 @@ func _find_leader(battle_heroes: Array[BattleHero]) -> BattleHero:
 
 ## 勝負判定:只看雙方總大將(隊長)死活,不比較 HP。跑滿 10 回合時雙方隊長必定都還
 ## 存活(否則 is_decided 早就提前結束了),此時直接判平手。
-var result: int:
+var result: GameEnums.BattleResultType:
 	get:
 		var self_leader := _find_leader(self_heroes)
 		var enemy_leader := _find_leader(enemy_heroes)
@@ -164,13 +156,16 @@ var result: int:
 ## 結算時機:跑滿 TOTAL_ROUND 回合,或有一方隊長提前陣亡(is_decided)。
 ## HP 總量純粹保留給畫面展示用,實際勝負一律看 result。
 func _conclude_battle() -> void:
-	log_event({
-		"type": "battle_end",
-		"round": _round,
-		"self_total": self_total_hp,
-		"enemy_total": enemy_total_hp,
-		"result": result,
-	})
+	log_event(BattleEndEvent.new(_round, self_total_hp, enemy_total_hp, result))
+
+## 戰鬥結束事件,戰鬥跑完後一定有值——BattleReport/battle.gd 都改讀這個當唯一結算
+## 來源,不要再各自寫一份「掃 battle_log 找 battle_end,找不到就退回現算」的 fallback。
+var battle_end_event: BattleEndEvent:
+	get:
+		for event in battle_log:
+			if event is BattleEndEvent:
+				return event
+		return null
 
 var self_total_hp: int:
 	get: return _sum_hp(self_heroes)
@@ -200,66 +195,6 @@ func reset_for_replay() -> void:
 		battle_hero.grid_pos = state.grid_pos
 
 ## 記錄一筆結構化戰報事件,並同步輸出除錯文字
-func log_event(event: Dictionary) -> void:
+func log_event(event: BattleEvent) -> void:
 	battle_log.append(event)
-	print(_format_event(event))
-
-func _format_event(event: Dictionary) -> String:
-	match event.type:
-		"battle_start":
-			return "戰鬥開始"
-		"round_start":
-			return "------------第 %d 回合------------" % event.round
-		"round_end":
-			return "回合結束"
-		"move":
-			if event.get("away", false):
-				return "%s 遠離 %s" % [event.actor_name, event.target_name]
-			return "%s 接近 %s" % [event.actor_name, event.target_name]
-		"attack":
-			return "%s 攻擊 %s" % [event.actor_name, event.target_name]
-		"dodge":
-			return "%s 閃避了 %s 的攻擊" % [event.target_name, event.actor_name]
-		"daze":
-			return "%s 猶豫不決" % event.actor_name
-		"skill":
-			return "%s 對 %s 使用技能「%s」" % [event.actor_name, event.target_name, event.skill_name]
-		"damage":
-			var crit_text := "(暴擊！)" if event.get("is_critical", false) else ""
-			return "%s 受到 %d 點傷害%s(剩餘 HP %d)" % [event.target_name, event.damage_points, crit_text, event.remaining_hp]
-		"guard":
-			return "%s 飛身守護,替 %s 承受這次攻擊" % [event.actor_name, event.target_name]
-		"heal":
-			return "%s 恢復 %d 點 HP(剩餘 HP %d)" % [event.target_name, event.heal_points, event.remaining_hp]
-		"stat_effect":
-			return "%s %s %s" % [
-				event.target_name,
-				("獲得增益" if event.is_buff else "受到減益"),
-				_format_potential_type_list(event.potential_types),
-			]
-		"stat_effect_expired":
-			return "%s 的%s效果解除(%s)" % [
-				event.target_name,
-				("增益" if event.is_buff else "減益"),
-				_format_potential_type_list(event.potential_types),
-			]
-		"defeated":
-			return "%s 戰敗" % event.party_name
-		"battle_end":
-			var result_text: String
-			match event.result:
-				GameEnums.BattleResultType.SELF_WIN:
-					result_text = "我方勝利"
-				GameEnums.BattleResultType.ENEMY_WIN:
-					result_text = "敵方勝利"
-				_:
-					result_text = "平手"
-			return "戰鬥結束(共 %d 回合)，%s(我方剩餘 HP %d，敵方剩餘 HP %d)" % [event.round, result_text, event.self_total, event.enemy_total]
-		_:
-			return str(event)
-
-func _format_potential_type_list(potential_types: Array) -> String:
-	var labels: Array[String] = []
-	for potential_type in potential_types:
-		labels.append(GameEnums.POTENTIAL_TYPE_LABELS[potential_type])
-	return "、".join(labels)
+	print(event.to_debug_string())

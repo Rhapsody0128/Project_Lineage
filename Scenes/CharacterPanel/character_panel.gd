@@ -52,7 +52,7 @@ func open_for_hero(hero: Hero, battle_hero: BattleHero = null) -> void:
 	full_name_label.text = hero.full_name
 	age_label.text = "年齡：%d" % hero.age
 	level_label.text = "等級：%d" % hero.level_system.level
-	weapon_label.text = "武器：%s" % GameEnums.WEAPON_TYPE_LABELS[hero.weapon]
+	weapon_label.text = "武器：%s" % GameEnums.weapon_label(hero.weapon)
 	avatar_texture.texture = _load_face_texture(hero.face_path)
 	standee_texture.texture = _build_standee_texture()
 
@@ -97,18 +97,9 @@ func _populate_skills(hero: Hero) -> void:
 		slot.custom_minimum_size = SKILL_SLOT_MIN_SIZE
 		slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.1, 0.1, 0.14, 0.6)
-		style.border_width_left = 2
-		style.border_width_top = 2
-		style.border_width_right = 2
-		style.border_width_bottom = 2
-		style.border_color = Color(0.4, 0.46, 0.66, 1)
-		style.corner_radius_top_left = 6
-		style.corner_radius_top_right = 6
-		style.corner_radius_bottom_right = 6
-		style.corner_radius_bottom_left = 6
-		slot.add_theme_stylebox_override("panel", style)
+		slot.add_theme_stylebox_override("panel", UiStyle.bordered_panel(
+			Color(0.1, 0.1, 0.14, 0.6), Color(0.4, 0.46, 0.66, 1), 2, 6
+		))
 
 		var label := Label.new()
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -121,7 +112,7 @@ func _populate_skills(hero: Hero) -> void:
 				slot.tooltip_text = skill.description
 				slot.modulate = SKILL_ENABLED_MODULATE
 			else:
-				slot.tooltip_text = "%s\n（需裝備：%s）" % [skill.description, GameEnums.WEAPON_TYPE_LABELS[skill.bind_weapon]]
+				slot.tooltip_text = "%s\n（需裝備：%s）" % [skill.description, GameEnums.weapon_label(skill.bind_weapon)]
 				slot.modulate = SKILL_DISABLED_MODULATE
 		slot.add_child(label)
 
@@ -142,22 +133,9 @@ func _populate_traits(traits: Array[CharacterTrait]) -> void:
 		var chip := PanelContainer.new()
 		var color := _trait_color(character_trait.polarity)
 
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.1, 0.1, 0.14, 0.6)
-		style.border_width_left = 2
-		style.border_width_top = 2
-		style.border_width_right = 2
-		style.border_width_bottom = 2
-		style.border_color = color
-		style.corner_radius_top_left = 10
-		style.corner_radius_top_right = 10
-		style.corner_radius_bottom_right = 10
-		style.corner_radius_bottom_left = 10
-		style.content_margin_left = 10
-		style.content_margin_right = 10
-		style.content_margin_top = 4
-		style.content_margin_bottom = 4
-		chip.add_theme_stylebox_override("panel", style)
+		chip.add_theme_stylebox_override("panel", UiStyle.bordered_panel(
+			Color(0.1, 0.1, 0.14, 0.6), color, 2, 10, 10.0, 4.0
+		))
 		chip.tooltip_text = character_trait.description
 
 		var label := Label.new()

@@ -42,14 +42,19 @@ static func clone(value):
 		return value.duplicate(true)
 	return value
 
+## 棋盤格曼哈頓距離,戰鬥相關模組(MovementPlanner/CombatResolver/BattleAi/BattleHero)
+## 共用同一份,不要各自各寫一份 abs(a.x-b.x)+abs(a.y-b.y)。
+static func manhattan_distance(a: Vector2i, b: Vector2i) -> int:
+	return abs(a.x - b.x) + abs(a.y - b.y)
+
 ## 依照 Dictionary[String, float] 的權重表,隨機取得一個 key
 static func get_random_chance_item(chance_map: Dictionary) -> String:
 	return get_random_chance_item_detailed(chance_map).key
 
 ## 跟 get_random_chance_item() 同一套邏輯,但額外回傳這次骰到的值與權重總和
-## ({"key": String, "roll": float, "total": float}),給戰報 UI 組出「骰到多少 / 總權重
-## 多少 → 選到哪個」的完整說明用,避免呼叫端各自重算一次權重總和。
-static func get_random_chance_item_detailed(chance_map: Dictionary) -> Dictionary:
+## (WeightedRollResult),給戰報 UI 組出「骰到多少 / 總權重多少 → 選到哪個」的完整
+## 說明用,避免呼叫端各自重算一次權重總和。
+static func get_random_chance_item_detailed(chance_map: Dictionary) -> WeightedRollResult:
 	var total_chance := 0.0
 	for value in chance_map.values():
 		total_chance += value
@@ -58,5 +63,5 @@ static func get_random_chance_item_detailed(chance_map: Dictionary) -> Dictionar
 	for key in chance_map.keys():
 		remaining -= chance_map[key]
 		if remaining <= 0:
-			return {"key": key, "roll": roll, "total": total_chance}
-	return {"key": chance_map.keys()[-1], "roll": roll, "total": total_chance}
+			return WeightedRollResult.new(key, roll, total_chance)
+	return WeightedRollResult.new(chance_map.keys()[-1], roll, total_chance)

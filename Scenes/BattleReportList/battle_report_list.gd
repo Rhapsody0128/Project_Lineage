@@ -37,22 +37,9 @@ func _spawn_report_row(report: BattleReport) -> void:
 	var row := PanelContainer.new()
 	row.custom_minimum_size = Vector2(0, ROW_MIN_HEIGHT)
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = ROW_STYLE_BG
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = ROW_STYLE_BORDER
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_right = 8
-	style.corner_radius_bottom_left = 8
-	style.content_margin_left = 16.0
-	style.content_margin_right = 16.0
-	style.content_margin_top = 6.0
-	style.content_margin_bottom = 6.0
-	row.add_theme_stylebox_override("panel", style)
+	row.add_theme_stylebox_override("panel", UiStyle.bordered_panel(
+		ROW_STYLE_BG, ROW_STYLE_BORDER, 2, 8, 16.0, 6.0
+	))
 
 	var content := HBoxContainer.new()
 	content.add_theme_constant_override("separation", 20)

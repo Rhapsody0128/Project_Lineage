@@ -15,13 +15,18 @@ const STEP_DELAY := 0.35
 const MOVE_STEP_DELAY := 0.12
 # 沒有傷害計算、也不需要播攻擊/技能動畫的事件類型(移動/遠離、發呆),重播時可以
 # 跟同類事件併發播放,不用逐筆排隊等待。
-const BATCHABLE_EVENT_TYPES := ["move", "daze"]
+const BATCHABLE_EVENT_TYPES: Array[GameEnums.BattleEventType] = [
+	GameEnums.BattleEventType.MOVE, GameEnums.BattleEventType.DAZE,
+]
 # 上述可併發事件連續出現時,一次最多同時播放幾個,加快演示速度。
 const EVENT_BATCH_SIZE := 3
 # attack/skill 事件後面緊接著的反應事件型別(閃避、受傷、治療、素質增益/減益),
 # 都要跟前面的 attack/skill 同時播放,不要分先後拍——C. 治癒/D. 大將之風/E. 降咒
 # 都是「skill 事件後面緊接一串 heal 或 stat_effect」的結構,跟 AoE 傷害技能同一套。
-const REACTION_EVENT_TYPES := ["dodge", "damage", "heal", "stat_effect"]
+const REACTION_EVENT_TYPES: Array[GameEnums.BattleEventType] = [
+	GameEnums.BattleEventType.DODGE, GameEnums.BattleEventType.DAMAGE,
+	GameEnums.BattleEventType.HEAL, GameEnums.BattleEventType.STAT_EFFECT,
+]
 
 # 角色美術尚未完成前,全部角色暫時共用 Warrier 佔位動畫 Scene
 const CHARACTER_SCENE_PATH := "res://Images/Warrier/animated_sprite_2d.tscn"
@@ -216,19 +221,19 @@ func _exit_tree() -> void:
 
 
 ## 10 回合結算:總大將(隊長)死活決定勝負,雙方隊長都撐過 10 回合直接判平手,不比較 HP。
-## 直接讀 battle_log 的 battle_end 事件(內含 System 層算好的 result),不用
+## 直接讀 battle.battle_end_event(型別化,戰鬥跑完後一定有值),不用
 ## battle.self_total_hp/enemy_total_hp 現算——戰報播放前會呼叫 reset_for_replay() 把
 ## HP 還原成開戰時的滿血,那兩個 getter 讀到的會是還原後的數字,不是戰鬥結束時的數字。
 ## 播放已經跑到最後一筆事件、畫面自然停在戰鬥最後一幀,這裡只需要疊一個結果 Dialog
 ## 上去,不用額外處理「凍結畫面」。
 func _announce_result() -> void:
-	var totals := _final_totals()
-	var self_total: int = totals.self_total
-	var enemy_total: int = totals.enemy_total
+	var end_event := battle.battle_end_event
+	var self_total := end_event.self_total
+	var enemy_total := end_event.enemy_total
 	var result_text: String
 	var result_color: String
 
-	match totals.result:
+	match end_event.result:
 		GameEnums.BattleResultType.SELF_WIN:
 			status_label.text = "我方勝利！"
 			result_text = "我方勝利！"
@@ -249,13 +254,6 @@ func _announce_result() -> void:
 	result_label.add_theme_color_override("font_color", Color(result_color))
 	result_detail_label.text = "我方剩餘 HP %d　　敵方剩餘 HP %d" % [self_total, enemy_total]
 	result_dialog.visible = true
-
-
-func _final_totals() -> Dictionary:
-	for event in battle.battle_log:
-		if event.type == "battle_end":
-			return {"self_total": event.self_total, "enemy_total": event.enemy_total, "result": event.result}
-	return {"self_total": battle.self_total_hp, "enemy_total": battle.enemy_total_hp, "result": battle.result}
 
 
 func _on_back_pressed() -> void:
@@ -282,38 +280,39 @@ func _play_battle_log() -> void:
 		if not is_inside_tree():
 			return
 
-		var event: Dictionary = battle.battle_log[i]
+		var event: BattleEvent = battle.battle_log[i]
 
-		if event.type in BATCHABLE_EVENT_TYPES:
-			var batch: Array[Dictionary] = [event]
+		if event.event_type in BATCHABLE_EVENT_TYPES:
+			var batch: Array[BattleEvent] = [event]
 			i += 1
-			while i < log_size and battle.battle_log[i].type in BATCHABLE_EVENT_TYPES and batch.size() < EVENT_BATCH_SIZE:
+			while i < log_size and battle.battle_log[i].event_type in BATCHABLE_EVENT_TYPES and batch.size() < EVENT_BATCH_SIZE:
 				batch.append(battle.battle_log[i])
 				i += 1
 			await _play_event_batch(batch)
 			await _safe_wait(MOVE_STEP_DELAY)
 			continue
 
-		# B. 守護觸發:guard 事件後面一定緊接著 attack/skill(見 BattleHero.resolve_guard()
-		# 的呼叫順序),整組(飛身頂替 + 攻擊 + 反應 + 歸位)當一個單位播放。
-		if event.type == "guard" and i + 1 < log_size and battle.battle_log[i + 1].type in ["attack", "skill"]:
-			var guarded_action_event: Dictionary = battle.battle_log[i + 1]
-			var guarded_reaction_events: Array[Dictionary] = []
+		# B. 守護觸發:guard 事件後面一定緊接著 attack/skill(見
+		# CombatResolver.resolve_guard() 的呼叫順序),整組(飛身頂替 + 攻擊 + 反應 +
+		# 歸位)當一個單位播放。
+		if event.event_type == GameEnums.BattleEventType.GUARD and i + 1 < log_size and battle.battle_log[i + 1].event_type in [GameEnums.BattleEventType.ATTACK, GameEnums.BattleEventType.SKILL]:
+			var guarded_action_event: BattleEvent = battle.battle_log[i + 1]
+			var guarded_reaction_events: Array[BattleEvent] = []
 			var k := i + 2
-			while k < log_size and battle.battle_log[k].type in REACTION_EVENT_TYPES:
+			while k < log_size and battle.battle_log[k].event_type in REACTION_EVENT_TYPES:
 				guarded_reaction_events.append(battle.battle_log[k])
 				k += 1
-			await _play_guarded_action(event, guarded_action_event, guarded_reaction_events)
+			await _play_guarded_action(event as GuardEvent, guarded_action_event, guarded_reaction_events)
 			i = k
 			await _safe_wait(STEP_DELAY)
 			continue
 
-		if (event.type == "attack" or event.type == "skill") and i + 1 < log_size and battle.battle_log[i + 1].type in REACTION_EVENT_TYPES:
+		if (event.event_type == GameEnums.BattleEventType.ATTACK or event.event_type == GameEnums.BattleEventType.SKILL) and i + 1 < log_size and battle.battle_log[i + 1].event_type in REACTION_EVENT_TYPES:
 			# 範圍技能可能一次波及多個目標,緊接著的反應事件(dodge/damage)不保證只有一筆,
 			# 把連續出現的都收進同一批,一起套用。
-			var reaction_events: Array[Dictionary] = []
+			var reaction_events: Array[BattleEvent] = []
 			var j := i + 1
-			while j < log_size and battle.battle_log[j].type in REACTION_EVENT_TYPES:
+			while j < log_size and battle.battle_log[j].event_type in REACTION_EVENT_TYPES:
 				reaction_events.append(battle.battle_log[j])
 				j += 1
 			await _play_action_with_reaction(event, reaction_events)
@@ -328,7 +327,7 @@ func _play_battle_log() -> void:
 
 ## 同時播放一批可併發事件:每個各自跑 _play_tracked_event(),用 _pending_batch_actions
 ## 計數等全部播完才返回,而不是逐個 await 排隊播放。
-func _play_event_batch(batch: Array[Dictionary]) -> void:
+func _play_event_batch(batch: Array[BattleEvent]) -> void:
 	_pending_batch_actions = batch.size()
 	for event in batch:
 		_play_tracked_event(event)
@@ -355,63 +354,72 @@ func _safe_wait(seconds: float) -> void:
 	await get_tree().create_timer(seconds, false).timeout
 
 
-func _play_tracked_event(event: Dictionary) -> void:
-	match event.type:
-		"move":
-			await _anim_move(event)
-		"daze":
-			_roster_for(event.actor).pulse_active(event.actor)
-			_log(_hint("%s 猶豫了一下" % event.actor_name, event))
+func _play_tracked_event(event: BattleEvent) -> void:
+	match event.event_type:
+		GameEnums.BattleEventType.MOVE:
+			await _anim_move(event as MoveEvent)
+		GameEnums.BattleEventType.DAZE:
+			var daze_event := event as DazeEvent
+			_roster_for(daze_event.actor).pulse_active(daze_event.actor)
+			_log(_hint("%s 猶豫了一下" % daze_event.actor_name, daze_event))
 	_pending_batch_actions -= 1
 
 
-func _play_single_event(event: Dictionary) -> void:
-	match event.type:
-		"battle_start":
+func _play_single_event(event: BattleEvent) -> void:
+	match event.event_type:
+		GameEnums.BattleEventType.BATTLE_START:
 			_log("戰鬥開始")
-		"round_start":
-			_log("[b]—— 第 %d 回合 ——[/b]" % event.round)
-		"round_end":
+		GameEnums.BattleEventType.ROUND_START:
+			_log("[b]—— 第 %d 回合 ——[/b]" % (event as RoundStartEvent).round)
+		GameEnums.BattleEventType.ROUND_END:
 			_log("回合結束")
 			await _safe_wait_frame()
-		"attack":
-			await _anim_attack(event)
-		"skill":
-			await _anim_skill(event)
-		"dodge", "damage", "heal", "stat_effect":
+		GameEnums.BattleEventType.ATTACK:
+			await _anim_attack(event as AttackEvent)
+		GameEnums.BattleEventType.SKILL:
+			await _anim_skill(event as SkillEvent)
+		GameEnums.BattleEventType.DODGE, GameEnums.BattleEventType.DAMAGE, GameEnums.BattleEventType.HEAL, GameEnums.BattleEventType.STAT_EFFECT:
 			_apply_reaction(event)
-		"guard":
+		GameEnums.BattleEventType.GUARD:
 			# 正常情況下 guard 一定會被 _play_battle_log() 的前瞻邏輯跟緊接著的
 			# attack/skill 一起交給 _play_guarded_action() 播放,不會走到這裡;
 			# 這個分支只在極端情況(戰報被截斷等)當純文字 fallback。
-			_log(_hint("%s 飛身守護,替 %s 承受這次攻擊！" % [event.actor_name, event.target_name], event))
-		"stat_effect_expired":
-			_apply_stat_effect_expired(event)
-		"defeated":
-			_apply_defeated(event)
-		"battle_end":
-			_log("戰鬥結束(共 %d 回合)，進行結算。" % event.round)
+			var guard_event := event as GuardEvent
+			_log(_hint("%s 飛身守護,替 %s 承受這次攻擊！" % [guard_event.actor_name, guard_event.target_name], guard_event))
+		GameEnums.BattleEventType.STAT_EFFECT_EXPIRED:
+			_apply_stat_effect_expired(event as StatEffectExpiredEvent)
+		GameEnums.BattleEventType.DEFEATED:
+			_apply_defeated(event as DefeatedEvent)
+		GameEnums.BattleEventType.BATTLE_END:
+			_log("戰鬥結束(共 %d 回合)，進行結算。" % (event as BattleEndEvent).round)
 
 
 ## attack/skill 動畫與緊接在後的閃避/受傷反應同時播放,不要分先後拍:
 ## 攻擊方的揮擊動畫一開始播放,就立刻套用防禦方的反應,兩邊動畫同時進行。
 ## reaction_events 可能不只一筆——範圍技能一次波及多個目標時,每個目標各自的
-## 受擊/閃避反應會同時套用在各自的角色身上。
-func _play_action_with_reaction(action_event: Dictionary, reaction_events: Array[Dictionary]) -> void:
-	var actor: BattleUnitVisual = visuals.get(action_event.actor)
-	var target: BattleUnitVisual = visuals.get(action_event.target)
+## 受擊/閃避反應會同時套用在各自的角色身上。reaction_events 傳空陣列時就是單純播放
+## 攻擊/技能動畫本身,_anim_attack()/_anim_skill() 共用這份實作。
+func _play_action_with_reaction(action_event: BattleEvent, reaction_events: Array[BattleEvent]) -> void:
+	var is_skill := action_event is SkillEvent
+	var actor_hero: BattleHero = (action_event as SkillEvent).actor if is_skill else (action_event as AttackEvent).actor
+	var target_hero: BattleHero = (action_event as SkillEvent).target if is_skill else (action_event as AttackEvent).target
+
+	var actor: BattleUnitVisual = visuals.get(actor_hero)
+	var target: BattleUnitVisual = visuals.get(target_hero)
 	if actor == null or target == null:
 		return
 
-	if action_event.type == "skill":
+	if is_skill:
+		var skill_event := action_event as SkillEvent
 		# 中性措辭「對 X 使用技能」,不寫死「攻擊」——C. 治癒/D. 大將之風這類技能
 		# 的 target 是施法者自己或全隊,講「攻擊」會語意不通。
-		_log(_hint("%s 對 %s 使用技能「%s」！" % [action_event.actor_name, action_event.target_name, action_event.skill_name], action_event))
-		_roster_for(action_event.actor).pulse_skill(action_event.actor, action_event.skill_name)
+		_log(_hint("%s 對 %s 使用技能「%s」！" % [skill_event.actor_name, skill_event.target_name, skill_event.skill_name], skill_event))
+		_roster_for(actor_hero).pulse_skill(actor_hero, skill_event.skill_name)
 		actor.play_skill_light()
 	else:
-		_log(_hint("%s 攻擊 %s！" % [action_event.actor_name, action_event.target_name], action_event))
-		_roster_for(action_event.actor).pulse_active(action_event.actor)
+		var attack_event := action_event as AttackEvent
+		_log(_hint("%s 攻擊 %s！" % [attack_event.actor_name, attack_event.target_name], attack_event))
+		_roster_for(actor_hero).pulse_active(actor_hero)
 
 	var anim := actor.play_attack_towards(target.grid_pos)
 
@@ -423,95 +431,75 @@ func _play_action_with_reaction(action_event: Dictionary, reaction_events: Array
 	actor.idle_towards(target.grid_pos)
 
 
-func _apply_reaction(event: Dictionary) -> void:
-	match event.type:
-		"dodge":
-			_log(_hint("%s 閃避了 %s 的攻擊" % [event.target_name, event.actor_name], event))
-			var dodge_visual: BattleUnitVisual = visuals.get(event.target)
+func _apply_reaction(event: BattleEvent) -> void:
+	match event.event_type:
+		GameEnums.BattleEventType.DODGE:
+			var dodge_event := event as DodgeEvent
+			_log(_hint("%s 閃避了 %s 的攻擊" % [dodge_event.target_name, dodge_event.actor_name], dodge_event))
+			var dodge_visual: BattleUnitVisual = visuals.get(dodge_event.target)
 			if dodge_visual != null:
 				dodge_visual.play_dodge_reaction()
-		"damage":
-			var is_critical: bool = event.get("is_critical", false)
-			var crit_text := "[color=red][b]（暴擊！）[/b][/color]" if is_critical else ""
-			_log(_hint("%s 受到 %d 點傷害%s" % [event.target_name, event.damage_points, crit_text], event))
-			var hit_visual: BattleUnitVisual = visuals.get(event.target)
+		GameEnums.BattleEventType.DAMAGE:
+			var damage_event := event as DamageEvent
+			var crit_text := "[color=red][b]（暴擊！）[/b][/color]" if damage_event.is_critical else ""
+			_log(_hint("%s 受到 %d 點傷害%s" % [damage_event.target_name, damage_event.damage_points, crit_text], damage_event))
+			var hit_visual: BattleUnitVisual = visuals.get(damage_event.target)
 			if hit_visual != null:
 				hit_visual.play_hit_reaction()
-				hit_visual.show_damage_number(event.damage_points, is_critical)
-				_roster_for(event.target).update_hp(event.target, event.remaining_hp)
-		"heal":
-			_log(_hint("%s 恢復 %d 點 HP" % [event.target_name, event.heal_points], event))
-			var heal_visual: BattleUnitVisual = visuals.get(event.target)
+				hit_visual.show_damage_number(damage_event.damage_points, damage_event.is_critical)
+				_roster_for(damage_event.target).update_hp(damage_event.target, damage_event.remaining_hp)
+		GameEnums.BattleEventType.HEAL:
+			var heal_event := event as HealEvent
+			_log(_hint("%s 恢復 %d 點 HP" % [heal_event.target_name, heal_event.heal_points], heal_event))
+			var heal_visual: BattleUnitVisual = visuals.get(heal_event.target)
 			if heal_visual != null:
-				heal_visual.show_heal_number(event.heal_points)
-				_roster_for(event.target).update_hp(event.target, event.remaining_hp)
-		"stat_effect":
-			var is_buff: bool = event.is_buff
+				heal_visual.show_heal_number(heal_event.heal_points)
+				_roster_for(heal_event.target).update_hp(heal_event.target, heal_event.remaining_hp)
+		GameEnums.BattleEventType.STAT_EFFECT:
+			var stat_event := event as StatEffectEvent
 			_log(_hint("%s %s(%s)" % [
-				event.target_name,
-				("獲得增益" if is_buff else "受到減益"),
-				_format_potential_type_list(event.potential_types),
-			], event))
-			_roster_for(event.target).add_status_arrows(event.target, event.potential_types, is_buff)
+				stat_event.target_name,
+				("獲得增益" if stat_event.is_buff else "受到減益"),
+				GameEnums.format_potential_type_list(stat_event.potential_types),
+			], stat_event))
+			_roster_for(stat_event.target).add_status_arrows(stat_event.target, stat_event.potential_types, stat_event.is_buff)
 
 
 ## 移動:System 層已經算好整趟路徑(event.path,可能為了繞路而轉彎),
 ## 這裡把棋盤座標換算成像素座標,交給 BattleUnitVisual 連續播放,
 ## 只記一次「靠近/遠離」訊息,避免多格移動時畫面逐格停頓、洗版同樣的訊息。
-func _anim_move(event: Dictionary) -> void:
+func _anim_move(event: MoveEvent) -> void:
 	var actor: BattleUnitVisual = visuals.get(event.actor)
 	if actor == null:
 		return
 
 	_roster_for(event.actor).pulse_active(event.actor)
 
-	if event.get("away", false):
+	if event.away:
 		_log(_hint("%s 遠離 %s" % [event.actor_name, event.target_name], event))
 	else:
 		_log(_hint("%s 向 %s 靠近" % [event.actor_name, event.target_name], event))
 
-	var path_grid: Array = event.path
 	var path_pixel: Array = []
-	for p in path_grid:
+	for p in event.path:
 		path_pixel.append(board.grid_to_pixel(p))
 
-	await actor.move_along(path_grid, path_pixel, MOVE_TIME)
+	await actor.move_along(event.path, path_pixel, MOVE_TIME)
 
 
 ## 沒有緊接反應事件時的備用路徑(理論上 attack/skill 一定緊跟著 dodge/damage,
-## 這兩個函式只在極端情況——例如截斷戰報做除錯——才會被單獨呼叫到)。
-func _anim_attack(event: Dictionary) -> void:
-	var actor: BattleUnitVisual = visuals.get(event.actor)
-	var target: BattleUnitVisual = visuals.get(event.target)
-	if actor == null or target == null:
-		return
-
-	_log(_hint("%s 攻擊 %s！" % [event.actor_name, event.target_name], event))
-	_roster_for(event.actor).pulse_active(event.actor)
-
-	var anim := actor.play_attack_towards(target.grid_pos)
-	await actor.wait_for_animation(anim)
-
-	actor.idle_towards(target.grid_pos)
+## 這兩個函式只在極端情況——例如截斷戰報做除錯——才會被單獨呼叫到),
+## 跟有反應事件的情況共用同一份播放邏輯(_play_action_with_reaction),
+## 只是傳空的 reaction_events。
+func _anim_attack(event: AttackEvent) -> void:
+	await _play_action_with_reaction(event, [])
 
 
-func _anim_skill(event: Dictionary) -> void:
-	var actor: BattleUnitVisual = visuals.get(event.actor)
-	var target: BattleUnitVisual = visuals.get(event.target)
-	if actor == null or target == null:
-		return
-
-	_log(_hint("%s 對 %s 使用技能「%s」！" % [event.actor_name, event.target_name, event.skill_name], event))
-	_roster_for(event.actor).pulse_skill(event.actor, event.skill_name)
-	actor.play_skill_light()
-
-	var anim := actor.play_attack_towards(target.grid_pos)
-	await actor.wait_for_animation(anim)
-
-	actor.idle_towards(target.grid_pos)
+func _anim_skill(event: SkillEvent) -> void:
+	await _play_action_with_reaction(event, [])
 
 
-func _apply_defeated(event: Dictionary) -> void:
+func _apply_defeated(event: DefeatedEvent) -> void:
 	var visual: BattleUnitVisual = visuals.get(event.party)
 	if visual == null:
 		return
@@ -525,9 +513,9 @@ func _apply_defeated(event: Dictionary) -> void:
 ## B. 守護觸發的完整演出:守護者先飛身到受擊者面前(面向攻擊方)、喊出招式名稱,
 ## 站定位後才播放緊接著的 attack/skill + 反應事件(此時 System 層已經把該次攻擊的
 ## target 換成守護者本人,動畫自然會對準守護者),最後守護者再歸位。理論上 guard
-## 一定緊跟著 attack/skill(見 BattleHero.resolve_guard() 的呼叫順序),
+## 一定緊跟著 attack/skill(見 CombatResolver.resolve_guard() 的呼叫順序),
 ## 這裡的 fallback 只在極端情況(例如視覺節點缺失)才會退化成純文字。
-func _play_guarded_action(guard_event: Dictionary, action_event: Dictionary, reaction_events: Array[Dictionary]) -> void:
+func _play_guarded_action(guard_event: GuardEvent, action_event: BattleEvent, reaction_events: Array[BattleEvent]) -> void:
 	var guardian: BattleUnitVisual = visuals.get(guard_event.actor)
 	var original_target: BattleUnitVisual = visuals.get(guard_event.target)
 	var attacker: BattleUnitVisual = visuals.get(guard_event.attacker)
@@ -545,14 +533,13 @@ func _play_guarded_action(guard_event: Dictionary, action_event: Dictionary, rea
 
 
 ## D. 大將之風/E. 降咒 這類限時增益/減益到期:拿掉頭像旁對應的箭頭。
-func _apply_stat_effect_expired(event: Dictionary) -> void:
-	var is_buff: bool = event.is_buff
+func _apply_stat_effect_expired(event: StatEffectExpiredEvent) -> void:
 	_log("%s 的%s效果解除(%s)" % [
 		event.target_name,
-		("增益" if is_buff else "減益"),
-		_format_potential_type_list(event.potential_types),
+		("增益" if event.is_buff else "減益"),
+		GameEnums.format_potential_type_list(event.potential_types),
 	])
-	_roster_for(event.target).remove_status_arrows(event.target, event.potential_types, is_buff)
+	_roster_for(event.target).remove_status_arrows(event.target, event.potential_types, event.is_buff)
 
 
 # =========================================================
@@ -562,21 +549,13 @@ func _log(msg: String) -> void:
 	log_panel.log_msg(msg)
 
 
-func _format_potential_type_list(potential_types: Array) -> String:
-	var labels: Array[String] = []
-	for potential_type in potential_types:
-		labels.append(GameEnums.POTENTIAL_TYPE_LABELS[potential_type])
-	return "、".join(labels)
-
-
-## 事件如果帶了 System 層組好的 detail(判定/骰值/公式全文,見 BattleHero 的
-## judge_dodge()/judge_crit()/_describe_weighted_roll() 等),用 RichTextLabel 內建的
-## [hint=...] 標籤包起來,滑鼠移到這行文字上就會彈出完整說明。log_panel 本身要設成
-## process_mode = PROCESS_MODE_ALWAYS(見 battle.tscn)才能在暫停時也正常觸發——
-## 暫停只是凍結播放,不是要連戰報都看不了。detail 字串本身規定不能含方括號
-## (見 System 端註解),這裡不用再處理跳脫。
-func _hint(text: String, event: Dictionary) -> String:
-	var detail: String = event.get("detail", "")
-	if detail == "":
+## 事件如果帶了 System 層組好的 detail(判定/骰值/公式全文,見 CombatResolver 的
+## judge_dodge()/judge_crit() 等),用 RichTextLabel 內建的 [hint=...] 標籤包起來,
+## 滑鼠移到這行文字上就會彈出完整說明。log_panel 本身要設成 process_mode =
+## PROCESS_MODE_ALWAYS(見 battle.tscn)才能在暫停時也正常觸發——暫停只是凍結播放,
+## 不是要連戰報都看不了。detail 字串本身規定不能含方括號(見 System 端註解),
+## 這裡不用再處理跳脫。
+func _hint(text: String, event: BattleEvent) -> String:
+	if event.detail == "":
 		return text
-	return "[hint=%s]%s[/hint]" % [detail, text]
+	return "[hint=%s]%s[/hint]" % [event.detail, text]

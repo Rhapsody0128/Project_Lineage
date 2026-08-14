@@ -97,17 +97,7 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	var is_leader := battle_hero.is_leader
 	var border_color := LEADER_FRAME_COLOR if is_leader else (ENEMY_TINT if is_enemy else SELF_TINT)
 	var border_width := LEADER_FRAME_BORDER_WIDTH if is_leader else 2
-	var frame_style := StyleBoxFlat.new()
-	frame_style.bg_color = Color(0.08, 0.08, 0.1, 0.6)
-	frame_style.border_width_left = border_width
-	frame_style.border_width_top = border_width
-	frame_style.border_width_right = border_width
-	frame_style.border_width_bottom = border_width
-	frame_style.border_color = border_color
-	frame_style.content_margin_left = 2.0
-	frame_style.content_margin_top = 2.0
-	frame_style.content_margin_right = 2.0
-	frame_style.content_margin_bottom = 2.0
+	var frame_style := UiStyle.bordered_panel(Color(0.08, 0.08, 0.1, 0.6), border_color, border_width, 0, 2.0, 2.0)
 	portrait_frame.add_theme_stylebox_override("panel", frame_style)
 	slot.add_child(portrait_frame)
 
@@ -202,7 +192,7 @@ func add_status_arrows(battle_hero: BattleHero, potential_types: Array, is_buff:
 
 		var icon := Label.new()
 		icon.text = "%s%s" % [
-			("↑" if is_buff else "↓"), GameEnums.POTENTIAL_TYPE_LABELS[potential_type].left(1),
+			("↑" if is_buff else "↓"), GameEnums.potential_label(potential_type).left(1),
 		]
 		icon.add_theme_font_size_override("font_size", STATUS_ARROW_FONT_SIZE)
 		icon.add_theme_color_override("font_color", BUFF_ARROW_COLOR if is_buff else DEBUFF_ARROW_COLOR)

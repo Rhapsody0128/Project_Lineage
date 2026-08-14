@@ -1,67 +1,45 @@
 class_name Skill
 extends RefCounted
 
+## 技能資料:數值/描述由 SkillBuilder 組裝(見 skill_library.gd),實際效果
+## (數值計算/戰鬥表現)一律寫在 SkillEffectLibrary,透過 action 這個 Callable 帶入。
+
 var id: String
 var name: String
 var description: String
-var rank: int
-var range: int
-var area_shape: int
+var rank: GameEnums.RankType
+## 施放距離(格數)。命名成 skill_range 而不是 range,避免蓋掉 GDScript 內建的 range()。
+var skill_range: int
+var area_shape: GameEnums.AreaShape
 var area_size: int
-var effect_stat: int
-var skill_type: int
-var bind_weapon: int
+var effect_stat: GameEnums.PotentialType
+var skill_type: GameEnums.SkillType
+var bind_weapon: GameEnums.WeaponType
 var is_leader_skill: bool
 ## 被動技能:不會出現在 BattleHero.action_chance_map 裡供每回合骰選,而是開戰時
-## 套用一次(見 BattleHero._apply_passive_skills()/Skill.apply_passive())。
+## 套用一次(見 BattleHero._apply_passive_skills()/apply_passive())。
 ## B. 守護這種「反應式」技能也算被動——它不是選出來主動施放的,只是效果不在
-## apply_passive() 發生,而是 BattleHero.resolve_guard() 隨時反應觸發。
+## apply_passive() 發生,而是 CombatResolver.resolve_guard() 隨時反應觸發。
 var is_passive: bool
+## 是否為守護技能(B. 守護):CombatResolver.resolve_guard()/Hero.knows_guard_skill()
+## 靠這個旗標辨識,不是顯示名稱字串比對——重新命名技能不會悄悄讓守護判定失效。
+var is_guard_skill: bool
 var base_chance: float
 var skill_ratio: float
 var action: Callable
 
-func _init(
-	p_name: String,
-	p_description: String,
-	p_rank: int,
-	p_range: int,
-	p_area_shape: int,
-	p_area_size: int,
-	p_effect_stat: int,
-	p_skill_type: int,
-	p_bind_weapon: int,
-	p_is_leader_skill: bool,
-	p_is_passive: bool,
-	p_base_chance: float,
-	p_skill_ratio: float,
-	p_action: Callable
-) -> void:
+func _init() -> void:
 	id = Util.generate_uuid()
-	name = p_name
-	description = p_description
-	rank = p_rank
-	range = p_range
-	area_shape = p_area_shape
-	area_size = p_area_size
-	effect_stat = p_effect_stat
-	skill_type = p_skill_type
-	bind_weapon = p_bind_weapon
-	is_leader_skill = p_is_leader_skill
-	is_passive = p_is_passive
-	base_chance = p_base_chance
-	skill_ratio = p_skill_ratio
-	action = p_action
 
 ## cast_detail 是施法前(選技能/選目標)的判定明細文字,原封不動轉交給 action 綁定的
 ## 效果 function,讓它併進最終 skill 事件的 detail 給戰報 UI 顯示。
-func effect(self_party, target_party, cast_detail: String = "") -> void:
+func effect(self_hero: BattleHero, target_hero: BattleHero, cast_detail: String = "") -> void:
 	if action.is_valid():
-		action.call(self_party, target_party, self, cast_detail)
+		action.call(self_hero, target_hero, self, cast_detail)
 
 ## 被動技能專用:開戰時套用一次,沒有目標/cast_detail 的概念,action 綁定的效果
 ## function 簽名固定是 (self_hero, skill)。見 BattleHero._apply_passive_skills()。
-func apply_passive(self_hero) -> void:
+func apply_passive(self_hero: BattleHero) -> void:
 	if action.is_valid():
 		action.call(self_hero, self)
 
@@ -99,8 +77,7 @@ func _candidate_pool(caster: BattleHero) -> Array[BattleHero]:
 func _in_radius(candidates: Array[BattleHero], center: BattleHero) -> Array[BattleHero]:
 	var result: Array[BattleHero] = []
 	for c in candidates:
-		var d: int = abs(c.grid_pos.x - center.grid_pos.x) + abs(c.grid_pos.y - center.grid_pos.y)
-		if d <= area_size - 1:
+		if Util.manhattan_distance(c.grid_pos, center.grid_pos) <= area_size - 1:
 			result.append(c)
 	return result
 

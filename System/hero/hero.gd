@@ -11,8 +11,8 @@ var age: int
 var face_path: String
 var traits: Array[CharacterTrait]
 var potential: Potential
-## 目前手持的武器(GameEnums.WeaponType),決定哪些 bind_weapon 技能能施放
-var weapon: int
+## 目前手持的武器,決定哪些 bind_weapon 技能能施放
+var weapon: GameEnums.WeaponType
 var skill_list: Array[Skill]
 var level_system: LevelSystem
 var hp: int
@@ -24,7 +24,7 @@ func _init(
 	p_face_path: String,
 	p_traits: Array[CharacterTrait],
 	p_potential: Potential,
-	p_weapon: int,
+	p_weapon: GameEnums.WeaponType,
 	p_skill_list: Array[Skill],
 	p_level_system: LevelSystem
 ) -> void:
@@ -44,11 +44,11 @@ func _init(
 func can_use_skill(skill: Skill) -> bool:
 	return skill.bind_weapon == GameEnums.WeaponType.EMPTY or skill.bind_weapon == weapon
 
-## 是否會這個技能(依名稱比對,武器仍要相符/未綁定)——不檢查 LEADER 限定,呼叫端
-## (例如 BattleHero.resolve_guard())如果需要排除非隊長,要自己另外判斷。
-func knows_skill(skill_name: String) -> bool:
+## 是否學會守護技能(Skill.is_guard_skill,武器仍要相符/未綁定)——用旗標而非顯示名稱
+## 字串比對,重新命名技能不會悄悄讓守護判定失效。CombatResolver.resolve_guard() 用。
+func knows_guard_skill() -> bool:
 	for s in skill_list:
-		if s.name == skill_name and can_use_skill(s):
+		if s.is_guard_skill and can_use_skill(s):
 			return true
 	return false
 

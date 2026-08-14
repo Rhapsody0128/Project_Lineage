@@ -9,10 +9,10 @@ static func get_skill_list() -> Array[Skill]:
 static func get_skill(skill_index: int) -> Skill:
 	return _skill_library[skill_index]
 
-static func get_skill_list_by_rank(skill_rank: int) -> Array[Skill]:
+static func get_skill_list_by_rank(skill_rank: GameEnums.RankType) -> Array[Skill]:
 	var result: Array[Skill] = []
 	for skill in _skill_library:
-		if skill.skill_rank == skill_rank:
+		if skill.rank == skill_rank:
 			result.append(skill)
 	return result
 
@@ -22,7 +22,7 @@ static func get_random_skill_list() -> Array[Skill]:
 	var random_skill: Skill = _skill_library[Util.get_random_int(0, _skill_library.size())]
 	return [random_skill]
 
-static func get_random_skill_list_by_rank(skill_rank: int) -> Array[Skill]:
+static func get_random_skill_list_by_rank(skill_rank: GameEnums.RankType) -> Array[Skill]:
 	var skill_list := get_skill_list_by_rank(skill_rank)
 	if skill_list.is_empty():
 		return []
@@ -36,7 +36,7 @@ const MAX_SKILLS_PER_HERO := 4
 ## 該武器能用的技能:bind_weapon 相符,或技能沒有綁定武器(EMPTY,徒手也能用),
 ## 超過 MAX_SKILLS_PER_HERO 時優先保留這把武器「專屬綁定」的技能(至少要有東西能打),
 ## 其餘名額(含無綁定的被動/LEADER 技能)隨機從剩下的裡面抽,不會每次都固定同一批。
-static func get_skill_list_by_weapon(weapon_type: int) -> Array[Skill]:
+static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array[Skill]:
 	var bound: Array[Skill] = []
 	var unbound: Array[Skill] = []
 	for skill in _skill_library:
@@ -59,7 +59,7 @@ static func get_skill_list_by_weapon(weapon_type: int) -> Array[Skill]:
 
 	return result
 
-static func get_random_skill_list_by_weapon(weapon_type: int) -> Array[Skill]:
+static func get_random_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array[Skill]:
 	var skill_list := get_skill_list_by_weapon(weapon_type)
 	if skill_list.is_empty():
 		return []

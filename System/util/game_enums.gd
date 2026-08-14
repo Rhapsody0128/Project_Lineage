@@ -18,6 +18,15 @@ enum BattleResultType {SELF_WIN, ENEMY_WIN, DRAW}
 ## SQUARE 以命中目標為中心的正方形範圍(切比雪夫距離 ≤ area_size-1);ALL_ALLIES 無視
 ## 距離,直接命中施法者本人+所有存活隊友(全隊技能用,例如 D. 大將之風)。
 enum AreaShape {SINGLE, RADIUS, LINE, SQUARE, ALL_ALLIES}
+## 戰報事件型別,對應 System/battle/events/ 底下的 BattleEvent 子類別,
+## 見 Spec.md 一、戰報事件合約。
+enum BattleEventType {
+	BATTLE_START, ROUND_START, ROUND_END,
+	MOVE, DAZE, ATTACK, SKILL,
+	DODGE, DAMAGE, HEAL,
+	STAT_EFFECT, STAT_EFFECT_EXPIRED,
+	GUARD, DEFEATED, BATTLE_END,
+}
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
@@ -27,6 +36,27 @@ const RANK_TYPE_LABELS: Array[String] = ["E", "D", "C", "B", "A", "S", "SS", "SS
 
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
 const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
+
+## 以下三個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
+## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
+## 不會有任何編譯期或執行期警告,悄悄對應錯標籤;呼叫函式至少能在這裡集中防呆。
+static func potential_label(potential_type: int) -> String:
+	return POTENTIAL_TYPE_LABELS[potential_type]
+
+static func rank_label(rank_type: int) -> String:
+	return RANK_TYPE_LABELS[rank_type]
+
+static func weapon_label(weapon_type: int) -> String:
+	return WEAPON_TYPE_LABELS[weapon_type]
+
+## 素質清單轉成頓號分隔的標籤字串,例如 stat_effect 事件的「力量、敏捷」——
+## 戰報事件的 to_debug_string()/detail 組字與 Scenes/battle.gd 的戰報 UI 都共用這個,
+## 不要各自各寫一份 for 迴圈。
+static func format_potential_type_list(potential_types: Array) -> String:
+	var labels: Array[String] = []
+	for potential_type in potential_types:
+		labels.append(potential_label(potential_type))
+	return "、".join(labels)
 
 ## 基本攻擊距離(曼哈頓格數):近戰(劍/盾/匕首)1 格、遠程(弓/法杖/捕夢網)2 格,
 ## 順序對應 WeaponType enum

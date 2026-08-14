@@ -14,18 +14,18 @@ func _init(p_title: String, p_battle: Battle) -> void:
 	title = p_title
 	battle = p_battle
 
-## 結算結果直接讀 battle_log 裡的 battle_end 事件,不用 battle.self_total_hp /
-## enemy_total_hp 現算——那兩個 getter 讀的是角色目前 HP,重播前會被
-## Battle.reset_for_replay() 還原成開戰時的滿血,不能拿來當結算數字。
+## 結算結果直接讀 battle.battle_end_event(型別化,戰鬥跑完後一定有值),不用
+## battle.self_total_hp / enemy_total_hp 現算——那兩個 getter 讀的是角色目前 HP,
+## 重播前會被 Battle.reset_for_replay() 還原成開戰時的滿血,不能拿來當結算數字。
 var self_total_hp: int:
-	get: return _result_totals().self_total
+	get: return battle.battle_end_event.self_total
 var enemy_total_hp: int:
-	get: return _result_totals().enemy_total
+	get: return battle.battle_end_event.enemy_total
 
 ## GameEnums.BattleResultType:只看雙方總大將死活,不比較 HP——供需要依勝負分色/分支的
 ## 呼叫端使用(例如戰報列表),不要自己另外比較 self_total_hp/enemy_total_hp。
-var result: int:
-	get: return _result_totals().result
+var result: GameEnums.BattleResultType:
+	get: return battle.battle_end_event.result
 
 var result_text: String:
 	get:
@@ -36,9 +36,3 @@ var result_text: String:
 				return "敵方勝利"
 			_:
 				return "平手"
-
-func _result_totals() -> Dictionary:
-	for event in battle.battle_log:
-		if event.type == "battle_end":
-			return {"self_total": event.self_total, "enemy_total": event.enemy_total, "result": event.result}
-	return {"self_total": 0, "enemy_total": 0, "result": GameEnums.BattleResultType.DRAW}

@@ -1,0 +1,17 @@
+class_name HealEvent
+extends BattleEvent
+
+var target: BattleHero
+var target_name: String
+var heal_points: int
+var remaining_hp: int
+
+func _init(p_target: BattleHero, p_heal_points: int, p_remaining_hp: int, p_detail: String = "") -> void:
+	super._init(GameEnums.BattleEventType.HEAL, p_detail)
+	target = p_target
+	target_name = p_target.name
+	heal_points = p_heal_points
+	remaining_hp = p_remaining_hp
+
+func to_debug_string() -> String:
+	return "%s 恢復 %d 點 HP(剩餘 HP %d)" % [target_name, heal_points, remaining_hp]

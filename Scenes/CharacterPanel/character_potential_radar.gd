@@ -119,9 +119,9 @@ func _draw_labels(center: Vector2, radius: float) -> void:
 		var label: String
 		if _battle_hero != null:
 			var live_value: int = roundi(_battle_hero.get_potential(potential_type))
-			label = "%s %s %d (%d)" % [GameEnums.POTENTIAL_TYPE_LABELS[i], GameEnums.RANK_TYPE_LABELS[rank], base_value, live_value]
+			label = "%s %s %d (%d)" % [GameEnums.potential_label(i), GameEnums.rank_label(rank), base_value, live_value]
 		else:
-			label = "%s %s %d" % [GameEnums.POTENTIAL_TYPE_LABELS[i], GameEnums.RANK_TYPE_LABELS[rank], base_value]
+			label = "%s %s %d" % [GameEnums.potential_label(i), GameEnums.rank_label(rank), base_value]
 
 		var anchor := _axis_point(center, radius + LABEL_MARGIN * 0.7, i)
 		var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)

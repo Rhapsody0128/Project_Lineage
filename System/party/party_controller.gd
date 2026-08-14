@@ -4,13 +4,19 @@ extends RefCounted
 ## 小隊編制之後會開放玩家自行配置,目前先寫死隨機 6 名角色
 const RANDOM_PARTY_SIZE := 6
 
+## 除錯用:強制全部角色使用同一種武器,方便單獨測試某個武器的技能表現。
+## 預設 EMPTY 代表關閉(維持 HeroController.RANDOM_WEAPON_POOL 的正常隨機),
+## 要測試特定武器時把這裡改成想測的 GameEnums.WeaponType 即可,不要動 get_random_party()
+## 本體邏輯。
+const DEBUG_FORCE_WEAPON: GameEnums.WeaponType = GameEnums.WeaponType.EMPTY
+
 static func get_random_party() -> Party:
 	var heroes: Array[Hero] = []
 	for i in range(RANDOM_PARTY_SIZE):
 		var hero := HeroController.get_random_hero()
-		# hero.level_system.gain_exp(999999)
-		hero.weapon = GameEnums.WeaponType.DREAMCATCHER # 先固定給夢境捕手,方便測試技能
-		hero.skill_list = SkillController.get_skill_list_by_weapon(hero.weapon)
+		if DEBUG_FORCE_WEAPON != GameEnums.WeaponType.EMPTY:
+			hero.weapon = DEBUG_FORCE_WEAPON
+			hero.skill_list = SkillController.get_skill_list_by_weapon(hero.weapon)
 		heroes.append(hero)
 	var leader: Hero = Util.get_random_from_array(heroes)
 	return Party.new("隨機小隊", heroes, leader)

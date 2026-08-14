@@ -65,7 +65,8 @@ const LEADER_RING_WIDTH := 3.0
 const LEADER_RING_CENTER := Vector2(0, -6)
 
 # 測試階段除錯用:角色右下角常駐顯示目前所持武器文字,方便肉眼核對武器與距離/傷害
-# 行為是否對得上;正式美術/UI 定案後可以整段移除或改成圖示。
+# 行為是否對得上;正式美術/UI 定案後把這個常數改成 false 即可整段關閉,不用刪程式碼。
+const SHOW_DEBUG_WEAPON_LABEL := true
 const WEAPON_LABEL_POSITION := Vector2(20, 12)
 const WEAPON_LABEL_FONT_SIZE := 12
 
@@ -101,15 +102,16 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 		else:
 			sprite.play("idle_Right")
 
-	_setup_weapon_label()
+	if SHOW_DEBUG_WEAPON_LABEL:
+		_setup_weapon_label()
 
 	queue_redraw()
 
 
-## 測試階段除錯用,見 WEAPON_LABEL_POSITION 常數說明
+## 測試階段除錯用,見 SHOW_DEBUG_WEAPON_LABEL 常數說明
 func _setup_weapon_label() -> void:
 	var label := Label.new()
-	label.text = GameEnums.WEAPON_TYPE_LABELS[battle_hero.hero.weapon]
+	label.text = GameEnums.weapon_label(battle_hero.hero.weapon)
 	label.add_theme_font_size_override("font_size", WEAPON_LABEL_FONT_SIZE)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -212,36 +214,25 @@ func wait_for_animation(anim_name: String) -> void:
 ## 受到傷害時在頭上跳出傷害數字,往上飄並淡出。is_critical 決定用一般(白字)還是
 ## 暴擊(紅字,字級更大)樣式,讓玩家不用看戰報文字就能一眼分辨這下有沒有暴擊。
 func show_damage_number(amount: int, is_critical: bool = false) -> void:
-	var label := Label.new()
-	label.text = "-%d" % amount
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	var font_size := CRIT_DAMAGE_NUMBER_FONT_SIZE if is_critical else DAMAGE_NUMBER_FONT_SIZE
-	label.add_theme_font_size_override("font_size", font_size)
-	label.add_theme_color_override("font_color", CRIT_DAMAGE_NUMBER_COLOR if is_critical else DAMAGE_NUMBER_COLOR)
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	label.add_theme_constant_override("outline_size", 5)
-	label.position = Vector2(-60, -110)
-	label.size = Vector2(120, 40)
-	label.modulate = Color(1, 1, 1, 0)
-	label.z_as_relative = true
-	add_child(label)
-
-	var tw := label.create_tween()
-	tw.tween_property(label, "modulate:a", 1.0, 0.05)
-	tw.parallel().tween_property(label, "position:y", label.position.y - 24.0, DAMAGE_NUMBER_RISE_TIME)
-	tw.tween_interval(0.15)
-	tw.tween_property(label, "modulate:a", 0.0, 0.25)
-	tw.tween_callback(label.queue_free)
+	var color := CRIT_DAMAGE_NUMBER_COLOR if is_critical else DAMAGE_NUMBER_COLOR
+	_show_floating_number("-%d" % amount, color, font_size)
 
 
 ## 恢復 HP 時在頭上跳出綠色治療數字,樣式比照 show_damage_number() 但方向相反
 ## (正數、綠色),讓玩家一眼分辨是傷害還是治療。
 func show_heal_number(amount: int) -> void:
+	_show_floating_number("+%d" % amount, HEAL_NUMBER_COLOR, HEAL_NUMBER_FONT_SIZE)
+
+
+## show_damage_number()/show_heal_number() 共用的飄字實作:往上飄一小段、停頓、
+## 淡出釋放,兩者只差文字內容/顏色/字級。
+func _show_floating_number(text: String, color: Color, font_size: int) -> void:
 	var label := Label.new()
-	label.text = "+%d" % amount
+	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", HEAL_NUMBER_FONT_SIZE)
-	label.add_theme_color_override("font_color", HEAL_NUMBER_COLOR)
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
 	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 	label.add_theme_constant_override("outline_size", 5)
 	label.position = Vector2(-60, -110)

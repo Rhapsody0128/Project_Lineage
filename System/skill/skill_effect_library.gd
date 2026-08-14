@@ -169,9 +169,7 @@ static func commander_bearing_buff(self_hero: BattleHero, primary_target: Battle
 	self_hero.battle.log_event(SkillEvent.new(self_hero, self_hero, skill.name, cast_detail))
 
 	var targets := skill.resolve_targets(self_hero, self_hero)
-	_apply_stat_effect(targets, [
-		GameEnums.PotentialType.STRENGTH, GameEnums.PotentialType.AGILITY, GameEnums.PotentialType.DEXTERITY,
-	], skill.skill_ratio, STAT_EFFECT_ROUNDS)
+	_apply_stat_effect(targets, skill.buffed_potential_types, skill.skill_ratio, STAT_EFFECT_ROUNDS)
 
 ## E. 降咒:以鎖定的敵方目標為中心,RADIUS 範圍內的敵人各自被降低敏捷/力量
 ## skill.skill_ratio(目前 -0.2 = -20%),持續 STAT_EFFECT_ROUNDS 回合;不判定閃避/
@@ -180,9 +178,7 @@ static func curse_debuff(self_hero: BattleHero, primary_target: BattleHero, skil
 	self_hero.battle.log_event(SkillEvent.new(self_hero, primary_target, skill.name, cast_detail))
 
 	var targets := skill.resolve_targets(self_hero, primary_target)
-	_apply_stat_effect(targets, [
-		GameEnums.PotentialType.AGILITY, GameEnums.PotentialType.STRENGTH,
-	], skill.skill_ratio, STAT_EFFECT_ROUNDS)
+	_apply_stat_effect(targets, skill.buffed_potential_types, skill.skill_ratio, STAT_EFFECT_ROUNDS)
 
 ## D/E 共用:對多個目標套用同一組素質修正,每個目標各自記一筆 stat_effect 事件
 ## (給戰報 UI/頭像箭頭用),multiplier 正值是增益、負值是減益。

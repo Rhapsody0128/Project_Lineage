@@ -30,6 +30,10 @@ func _init(p_hero: Hero, p_battle: Battle, p_is_enemy: bool, p_is_leader: bool =
 	is_leader = p_is_leader
 	_set_action_chance()
 	_apply_passive_skills()
+	# 永久被動(rounds_remaining < 0)從開戰第一刻就生效、整場不會被移除,兩份清單
+	# 直接同步一次即可;之後的限時 buff/debuff 才需要靠重播事件逐步增減(見上方
+	# _replay_stat_modifiers 註解)。
+	_replay_stat_modifiers = _stat_modifiers.duplicate()
 
 ## 只有手持武器與技能相符(或技能沒綁武器)、不是被動技能、且不是「不是隊長卻鎖 LEADER
 ## 技能」的情況,才能被抽到,權重直接採技能本身的基礎機率。
@@ -236,9 +240,49 @@ func add_stat_modifier(potential_type: GameEnums.PotentialType, multiplier: floa
 
 	_stat_modifiers.append(StatModifier.new(potential_type, multiplier, rounds))
 
+## 目前是否帶有指定素質、指定方向(增益/減益)的修正,給 BattleAi 骰選權重用——
+## 判斷「這次打得到的目標是不是已經生效同一個 buff/debuff 了」,不用等到重播才從
+## 戰報事件反推。讀的是 _stat_modifiers(模擬當下的真實狀態),不是給 UI 用的
+## _replay_stat_modifiers(見該欄位註解)。
+func has_active_stat_modifier(potential_type: GameEnums.PotentialType, is_buff: bool) -> bool:
+	for m in _stat_modifiers:
+		if m.potential_type == potential_type and (m.multiplier > 0.0) == is_buff:
+			return true
+	return false
+
 func _stat_modifier_multiplier(potential_type: GameEnums.PotentialType) -> float:
 	var total := 0.0
 	for m in _stat_modifiers:
+		if m.potential_type == potential_type:
+			total += m.multiplier
+	return total
+
+## 「顯示用」素質修正清單,跟上面 _stat_modifiers 分開維護:Battle.start() 會把整場
+## 戰鬥瞬間模擬完(見 Battle 類別註解),模擬跑完那一刻 _stat_modifiers 就已經是
+## 「全場結束當下」的最終結果——D. 大將之風/E. 降咒這類限時 3 回合的 buff/debuff,
+## 早在模擬中途就被 tick_status_effects() 移除了,不管重播播到哪一幕點開角色面板,
+## 讀到的都會是同一個定格數值,完全跟不上重播進度。這份清單改由 battle.gd 在重播
+## STAT_EFFECT/STAT_EFFECT_EXPIRED 事件時同步呼叫 apply_replay_stat_effect()/
+## expire_replay_stat_effect() 增減,讓 get_potential()(角色面板雷達圖專用)能顯示
+## 「重播播到這一幕當下」的即時素質。開戰當下的永久被動(見 _apply_passive_skills())
+## 從一開始就對兩份清單同時生效,重播不需要額外補這段。
+var _replay_stat_modifiers: Array[StatModifier] = []
+
+func apply_replay_stat_effect(potential_type: GameEnums.PotentialType, multiplier: float, rounds: int) -> void:
+	for m in _replay_stat_modifiers:
+		if m.potential_type == potential_type and m.multiplier == multiplier:
+			m.rounds_remaining = rounds
+			return
+	_replay_stat_modifiers.append(StatModifier.new(potential_type, multiplier, rounds))
+
+func expire_replay_stat_effect(potential_type: GameEnums.PotentialType, is_buff: bool) -> void:
+	for m in _replay_stat_modifiers.duplicate():
+		if m.potential_type == potential_type and (m.multiplier > 0.0) == is_buff:
+			_replay_stat_modifiers.erase(m)
+
+func _replay_stat_modifier_multiplier(potential_type: GameEnums.PotentialType) -> float:
+	var total := 0.0
+	for m in _replay_stat_modifiers:
 		if m.potential_type == potential_type:
 			total += m.multiplier
 	return total
@@ -271,24 +315,14 @@ var mentality: float:
 	get: return hero.mentality * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.MENTALITY))
 
 ## 跟 Hero.get_potential() 對應,但回傳的是套用完戰場加成(裝備/等級皆含 Hero 本身
-## 已算好的部分,再疊加 _stat_modifiers 的被動/主動技能、buff/debuff)之後的「即時」數值。
-## UI(角色面板雷達圖)想顯示戰場當下的真實素質時用這個,不要直接讀 Hero.get_potential()。
+## 已算好的部分,再疊加 _replay_stat_modifiers 的被動/主動技能、buff/debuff)之後的
+## 「即時」數值——這裡刻意讀 _replay_stat_modifiers 而不是上面 strength/agility 等
+## 屬性讀的 _stat_modifiers,因為後者是整場模擬結束後的最終結果,前者才會隨重播進度
+## 增減(見 _replay_stat_modifiers 註解)。UI(角色面板雷達圖)想顯示戰場當下的真實
+## 素質時用這個,不要直接讀 Hero.get_potential()。
 func get_potential(potential_type: int) -> float:
-	match potential_type:
-		GameEnums.PotentialType.STRENGTH:
-			return strength
-		GameEnums.PotentialType.AGILITY:
-			return agility
-		GameEnums.PotentialType.DEXTERITY:
-			return dexterity
-		GameEnums.PotentialType.VITALITY:
-			return vitality
-		GameEnums.PotentialType.INTELLIGENCE:
-			return intelligence
-		GameEnums.PotentialType.MENTALITY:
-			return mentality
-		_:
-			return 0.0
+	var base: float = hero.get_potential(potential_type)
+	return base * (1.0 + _replay_stat_modifier_multiplier(potential_type))
 
 ## 行動速度(回合排序用),暫以敏捷做為速度來源
 var action_speed: float:

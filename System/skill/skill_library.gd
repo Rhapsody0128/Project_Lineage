@@ -141,6 +141,7 @@ static func _active_skills() -> Array[Skill]:
 		.bind_weapon(GameEnums.WeaponType.DREAMCATCHER)
 		.base_chance(25.0)
 		.skill_ratio(-0.2) # 每項素質 -20%(負值代表減益)
+		.buffed_stats([GameEnums.PotentialType.AGILITY, GameEnums.PotentialType.STRENGTH])
 		.action(Callable(SkillEffectLibrary, "curse_debuff"))
 		.build())
 
@@ -201,6 +202,7 @@ static func _leader_skills() -> Array[Skill]:
 		.leader_skill()
 		.base_chance(25.0)
 		.skill_ratio(0.2) # 每項素質 +20%
+		.buffed_stats([GameEnums.PotentialType.STRENGTH, GameEnums.PotentialType.AGILITY, GameEnums.PotentialType.DEXTERITY])
 		.action(Callable(SkillEffectLibrary, "commander_bearing_buff"))
 		.build())
 

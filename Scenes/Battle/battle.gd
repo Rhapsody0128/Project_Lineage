@@ -35,6 +35,19 @@ const CHARACTER_SCENE_PATH := "res://Images/Warrier/animated_sprite_2d.tscn"
 const PORTRAIT_ATLAS_PATH := "res://Images/Warrier/character_walk.png"
 const PORTRAIT_REGION := Rect2(0, 0, 32, 46)
 
+# 戰報面板(LogPanel)可以展開/收合(見 LogToggleButton):展開時維持原本版面
+# (戰場侷限在左側,右側留給戰報);收合時 LogPanel 整個藏起來,戰場改撐大填滿騰出來
+# 的空間——不另外維護「展開/收合」兩份獨立版面數據,單純把 BoardCanvas + UnitsLayer
+# 整塊(格線、地板、場上角色全部一起)用 Control.scale 等比放大,角色不會因為換算
+# 格子大小而跟地板對不上,永遠貼著同一顆 pivot 錨點(戰場面板左上角)長大/縮回。
+const BOARD_PIVOT := Vector2(140.0, 140.0)
+const BOARD_BASE_WIDTH := 828.0
+const BOARD_SCALE_COLLAPSED := 1.5
+const RIGHT_PARTY_WIDTH := 112.0
+const RIGHT_PARTY_GAP := 8.0
+const RIGHT_PARTY_LEFT_EXPANDED := BOARD_PIVOT.x + BOARD_BASE_WIDTH + RIGHT_PARTY_GAP
+const RIGHT_PARTY_LEFT_COLLAPSED := BOARD_PIVOT.x + BOARD_BASE_WIDTH * BOARD_SCALE_COLLAPSED + RIGHT_PARTY_GAP
+
 
 var battle: Battle
 var visuals: Dictionary = {} # BattleHero -> BattleUnitVisual
@@ -49,15 +62,19 @@ var report: BattleReport
 var character_scene: PackedScene
 var portrait_texture: AtlasTexture
 
+# 戰報面板目前是展開還是收合,見 BOARD_SCALE_COLLAPSED/_apply_log_layout()。
+var log_expanded := true
+
 @onready var board: BattleBoard = $BoardCanvas
 @onready var units_layer: Control = $UnitsLayer
 @onready var title_label: Label = $Title
-@onready var start_button: Button = $UI/TopBar/StartButton
 @onready var pause_button: Button = $UI/TopBar/PauseButton
 @onready var back_button: Button = $UI/TopBar/BackButton
-@onready var status_label: Label = $UI/StatusPanel/StatusLabel
+@onready var log_toggle_button: Button = $UI/TopBar/LogToggleButton
+@onready var log_panel_container: Panel = $UI/LogPanel
 @onready var log_panel: BattleLogPanel = $UI/LogPanel/LogLabel
 @onready var left_roster: BattlePartyRoster = $LeftPartyPanel/LeftPartyList
+@onready var right_party_panel: Panel = $RightPartyPanel
 @onready var right_roster: BattlePartyRoster = $RightPartyPanel/RightPartyList
 @onready var result_dialog: Control = $ResultDialog
 @onready var result_label: Label = $ResultDialog/Panel/VBox/ResultLabel
@@ -68,6 +85,12 @@ var portrait_texture: AtlasTexture
 # 初始化
 # =========================================================
 func _ready() -> void:
+	# 場上角色本人(BattleUnitVisual)靠 Area2D 判定點擊(見 _setup_click_area()),
+	# 預設關閉的 2D 物理揀選要開啟這個事件才會送到 Area2D.input_event。
+	get_viewport().physics_object_picking = true
+
+	log_toggle_button.pressed.connect(_on_log_toggle_button_pressed)
+	_apply_log_layout(log_expanded)
 
 	character_scene = load(CHARACTER_SCENE_PATH)
 
@@ -84,11 +107,10 @@ func _ready() -> void:
 		BattleReportStore.pending_report = null
 	else:
 		_new_simulation()
-		_log("按下「開始戰鬥」按鈕，播放戰報！")
 
 
 ## 進入戰報播放模式:battle 已經是模擬完成、記錄好 battle_log 的舊戰報,
-## 不呼叫 battle.start()、只重播;按鈕文字與返回目的地也跟著換成戰報列表情境。
+## 不呼叫 battle.start()、只重播;返回目的地也跟著換成戰報列表情境。
 func _enter_playback_mode(p_report: BattleReport) -> void:
 	is_report_playback = true
 	report = p_report
@@ -97,9 +119,10 @@ func _enter_playback_mode(p_report: BattleReport) -> void:
 	_setup_battlefield()
 
 	title_label.text = "戰報播放：%s" % report.title
-	start_button.text = "播放戰報"
 	back_button.text = "返回戰報列表"
-	_log("按下「播放戰報」按鈕，重現這場戰鬥的完整過程！")
+	_log("進入戰報播放，自動重現這場戰鬥的完整過程！")
+
+	_run_battle_playback(false)
 
 
 # =========================================================
@@ -111,6 +134,7 @@ func _enter_playback_mode(p_report: BattleReport) -> void:
 func _new_simulation() -> void:
 	battle = BattleController.get_random_battle()
 	_setup_battlefield()
+	_run_battle_playback(true)
 
 
 ## 依目前的 battle(self_heroes/enemy_heroes 的站位與 HP)重建畫面上的單位與頭像列。
@@ -145,16 +169,34 @@ func _roster_for(battle_hero: BattleHero) -> BattlePartyRoster:
 
 
 # =========================================================
+# 戰報面板展開/收合
+# =========================================================
+func _on_log_toggle_button_pressed() -> void:
+	_apply_log_layout(not log_expanded)
+
+
+## 切換 LogPanel 顯示狀態,並讓戰場整塊(BoardCanvas + UnitsLayer,格線/地板/場上
+## 角色全部一起)等比縮放撐大/縮回,填滿或讓出騰出來的版面。BoardCanvas/UnitsLayer
+## 都是滿版鋪開的 Control,格子座標→像素座標的換算(BattleBoard.grid_to_pixel())本身
+## 不用變,單純對這兩個節點套 CanvasItem 的 scale(繞同一顆 pivot 錨點縮放),場上角色
+## 是它們的子節點,會自動跟著整塊一起放大/縮小,不需要另外逐一搬動位置。
+func _apply_log_layout(expanded: bool) -> void:
+	log_expanded = expanded
+	log_panel_container.visible = expanded
+	log_toggle_button.text = "隱藏詳細" if expanded else "顯示詳細"
+
+	var scale_factor := 1.0 if expanded else BOARD_SCALE_COLLAPSED
+	for node in [board, units_layer]:
+		node.pivot_offset = BOARD_PIVOT
+		node.scale = Vector2.ONE * scale_factor
+
+	right_party_panel.position.x = RIGHT_PARTY_LEFT_EXPANDED if expanded else RIGHT_PARTY_LEFT_COLLAPSED
+	right_party_panel.size.x = RIGHT_PARTY_WIDTH
+
+
+# =========================================================
 # 按鈕事件
 # =========================================================
-func _on_start_pressed() -> void:
-	if is_battling:
-		return
-	# 一般模式第一次開打要先呼叫 battle.start() 真的跑一次模擬;戰報播放模式
-	# battle 已經是模擬完成的舊戰報,只需要重播,不能再模擬一次。
-	await _run_battle_playback(not is_report_playback)
-
-
 ## 結果 Dialog 的「重播」按鈕:不管是一般模式還是戰報播放模式,這裡都只是把同一份
 ## battle.battle_log(已經模擬完成、固定不變)重播一次,絕對不能呼叫 battle.start()
 ## 再模擬一次——那樣招式/骰值全部重骰,就不是「重播」了。
@@ -165,25 +207,23 @@ func _on_dialog_replay_pressed() -> void:
 
 
 ## 實際跑一場(should_simulate=true)或重播一場(should_simulate=false)戰鬥,並負責
-## 前後的 UI 狀態切換。刻意不在播放結束後預先呼叫 _new_simulation() 產生下一場——
-## 那樣做會在結果 Dialog 彈出的同時,把畫面上的角色站位整個換成「下一場」的初始佈陣,
-## 玩家會看到角色瞬間跳回起始位置,不是想要的「定格在戰鬥結束當下」。下一場要等玩家
-## 離開這個場景、重新進來(_ready())時才會產生。
+## 前後的 UI 狀態切換。一進場(_new_simulation()/_enter_playback_mode())或按「重播」
+## 都會呼叫這裡,不需要玩家手動按開始鈕——已經沒有這顆按鈕。刻意不在播放結束後預先
+## 呼叫 _new_simulation() 產生下一場——那樣做會在結果 Dialog 彈出的同時,把畫面上的
+## 角色站位整個換成「下一場」的初始佈陣,玩家會看到角色瞬間跳回起始位置,不是想要的
+## 「定格在戰鬥結束當下」。下一場要等玩家離開這個場景、重新進來(_ready())時才會產生。
 func _run_battle_playback(should_simulate: bool) -> void:
 	is_battling = true
-	start_button.disabled = true
 	pause_button.disabled = false
 	result_dialog.visible = false
 	log_panel.clear_log()
 
 	if should_simulate:
 		# System 層一次性跑完整場戰鬥模擬,結果寫入 battle.battle_log
-		status_label.text = "戰鬥中..."
 		battle.start()
 	else:
 		# 不重新模擬,只是把畫面(站位/HP)歸回開戰當下,再重播同一份 battle_log——
 		# 保證每次重播的招式、扣血量完全相同。
-		status_label.text = "播放中..."
 		battle.reset_for_replay()
 		_setup_battlefield()
 
@@ -196,13 +236,9 @@ func _run_battle_playback(should_simulate: bool) -> void:
 		return
 
 	is_battling = false
-	start_button.disabled = false
 	pause_button.disabled = true
 	pause_button.text = "暫停"
 	_announce_result()
-
-	if is_report_playback:
-		start_button.text = "重新播放"
 
 
 ## 暫停/繼續:直接切 SceneTree.paused,配合 _safe_wait()/wait_for_animation() 都改成
@@ -235,17 +271,14 @@ func _announce_result() -> void:
 
 	match end_event.result:
 		GameEnums.BattleResultType.SELF_WIN:
-			status_label.text = "我方勝利！"
 			result_text = "我方勝利！"
 			result_color = "yellow"
 			_log("[color=yellow][b]我方擊敗敵方總大將，我方勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
 		GameEnums.BattleResultType.ENEMY_WIN:
-			status_label.text = "敵方勝利！"
 			result_text = "敵方勝利！"
 			result_color = "red"
 			_log("[color=red][b]我方總大將陣亡，敵方勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
 		_:
-			status_label.text = "平手"
 			result_text = "平手"
 			result_color = "white"
 			_log("雙方總大將皆存活至第 10 回合，戰鬥平手。(剩餘 HP %d : %d)" % [self_total, enemy_total])
@@ -463,6 +496,15 @@ func _apply_reaction(event: BattleEvent) -> void:
 				GameEnums.format_potential_type_list(stat_event.potential_types),
 			], stat_event))
 			_roster_for(stat_event.target).add_status_arrows(stat_event.target, stat_event.potential_types, stat_event.is_buff)
+			# 整場戰鬥其實在 Battle.start() 就瞬間模擬完了,BattleHero 的「真實」素質修正
+			# 早就是模擬結束當下的最終結果——這裡重播到這個事件時,同步更新一份「顯示用」
+			# 修正清單(見 BattleHero._replay_stat_modifiers),角色面板雷達圖才能跟上
+			# 重播進度顯示正確數值,而不是整場戰鬥都定格在結局。
+			for potential_type in stat_event.potential_types:
+				stat_event.target.apply_replay_stat_effect(potential_type, stat_event.multiplier, stat_event.rounds)
+			var stat_visual: BattleUnitVisual = visuals.get(stat_event.target)
+			if stat_visual != null:
+				stat_visual.play_stat_effect_spin()
 
 
 ## 移動:System 層已經算好整趟路徑(event.path,可能為了繞路而轉彎),
@@ -540,6 +582,8 @@ func _apply_stat_effect_expired(event: StatEffectExpiredEvent) -> void:
 		GameEnums.format_potential_type_list(event.potential_types),
 	])
 	_roster_for(event.target).remove_status_arrows(event.target, event.potential_types, event.is_buff)
+	for potential_type in event.potential_types:
+		event.target.expire_replay_stat_effect(potential_type, event.is_buff)
 
 
 # =========================================================

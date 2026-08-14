@@ -27,6 +27,12 @@ var is_guard_skill: bool
 var base_chance: float
 var skill_ratio: float
 var action: Callable
+## BUFF/DEBUFF 技能實際施加素質修正的項目(例如 D. 大將之風是 [STRENGTH, AGILITY,
+## DEXTERITY]),SkillEffectLibrary 的 commander_bearing_buff()/curse_debuff() 直接讀
+## 這個欄位施加,BattleAi 的骰選權重(見 _stat_skill_weight())也讀這個欄位判斷「這次
+## 打得到的人是不是已經生效同一組修正了」,兩邊共用同一份資料,不會各自維護一份清單
+## 兜到不一致。非 BUFF/DEBUFF 技能留空即可。
+var buffed_potential_types: Array[int] = []
 
 func _init() -> void:
 	id = Util.generate_uuid()

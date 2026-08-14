@@ -12,6 +12,10 @@ extends Control
 #
 # 格子大小/佈陣全部由 System/battle 的 Battle 決定,本檔案只負責畫出來,
 # 並提供 grid_to_pixel/grid_corner_to_pixel 給 battle.gd 換算單位座標。
+#
+# 戰報面板可以展開/收合(見 battle.gd 的 LogToggleButton),但那是直接對這個節點
+# (跟 UnitsLayer 一起)套 Control.scale 做整塊等比縮放,格子大小/原點本身維持
+# 這裡的固定值不變——縮放交給場景的 CanvasItem transform 處理,不需要在這裡重算。
 # =========================================================
 
 const GRID_COLS := Battle.GRID_COLS

@@ -129,24 +129,68 @@ static func _skill_chance_display_map(actor: BattleHero, chance_map: Dictionary)
 	return display_map
 
 ## action_chance_map 是開戰時就篩好、哪些技能「能用」不會變的靜態底池;這裡在骰選前
-## 動態套用會隨戰況變化的加權——目前只有「友軍有人 HP 低於 50%」時,治療類技能(HEAL)
-## 權重乘上 HEAL_PRIORITY_MULTIPLIER,讓角色在隊友快死的時候更傾向去治療,
-## 而不是每次都跟其他技能均勻亂骰。
-const HEAL_PRIORITY_MULTIPLIER := 4.0
+## 動態套用會隨戰況變化的加權——治療類技能(HEAL)不吃技能本身的 base_chance,
+## 改成固定三段權重:治得到的人全滿血就不用治療(0),治得到的人裡有人受傷但都還沒到
+## 半血只是普通程度(HEAL_WEIGHT_CAN_HEAL),治得到的人裡有人受傷到半血以下就優先處理
+## (HEAL_WEIGHT_BELOW_HALF)。「治得到的人」一律用 skill.resolve_targets() 算(HEAL
+## 不需要移動,直接以施法者目前位置為中心判定範圍,見 _cast_random_skill()),不是看
+## 全隊受傷狀況——隊友雖然少血但站在治療範圍外,這次骰選就不該把權重往上推。
+const HEAL_WEIGHT_NO_INJURY := 0.0
+const HEAL_WEIGHT_CAN_HEAL := 20.0
+const HEAL_WEIGHT_BELOW_HALF := 50.0
+
+## 依「這個治療技能實際治得到的人」(skill.resolve_targets(actor, actor))目前的
+## 受傷程度,決定這個技能這回合該給多少固定權重。
+static func _heal_skill_weight(actor: BattleHero, skill: Skill) -> float:
+	var reachable := skill.resolve_targets(actor, actor)
+	var any_injured := false
+	for target in reachable:
+		if target.hp_ratio < 0.5:
+			return HEAL_WEIGHT_BELOW_HALF
+		if target.hp_ratio < 1.0:
+			any_injured = true
+	return HEAL_WEIGHT_CAN_HEAL if any_injured else HEAL_WEIGHT_NO_INJURY
+
+## D. 大將之風/E. 降咒 這類「素質增益/減益」技能:對已經生效同一組修正的目標重複
+## 施放,只會把剩餘回合數刷新回滿(見 BattleHero.add_stat_modifier() 的「續時不疊加」
+## 註解),不會疊加出更強的效果——這次打得到的人如果早就全部生效同一個 buff/debuff,
+## 這次骰選就該把權重打折,不要對著全隊都已經飄著箭頭的隊友一直重放同一招。
+## 只看「打得到的人是不是全部都已經生效」,只要還有一個沒中,價值還在,權重不打折。
+const STAT_SKILL_ACTIVE_DISCOUNT := 0.15
+
+## DEBUFF 還沒骰選出實際目標(_pick_aoe_primary_target 要等技能選定後才跑),這裡先用
+## 「目前離自己最近的敵人」概略估算範圍內的人,跟實際施放時可能選到的目標略有出入,
+## 但夠讓 AI 判斷「這一帶大概是不是已經被降咒過」,不需要為了精準而讓骰選邏輯反過來
+## 依賴目標選擇邏輯。
+static func _stat_skill_weight(actor: BattleHero, skill: Skill, base_weight: float) -> float:
+	if skill.buffed_potential_types.is_empty():
+		return base_weight
+
+	var is_buff := skill.skill_type == GameEnums.SkillType.BUFF
+	var reference_target := actor if is_buff else actor.search_enemy()
+	if reference_target == null:
+		return base_weight
+
+	var targets := skill.resolve_targets(actor, reference_target)
+	if targets.is_empty():
+		return base_weight
+
+	var representative_type: int = skill.buffed_potential_types[0]
+	for target in targets:
+		if not target.has_active_stat_modifier(representative_type, is_buff):
+			return base_weight
+
+	return base_weight * STAT_SKILL_ACTIVE_DISCOUNT
 
 static func _current_skill_chance_map(actor: BattleHero) -> Dictionary:
-	var ally_needs_heal := false
-	for a in actor.allies:
-		if a.hp_ratio < 0.5:
-			ally_needs_heal = true
-			break
-
 	var chance_map := {}
 	for id in actor.action_chance_map.keys():
 		var s := actor.find_skill_by_id(id)
 		var weight: float = actor.action_chance_map[id]
-		if ally_needs_heal and s != null and s.skill_type == GameEnums.SkillType.HEAL:
-			weight *= HEAL_PRIORITY_MULTIPLIER
+		if s != null and s.skill_type == GameEnums.SkillType.HEAL:
+			weight = _heal_skill_weight(actor, s)
+		elif s != null and s.skill_type in [GameEnums.SkillType.BUFF, GameEnums.SkillType.DEBUFF]:
+			weight = _stat_skill_weight(actor, s, weight)
 		chance_map[id] = weight
 	return chance_map
 

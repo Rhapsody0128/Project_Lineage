@@ -8,17 +8,7 @@
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.086, 0.098, 0.145, 1)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_board"]
-bg_color = Color(0.14, 0.19, 0.14, 0.55)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.32, 0.46, 0.32, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_none"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.13, 0.15, 0.21, 0.95)
@@ -89,6 +79,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+z_index = -3
 theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
 
 [node name="Title" type="Label" parent="."]
@@ -107,7 +98,8 @@ offset_left = 140.0
 offset_top = 140.0
 offset_right = 968.0
 offset_bottom = 620.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_board")
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_none")
 
 [node name="LeftPartyPanel" type="Panel" parent="."]
 process_mode = 3
@@ -116,7 +108,8 @@ offset_left = 20.0
 offset_top = 140.0
 offset_right = 132.0
 offset_bottom = 860.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_none")
 
 [node name="LeftPartyList" type="VBoxContainer" parent="LeftPartyPanel"]
 layout_mode = 1
@@ -139,7 +132,8 @@ offset_left = 976.0
 offset_top = 140.0
 offset_right = 1088.0
 offset_bottom = 860.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxEmpty_none")
 
 [node name="RightPartyList" type="VBoxContainer" parent="RightPartyPanel"]
 layout_mode = 1
@@ -163,6 +157,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+z_index = -2
 script = ExtResource("4")
 
 [node name="UnitsLayer" type="Control" parent="."]
@@ -191,15 +186,6 @@ offset_right = 1576.0
 offset_bottom = 68.0
 theme_override_constants/separation = 16
 
-[node name="StartButton" type="Button" parent="UI/TopBar"]
-custom_minimum_size = Vector2(145, 46)
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "開始戰鬥"
-
 [node name="PauseButton" type="Button" parent="UI/TopBar"]
 process_mode = 3
 custom_minimum_size = Vector2(145, 46)
@@ -221,30 +207,20 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "返回主選單"
 
-[node name="StatusPanel" type="Panel" parent="UI"]
-layout_mode = 0
-offset_left = 1096.0
-offset_top = 88.0
-offset_right = 1576.0
-offset_bottom = 148.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
-
-[node name="StatusLabel" type="Label" parent="UI/StatusPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_font_sizes/font_size = 22
-horizontal_alignment = 1
-vertical_alignment = 1
-text = "準備開始"
+[node name="LogToggleButton" type="Button" parent="UI/TopBar"]
+process_mode = 3
+custom_minimum_size = Vector2(145, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "隱藏詳細"
 
 [node name="LogPanel" type="Panel" parent="UI"]
 layout_mode = 0
 offset_left = 1096.0
-offset_top = 164.0
+offset_top = 88.0
 offset_right = 1576.0
 offset_bottom = 868.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
@@ -344,7 +320,6 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "返回上一頁"
 
-[connection signal="pressed" from="UI/TopBar/StartButton" to="." method="_on_start_pressed"]
 [connection signal="pressed" from="UI/TopBar/PauseButton" to="." method="_on_pause_pressed"]
 [connection signal="pressed" from="UI/TopBar/BackButton" to="." method="_on_back_pressed"]
 [connection signal="pressed" from="ResultDialog/Panel/VBox/ButtonRow/ReplayButton" to="." method="_on_dialog_replay_pressed"]

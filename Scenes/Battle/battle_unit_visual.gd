@@ -58,6 +58,14 @@ const SKILL_LIGHT_POP_TIME := 0.12
 const SKILL_LIGHT_HOLD_TIME := 1.0
 const SKILL_LIGHT_FADE_OUT_TIME := 0.2
 
+# 素質增益/減益生效瞬間:原地依序切換四個方向的待機動畫,演出「轉一圈」提示被強化
+# 或被詛咒,buff/debuff 共用同一段演出,顏色/方向靠頭像列的箭頭圖示分辨(見
+# BattlePartyRoster.add_status_arrows)。
+const STAT_EFFECT_SPIN_STEP_TIME := 0.12
+const STAT_EFFECT_SPIN_SEQUENCE: Array[Vector2i] = [
+	Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, 0),
+]
+
 # 隊長標記:腳下畫一圈金色外框,跟其他角色區分開來
 const LEADER_RING_COLOR := Color(1.0, 0.85, 0.2, 1.0)
 const LEADER_RING_RADIUS := 20.0
@@ -69,6 +77,17 @@ const LEADER_RING_CENTER := Vector2(0, -6)
 const SHOW_DEBUG_WEAPON_LABEL := true
 const WEAPON_LABEL_POSITION := Vector2(20, 12)
 const WEAPON_LABEL_FONT_SIZE := 12
+
+# 點擊戰場上角色本人(暫代 Warrier 圖)開啟角色面板用的判定範圍:貼合 sprite 的
+# 32x46 原始素材套用 SPRITE_SCALE 後的大小,置中對齊 sprite.position(見 setup())。
+const CLICK_AREA_SIZE := Vector2(42, 60)
+const CLICK_AREA_OFFSET := Vector2(0, -8)
+
+# 圖層順序:地板(BattleBoard)固定 z_index=-2 墊底,角色固定疊在地板上方一層,
+# 頭像列彈出的招式喊話框等 UI 疊層維持預設(0)或正值,永遠蓋在角色之上——不再依
+# grid_pos.y 逐格排序景深(格子間距已經讓同排角色的圖不會互相重疊,這個細節犧牲掉
+# 換來一個簡單、不會再被 UI 反蓋住的固定圖層規則)。
+const CHARACTER_Z_INDEX := -1
 
 var battle_hero: BattleHero
 var is_enemy: bool
@@ -83,7 +102,7 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 	is_enemy = p_is_enemy
 	grid_pos = battle_hero.grid_pos
 	position = pixel_pos
-	z_index = grid_pos.y
+	z_index = CHARACTER_Z_INDEX
 
 	var character := character_scene.instantiate()
 	add_child(character)
@@ -105,7 +124,32 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 	if SHOW_DEBUG_WEAPON_LABEL:
 		_setup_weapon_label()
 
+	_setup_click_area()
+
 	queue_redraw()
+
+
+## 場上角色本人(不是頭像列的頭像,見 BattlePartyRoster._on_portrait_gui_input)也能
+## 點擊開啟共用角色面板。角色是 Node2D 而不是 Control,不走 gui_input 那一套,改用
+## Area2D + 物理揀選(battle.gd._ready() 已開啟 Viewport.physics_object_picking)。
+func _setup_click_area() -> void:
+	var click_area := Area2D.new()
+	click_area.input_pickable = true
+
+	var shape := CollisionShape2D.new()
+	var rect_shape := RectangleShape2D.new()
+	rect_shape.size = CLICK_AREA_SIZE
+	shape.shape = rect_shape
+	shape.position = CLICK_AREA_OFFSET
+	click_area.add_child(shape)
+
+	click_area.input_event.connect(_on_click_area_input_event)
+	add_child(click_area)
+
+
+func _on_click_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		CharacterPanel.open_for_hero(battle_hero.hero, battle_hero)
 
 
 ## 測試階段除錯用,見 SHOW_DEBUG_WEAPON_LABEL 常數說明
@@ -181,7 +225,6 @@ func move_along(path_grid: Array, path_pixel: Array, move_time: float) -> void:
 			last_dir = dir
 
 		grid_pos = to_grid
-		z_index = to_grid.y
 
 		var tw := create_tween()
 		tw.tween_property(self, "position", to_pixel, move_time)
@@ -238,7 +281,13 @@ func _show_floating_number(text: String, color: Color, font_size: int) -> void:
 	label.position = Vector2(-60, -110)
 	label.size = Vector2(120, 40)
 	label.modulate = Color(1, 1, 1, 0)
+	# 飄字往上飄的過程可能飄進旁邊(尤其站前排的)角色的畫面範圍——所有角色都固定
+	# 同一個 z_index(見 CHARACTER_Z_INDEX),同層級時只能靠子節點加入順序決定誰畫在
+	# 上面,飄字所屬的角色不一定比旁邊角色晚加入,不能只靠這個順序保證蓋得住。這裡
+	# 明確給飄字 +1 的相對 z(疊上父節點的 -1 變成 0),嚴格高於所有角色,才穩定蓋在
+	# 最上面。
 	label.z_as_relative = true
+	label.z_index = 1
 	add_child(label)
 
 	var tw := label.create_tween()
@@ -345,6 +394,19 @@ func play_skill_light() -> void:
 	tw.tween_interval(SKILL_LIGHT_HOLD_TIME)
 	tw.tween_property(effect, "modulate:a", 0.0, SKILL_LIGHT_FADE_OUT_TIME)
 	tw.tween_callback(effect.queue_free)
+
+
+## 素質增益/減益生效瞬間播放:依序切換四個方向的待機動畫演出「原地轉一圈」,
+## 轉完後轉回面朝戰場的預設方向(我方朝右、敵方朝左),提示這下是被強化還是被詛咒。
+func play_stat_effect_spin() -> void:
+	if sprite == null:
+		return
+
+	for dir in STAT_EFFECT_SPIN_SEQUENCE:
+		_play_dir_anim(dir, "idle")
+		await get_tree().create_timer(STAT_EFFECT_SPIN_STEP_TIME, false).timeout
+
+	play_idle(Vector2i(1, 0) if not is_enemy else Vector2i(-1, 0))
 
 
 func apply_defeated() -> void:

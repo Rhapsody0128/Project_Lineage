@@ -68,6 +68,11 @@ func skill_ratio(value: float) -> SkillBuilder:
 	_skill.skill_ratio = value
 	return self
 
+## BUFF/DEBUFF 技能實際施加素質修正的項目,見 Skill.buffed_potential_types 註解。
+func buffed_stats(value: Array[int]) -> SkillBuilder:
+	_skill.buffed_potential_types = value
+	return self
+
 func action(value: Callable) -> SkillBuilder:
 	_skill.action = value
 	return self

@@ -14,9 +14,8 @@ static func get_random_party() -> Party:
 	var heroes: Array[Hero] = []
 	for i in range(RANDOM_PARTY_SIZE):
 		var hero := HeroController.get_random_hero()
-		if DEBUG_FORCE_WEAPON != GameEnums.WeaponType.EMPTY:
-			hero.weapon = DEBUG_FORCE_WEAPON
-			hero.skill_list = SkillController.get_skill_list_by_weapon(hero.weapon)
+		# hero.weapon = GameEnums.WeaponType.SHIELD
+		# hero.skill_list = SkillController.get_skill_list_by_weapon(hero.weapon)
 		heroes.append(hero)
 	var leader: Hero = Util.get_random_from_array(heroes)
 	return Party.new("隨機小隊", heroes, leader)

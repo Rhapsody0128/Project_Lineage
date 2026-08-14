@@ -12,6 +12,11 @@ var effect_stat: int
 var skill_type: int
 var bind_weapon: int
 var is_leader_skill: bool
+## 被動技能:不會出現在 BattleHero.action_chance_map 裡供每回合骰選,而是開戰時
+## 套用一次(見 BattleHero._apply_passive_skills()/Skill.apply_passive())。
+## B. 守護這種「反應式」技能也算被動——它不是選出來主動施放的,只是效果不在
+## apply_passive() 發生,而是 BattleHero.resolve_guard() 隨時反應觸發。
+var is_passive: bool
 var base_chance: float
 var skill_ratio: float
 var action: Callable
@@ -27,6 +32,7 @@ func _init(
 	p_skill_type: int,
 	p_bind_weapon: int,
 	p_is_leader_skill: bool,
+	p_is_passive: bool,
 	p_base_chance: float,
 	p_skill_ratio: float,
 	p_action: Callable
@@ -42,6 +48,7 @@ func _init(
 	skill_type = p_skill_type
 	bind_weapon = p_bind_weapon
 	is_leader_skill = p_is_leader_skill
+	is_passive = p_is_passive
 	base_chance = p_base_chance
 	skill_ratio = p_skill_ratio
 	action = p_action
@@ -52,10 +59,22 @@ func effect(self_party, target_party, cast_detail: String = "") -> void:
 	if action.is_valid():
 		action.call(self_party, target_party, self, cast_detail)
 
-## 依 area_shape/area_size 算出這次攻擊實際命中的目標(至少包含 primary_target 本身)。
-## caster 只用來取存活中的敵人清單(caster.enemies)與 LINE 形狀的延伸方向。
+## 被動技能專用:開戰時套用一次,沒有目標/cast_detail 的概念,action 綁定的效果
+## function 簽名固定是 (self_hero, skill)。見 BattleHero._apply_passive_skills()。
+func apply_passive(self_hero) -> void:
+	if action.is_valid():
+		action.call(self_hero, self)
+
+## 依 area_shape/area_size 算出這次技能實際命中的目標(至少包含 primary_target 本身,
+## ALL_ALLIES 除外)。候選名單依 skill_type 決定打誰(見 _candidate_pool()):
+## ATTACK/DEBUFF 從敵方挑,BUFF/HEAL/DEFEND 從我方挑。
 func resolve_targets(caster: BattleHero, primary_target: BattleHero) -> Array[BattleHero]:
-	var candidates: Array[BattleHero] = caster.enemies
+	if area_shape == GameEnums.AreaShape.ALL_ALLIES:
+		var result: Array[BattleHero] = caster.allies.duplicate()
+		result.append(caster)
+		return result
+
+	var candidates: Array[BattleHero] = _candidate_pool(caster)
 	match area_shape:
 		GameEnums.AreaShape.RADIUS:
 			return _in_radius(candidates, primary_target)
@@ -65,6 +84,16 @@ func resolve_targets(caster: BattleHero, primary_target: BattleHero) -> Array[Ba
 			return _in_square(candidates, primary_target)
 		_: # SINGLE
 			return [primary_target]
+
+## ATTACK/DEBUFF 打敵方(caster.enemies);BUFF/HEAL/DEFEND 打我方(caster.allies,
+## 不含施法者自己——ALL_ALLIES 那種「連自己也算」的全隊技能不會走到這裡,
+## 上面 resolve_targets() 已經另外處理)。
+func _candidate_pool(caster: BattleHero) -> Array[BattleHero]:
+	match skill_type:
+		GameEnums.SkillType.BUFF, GameEnums.SkillType.HEAL, GameEnums.SkillType.DEFEND:
+			return caster.allies
+		_: # ATTACK, DEBUFF
+			return caster.enemies
 
 ## 以命中目標為中心的菱形範圍(曼哈頓距離 ≤ area_size-1)
 func _in_radius(candidates: Array[BattleHero], center: BattleHero) -> Array[BattleHero]:

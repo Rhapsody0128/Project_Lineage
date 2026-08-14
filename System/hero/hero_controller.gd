@@ -11,7 +11,7 @@ const RANDOM_WEAPON_POOL: Array[int] = [
 	GameEnums.WeaponType.SHIELD,
 	GameEnums.WeaponType.DAGGER,
 	GameEnums.WeaponType.STAFF,
-	GameEnums.WeaponType.SCEPTER,
+	GameEnums.WeaponType.DREAMCATCHER,
 ]
 
 static func get_random_hero() -> Hero:
@@ -21,8 +21,8 @@ static func get_random_hero() -> Hero:
 	var face_path := FaceController.get_random_face_path()
 	var traits := TraitController.get_random_traits(2)
 	var potential := PotentialController.get_random_potential()
-	var weapon: int = GameEnums.WeaponType.STAFF
-	var skill_list := SkillController.get_skill_list()
+	var weapon: int = Util.get_random_from_array(RANDOM_WEAPON_POOL)
+	var skill_list := SkillController.get_skill_list_by_weapon(weapon)
 	return Hero.new(hero_name, last_name, age, face_path, traits, potential, weapon, skill_list, LevelSystem.new())
 
 # TODO(設計待定): 結婚/生子邏輯待「玩家間聯姻」系統設計確定後再實作(見企劃文件 二十二~三十二)

@@ -45,7 +45,7 @@
 - 行動(`BattleHero.action()`):`search_enemy()` 找格子曼哈頓距離最近的敵人(ATTACK/
   ESCAPE 用);權重表抽 `ActionType`(ATTACK/DAZE/SKILL 固定各 25,ESCAPE 只在
   `hp_ratio<50%` 才列入,CONFUSE 保留但抽選池暫關)。基本攻擊(ATTACK)依武器決定攻擊
-  距離(`GameEnums.WEAPON_BASIC_ATTACK_RANGE`:近戰劍/盾/匕首=1、遠程弓/法杖/權杖=2),
+  距離(`GameEnums.WEAPON_BASIC_ATTACK_RANGE`:近戰劍/盾/匕首=1、遠程弓/法杖/捕夢網=2),
   在範圍內才出手,否則先往目標移動一次再重新檢查;若已經在射程內但距離小於射程(遠程
   武器才有意義,`atk_range>1`),會先用 `_kite_to_max_range()` 退到剛好等於射程再出手,
   拉開跟敵人的距離、不會退出射程外浪費這次攻擊。SKILL 改成先抽出實際要放的技能,再用
@@ -70,6 +70,17 @@
   依攻擊種類換(物理吃 VIT、魔法吃 MEN),命中且觸發暴擊時傷害乘上
   `CRIT_DAMAGE_MULTIPLIER`(1.6),公式與常數見函式註解。畫面端一般傷害顯示白字、
   暴擊顯示紅字放大。
+- 技能分類:`Skill.is_passive`(開戰即套用一次或反應式觸發,不吃行動骰選)+
+  `Skill.is_leader_skill`(只有隊長能用),`SkillLibrary` 依此分成 `_active_skills()`/
+  `_passive_skills()`/`_leader_skills()` 三區。`Skill.skill_type` 決定
+  `resolve_targets()` 挑目標的陣營(ATTACK/DEBUFF 打敵方、BUFF/HEAL/DEFEND 打我方),
+  `AreaShape.ALL_ALLIES` 無視距離命中施法者+全隊。
+- 素質修正:`BattleHero.add_stat_modifier()` 疊加暫時或永久的素質加成/減益,
+  `rounds_remaining<0` 是永久(被動技能用),否則每 `Battle._round_end()` 倒數 1 回合、
+  到期自動移除;同一個(素質, 倍率)重複套用只會刷新回合數,不會無限疊加。
+- 守護(盾系被動):`BattleHero.resolve_guard()` 在單體物理攻擊命中判定前檢查,
+  周圍存活友軍裡符合條件(持盾、會守護技能、距離內)的依 VIT 換算機率頂替受擊,
+  傷害再打折,公式與常數見函式註解;範圍攻擊不觸發(只擋得住單體)。
 
 ## 三、驗證方式
 

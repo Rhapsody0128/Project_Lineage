@@ -86,16 +86,52 @@ func _round_start() -> void:
 ## 回合進行:全滅的一方沒有敵人可打,action() 內部 search_enemy() 找不到目標會自動
 ## 提前 return,不需要另外判斷戰鬥是否已經分出勝負;但只要有一方隊長陣亡
 ## (is_decided 變 true),就要當場中斷本回合剩餘角色的行動,不等回合跑完。
+##
+## 每個角色行動完,立刻結算「自己」的限時素質修正(buff/debuff)——不是等整個大回合
+## 跑完才一次結算所有人。這樣「持續 3 回合」對每個角色來說,實際上是「接下來自己
+## 的 3 次行動機會」,不會因為在同一個大回合裡站位/行動順序比較後面,就被大回合結束
+## 的那一下 tick 提早打折扣。
 func round_progress() -> void:
 	for battle_hero in action_order:
 		if not battle_hero.is_disabled:
 			battle_hero.action()
+			_tick_status_effects(battle_hero)
 		if is_decided:
 			break
 
 func _round_end() -> void:
 	log_event({"type": "round_end", "round": _round + 1})
 	_round += 1
+
+## 單一角色的限時素質修正(見 BattleHero.add_stat_modifier())各自倒數 1 回合,到期就
+## 移除並記一筆 stat_effect_expired 事件,讓頭像旁的箭頭指示跟著消失。永久修正
+## (被動技能)不受影響。同一次可能有多筆修正同時到期,依增益/減益分兩組各記一筆事件,
+## 不逐筆記,才會跟套用時的分組方式一致,戰報/頭像箭頭不會被拆得太零碎。
+func _tick_status_effects(battle_hero: BattleHero) -> void:
+	var expired := battle_hero.tick_status_effects()
+	if expired.is_empty():
+		return
+
+	var buff_types: Array = []
+	var debuff_types: Array = []
+	for m in expired:
+		if m.multiplier > 0.0:
+			buff_types.append(m.potential_type)
+		else:
+			debuff_types.append(m.potential_type)
+
+	if not buff_types.is_empty():
+		log_event({
+			"type": "stat_effect_expired",
+			"target": battle_hero, "target_name": battle_hero.name,
+			"potential_types": buff_types, "is_buff": true,
+		})
+	if not debuff_types.is_empty():
+		log_event({
+			"type": "stat_effect_expired",
+			"target": battle_hero, "target_name": battle_hero.name,
+			"potential_types": debuff_types, "is_buff": false,
+		})
 
 ## 隊長(總大將)陣亡視為戰鬥分出勝負,立即結束整場戰鬥(不必等到跑滿 TOTAL_ROUND)。
 ## 找不到隊長(理論上不會發生)時視為不會提前結束。
@@ -191,6 +227,22 @@ func _format_event(event: Dictionary) -> String:
 		"damage":
 			var crit_text := "(暴擊！)" if event.get("is_critical", false) else ""
 			return "%s 受到 %d 點傷害%s(剩餘 HP %d)" % [event.target_name, event.damage_points, crit_text, event.remaining_hp]
+		"guard":
+			return "%s 飛身守護,替 %s 承受這次攻擊" % [event.actor_name, event.target_name]
+		"heal":
+			return "%s 恢復 %d 點 HP(剩餘 HP %d)" % [event.target_name, event.heal_points, event.remaining_hp]
+		"stat_effect":
+			return "%s %s %s" % [
+				event.target_name,
+				("獲得增益" if event.is_buff else "受到減益"),
+				_format_potential_type_list(event.potential_types),
+			]
+		"stat_effect_expired":
+			return "%s 的%s效果解除(%s)" % [
+				event.target_name,
+				("增益" if event.is_buff else "減益"),
+				_format_potential_type_list(event.potential_types),
+			]
 		"defeated":
 			return "%s 戰敗" % event.party_name
 		"battle_end":
@@ -205,3 +257,9 @@ func _format_event(event: Dictionary) -> String:
 			return "戰鬥結束(共 %d 回合)，%s(我方剩餘 HP %d，敵方剩餘 HP %d)" % [event.round, result_text, event.self_total, event.enemy_total]
 		_:
 			return str(event)
+
+func _format_potential_type_list(potential_types: Array) -> String:
+	var labels: Array[String] = []
+	for potential_type in potential_types:
+		labels.append(GameEnums.POTENTIAL_TYPE_LABELS[potential_type])
+	return "、".join(labels)

@@ -41,8 +41,11 @@ func _ready() -> void:
 	_standee_atlas = load(STANDEE_ATLAS_PATH)
 
 
-## 任何場景都可呼叫:CharacterPanel.open_for_hero(hero)
-func open_for_hero(hero: Hero) -> void:
+## 任何場景都可呼叫:CharacterPanel.open_for_hero(hero)。battle_hero 是選填的
+## ——從戰鬥場景點頭像開啟時會多帶這個(見 battle_party_roster.gd),讓雷達圖能
+## 額外顯示套用完戰場加成(暴擊/被動/buff/debuff)的即時數值,且隨戰況連動更新;
+## 非戰鬥情境(創角面板等)留空即可,雷達圖只顯示基礎潛力數字。
+func open_for_hero(hero: Hero, battle_hero: BattleHero = null) -> void:
 	if hero == null:
 		return
 
@@ -53,7 +56,7 @@ func open_for_hero(hero: Hero) -> void:
 	avatar_texture.texture = _load_face_texture(hero.face_path)
 	standee_texture.texture = _build_standee_texture()
 
-	radar.set_hero(hero)
+	radar.set_hero(hero, battle_hero)
 
 	_populate_skills(hero)
 	_populate_traits(hero.traits)
@@ -63,6 +66,9 @@ func open_for_hero(hero: Hero) -> void:
 
 func close() -> void:
 	root.visible = false
+	# 面板關閉後停止雷達圖的逐幀重繪(見 CharacterPotentialRadar._process()),
+	# 不然戰鬥中即使面板關著,還是會白白每幀重繪一個沒人在看的節點。
+	radar.set_hero(null)
 
 
 func _load_face_texture(face_path: String) -> Texture2D:

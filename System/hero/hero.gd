@@ -44,6 +44,14 @@ func _init(
 func can_use_skill(skill: Skill) -> bool:
 	return skill.bind_weapon == GameEnums.WeaponType.EMPTY or skill.bind_weapon == weapon
 
+## 是否會這個技能(依名稱比對,武器仍要相符/未綁定)——不檢查 LEADER 限定,呼叫端
+## (例如 BattleHero.resolve_guard())如果需要排除非隊長,要自己另外判斷。
+func knows_skill(skill_name: String) -> bool:
+	for s in skill_list:
+		if s.name == skill_name and can_use_skill(s):
+			return true
+	return false
+
 var full_name: String:
 	get: return "%s·%s" % [name, last_name]
 
@@ -55,6 +63,9 @@ var is_disabled: bool:
 
 func take_damage(damage_points: int) -> void:
 	hp = maxi(hp - damage_points, 0)
+
+func heal(amount: int) -> void:
+	hp = mini(hp + amount, hp_max)
 
 func gain_exp(exp_amount: int) -> void:
 	level_system.gain_exp(exp_amount)

@@ -35,7 +35,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 |---|---|
 | `hero/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600) |
 | `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/DEXTERITY/INTELLIGENCE/MENTALITY) |
-| `skill/` | 技能池與效果 |
+| `skill/` | 技能池與效果,依主動/被動/LEADER 分類(`SkillLibrary` 的 `_active_skills()`/`_passive_skills()`/`_leader_skills()`) |
 | `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
 | `party/` | 小隊,由多個 `Hero` 組成(`Party.heroes`) |
 | `battle/` | 自動戰鬥流程與戰報 |

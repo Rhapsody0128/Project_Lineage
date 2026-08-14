@@ -38,6 +38,17 @@ const HIT_SHAKE_OFFSET := 6.0
 # 閃避反應:側身晃一下的位移(像素),不閃白、不震動,跟受擊反應明確區分開來
 const DODGE_STEP_OFFSET := Vector2(26.0, -16.0)
 
+# 治療飄字:綠色,樣式比照傷害數字但方向相反(不需要暴擊分級)
+const HEAL_NUMBER_COLOR := Color(0.4, 1.0, 0.5)
+const HEAL_NUMBER_FONT_SIZE := 28
+
+# 守護位移:守護者飛身到受擊者面前(面向攻擊方)頂替承受攻擊,再退回原位。
+# STAND_OFFSET_PIXELS 是「站在受擊者面前」時,沿著「受擊者→攻擊方」方向再往前
+# 多少像素(擋在中間、但不會整個疊到受擊者身上)。這裡只動 BattleUnitVisual 自己的
+# position(畫面補間),不影響 System 層的棋盤格座標,下一次移動判定仍以原格為準。
+const GUARD_DASH_TIME := 0.18
+const GUARD_STAND_OFFSET_PIXELS := 30.0
+
 # 施放技能反應:角色腳底炸出一道光,而不是角色本身閃白——
 # 快速放大淡入 → 停格 1 秒(讓玩家看清楚是誰放了技能)→ 快速淡出消失。
 const SKILL_LIGHT_TEXTURE := preload("res://Images/Effect/skill_light.webp")
@@ -223,6 +234,30 @@ func show_damage_number(amount: int, is_critical: bool = false) -> void:
 	tw.tween_callback(label.queue_free)
 
 
+## 恢復 HP 時在頭上跳出綠色治療數字,樣式比照 show_damage_number() 但方向相反
+## (正數、綠色),讓玩家一眼分辨是傷害還是治療。
+func show_heal_number(amount: int) -> void:
+	var label := Label.new()
+	label.text = "+%d" % amount
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", HEAL_NUMBER_FONT_SIZE)
+	label.add_theme_color_override("font_color", HEAL_NUMBER_COLOR)
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+	label.add_theme_constant_override("outline_size", 5)
+	label.position = Vector2(-60, -110)
+	label.size = Vector2(120, 40)
+	label.modulate = Color(1, 1, 1, 0)
+	label.z_as_relative = true
+	add_child(label)
+
+	var tw := label.create_tween()
+	tw.tween_property(label, "modulate:a", 1.0, 0.05)
+	tw.parallel().tween_property(label, "position:y", label.position.y - 24.0, DAMAGE_NUMBER_RISE_TIME)
+	tw.tween_interval(0.15)
+	tw.tween_property(label, "modulate:a", 0.0, 0.25)
+	tw.tween_callback(label.queue_free)
+
+
 ## 被攻擊但閃避成功時的反應:側身晃一下,不閃白、不震動,跟 play_hit_reaction() 區分,
 ## 讓玩家一眼看出這一擊沒有命中。
 func play_dodge_reaction() -> void:
@@ -234,6 +269,45 @@ func play_dodge_reaction() -> void:
 	var tw := create_tween()
 	tw.tween_property(sprite, "position", base_pos + DODGE_STEP_OFFSET, 0.1)
 	tw.tween_property(sprite, "position", base_pos, 0.16)
+
+
+## 守護觸發:守護者從原地飛身位移到「受擊者面前、面向攻擊方」的位置頂替承受攻擊。
+## target_pos/attacker_pos 是受擊者、攻擊方目前的 Node2D.position(跟 self 同一個
+## UnitsLayer 底下,座標系一致,不需要另外轉換)。只動畫面位置,不動棋盤格,
+## 所以要記住起點,等 play_guard_dash_out() 呼叫時才歸位。
+var _guard_home_position: Vector2
+var _guard_home_set := false
+
+func play_guard_dash_in(target_pos: Vector2, attacker_pos: Vector2) -> void:
+	_guard_home_position = position
+	_guard_home_set = true
+
+	var dir_to_attacker := attacker_pos - target_pos
+	if dir_to_attacker.length() < 0.001:
+		dir_to_attacker = Vector2(1.0 if not is_enemy else -1.0, 0.0)
+	dir_to_attacker = dir_to_attacker.normalized()
+
+	var stand_pos := target_pos + dir_to_attacker * GUARD_STAND_OFFSET_PIXELS
+	var face_dir := Vector2i(signi(dir_to_attacker.x), signi(dir_to_attacker.y))
+
+	_play_dir_anim(face_dir, "walk")
+	var tw := create_tween()
+	tw.tween_property(self, "position", stand_pos, GUARD_DASH_TIME)
+	await tw.finished
+	play_idle(face_dir)
+
+
+## 守護結束:退回飛身前的原始位置,轉回面朝戰場的預設方向。
+func play_guard_dash_out() -> void:
+	if not _guard_home_set:
+		return
+	var home := _guard_home_position
+	_guard_home_set = false
+
+	var tw := create_tween()
+	tw.tween_property(self, "position", home, GUARD_DASH_TIME)
+	await tw.finished
+	play_idle(Vector2i(1, 0) if not is_enemy else Vector2i(-1, 0))
 
 
 ## 受到傷害時的受擊反應:快速閃白 + 左右震動,提示這次攻擊有造成傷害。

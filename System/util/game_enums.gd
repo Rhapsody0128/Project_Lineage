@@ -3,7 +3,10 @@ extends RefCounted
 
 enum RankType {E, D, C, B, A, S, SS, SSS}
 enum PotentialType {STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
-enum WeaponType {EMPTY, SWORD, BOW, SHIELD, DAGGER, STAFF, SCEPTER}
+enum WeaponType {EMPTY, SWORD, BOW, SHIELD, DAGGER, STAFF, DREAMCATCHER}
+## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
+## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
+## caster.allies 挑,見 Spec.md。
 enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND}
 enum ActionType {ATTACK, DAZE, ESCAPE, CONFUSE, SKILL}
 enum Relations {SELF, ALLIES, NEUTRAL, HOSTILE, UNKNOWN}
@@ -12,8 +15,9 @@ enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
 enum BattleResultType {SELF_WIN, ENEMY_WIN, DRAW}
 ## 技能範圍效果的形狀:SINGLE 只打中鎖定的那個目標;RADIUS 以命中目標為中心的菱形範圍
 ## (曼哈頓距離 ≤ area_size-1);LINE 從目標往施法者的反方向延伸 area_size 格「貫穿」;
-## SQUARE 以命中目標為中心的正方形範圍(切比雪夫距離 ≤ area_size-1)
-enum AreaShape {SINGLE, RADIUS, LINE, SQUARE}
+## SQUARE 以命中目標為中心的正方形範圍(切比雪夫距離 ≤ area_size-1);ALL_ALLIES 無視
+## 距離,直接命中施法者本人+所有存活隊友(全隊技能用,例如 D. 大將之風)。
+enum AreaShape {SINGLE, RADIUS, LINE, SQUARE, ALL_ALLIES}
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
@@ -22,13 +26,13 @@ const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈
 const RANK_TYPE_LABELS: Array[String] = ["E", "D", "C", "B", "A", "S", "SS", "SSS"]
 
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
-const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "權杖"]
+const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
 
-## 基本攻擊距離(曼哈頓格數):近戰(劍/盾/匕首)1 格、遠程(弓/法杖/權杖)2 格,
+## 基本攻擊距離(曼哈頓格數):近戰(劍/盾/匕首)1 格、遠程(弓/法杖/捕夢網)2 格,
 ## 順序對應 WeaponType enum
 const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 1, 2, 1, 1, 2, 2]
 
-## 是否為魔法攻擊(法杖/權杖):魔法攻擊無視閃避,一定命中,順序對應 WeaponType enum
+## 是否為魔法攻擊(法杖/捕夢網):魔法攻擊無視閃避,一定命中,順序對應 WeaponType enum
 const WEAPON_IS_MAGIC: Array[bool] = [false, false, false, false, false, true, true]
 
 const MALE_HERO_NAMES: Array[String] = [

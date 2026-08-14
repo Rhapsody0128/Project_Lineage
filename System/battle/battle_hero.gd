@@ -15,18 +15,12 @@ var is_leader: bool
 
 var _is_enemy: bool
 
-var _strength_const: float = 1.0
-var _agility_const: float = 1.0
-var _dexterity_const: float = 1.0
-var _vitality_const: float = 1.0
-var _intelligence_const: float = 1.0
-var _mentality_const: float = 1.0
-
 ## 戰場格子座標,由 Battle 佈陣時指定初始值,戰鬥中隨 move() 更新
 var grid_pos: Vector2i
 
 ## 可施放技能表:key 為技能 id,value 為權重(action() 抽中 SKILL 時,
-## 用這張表決定實際施放哪一個技能)
+## 用這張表決定實際施放哪一個技能)。被動技能(is_passive)不會出現在這裡——
+## 它們不是「選擇施放」,而是開戰時就套用/隨時反應觸發,見 _apply_passive_skills()。
 var action_chance_map: Dictionary = {}
 
 func _init(p_hero: Hero, p_battle: Battle, p_is_enemy: bool, p_is_leader: bool = false) -> void:
@@ -35,12 +29,33 @@ func _init(p_hero: Hero, p_battle: Battle, p_is_enemy: bool, p_is_leader: bool =
 	_is_enemy = p_is_enemy
 	is_leader = p_is_leader
 	_set_action_chance()
+	_apply_passive_skills()
 
-## 只有手持武器與技能相符(或技能沒綁武器)才能被抽到,權重直接採技能本身的基礎機率
+## 只有手持武器與技能相符(或技能沒綁武器)、不是被動技能、且不是「不是隊長卻鎖 LEADER
+## 技能」的情況,才能被抽到,權重直接採技能本身的基礎機率。
 func _set_action_chance() -> void:
 	for skill in hero.skill_list:
-		if hero.can_use_skill(skill):
-			action_chance_map[skill.id] = skill.base_chance
+		if not hero.can_use_skill(skill):
+			continue
+		if skill.is_passive:
+			continue
+		if skill.is_leader_skill and not is_leader:
+			continue
+		action_chance_map[skill.id] = skill.base_chance
+
+## 被動技能(A. 智勇兼備/B. 守護這類)不吃行動骰選,開戰當下就套用一次:被動技能的
+## action Callable 簽名是 (self_hero, skill),沒有目標/cast_detail 的概念,見
+## Skill.apply_passive()。B. 守護的效果其實不在這裡發生(它是反應式,見
+## resolve_guard()),這裡呼叫的效果函式只是佔位、不做事。
+func _apply_passive_skills() -> void:
+	for skill in hero.skill_list:
+		if not skill.is_passive:
+			continue
+		if not hero.can_use_skill(skill):
+			continue
+		if skill.is_leader_skill and not is_leader:
+			continue
+		skill.apply_passive(self)
 
 ## 每回合抽一次行動類型的權重表:ATTACK/DAZE/SKILL 固定各 25,
 ## ESCAPE 只有在 HP 低於 50% 時才會被列入(權重 25),
@@ -115,7 +130,8 @@ func _cast_random_skill(target: BattleHero, action_detail: String = "") -> void:
 				attack(target, action_detail)
 		return
 
-	var skill_roll := Util.get_random_chance_item_detailed(action_chance_map)
+	var chance_map := _current_skill_chance_map()
+	var skill_roll := Util.get_random_chance_item_detailed(chance_map)
 	var skill := _find_skill_by_id(skill_roll.key)
 	if skill == null:
 		if _in_range(target, basic_attack_range):
@@ -127,8 +143,17 @@ func _cast_random_skill(target: BattleHero, action_detail: String = "") -> void:
 		return
 
 	var skill_pick_detail := _describe_weighted_roll(
-		"%s 選擇要施放的技能" % name, _skill_chance_display_map(), skill_roll.roll, skill_roll.total, skill.name
+		"%s 選擇要施放的技能" % name, _skill_chance_display_map(chance_map), skill_roll.roll, skill_roll.total, skill.name
 	)
+
+	## HEAL/BUFF/DEFEND 這類技能是「對自己/全隊」生效(見 Skill._candidate_pool()),
+	## 不需要鎖定敵人、不需要移動——直接以自己為施法中心立刻出手。
+	if skill.skill_type in [GameEnums.SkillType.HEAL, GameEnums.SkillType.BUFF, GameEnums.SkillType.DEFEND]:
+		var support_detail := "%s\n\n%s 對自身/全隊施放,無須鎖定敵人或移動" % [skill_pick_detail, name]
+		if action_detail != "":
+			support_detail = "%s\n\n%s" % [action_detail, support_detail]
+		skill.effect(self, self, support_detail)
+		return
 
 	var target_pick := _pick_aoe_primary_target(skill)
 	var skill_target: BattleHero = target_pick.target if target_pick.target != null else target
@@ -150,15 +175,37 @@ func _cast_random_skill(target: BattleHero, action_detail: String = "") -> void:
 		skill.effect(self, skill_target, cast_detail)
 	# 移動後仍搆不到:比照一般攻擊「移動不到位就不出手」,本回合到此結束。
 
-## 把 action_chance_map(key 是技能 id)轉成「技能名稱 → 權重」給戰報 UI 顯示用,
+## 把 chance_map(key 是技能 id)轉成「技能名稱 → 權重」給戰報 UI 顯示用,
 ## 不要把 UUID 直接秀給玩家看。
-func _skill_chance_display_map() -> Dictionary:
+func _skill_chance_display_map(chance_map: Dictionary) -> Dictionary:
 	var display_map := {}
-	for id in action_chance_map.keys():
+	for id in chance_map.keys():
 		var s := _find_skill_by_id(id)
 		var skill_name: String = s.name if s != null else "?"
-		display_map[skill_name] = action_chance_map[id]
+		display_map[skill_name] = chance_map[id]
 	return display_map
+
+## action_chance_map 是開戰時就篩好、哪些技能「能用」不會變的靜態底池;這裡在骰選前
+## 動態套用會隨戰況變化的加權——目前只有「友軍有人 HP 低於 50%」時,治療類技能(HEAL)
+## 權重乘上 HEAL_PRIORITY_MULTIPLIER,讓角色在隊友快死的時候更傾向去治療,
+## 而不是每次都跟其他技能均勻亂骰。
+const HEAL_PRIORITY_MULTIPLIER := 4.0
+
+func _current_skill_chance_map() -> Dictionary:
+	var ally_needs_heal := false
+	for a in allies:
+		if a.hp_ratio < 0.5:
+			ally_needs_heal = true
+			break
+
+	var chance_map := {}
+	for id in action_chance_map.keys():
+		var s := _find_skill_by_id(id)
+		var weight: float = action_chance_map[id]
+		if ally_needs_heal and s != null and s.skill_type == GameEnums.SkillType.HEAL:
+			weight *= HEAL_PRIORITY_MULTIPLIER
+		chance_map[id] = weight
+	return chance_map
 
 func _find_skill_by_id(id: String) -> Skill:
 	for s in hero.skill_list:
@@ -205,7 +252,13 @@ func _confuse_attack() -> void:
 	var victim: BattleHero = Util.get_random_from_array(living_allies)
 	attack(victim)
 
+## 普攻永遠是單體,出手前先過一次 resolve_guard()——附近若有守護技能的友軍願意頂替,
+## 實際受擊(閃避/暴擊/傷害判定全部換算)的對象就換成守護者,連戰報顯示的 target
+## 也一併換掉,動畫才會對準真正挨打的人。
 func attack(target: BattleHero, action_detail: String = "") -> void:
+	var guard_result := resolve_guard(target, self)
+	var actual_target: BattleHero = guard_result.target
+
 	var target_pick_detail := "%s 鎖定距離最近的敵人 %s(距離 %d 格)作為普攻目標" % [
 		name, target.name, _manhattan(grid_pos, target.grid_pos),
 	]
@@ -215,17 +268,27 @@ func attack(target: BattleHero, action_detail: String = "") -> void:
 
 	battle.log_event({
 		"type": "attack", "actor": self, "actor_name": name,
-		"target": target, "target_name": target.name, "detail": attack_detail,
+		"target": actual_target, "target_name": actual_target.name, "detail": attack_detail,
 	})
 
-	var dodge_check := judge_dodge(self, target)
+	var guarded: bool = actual_target != target
+	var dodge_check: Dictionary
+	if guarded:
+		# 守護的意義就是「用身體擋下來」,擋都擋了就不會再靈巧閃開,直接視為命中。
+		dodge_check = {"dodged": false, "detail": "%s 挺身守護,直接承受這次攻擊,不判定閃避" % actual_target.name}
+	else:
+		dodge_check = judge_dodge(self, actual_target)
 	if dodge_check.dodged:
 		return
-	var damage := SkillEffectLibrary.basic_attack_damage(self, target, hero.weapon)
-	var crit_check := judge_crit(self, target)
+	var damage := SkillEffectLibrary.basic_attack_damage(self, actual_target, hero.weapon)
+	var crit_check := judge_crit(self, actual_target)
 	if crit_check.critical:
 		damage *= CRIT_DAMAGE_MULTIPLIER
-	target.be_attacked(damage, crit_check.critical, "%s\n\n%s" % [dodge_check.detail, crit_check.detail])
+	var damage_detail := "%s\n\n%s" % [dodge_check.detail, crit_check.detail]
+	if guarded:
+		damage *= guard_result.damage_multiplier
+		damage_detail += "\n\n此傷害因守護減少 30%"
+	actual_target.be_attacked(damage, crit_check.critical, damage_detail)
 
 func daze(action_detail: String = "") -> void:
 	battle.log_event({"type": "daze", "actor": self, "actor_name": name, "detail": action_detail})
@@ -378,7 +441,7 @@ func _in_range(target: BattleHero, atk_range: int) -> bool:
 	var d: int = abs(target.grid_pos.x - grid_pos.x) + abs(target.grid_pos.y - grid_pos.y)
 	return d <= atk_range
 
-## 基本攻擊距離:近戰武器(劍/盾/匕首)1 格、遠程武器(弓/法杖/權杖)2 格,
+## 基本攻擊距離:近戰武器(劍/盾/匕首)1 格、遠程武器(弓/法杖/捕夢網)2 格,
 ## 徒手(EMPTY)比照近戰
 var basic_attack_range: int:
 	get: return GameEnums.WEAPON_BASIC_ATTACK_RANGE[hero.weapon]
@@ -410,8 +473,19 @@ func be_attacked(damage: float, is_critical: bool = false, roll_detail: String =
 	if is_disabled:
 		battle.log_event({"type": "defeated", "party": self, "party_name": name})
 
+## 恢復 HP,不會超過上限(Hero.heal() 負責夾限);heal_detail 是呼叫端組好的治療量
+## 公式說明,原封不動存進事件給戰報 UI 顯示。
+func be_healed(amount: float, heal_detail: String = "") -> void:
+	var heal_points: int = roundi(amount)
+	hero.heal(heal_points)
+
+	battle.log_event({
+		"type": "heal", "target": self, "target_name": name,
+		"heal_points": heal_points, "remaining_hp": hp, "detail": heal_detail,
+	})
+
 ## 判斷是否閃避：
-## 魔法攻擊（法杖／權杖，見 GameEnums.WEAPON_IS_MAGIC）無視閃避，必定命中，
+## 魔法攻擊（法杖／捕夢網，見 GameEnums.WEAPON_IS_MAGIC）無視閃避，必定命中，
 ## 直接略過整套閃避判定。
 ##
 ## 其餘物理攻擊則依照：
@@ -483,7 +557,7 @@ func judge_dodge(attacker: BattleHero, defender: BattleHero) -> Dictionary:
 
 ## 判斷是否觸發暴擊:物理、魔法攻擊都會判定(跟只有物理才判定的 judge_dodge() 不同)。
 ## 攻擊方一律吃 DEX(靈巧),防禦方的抵抗素質依攻擊種類換:物理攻擊吃 VIT(體質)、
-## 魔法攻擊(法杖／權杖)吃 MEN(信仰),邏輯與倍率其餘完全一致。
+## 魔法攻擊(法杖／捕夢網)吃 MEN(信仰),邏輯與倍率其餘完全一致。
 ## 差值(DEX-抵抗素質)=0 時基礎暴擊率 15%,差值 200(DEX 拉滿 vs 抵抗掉零)封頂 70%,
 ## 差值 -200 保底 5%;正負兩側斜率不同,DEX 優勢拉高暴擊率比抵抗素質壓低暴擊率明顯。
 const CRIT_RATE_BASE := 15.0
@@ -519,6 +593,63 @@ func judge_crit(attacker: BattleHero, defender: BattleHero) -> Dictionary:
 	]
 
 	return {"critical": critical, "detail": detail}
+
+## B. 守護:盾系角色的反應式能力,在「單體」物理攻擊命中判定前檢查——魔法攻擊無視
+## (跟閃避/一般判定同一套設計)。original_target 存活隊友(allies,含自己這隊,不含
+## original_target 自己)裡符合以下條件的,依序判定:手持盾、學會「守護」技能
+## (見 Hero.knows_skill())、與 original_target 距離 ≤ GUARD_RANGE。依守護者 VIT
+## 換算機率(200 VIT 時封頂 70%,線性正比),第一個骰成功的人頂替受擊,回傳值換成
+## 守護者、傷害再乘上 GUARD_DAMAGE_MULTIPLIER(打 7 折);全部沒人頂替就回傳原目標
+## (damage_multiplier=1.0)。回傳值 {"target": BattleHero, "detail": String,
+## "damage_multiplier": float}。
+const GUARD_SKILL_NAME := "守護"
+const GUARD_RANGE := 3
+const GUARD_RATE_PER_VIT := 0.35 # 70 / 200,VIT 200 時封頂 70%
+const GUARD_RATE_MAX := 70.0
+const GUARD_DAMAGE_MULTIPLIER := 0.7
+
+func resolve_guard(original_target: BattleHero, attacker: BattleHero) -> Dictionary:
+	var no_guard := {"target": original_target, "detail": "", "damage_multiplier": 1.0}
+
+	if GameEnums.WEAPON_IS_MAGIC[attacker.hero.weapon]:
+		return no_guard
+
+	for guardian in original_target.allies:
+		if guardian.hero.weapon != GameEnums.WeaponType.SHIELD:
+			continue
+		if not guardian.hero.knows_skill(GUARD_SKILL_NAME):
+			continue
+		if _manhattan(guardian.grid_pos, original_target.grid_pos) > GUARD_RANGE:
+			continue
+
+		var guard_rate: float = clampf(guardian.vitality * GUARD_RATE_PER_VIT, 0.0, GUARD_RATE_MAX)
+		var roll := Util.get_random_float(0.0, 100.0)
+		var triggered := roll < guard_rate
+
+		var detail := (
+			"%s 骰出 %.2f,需要小於守護機率 %.2f%% 才會頂替 %s 承受這次攻擊\n" +
+			"公式:守護方(%s)VIT %.1f×%.2f,封頂 %.0f%%\n" +
+			"結果:%s"
+		) % [
+			guardian.name, roll, guard_rate, original_target.name,
+			guardian.name, guardian.vitality, GUARD_RATE_PER_VIT, GUARD_RATE_MAX,
+			("守護成功！" if triggered else "守護失敗"),
+		]
+
+		if not triggered:
+			continue
+
+		battle.log_event({
+			"type": "guard",
+			"actor": guardian, "actor_name": guardian.name,
+			"target": original_target, "target_name": original_target.name,
+			"attacker": attacker, "attacker_name": attacker.name,
+			"skill_name": GUARD_SKILL_NAME,
+			"detail": detail,
+		})
+		return {"target": guardian, "detail": detail, "damage_multiplier": GUARD_DAMAGE_MULTIPLIER}
+
+	return no_guard
 
 ## 敵人列表(存活中)
 var enemies: Array[BattleHero]:
@@ -562,18 +693,86 @@ var name: String:
 var is_enemy: bool:
 	get: return _is_enemy
 
+## 素質加成/減益修正:一筆代表「某項素質 ±multiplier」(0.2 = +20%,-0.2 = -20%),
+## rounds_remaining < 0 代表永久生效(被動技能用,例如 A. 智勇兼備),不會被
+## tick_status_effects() 消耗;>= 0 則是限時 buff/debuff(D. 大將之風/E. 降咒),
+## 每回合結束倒數 1,歸零就移除。
+class StatModifier:
+	var potential_type: int
+	var multiplier: float
+	var rounds_remaining: int
+
+var _stat_modifiers: Array[StatModifier] = []
+
+## 同一個(potential_type, multiplier)組合重複套用時只「續時」不疊加——例如 D. 大將之風
+## 被同一個隊長連續好幾回合抽中重放,不會讓 +20% 力量一直往上疊加變成失控的天文數字,
+## 只會把剩餘回合數重新刷回 rounds。不同 multiplier(例如同時中了 A 的永久 +30% 跟
+## E 的 -20%)則各自是獨立一筆,會正常疊加抵銷。
+func add_stat_modifier(potential_type: int, multiplier: float, rounds: int) -> void:
+	for m in _stat_modifiers:
+		if m.potential_type == potential_type and m.multiplier == multiplier:
+			m.rounds_remaining = rounds
+			return
+
+	var m := StatModifier.new()
+	m.potential_type = potential_type
+	m.multiplier = multiplier
+	m.rounds_remaining = rounds
+	_stat_modifiers.append(m)
+
+func _stat_modifier_multiplier(potential_type: int) -> float:
+	var total := 0.0
+	for m in _stat_modifiers:
+		if m.potential_type == potential_type:
+			total += m.multiplier
+	return total
+
+## 每回合結束時由 Battle._round_end() 呼叫:有時限的修正倒數 1 回合,歸零就移除;
+## 永久修正(rounds_remaining < 0)不受影響。回傳這回合到期、需要顯示「效果解除」的
+## 修正清單,給戰報 UI 用。
+func tick_status_effects() -> Array[StatModifier]:
+	var expired: Array[StatModifier] = []
+	for m in _stat_modifiers.duplicate():
+		if m.rounds_remaining < 0:
+			continue
+		m.rounds_remaining -= 1
+		if m.rounds_remaining <= 0:
+			_stat_modifiers.erase(m)
+			expired.append(m)
+	return expired
+
 var strength: float:
-	get: return hero.strength * _strength_const
+	get: return hero.strength * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.STRENGTH))
 var agility: float:
-	get: return hero.agility * _agility_const
+	get: return hero.agility * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.AGILITY))
 var dexterity: float:
-	get: return hero.dexterity * _dexterity_const
+	get: return hero.dexterity * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.DEXTERITY))
 var vitality: float:
-	get: return hero.vitality * _vitality_const
+	get: return hero.vitality * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.VITALITY))
 var intelligence: float:
-	get: return hero.intelligence * _intelligence_const
+	get: return hero.intelligence * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.INTELLIGENCE))
 var mentality: float:
-	get: return hero.mentality * _mentality_const
+	get: return hero.mentality * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.MENTALITY))
+
+## 跟 Hero.get_potential() 對應,但回傳的是套用完戰場加成(裝備/等級皆含 Hero 本身
+## 已算好的部分,再疊加 _stat_modifiers 的暴/被動技能、buff/debuff)之後的「即時」數值。
+## UI(角色面板雷達圖)想顯示戰場當下的真實素質時用這個,不要直接讀 Hero.get_potential()。
+func get_potential(potential_type: int) -> float:
+	match potential_type:
+		GameEnums.PotentialType.STRENGTH:
+			return strength
+		GameEnums.PotentialType.AGILITY:
+			return agility
+		GameEnums.PotentialType.DEXTERITY:
+			return dexterity
+		GameEnums.PotentialType.VITALITY:
+			return vitality
+		GameEnums.PotentialType.INTELLIGENCE:
+			return intelligence
+		GameEnums.PotentialType.MENTALITY:
+			return mentality
+		_:
+			return 0.0
 
 ## 行動速度(回合排序用),暫以敏捷做為速度來源
 var action_speed: float:

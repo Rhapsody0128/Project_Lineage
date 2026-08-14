@@ -39,6 +39,12 @@ const SKILL_BUBBLE_TAIL_SIZE := 12.0
 const SKILL_BUBBLE_FADE_TIME := 0.15
 const SKILL_BUBBLE_HOLD_TIME := 0.45
 
+# 素質增益/減益箭頭:持續整個效果時限(不是飄字閃過就消失),買/賣方向用顏色+箭頭
+# 符號區分,字級小、擠在頭像下方一排即可。
+const BUFF_ARROW_COLOR := Color(0.5, 1.0, 0.55)
+const DEBUFF_ARROW_COLOR := Color(1.0, 0.45, 0.45)
+const STATUS_ARROW_FONT_SIZE := 11
+
 class RosterSlot:
 	var slot: VBoxContainer
 	var portrait_frame: PanelContainer
@@ -50,6 +56,8 @@ class RosterSlot:
 	var active_tween: Tween
 	var skill_tween: Tween
 	var skill_bubble: PanelContainer
+	var status_row: HBoxContainer
+	var status_icons: Dictionary = {} # "<potential_type>_<buff|debuff>" -> Label
 
 var _is_enemy := false
 var _slots: Dictionary = {} # BattleHero -> RosterSlot
@@ -141,6 +149,11 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	hp_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
 	slot.add_child(hp_label)
 
+	var status_row := HBoxContainer.new()
+	status_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	status_row.add_theme_constant_override("separation", 2)
+	slot.add_child(status_row)
+
 	var s := RosterSlot.new()
 	s.slot = slot
 	s.portrait_frame = portrait_frame
@@ -149,6 +162,7 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	s.bar = bar
 	s.hp_label = hp_label
 	s.max_count = max_count
+	s.status_row = status_row
 	_slots[battle_hero] = s
 
 
@@ -162,9 +176,53 @@ func update_hp(battle_hero: BattleHero, remaining: int) -> void:
 	s.hp_label.text = "%d/%d" % [remaining, s.max_count]
 
 
-## 戰敗時血條歸零
+## 戰敗時血條歸零,順便把還沒到期的增益/減益箭頭一起清掉(人都倒了,不用再顯示)
 func mark_defeated(battle_hero: BattleHero) -> void:
 	update_hp(battle_hero, 0)
+	var s: RosterSlot = _slots.get(battle_hero)
+	if s == null:
+		return
+	for icon in s.status_icons.values():
+		icon.queue_free()
+	s.status_icons.clear()
+
+
+## 增益/減益生效:在頭像下方那排加上對應素質的箭頭圖示(↑綠色增益、↓紅色減益),
+## 持續整個效果時限,直到 remove_status_arrows() 被呼叫(效果到期)才移除。
+## 同一個(素質, 增益/減益方向)重複套用只是刷新,不會疊出兩個一樣的箭頭。
+func add_status_arrows(battle_hero: BattleHero, potential_types: Array, is_buff: bool) -> void:
+	var s: RosterSlot = _slots.get(battle_hero)
+	if s == null:
+		return
+
+	for potential_type in potential_types:
+		var key := "%d_%s" % [potential_type, "buff" if is_buff else "debuff"]
+		if s.status_icons.has(key):
+			continue
+
+		var icon := Label.new()
+		icon.text = "%s%s" % [
+			("↑" if is_buff else "↓"), GameEnums.POTENTIAL_TYPE_LABELS[potential_type].left(1),
+		]
+		icon.add_theme_font_size_override("font_size", STATUS_ARROW_FONT_SIZE)
+		icon.add_theme_color_override("font_color", BUFF_ARROW_COLOR if is_buff else DEBUFF_ARROW_COLOR)
+		s.status_row.add_child(icon)
+		s.status_icons[key] = icon
+
+
+## 增益/減益到期:移除對應的箭頭圖示。
+func remove_status_arrows(battle_hero: BattleHero, potential_types: Array, is_buff: bool) -> void:
+	var s: RosterSlot = _slots.get(battle_hero)
+	if s == null:
+		return
+
+	for potential_type in potential_types:
+		var key := "%d_%s" % [potential_type, "buff" if is_buff else "debuff"]
+		var icon: Label = s.status_icons.get(key)
+		if icon == null:
+			continue
+		icon.queue_free()
+		s.status_icons.erase(key)
 
 
 ## 角色行動時(移動/攻擊/發呆/技能)頭像往戰場方向靠近一點再返回,提示「輪到這個
@@ -305,7 +363,8 @@ func _load_hero_portrait(battle_hero: BattleHero, fallback_portrait: Texture2D) 
 	return texture if texture != null else fallback_portrait
 
 
-## 點擊頭像開啟共用角色面板(CharacterPanel 為 autoload 單例)
+## 點擊頭像開啟共用角色面板(CharacterPanel 為 autoload 單例)。多帶 battle_hero,
+## 讓面板的雷達圖能顯示套用完戰場加成的即時數值,見 CharacterPanel.open_for_hero()。
 func _on_portrait_gui_input(input_event: InputEvent, battle_hero: BattleHero) -> void:
 	if input_event is InputEventMouseButton and input_event.pressed and input_event.button_index == MOUSE_BUTTON_LEFT:
-		CharacterPanel.open_for_hero(battle_hero.hero)
+		CharacterPanel.open_for_hero(battle_hero.hero, battle_hero)

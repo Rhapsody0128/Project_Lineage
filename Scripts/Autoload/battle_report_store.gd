@@ -12,11 +12,16 @@ extends Node
 # pending_self_party 是同一套交接模式,給 PartyEdit「以現在編成開始戰鬥」用:
 # 把玩家編好的 Party 存進來,再切去 Battle 場景,Battle 場景 _ready() 抓到
 # 就用這個小隊對上一個隨機敵方小隊,而不是雙方都隨機生。
+#
+# pending_enemy_party 是 AskBattle(見 Scenes/BattleUtil/ask_battle.gd)專用的加碼交接
+# 欄位:敵方也是呼叫端指定的特定小隊(例如城堡守衛),不是隨機生的——跟 pending_self_party
+# 一起設定時,Battle 場景改用兩邊都指定的對戰,不會再幫敵方另外隨機生一支。
 # =========================================================
 
 var reports: Array[BattleReport] = []
 var pending_report: BattleReport = null
 var pending_self_party: Party = null
+var pending_enemy_party: Party = null
 ## 跟 pending_self_party 同一套交接模式:PartyEdit/main 場景切去 Battle 場景前設定,
 ## Battle 場景 _ready()/_new_simulation() 讀完就重設回預設值 AUTO,決定這場戰鬥是一次性
 ## 模擬完重播(AUTO),還是逐回合跑、回合間能手動施放奧義(REALTIME),見

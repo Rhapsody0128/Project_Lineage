@@ -130,6 +130,12 @@ func _ready() -> void:
 	if BattleReportStore.pending_report != null:
 		_enter_playback_mode(BattleReportStore.pending_report)
 		BattleReportStore.pending_report = null
+	elif BattleReportStore.pending_self_party != null and BattleReportStore.pending_enemy_party != null:
+		var self_party := BattleReportStore.pending_self_party
+		var enemy_party := BattleReportStore.pending_enemy_party
+		BattleReportStore.pending_self_party = null
+		BattleReportStore.pending_enemy_party = null
+		_new_simulation_with_parties(self_party, enemy_party)
 	elif BattleReportStore.pending_self_party != null:
 		var self_party := BattleReportStore.pending_self_party
 		BattleReportStore.pending_self_party = null
@@ -180,6 +186,20 @@ func _new_simulation_with_self_party(self_party: Party) -> void:
 	_setup_battlefield()
 	title_label.text = MapSessionStore.current_world_time_string()
 	back_button.text = "返回隊伍編輯"
+	if battle_mode == GameEnums.BattleMode.REALTIME:
+		_run_battle_realtime()
+	else:
+		_run_battle_playback(true)
+
+
+## AskBattle「選否」用:雙方小隊都是呼叫端指定的特定隊伍(不是隨機敵方),
+## 其餘流程(佈陣/播放)跟一般隨機戰鬥共用同一套。
+func _new_simulation_with_parties(self_party: Party, enemy_party: Party) -> void:
+	battle_mode = BattleReportStore.pending_battle_mode
+	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
+	battle = BattleController.get_battle(self_party, enemy_party)
+	_setup_battlefield()
+	title_label.text = MapSessionStore.current_world_time_string()
 	if battle_mode == GameEnums.BattleMode.REALTIME:
 		_run_battle_realtime()
 	else:

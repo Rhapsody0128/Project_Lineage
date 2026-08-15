@@ -1,0 +1,91 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scenes/BattleUtil/ask_battle.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
+bg_color = Color(0.13, 0.15, 0.21, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.4, 0.56, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[node name="AskBattle" type="CanvasLayer"]
+process_mode = 3
+layer = 10
+script = ExtResource("1")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="DimBg" type="ColorRect" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.55)
+mouse_filter = 1
+
+[node name="CenterContainer" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="PanelBox" type="PanelContainer" parent="Root/CenterContainer"]
+custom_minimum_size = Vector2(420, 180)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="Root/CenterContainer/PanelBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Content" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="QuestionLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+horizontal_alignment = 1
+text = "是否跳過這場戰鬥？"
+
+[node name="ButtonRow" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="SkipButton" type="Button" parent="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "是，跳過"
+
+[node name="FightButton" type="Button" parent="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "否，開戰"
+
+[connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/SkipButton" to="." method="_on_skip_button_pressed"]
+[connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/FightButton" to="." method="_on_fight_button_pressed"]

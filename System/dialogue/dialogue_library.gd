@@ -19,16 +19,15 @@ static func build_demo() -> Dialogue:
 
 
 ## 城堡選單「城堡」按鈕用(見 Scenes/MapLocation/map_location.gd):守衛擋在門口,
-## 玩家選「闖進去」用 self_party(呼叫端傳入,PartyStore 編好的玩家小隊)對上一個
-## 隨機敵方小隊開戰、選「離開」回原本場景——場景路徑一律由呼叫端傳入(不寫死在
-## System/,見 DialogueChoice 的註解)。on_challenge_accepted 同理由呼叫端傳入,負責把
-## self_party 交給 Battle 場景(BattleReportStore.pending_self_party 那套交接模式),
-## DialogueLibrary 本身不碰 Scenes 層的 autoload。
+## 玩家選「闖進去」、選「離開」回原本場景——場景路徑一律由呼叫端傳入(不寫死在
+## System/,見 DialogueChoice 的註解)。「闖進去」不直接切場景(next_scene_path 傳空
+## 字串),改由 on_challenge_accepted(呼叫端傳入)彈出 AskBattle 詢問是否跳過戰鬥,
+## 再依玩家選擇決定去哪個場景,DialogueLibrary 本身不碰 Scenes 層的 autoload。
 ##
 ## self_party 可能是 null(玩家還沒去 PartyEdit 按過「完成編輯」,沒有真正屬於他的隊伍)——
 ## 這種情況不生一支假的隨機小隊頂替,直接不給「闖進去」選項,只能「離開」,守衛台詞
 ## 也換成請玩家先去整隊。
-static func build_castle_gate_challenge(battle_scene_path: String, leave_scene_path: String, self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
+static func build_castle_gate_challenge(leave_scene_path: String, self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
 	var has_party := self_party != null
 	var player := self_party.leader if has_party else HeroController.get_random_hero()
 	var guard := HeroController.get_random_hero()
@@ -40,7 +39,7 @@ static func build_castle_gate_challenge(battle_scene_path: String, leave_scene_p
 
 	if has_party:
 		var choices: Array[DialogueChoice] = [
-			DialogueChoice.new("闖進去", battle_scene_path, on_challenge_accepted),
+			DialogueChoice.new("闖進去", "", on_challenge_accepted),
 			DialogueChoice.new("離開", leave_scene_path),
 		]
 		lines = [

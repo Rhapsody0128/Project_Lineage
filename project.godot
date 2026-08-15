@@ -25,6 +25,7 @@ UltimateStore="*res://Scripts/Autoload/ultimate_store.gd"
 MapSessionStore="*res://Scripts/Autoload/map_session_store.gd"
 DialogueStore="*res://Scripts/Autoload/dialogue_store.gd"
 NavigationStore="*res://Scripts/Autoload/navigation_store.gd"
+AskBattle="*res://Scenes/BattleUtil/ask_battle.tscn"
 
 [display]
 

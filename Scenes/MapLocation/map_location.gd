@@ -47,13 +47,13 @@ func _on_castle_button_pressed() -> void:
 	# 守衛擋門的選擇題,選項本身決定播完去哪個場景(闖進去/離開),見
 	# DialogueLibrary.build_castle_gate_challenge() 的註解。玩家小隊抓 PartyStore.party
 	# (玩家按過「完成編輯」的隊伍);還沒編過(null)就不生假隊伍頂著,直接由
-	# build_castle_gate_challenge() 拿掉「闖進去」選項。選「闖進去」時才把這個小隊透過
-	# BattleReportStore.pending_self_party 交給 Battle 場景(跟 PartyEdit「以現在編成開始
-	# 戰鬥」同一套交接模式),不在選「離開」時髒寫,避免之後其他入口進 Battle 場景時
-	# 誤用到這裡留下的殘值。玩家帶自己隊伍進的戰鬥一律走即時模式(pending_battle_mode
-	# = REALTIME),才能在回合間手動施放奧義——跟點戰報播放(AUTO,單純重播不能操作)
-	# 要分清楚,不要混用預設值。
+	# build_castle_gate_challenge() 拿掉「闖進去」選項。選「闖進去」時彈出 AskBattle
+	# 詢問是否跳過戰鬥(見 Scenes/BattleUtil/ask_battle.gd),自己隊伍固定對上這裡生的
+	# guard_party(守衛小隊);「闖進去」的 DialogueChoice.next_scene_path 傳空字串
+	# (見 build_castle_gate_challenge()),改由 AskBattle 決定接下來要去哪個場景,
+	# 不讓 dialogue_box.gd 選完就先切一次場景。
 	var self_party := PartyStore.party
+	var guard_party := PartyController.get_random_party()
 
 	# 這趟會先繞去 Dialogue 場景,不是直接切去 Battle,所以「回上一頁」不能靠
 	# NavigationStore.go_to() 在切場景當下自動抓 current_scene(那樣抓到的會是
@@ -61,12 +61,14 @@ func _on_castle_button_pressed() -> void:
 	NavigationStore.push_return_scene_path("res://Scenes/MapLocation/map_location.tscn")
 
 	var dialogue := DialogueLibrary.build_castle_gate_challenge(
-		"res://Scenes/Battle/battle.tscn",
 		"res://Scenes/MapLocation/map_location.tscn",
 		self_party,
 		func():
-			BattleReportStore.pending_self_party = self_party
-			BattleReportStore.pending_battle_mode = GameEnums.BattleMode.REALTIME
+			AskBattle.ask(
+				self_party, guard_party,
+				"res://Scenes/Battle/battle.tscn",
+				"res://Scenes/MapLocation/map_location.tscn"
+			)
 	)
 	DialogueStore.queue(dialogue, "res://Scenes/MapLocation/map_location.tscn")
 	var error := get_tree().change_scene_to_file("res://Scenes/Dialogue/dialogue_box.tscn")

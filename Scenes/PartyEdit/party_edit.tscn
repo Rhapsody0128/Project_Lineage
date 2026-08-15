@@ -153,7 +153,7 @@ theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "新增角色"
+text = "新增角色(D)"
 
 [node name="GrowGridButton" type="Button" parent="UI/TopBar"]
 custom_minimum_size = Vector2(145, 46)
@@ -162,7 +162,7 @@ theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "加大格子"
+text = "加大格子(D)"
 
 [node name="StartBattleButton" type="Button" parent="UI/TopBar"]
 custom_minimum_size = Vector2(145, 46)
@@ -171,7 +171,7 @@ theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "開始戰鬥"
+text = "開始戰鬥(D)"
 
 [node name="FinishEditButton" type="Button" parent="UI/TopBar"]
 custom_minimum_size = Vector2(145, 46)
@@ -189,7 +189,7 @@ theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "返回主選單"
+text = "返回"
 
 [node name="StatusLabel" type="Label" parent="UI"]
 layout_mode = 0

@@ -44,7 +44,7 @@ static func compute_average_agi(party: Party) -> float:
 ## AGI 0~200 之間線性內插移動速度。
 static func compute_speed(avg_agi: float) -> float:
 	var clamped: float = clamp(avg_agi, 0.0, 200.0)
-	return lerp(SPEED_AT_AGI_0, SPEED_AT_AGI_200, clamped / 20.0)
+	return lerp(SPEED_AT_AGI_0, SPEED_AT_AGI_200, clamped / 200.0)
 
 
 func set_destination(p_target: Vector2) -> void:

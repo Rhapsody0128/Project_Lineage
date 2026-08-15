@@ -49,6 +49,44 @@ static func rank_label(rank_type: int) -> String:
 static func weapon_label(weapon_type: int) -> String:
 	return WEAPON_TYPE_LABELS[weapon_type]
 
+## BATTLE_COST 方塊外框色,依武器分色一眼辨識:大劍紅、弓箭手白、盾牌綠、
+## 匕首黃、法杖藍、捕夢網青,順序對應 WeaponType enum(EMPTY 用中性灰)
+const WEAPON_BORDER_COLORS: Array[Color] = [
+	Color(0.6, 0.6, 0.6, 1), # 徒手/未裝備:灰
+	Color(0.85, 0.2, 0.2, 1), # 大劍:紅
+	Color(0.92, 0.92, 0.92, 1), # 弓箭手:白
+	Color(0.35, 0.85, 0.35, 1), # 盾牌:綠
+	Color(1.0, 0.85, 0.15, 1), # 匕首:黃
+	Color(0.35, 0.55, 1.0, 1), # 法杖:藍
+	Color(0.3, 0.9, 0.9, 1), # 捕夢網:青
+]
+
+static func weapon_border_color(weapon_type: int) -> Color:
+	return WEAPON_BORDER_COLORS[weapon_type]
+
+## 六大素質代表色(素質增益/減益箭頭、雷達圖等畫面共用同一份配色表),
+## 順序對應 PotentialType enum
+const POTENTIAL_TYPE_COLORS: Array[Color] = [
+	Color(0.85, 0.2, 0.2), # 紅:力量
+	Color(0.35, 0.85, 0.35), # 綠:體質
+	Color(1.0, 0.85, 0.15), # 黃:敏捷
+	Color(0.92, 0.92, 0.92), # 白:靈巧
+	Color(0.35, 0.55, 1.0), # 藍:智慧
+	Color(0.3, 0.9, 0.9), # 青:信仰
+]
+
+static func potential_color(potential_type: int) -> Color:
+	return POTENTIAL_TYPE_COLORS[potential_type]
+
+## 隊長標記色:小人物本身變色遮罩(modulate),不額外畫圈/光暈——我方隊長淡黃、
+## 敵方隊長深紅。BattleUnitVisual(戰場角色)與 BattleCostView(PartyEdit/
+## CharacterPanel 的 battle_cost 縮圖)共用同一組色,標記邏輯要一致。
+const LEADER_SELF_TINT := Color(1.0, 0.95, 0.55)
+const LEADER_ENEMY_TINT := Color(0.55, 0.05, 0.05)
+
+static func leader_tint(is_enemy: bool) -> Color:
+	return LEADER_ENEMY_TINT if is_enemy else LEADER_SELF_TINT
+
 ## 素質清單轉成頓號分隔的標籤字串,例如 stat_effect 事件的「力量、敏捷」——
 ## 戰報事件的 to_debug_string()/detail 組字與 Scenes/battle.gd 的戰報 UI 都共用這個,
 ## 不要各自各寫一份 for 迴圈。

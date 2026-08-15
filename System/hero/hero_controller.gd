@@ -23,6 +23,7 @@ static func get_random_hero() -> Hero:
 	var potential := PotentialController.get_random_potential()
 	var weapon: int = Util.get_random_from_array(RANDOM_WEAPON_POOL)
 	var skill_list := SkillController.get_skill_list_by_weapon(weapon)
-	return Hero.new(hero_name, last_name, age, face_path, traits, potential, weapon, skill_list, LevelSystem.new())
+	var battle_cost := BattleCostController.get_random_battle_cost()
+	return Hero.new(hero_name, last_name, age, face_path, traits, potential, weapon, skill_list, LevelSystem.new(), battle_cost)
 
 # TODO(設計待定): 結婚/生子邏輯待「玩家間聯姻」系統設計確定後再實作(見企劃文件 二十二~三十二)

@@ -8,10 +8,15 @@ extends Node
 # 播放戰報時把要播的那份存進 pending_report,再切去 Battle 場景,
 # Battle 場景 _ready() 抓到 pending_report 就進入「播放模式」而不是
 # 自己生一場新的隨機戰鬥。
+#
+# pending_self_party 是同一套交接模式,給 PartyEdit「以現在編成開始戰鬥」用:
+# 把玩家編好的 Party 存進來,再切去 Battle 場景,Battle 場景 _ready() 抓到
+# 就用這個小隊對上一個隨機敵方小隊,而不是雙方都隨機生。
 # =========================================================
 
 var reports: Array[BattleReport] = []
 var pending_report: BattleReport = null
+var pending_self_party: Party = null
 
 func _ready() -> void:
 	_seed_demo_reports()

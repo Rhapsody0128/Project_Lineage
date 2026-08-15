@@ -7,10 +7,6 @@ extends CanvasLayer
 # 只負責把 Hero 的資料轉成畫面呈現,不含遊戲邏輯判定。
 # =========================================================
 
-# 角色小人暫用 Warrier 站立圖片(idle_Down 第一幀)佔位
-const STANDEE_ATLAS_PATH := "res://Images/Warrier/character_walk.png"
-const STANDEE_REGION := Rect2(0, 0, 32, 46)
-
 const SKILL_SLOT_COUNT := 4
 const SKILL_SLOT_MIN_SIZE := Vector2(150, 56)
 
@@ -28,17 +24,14 @@ const SKILL_ENABLED_MODULATE := Color(1, 1, 1, 1)
 @onready var age_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow/AgeLabel
 @onready var level_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow/LevelLabel
 @onready var weapon_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow/WeaponLabel
-@onready var standee_texture: TextureRect = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StandeeFrame/StandeeTexture
+@onready var battle_cost_view: BattleCostView = $Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/BattleCostFrame/BattleCostView
 @onready var radar: CharacterPotentialRadar = $Root/CenterContainer/PanelBox/Margin/Content/RadarSection/PotentialRadar
 @onready var skill_row: HBoxContainer = $Root/CenterContainer/PanelBox/Margin/Content/SkillSection/SkillRow
 @onready var trait_list: HFlowContainer = $Root/CenterContainer/PanelBox/Margin/Content/TraitSection/TraitList
 
-var _standee_atlas: Texture2D
-
 
 func _ready() -> void:
 	root.visible = false
-	_standee_atlas = load(STANDEE_ATLAS_PATH)
 
 
 ## 任何場景都可呼叫:CharacterPanel.open_for_hero(hero)。battle_hero 是選填的
@@ -54,7 +47,14 @@ func open_for_hero(hero: Hero, battle_hero: BattleHero = null) -> void:
 	level_label.text = "等級：%d" % hero.level_system.level
 	weapon_label.text = "武器：%s" % GameEnums.weapon_label(hero.weapon)
 	avatar_texture.texture = _load_face_texture(hero.face_path)
-	standee_texture.texture = _build_standee_texture()
+
+	var is_leader := battle_hero != null and battle_hero.is_leader
+	var is_enemy := battle_hero != null and battle_hero.is_enemy
+
+	battle_cost_view.weapon = hero.weapon
+	battle_cost_view.is_leader = is_leader
+	battle_cost_view.is_enemy = is_enemy
+	battle_cost_view.battle_cost = hero.battle_cost
 
 	radar.set_hero(hero, battle_hero)
 
@@ -75,13 +75,6 @@ func _load_face_texture(face_path: String) -> Texture2D:
 	if face_path.is_empty():
 		return null
 	return load(face_path) as Texture2D
-
-
-func _build_standee_texture() -> Texture2D:
-	var standee := AtlasTexture.new()
-	standee.atlas = _standee_atlas
-	standee.region = STANDEE_REGION
-	return standee
 
 
 ## 技能格固定 4 格,角色技能不足 4 個時留空;技能綁定的武器跟目前手持武器不符時

@@ -26,8 +26,8 @@ const ACTIVE_RETURN_TIME := 0.2
 # 放技能時頭像框的高亮顏色
 const SKILL_FRAME_COLOR := Color(1.0, 0.85, 0.2, 1.0)
 
-# 隊長頭像框:固定金色邊框,取代原本紅/藍陣營色,一眼認出隊長
-const LEADER_FRAME_COLOR := Color(1.0, 0.85, 0.2, 1.0)
+# 隊長頭像框:邊框顏色跟其他人一樣依武器分色(見 _spawn_slot()),只用加粗邊框寬度
+# 區分隊長,實際的隊長標記(淡黃/深紅遮罩)改套在頭像本身,見 GameEnums.leader_tint()。
 const LEADER_FRAME_BORDER_WIDTH := 3
 
 # 技能名稱對話框(魔法漫畫風):偏紫的底色 + 金色邊框,跟頭像框高亮同色系
@@ -42,17 +42,9 @@ const SKILL_BUBBLE_HOLD_TIME := 0.45
 # 素質增益/減益箭頭:固定佔頭像右側一塊「上箭頭/下箭頭各一格」的區域,不是往頭像
 # 下方加一排——那樣行高會隨目前生效的 buff/debuff 數量變動,擠壓/推移同一份名單裡
 # 排在後面的角色(見 _spawn_slot() 的 portrait_row)。同時中好幾種素質時,箭頭顏色
-# 依 POTENTIAL_ARROW_COLORS 每隔 STATUS_ARROW_CYCLE_INTERVAL 秒輪流切換(見
+# 依 GameEnums.potential_color() 每隔 STATUS_ARROW_CYCLE_INTERVAL 秒輪流切換(見
 # _cycle_timer/_refresh_status_arrow()),例如 +力量 +敏捷 就是紅→黃→紅…輪流跑,
 # 不會因為要同時顯示多種顏色而另外撐開版面。
-const POTENTIAL_ARROW_COLORS := {
-	GameEnums.PotentialType.STRENGTH: Color(0.85, 0.2, 0.2), # 紅:力量
-	GameEnums.PotentialType.DEXTERITY: Color(0.92, 0.92, 0.92), # 白:技巧(靈巧)
-	GameEnums.PotentialType.AGILITY: Color(1.0, 0.85, 0.15), # 黃:敏捷
-	GameEnums.PotentialType.VITALITY: Color(0.35, 0.85, 0.35), # 綠:體質
-	GameEnums.PotentialType.INTELLIGENCE: Color(0.35, 0.55, 1.0), # 藍:智慧
-	GameEnums.PotentialType.MENTALITY: Color(0.3, 0.9, 0.9), # 青:意志
-}
 const STATUS_ARROW_WIDTH := 20.0
 const STATUS_ARROW_GAP := 4.0
 const STATUS_ARROW_FONT_SIZE := 15
@@ -142,7 +134,7 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	portrait_frame.gui_input.connect(_on_portrait_gui_input.bind(battle_hero))
 
 	var is_leader := battle_hero.is_leader
-	var border_color := LEADER_FRAME_COLOR if is_leader else (ENEMY_TINT if is_enemy else SELF_TINT)
+	var border_color := GameEnums.weapon_border_color(battle_hero.hero.weapon)
 	var border_width := LEADER_FRAME_BORDER_WIDTH if is_leader else 2
 	var frame_style := UiStyle.bordered_panel(Color(0.08, 0.08, 0.1, 0.6), border_color, border_width, 0, 2.0, 2.0)
 	portrait_frame.add_theme_stylebox_override("panel", frame_style)
@@ -152,7 +144,10 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	portrait.texture = _load_hero_portrait(battle_hero, fallback_portrait)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.modulate = ENEMY_TINT if is_enemy else Color(1, 1, 1)
+	if is_leader:
+		portrait.modulate = GameEnums.leader_tint(is_enemy)
+	else:
+		portrait.modulate = ENEMY_TINT if is_enemy else Color(1, 1, 1)
 	portrait_frame.add_child(portrait)
 
 	# 箭頭區:貼著頭像「右側」,固定切成上下各半格,上半格顯示增益箭頭、下半格顯示
@@ -287,7 +282,7 @@ func _refresh_status_arrow(s: RosterSlot, is_buff: bool) -> void:
 
 	label.visible = true
 	var potential_type: int = list[_cycle_index % list.size()]
-	var color: Color = POTENTIAL_ARROW_COLORS.get(potential_type, Color.WHITE)
+	var color := GameEnums.potential_color(potential_type)
 	label.add_theme_color_override("font_color", color)
 
 

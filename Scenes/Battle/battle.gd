@@ -105,6 +105,10 @@ func _ready() -> void:
 	if BattleReportStore.pending_report != null:
 		_enter_playback_mode(BattleReportStore.pending_report)
 		BattleReportStore.pending_report = null
+	elif BattleReportStore.pending_self_party != null:
+		var self_party := BattleReportStore.pending_self_party
+		BattleReportStore.pending_self_party = null
+		_new_simulation_with_self_party(self_party)
 	else:
 		_new_simulation()
 
@@ -133,6 +137,14 @@ func _enter_playback_mode(p_report: BattleReport) -> void:
 # =========================================================
 func _new_simulation() -> void:
 	battle = BattleController.get_random_battle()
+	_setup_battlefield()
+	_run_battle_playback(true)
+
+
+## PartyEdit「以現在編成開始戰鬥」用:玩家編好的小隊對上隨機敵方小隊,
+## 其餘流程(佈陣/播放)跟一般隨機戰鬥共用同一套。
+func _new_simulation_with_self_party(self_party: Party) -> void:
+	battle = BattleController.get_battle_with_self_party(self_party)
 	_setup_battlefield()
 	_run_battle_playback(true)
 

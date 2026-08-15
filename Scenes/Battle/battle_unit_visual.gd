@@ -66,11 +66,9 @@ const STAT_EFFECT_SPIN_SEQUENCE: Array[Vector2i] = [
 	Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, 0),
 ]
 
-# 隊長標記:腳下畫一圈金色外框,跟其他角色區分開來
-const LEADER_RING_COLOR := Color(1.0, 0.85, 0.2, 1.0)
-const LEADER_RING_RADIUS := 20.0
-const LEADER_RING_WIDTH := 3.0
-const LEADER_RING_CENTER := Vector2(0, -6)
+# 隊長標記(小人物本身變色遮罩,不額外畫圈)的顏色定義見 GameEnums.leader_tint()——
+# PartyEdit/CharacterPanel 的 battle_cost 縮圖(見 BattleCostView)也用同一套色,
+# 標記邏輯要一致,所以顏色集中放在 GameEnums 不在這裡各自定義一份。
 
 # 測試階段除錯用:角色右下角常駐顯示目前所持武器文字,方便肉眼核對武器與距離/傷害
 # 行為是否對得上;正式美術/UI 定案後把這個常數改成 false 即可整段關閉,不用刪程式碼。
@@ -114,19 +112,20 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 		sprite.scale = SPRITE_SCALE
 		sprite.position = Vector2(0, -8)
 
-		# 我方(左側)面朝右與敵人對戰,敵方(右側)面朝左
+		# 我方(左側)面朝右與敵人對戰,敵方(右側)面朝左;隊長改用 GameEnums.leader_tint()
+		# 蓋掉預設 tint,不再另外畫圈標記(見上方常數說明)。
 		if is_enemy:
 			sprite.play("idle_Left")
-			sprite.modulate = ENEMY_TINT
+			sprite.modulate = GameEnums.leader_tint(true) if battle_hero.is_leader else ENEMY_TINT
 		else:
 			sprite.play("idle_Right")
+			if battle_hero.is_leader:
+				sprite.modulate = GameEnums.leader_tint(false)
 
 	if SHOW_DEBUG_WEAPON_LABEL:
 		_setup_weapon_label()
 
 	_setup_click_area()
-
-	queue_redraw()
 
 
 ## 場上角色本人(不是頭像列的頭像,見 BattlePartyRoster._on_portrait_gui_input)也能

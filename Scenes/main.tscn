@@ -21,10 +21,9 @@ anchor_bottom = 1.0
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Start" type="Button" parent="CenterContainer/VBoxContainer" unique_id=84564014]
+[node name="PartyEdit" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-text = "Start
-"
+text = "小隊編成"
 
 [node name="Reports" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
@@ -34,6 +33,6 @@ text = "戰報列表"
 layout_mode = 2
 text = "Quit"
 
-[connection signal="pressed" from="CenterContainer/VBoxContainer/Start" to="." method="_on_start_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/PartyEdit" to="." method="_on_party_edit_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/Reports" to="." method="_on_reports_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/Quit" to="." method="_on_quit_pressed"]

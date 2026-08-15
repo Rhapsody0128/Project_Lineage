@@ -1,0 +1,147 @@
+extends Control
+
+# =========================================================
+# 小隊編成畫面,排版比照 Scenes/Battle/battle.tscn:純視覺的棋盤
+# (GridBoard,跟 Battle 的 BoardCanvas 共用同一份 BoardTileRenderer)
+# 疊「可否放置」層(AvailabilityLayer,反灰未解鎖格 + 拖曳合法性
+# 高亮 + 拖曳來源/放置目標)疊已放置角色圖層(PlacedLayer),最上層
+# 是 UI(TopBar 按鈕 + 右側候補角色清單,仿 Battle 的 LogPanel 版位)
+# ——UI 整層 mouse_filter=IGNORE,只有裡面的按鈕/清單本身接收點擊,
+# 這樣才不會被底下滿版的棋盤/可放置層擋掉輸入(比照 battle.tscn 的
+# UI 節點寫法)。
+#
+# 角色卡片可拖到網格上依 battle_cost 形狀佔格,已放置的角色也可以
+# 再拖動(含拖回右側清單取消放置)。拖曳中按 E/Q 旋轉形狀。所有佔用
+# 規則/合法性判斷都轉呼叫 System 層的 PartyEditGrid,這裡只做畫面
+# 呈現與輸入轉發。
+# =========================================================
+
+@onready var board: PartyEditBoard = $GridBoard
+@onready var availability_layer: PartyEditAvailabilityLayer = $AvailabilityLayer
+@onready var placed_layer: Control = $PlacedLayer
+@onready var roster_list: VBoxContainer = $UI/RightPanel/Margin/VBox/ScrollContainer/RosterList
+
+var grid := PartyEditGrid.new()
+var all_heroes: Array[Hero] = []
+
+
+func _ready() -> void:
+	availability_layer.grid = grid
+	availability_layer.placement_changed.connect(_refresh_all)
+	availability_layer.leader_change_requested.connect(_on_leader_change_requested)
+	_refresh_all()
+
+
+## 右鍵點擊已放置角色 = 設為隊長(見 PartyEditAvailabilityLayer.leader_change_requested);
+## 只影響已放置圖層的金色標記,不用重新整理候補清單。
+func _on_leader_change_requested(hero: Hero) -> void:
+	grid.set_leader(hero)
+	_refresh_placed_layer()
+
+
+func _on_add_hero_pressed() -> void:
+	all_heroes.append(HeroController.get_random_hero())
+	_refresh_roster()
+
+
+func _on_grow_grid_pressed() -> void:
+	grid.unlock_random_locked_cell()
+	availability_layer.queue_redraw()
+
+
+func _on_back_pressed() -> void:
+	get_tree().change_scene_to_file("res://Scenes/main.tscn")
+
+
+## 以現在編成開始一場隨機戰鬥:把目前放置在網格上的角色組成 Party,連同每個
+## 角色在網格上的站位(battle_cost_positions,座標系跟 Battle 自身區同一套,
+## 見 PartyEditGrid 開頭註解)一起記錄下來,交給 BattleReportStore 帶去 Battle
+## 場景,對上一個隨機敵方小隊(BattleController.get_battle_with_self_party())。
+## Battle 開戰佈陣時(見 battle.gd 的 _deploy_side())會直接照這些站位站,
+## 不是預設的靠邊縱隊。沒放任何角色時不給按。
+func _on_start_battle_pressed() -> void:
+	var placed := grid.get_all_placed_heroes()
+	if placed.is_empty():
+		return
+
+	var heroes: Array[Hero] = []
+	for hero in placed:
+		heroes.append(hero)
+
+	var party := Party.new("玩家小隊", heroes, grid.get_leader())
+	for hero in placed:
+		party.set_battle_position(hero, grid.get_placement_anchor(hero))
+
+	BattleReportStore.pending_self_party = party
+	get_tree().change_scene_to_file("res://Scenes/Battle/battle.tscn")
+
+
+func _refresh_all() -> void:
+	_refresh_roster()
+	_refresh_placed_layer()
+
+
+func _refresh_roster() -> void:
+	for child in roster_list.get_children():
+		child.queue_free()
+	for hero in all_heroes:
+		if not grid.is_placed(hero):
+			roster_list.add_child(HeroCard.new(hero))
+
+
+func _refresh_placed_layer() -> void:
+	for child in placed_layer.get_children():
+		child.queue_free()
+	var leader := grid.get_leader()
+	for hero in grid.get_all_placed_heroes():
+		var view := BattleCostView.new()
+		view.cell_size = PartyEditBoard.TILE_SIZE
+		view.weapon = hero.weapon
+		view.is_leader = hero == leader
+		view.battle_cost = BattleCost.new(grid.get_placement_shape(hero))
+		placed_layer.add_child(view)
+		# 佔位格(view 內軸心)要精準對齊 anchor 格,view 本地原點卻是 bounding box
+		# 角落,所以要用 bounds_min 換算擺放位置。
+		view.position = board.grid_corner_to_pixel(grid.get_placement_anchor(hero)) + Vector2(view.bounds_min) * PartyEditBoard.TILE_SIZE
+
+
+## 拖出網格外(例如拖回右側清單)= 取消放置。只接受來自網格的拖曳
+## (origin=="grid",代表正在移動一個已放置的角色)。
+func _can_drop_data(_at_position: Vector2, data) -> bool:
+	return typeof(data) == TYPE_DICTIONARY and data.get("type") == "battle_cost_placement" and data.get("origin") == "grid"
+
+
+func _drop_data(_at_position: Vector2, data) -> void:
+	grid.remove(data["hero"])
+	_refresh_all()
+
+
+## 拖曳中按 E/Q 即時旋轉形狀。Viewport.gui_get_drag_data() 拿到的是
+## _get_drag_data() 當初回傳的同一個 Dictionary(參照型別),所以這裡
+## 修改 data["shape"] 後,GridBoard 後續每次 _can_drop_data() 都會自動吃到
+## 旋轉後的新形狀。旋轉數學丟給 System 層的 BattleCost,這裡只做資料搬運
+## 與畫面更新。
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not get_viewport().gui_is_dragging():
+		return
+	if not (event is InputEventKey and event.pressed and not event.echo):
+		return
+	if event.keycode != KEY_E and event.keycode != KEY_Q:
+		return
+
+	var data = get_viewport().gui_get_drag_data()
+	if typeof(data) != TYPE_DICTIONARY or data.get("type") != "battle_cost_placement":
+		return
+
+	var shape: Array[Vector2i] = data["shape"]
+	if event.keycode == KEY_E:
+		data["shape"] = BattleCost.new(shape).rotate_cw().cells
+	else:
+		data["shape"] = BattleCost.new(shape).rotate_ccw().cells
+
+	var preview: BattleCostView = data["preview"]
+	preview.battle_cost = BattleCost.new(data["shape"])
+	# 置中對齊游標由 BattleCostView._process() 每一幀自己算(見
+	# build_centered_drag_preview()),旋轉後下一幀會自動用新的 size 重新置中,
+	# 這裡不用再手動改 position。
+	get_viewport().set_input_as_handled()

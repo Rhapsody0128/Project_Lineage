@@ -16,6 +16,8 @@ var weapon: GameEnums.WeaponType
 var skill_list: Array[Skill]
 var level_system: LevelSystem
 var hp: int
+## 戰場佔位形狀(俄羅斯方塊式多格圖形),用於 PartyEdit 編成畫面的格子佔用判斷
+var battle_cost: BattleCost
 
 func _init(
 	p_name: String,
@@ -26,7 +28,8 @@ func _init(
 	p_potential: Potential,
 	p_weapon: GameEnums.WeaponType,
 	p_skill_list: Array[Skill],
-	p_level_system: LevelSystem
+	p_level_system: LevelSystem,
+	p_battle_cost: BattleCost
 ) -> void:
 	id = Util.generate_uuid()
 	name = p_name
@@ -39,6 +42,7 @@ func _init(
 	skill_list = p_skill_list
 	level_system = p_level_system
 	hp = HP_MAX
+	battle_cost = p_battle_cost
 
 ## 該技能目前是否能施放:未綁武器(EMPTY)一律可用,綁了武器則要手持相符武器
 func can_use_skill(skill: Skill) -> bool:

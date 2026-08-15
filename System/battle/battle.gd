@@ -22,7 +22,8 @@ var battle_log: Array[BattleEvent] = []
 func _init(self_party: Party, enemy_party: Party) -> void:
 	self_heroes = _attach_battle_heroes(false, self_party)
 	enemy_heroes = _attach_battle_heroes(true, enemy_party)
-	_deploy_initial_positions()
+	_deploy_side(self_heroes, self_party, false)
+	_deploy_side(enemy_heroes, enemy_party, true)
 	_capture_start_state()
 
 ## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。
@@ -33,15 +34,23 @@ func _attach_battle_heroes(is_enemy: bool, party: Party) -> Array[BattleHero]:
 		battle_heroes.append(BattleHero.new(hero, self, is_enemy, is_leader))
 	return battle_heroes
 
-## 初始佈陣:我方沿最左列、敵方沿最右列,各自置中排成一列縱隊的隊頭
-func _deploy_initial_positions() -> void:
-	var self_start_y := (GRID_ROWS - self_heroes.size()) / 2
-	for i in range(self_heroes.size()):
-		self_heroes[i].grid_pos = Vector2i(0, self_start_y + i)
+## 初始佈陣:Party.battle_cost_positions 有記錄站位的角色(PartyEdit 編成畫面
+## 擺過)直接照那個位置站(座標系跟這裡的自身區同一套,見 PartyEditGrid 開頭
+## 註解,不需要換算);沒有記錄站位的角色(例如隨機生成的敵方小隊)沿用舊版
+## 「靠邊置中排一列縱隊」規則。兩種角色可以同時出現在同一個 Battle 裡
+## (玩家小隊 vs 隨機敵方小隊就是典型情況),各自獨立處理、互不影響。
+func _deploy_side(battle_heroes: Array[BattleHero], party: Party, is_enemy: bool) -> void:
+	var unplaced: Array[BattleHero] = []
+	for battle_hero in battle_heroes:
+		if party.has_battle_position(battle_hero.hero):
+			battle_hero.grid_pos = party.get_battle_position(battle_hero.hero)
+		else:
+			unplaced.append(battle_hero)
 
-	var enemy_start_y := (GRID_ROWS - enemy_heroes.size()) / 2
-	for i in range(enemy_heroes.size()):
-		enemy_heroes[i].grid_pos = Vector2i(GRID_COLS - 1, enemy_start_y + i)
+	var start_x := 0 if not is_enemy else GRID_COLS - 1
+	var start_y := (GRID_ROWS - unplaced.size()) / 2
+	for i in range(unplaced.size()):
+		unplaced[i].grid_pos = Vector2i(start_x, start_y + i)
 
 ## 該格子是否已有「其他」存活角色佔據(排除 exclude 自己)。
 ## 已戰敗的角色不算佔用 —— 移動途中可以直接穿過己方存活角色,

@@ -12,6 +12,8 @@ extends Control
 #
 # 格子大小/佈陣全部由 System/battle 的 Battle 決定,本檔案只負責畫出來,
 # 並提供 grid_to_pixel/grid_corner_to_pixel 給 battle.gd 換算單位座標。
+# 方格/格線的實際繪製呼叫共用的 BoardTileRenderer(PartyEditBoard 也共用
+# 同一份),這裡只負責提供陣營配色與中線這類 Battle 專屬的細節。
 #
 # 戰報面板可以展開/收合(見 battle.gd 的 LogToggleButton),但那是直接對這個節點
 # (跟 UnitsLayer 一起)套 Control.scale 做整塊等比縮放,格子大小/原點本身維持
@@ -35,47 +37,21 @@ const MID_LINE_COLOR := Color(1, 1, 0, 0.5)
 
 
 func _draw() -> void:
-	_draw_ground_tiles()
-	_draw_grid_lines()
+	BoardTileRenderer.draw_board(self, GRID_COLS, GRID_ROWS, TILE_SIZE, BOARD_ORIGIN, _tile_color, GRID_LINE_COLOR)
+	_draw_mid_line()
 
 
-## 每一格畫成一個正方形(依格子座標的四個角),
-## 用棋盤式明暗交錯 + 我方(左)/敵方(右)陣營底色,呈現出「地板」的感覺。
-func _draw_ground_tiles() -> void:
+## 棋盤式明暗交錯 + 我方(左)/敵方(右)陣營底色,呈現出「地板」的感覺。
+func _tile_color(x: int, y: int) -> Color:
 	var mid_x := GRID_COLS / 2
-
-	for y in range(GRID_ROWS):
-		for x in range(GRID_COLS):
-			var top_left := grid_corner_to_pixel(Vector2i(x, y))
-			var rect := Rect2(top_left, Vector2(TILE_SIZE, TILE_SIZE))
-
-			var base_color := GROUND_COLOR_SELF if x < mid_x else GROUND_COLOR_ENEMY
-			if (x + y) % 2 == 0:
-				base_color = base_color.lightened(GROUND_SHADE_OFFSET)
-			else:
-				base_color = base_color.darkened(GROUND_SHADE_OFFSET)
-
-			draw_rect(rect, base_color)
+	var base_color := GROUND_COLOR_SELF if x < mid_x else GROUND_COLOR_ENEMY
+	if (x + y) % 2 == 0:
+		return base_color.lightened(GROUND_SHADE_OFFSET)
+	return base_color.darkened(GROUND_SHADE_OFFSET)
 
 
-func _draw_grid_lines() -> void:
-	for x in range(GRID_COLS + 1):
-		draw_line(
-			grid_corner_to_pixel(Vector2i(x, 0)),
-			grid_corner_to_pixel(Vector2i(x, GRID_ROWS)),
-			GRID_LINE_COLOR,
-			1.0
-		)
-
-	for y in range(GRID_ROWS + 1):
-		draw_line(
-			grid_corner_to_pixel(Vector2i(0, y)),
-			grid_corner_to_pixel(Vector2i(GRID_COLS, y)),
-			GRID_LINE_COLOR,
-			1.0
-		)
-
-	# 中線,標示雙方交戰的中央地帶
+## 中線,標示雙方交戰的中央地帶——Battle 專屬,PartyEditBoard 不需要
+func _draw_mid_line() -> void:
 	var mid_x := GRID_COLS / 2
 	draw_line(
 		grid_corner_to_pixel(Vector2i(mid_x, 0)),

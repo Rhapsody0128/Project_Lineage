@@ -9,7 +9,7 @@ extends RefCounted
 var hero: Hero
 var battle: Battle
 
-## 是否為所屬小隊的隊長:戰場上顯示金色外框,陣亡會立即結束整場戰鬥
+## 是否為所屬小隊的隊長:戰場上顯示黃色遮罩,陣亡會立即結束整場戰鬥
 ## (見 Battle.is_decided)
 var is_leader: bool
 

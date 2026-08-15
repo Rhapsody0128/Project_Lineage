@@ -64,6 +64,16 @@ var visuals: Dictionary = {} # BattleHero -> BattleUnitVisual
 var is_battling := false
 var _pending_batch_actions := 0
 
+## _run_battle_realtime() 那個協程可能還卡在某個 await(動畫/計時器)沒有真正結束,
+## is_battling 只是告訴它「該收尾了」,但它要等目前正在播的那個事件動畫播完才會真的
+## return。_realtime_active 標記它是否還「活著」,重播按鈕(_on_dialog_replay_pressed())
+## 要等它真的結束、發出 realtime_stopped 之後才能重置戰場——否則舊協程醒來時還會拿
+## 已經被 reset_for_replay()/_setup_battlefield() 換掉的站位/角色節點繼續播,畫面
+## 看起來像兩場戰報同時在跑、角色亂跳。
+signal realtime_stopped
+var _realtime_active := false
+var _replay_pending := false
+
 # 播放模式:從戰報列表選一份戰報進來重播,而不是自己生一場新的隨機戰鬥。
 # battle 已經跑完 start(),這裡只重播固定好的 battle_log,不會重新模擬。
 var report: BattleReport
@@ -277,8 +287,16 @@ func _apply_log_layout(expanded: bool) -> void:
 ## battle.battle_log(已經模擬完成、固定不變)重播一次,絕對不能呼叫 battle.start()
 ## 再模擬一次——那樣招式/骰值全部重骰,就不是「重播」了。
 func _on_dialog_replay_pressed() -> void:
-	if is_battling:
+	if is_battling or _replay_pending:
 		return
+	# 攔住下面 await 期間的第二次點擊:不能用 is_battling 頂替這個用途——舊的
+	# _run_battle_realtime() 協程正是靠 is_battling 是否還是 false 判斷自己該不該
+	# 收尾(見該函式內的檢查),提前把它改回 true 會讓舊協程誤以為戰鬥還在繼續,
+	# 永遠不會發出 realtime_stopped,下面的 await 就卡死,按下去毫無反應。
+	_replay_pending = true
+	if _realtime_active:
+		await realtime_stopped
+	_replay_pending = false
 	await _run_battle_playback(false)
 
 
@@ -338,6 +356,7 @@ func _record_battle_report() -> void:
 ## 戰鬥播放的節奏。目前只有玩家自己這一側(battle.self_ultimates)能手動施放,
 ## 敵方不會使用奧義。
 func _run_battle_realtime() -> void:
+	_realtime_active = true
 	is_battling = true
 	pause_button.disabled = false
 	skip_button.visible = true
@@ -361,12 +380,14 @@ func _run_battle_realtime() -> void:
 		# 從 await 恢復執行後如果沒攔住,會拿舊的 has_more_rounds 繼續跑一輪,重複呼叫
 		# _announce_result()/_record_battle_report()。
 		if not is_inside_tree() or not is_battling:
+			_stop_realtime()
 			return
 
 		has_more_rounds = battle.step_round()
 		await _play_new_events()
 
 		if not is_inside_tree() or not is_battling:
+			_stop_realtime()
 			return
 
 		# 這回合可能有奧義生效(HP 回復等)或用量被消耗,回合播完就刷新一次按鈕狀態,
@@ -381,6 +402,15 @@ func _run_battle_realtime() -> void:
 	skip_button.visible = false
 	_announce_result()
 	_record_battle_report()
+	_stop_realtime()
+
+
+## 這個協程(_run_battle_realtime())真正結束時的統一出口(不管是正常播完、還是被
+## 快速跳過中途攔下),發出 realtime_stopped 讓等在旁邊的重播按鈕
+## (_on_dialog_replay_pressed())知道可以安全重置戰場了。
+func _stop_realtime() -> void:
+	_realtime_active = false
+	realtime_stopped.emit()
 
 
 ## 玩家在奧義面板點選一個奧義:面板全程開著,呼叫當下主迴圈(_run_battle_realtime())

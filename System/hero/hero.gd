@@ -1,8 +1,15 @@
 class_name Hero
 extends RefCounted
 
-## 角色目前統一固定血量上限,尚未有依素質/等級計算血量的公式,先寫死
-const HP_MAX := 600
+## 血量上限與 battle_cost 佔位格數掛勾(見 BattleCostController 的 MIN_CELLS/MAX_CELLS),
+## 格數越多站位越大,血量上限越高
+const COST_HP_MAP := {
+	3: 600,
+	4: 700,
+	5: 800,
+	6: 900,
+	7: 1000,
+}
 
 var id: String
 var name: String
@@ -41,8 +48,8 @@ func _init(
 	weapon = p_weapon
 	skill_list = p_skill_list
 	level_system = p_level_system
-	hp = HP_MAX
 	battle_cost = p_battle_cost
+	hp = hp_max
 
 ## 該技能目前是否能施放:未綁武器(EMPTY)一律可用,綁了武器則要手持相符武器
 func can_use_skill(skill: Skill) -> bool:
@@ -60,7 +67,7 @@ var full_name: String:
 	get: return "%s·%s" % [name, last_name]
 
 var hp_max: int:
-	get: return HP_MAX
+	get: return COST_HP_MAP.get(battle_cost.cells.size(), 600)
 
 var is_disabled: bool:
 	get: return hp <= 0
@@ -70,6 +77,12 @@ func take_damage(damage_points: int) -> void:
 
 func heal(amount: int) -> void:
 	hp = mini(hp + amount, hp_max)
+
+## 回滿血:Hero 是可能跨多場戰鬥重複使用的實例(例如 PartyEdit 編成的角色,不像隨機
+## 小隊每場戰鬥都重新產生),HP 會直接留著上一場戰鬥結束當下的數值——沒有傷勢持續/
+## 療養機制前,進新的一場戰鬥理應從滿血開始,見 Battle._attach_battle_heroes()。
+func full_heal() -> void:
+	hp = hp_max
 
 func gain_exp(exp_amount: int) -> void:
 	level_system.gain_exp(exp_amount)

@@ -4,6 +4,8 @@ extends RefCounted
 enum RankType {E, D, C, B, A, S, SS, SSS}
 enum PotentialType {STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 enum WeaponType {EMPTY, SWORD, BOW, SHIELD, DAGGER, STAFF, DREAMCATCHER}
+## 大地圖上的地點類型,見 System/Map/MapObjectData.gd
+enum MapObjectType {CASTLE}
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
 ## caster.allies 挑,見 Spec.md。
@@ -13,6 +15,11 @@ enum Relations {SELF, ALLIES, NEUTRAL, HOSTILE, UNKNOWN}
 enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
 ## 戰鬥結果:依總大將(Party.leader/BattleHero.is_leader)死活判定,見 Battle.result
 enum BattleResultType {SELF_WIN, ENEMY_WIN, DRAW}
+## 戰鬥模式:AUTO 一次性模擬完直接重播(戰報模式,Battle.start());REALTIME 逐回合跑
+## (Battle.start_realtime()/step_round()),回合間開放玩家手動施放奧義(見
+## System/ultimate/)。兩種模式共用 Battle 的核心迴圈(round_progress() 等),差別只在
+## 外層怎麼驅動,見 Battle 類別註解。
+enum BattleMode {AUTO, REALTIME}
 ## 技能範圍效果的形狀:SINGLE 只打中鎖定的那個目標;RADIUS 以命中目標為中心的菱形範圍
 ## (曼哈頓距離 ≤ area_size-1);LINE 從目標往施法者的反方向延伸 area_size 格「貫穿」;
 ## SQUARE 以命中目標為中心的正方形範圍(切比雪夫距離 ≤ area_size-1);ALL_ALLIES 無視
@@ -26,6 +33,7 @@ enum BattleEventType {
 	DODGE, DAMAGE, HEAL,
 	STAT_EFFECT, STAT_EFFECT_EXPIRED,
 	GUARD, DEFEATED, BATTLE_END,
+	ULTIMATE_RESOLVE,
 }
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
@@ -37,7 +45,10 @@ const RANK_TYPE_LABELS: Array[String] = ["E", "D", "C", "B", "A", "S", "SS", "SS
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
 const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
 
-## 以下三個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
+## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
+const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城堡"]
+
+## 以下四個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
 ## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
 ## 不會有任何編譯期或執行期警告,悄悄對應錯標籤;呼叫函式至少能在這裡集中防呆。
 static func potential_label(potential_type: int) -> String:
@@ -48,6 +59,9 @@ static func rank_label(rank_type: int) -> String:
 
 static func weapon_label(weapon_type: int) -> String:
 	return WEAPON_TYPE_LABELS[weapon_type]
+
+static func map_object_type_label(map_object_type: int) -> String:
+	return MAP_OBJECT_TYPE_LABELS[map_object_type]
 
 ## BATTLE_COST 方塊外框色,依武器分色一眼辨識:大劍紅、弓箭手白、盾牌綠、
 ## 匕首黃、法杖藍、捕夢網青,順序對應 WeaponType enum(EMPTY 用中性灰)

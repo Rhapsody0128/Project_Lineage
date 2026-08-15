@@ -4,6 +4,7 @@
 [ext_resource type="Script" path="res://Scenes/Battle/battle_log_panel.gd" id="2"]
 [ext_resource type="Script" path="res://Scenes/Battle/battle_party_roster.gd" id="3"]
 [ext_resource type="Script" path="res://Scenes/Battle/battle_board.gd" id="4"]
+[ext_resource type="Script" path="res://Scenes/Battle/battle_ultimate_panel.gd" id="5"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.086, 0.098, 0.145, 1)
@@ -61,6 +62,22 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_ultimate_bar"]
+bg_color = Color(0.13, 0.15, 0.21, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.36, 0.4, 0.56, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+content_margin_left = 10.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
 
 [node name="Battle" type="Control" unique_id=1072750533]
 layout_mode = 3
@@ -180,7 +197,7 @@ mouse_filter = 2
 
 [node name="TopBar" type="HBoxContainer" parent="UI"]
 layout_mode = 0
-offset_left = 1096.0
+offset_left = 760.0
 offset_top = 20.0
 offset_right = 1576.0
 offset_bottom = 68.0
@@ -196,6 +213,17 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "暫停"
+
+[node name="SkipButton" type="Button" parent="UI/TopBar"]
+process_mode = 3
+visible = false
+custom_minimum_size = Vector2(145, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "快速跳過"
 
 [node name="BackButton" type="Button" parent="UI/TopBar"]
 process_mode = 3
@@ -216,6 +244,32 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "隱藏詳細"
+
+[node name="UltimatePanel" type="PanelContainer" parent="UI"]
+visible = false
+layout_mode = 0
+offset_left = 140.0
+offset_top = 864.0
+offset_right = 968.0
+offset_bottom = 898.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_ultimate_bar")
+script = ExtResource("5")
+
+[node name="HBox" type="HBoxContainer" parent="UI/UltimatePanel"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="HintLabel" type="Label" parent="UI/UltimatePanel/HBox"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+text = "奧義"
+
+[node name="ButtonRow" type="HBoxContainer" parent="UI/UltimatePanel/HBox"]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 10
 
 [node name="LogPanel" type="Panel" parent="UI"]
 layout_mode = 0
@@ -321,6 +375,7 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "返回上一頁"
 
 [connection signal="pressed" from="UI/TopBar/PauseButton" to="." method="_on_pause_pressed"]
+[connection signal="pressed" from="UI/TopBar/SkipButton" to="." method="_on_skip_pressed"]
 [connection signal="pressed" from="UI/TopBar/BackButton" to="." method="_on_back_pressed"]
 [connection signal="pressed" from="ResultDialog/Panel/VBox/ButtonRow/ReplayButton" to="." method="_on_dialog_replay_pressed"]
 [connection signal="pressed" from="ResultDialog/Panel/VBox/ButtonRow/DialogBackButton" to="." method="_on_back_pressed"]

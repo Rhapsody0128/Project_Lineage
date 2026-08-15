@@ -13,6 +13,12 @@ func _on_party_edit_pressed() -> void:
 		printerr("Error changing scene to party edit: ", error)
 
 
+func _on_map_pressed() -> void:
+	var error := get_tree().change_scene_to_file("res://Scenes/Map/Map.tscn")
+	if error != OK:
+		printerr("Error changing scene to map: ", error)
+
+
 func _on_quit_pressed() -> void:
 	get_tree().quit()
 

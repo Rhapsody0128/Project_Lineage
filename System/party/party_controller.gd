@@ -18,4 +18,6 @@ static func get_random_party() -> Party:
 		# hero.skill_list = SkillController.get_skill_list_by_weapon(hero.weapon)
 		heroes.append(hero)
 	var leader: Hero = Util.get_random_from_array(heroes)
-	return Party.new("隨機小隊", heroes, leader)
+	var party := Party.new("隨機小隊", heroes, leader)
+	party.ultimates = UltimateLibrary.default_ultimates()
+	return party

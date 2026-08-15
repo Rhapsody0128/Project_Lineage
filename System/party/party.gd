@@ -21,6 +21,11 @@ var leader: Hero
 ## 互不影響。
 var battle_cost_positions: Dictionary = {}  # Hero -> Vector2i
 
+## 這個小隊在戰鬥中可施放的奧義(見 System/ultimate/),即時戰鬥模式
+## (Battle.start_realtime())才會用到,由 PartyController 建立小隊時指派預設值
+## (UltimateLibrary.default_ultimates())。
+var ultimates: Array[Ultimate] = []
+
 func _init(p_name: String, p_heroes: Array[Hero], p_leader: Hero = null) -> void:
 	name = p_name
 	heroes = p_heroes

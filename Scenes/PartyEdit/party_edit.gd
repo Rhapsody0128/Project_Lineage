@@ -59,18 +59,20 @@ func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/main.tscn")
 
 
-## 以現在編成開始一場隨機戰鬥:把目前放置在網格上的角色組成 Party,連同每個
-## 角色在網格上的站位(battle_cost_positions,座標系跟 Battle 自身區同一套,
-## 見 PartyEditGrid 開頭註解)一起記錄下來,交給 BattleReportStore 帶去 Battle
-## 場景,對上一個隨機敵方小隊(BattleController.get_battle_with_self_party())。
-## Battle 開戰佈陣時(見 battle.gd 的 _deploy_side())會直接照這些站位站,
-## 不是預設的靠邊縱隊。沒放任何角色時不給按。
+## 以現在編成開始戰鬥:把目前放置在網格上的角色組成 Party,連同每個角色在網格上的
+## 站位(battle_cost_positions,座標系跟 Battle 自身區同一套,見 PartyEditGrid 開頭
+## 註解)一起記錄下來,交給 BattleReportStore 帶去 Battle 場景,對上一個隨機敵方小隊
+## (BattleController.get_battle_with_self_party())。Battle 開戰佈陣時(見 battle.gd
+## 的 _deploy_side())會直接照這些站位站,不是預設的靠邊縱隊。沒放任何角色時不給按。
+## 固定走即時戰鬥模式(逐回合跑,回合間可以手動施放奧義,見 Scenes/Battle/battle.gd 的
+## _run_battle_realtime())——玩家自己編成上場,理所當然要能操作,不用另外分兩顆按鈕。
 func _on_start_battle_pressed() -> void:
 	var party := _build_party_from_grid()
 	if party == null:
 		return
 
 	BattleReportStore.pending_self_party = party
+	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.REALTIME
 	get_tree().change_scene_to_file("res://Scenes/Battle/battle.tscn")
 
 
@@ -101,6 +103,7 @@ func _build_party_from_grid() -> Party:
 		heroes.append(hero)
 
 	var party := Party.new("玩家小隊", heroes, grid.get_leader())
+	party.ultimates = UltimateLibrary.default_ultimates()
 	for hero in placed:
 		party.set_battle_position(hero, grid.get_placement_anchor(hero))
 	return party

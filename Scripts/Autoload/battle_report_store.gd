@@ -17,6 +17,11 @@ extends Node
 var reports: Array[BattleReport] = []
 var pending_report: BattleReport = null
 var pending_self_party: Party = null
+## 跟 pending_self_party 同一套交接模式:PartyEdit/main 場景切去 Battle 場景前設定,
+## Battle 場景 _ready()/_new_simulation() 讀完就重設回預設值 AUTO,決定這場戰鬥是一次性
+## 模擬完重播(AUTO),還是逐回合跑、回合間能手動施放奧義(REALTIME),見
+## Scenes/Battle/battle.gd 的 _run_battle_realtime()。
+var pending_battle_mode: GameEnums.BattleMode = GameEnums.BattleMode.AUTO
 
 func _ready() -> void:
 	_seed_demo_reports()

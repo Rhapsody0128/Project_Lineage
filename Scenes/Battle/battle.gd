@@ -42,11 +42,21 @@ const PORTRAIT_REGION := Rect2(0, 0, 32, 46)
 # 格子大小而跟地板對不上,永遠貼著同一顆 pivot 錨點(戰場面板左上角)長大/縮回。
 const BOARD_PIVOT := Vector2(140.0, 140.0)
 const BOARD_BASE_WIDTH := 828.0
+const BOARD_BASE_HEIGHT := 480.0
 const BOARD_SCALE_COLLAPSED := 1.5
 const RIGHT_PARTY_WIDTH := 112.0
 const RIGHT_PARTY_GAP := 8.0
 const RIGHT_PARTY_LEFT_EXPANDED := BOARD_PIVOT.x + BOARD_BASE_WIDTH + RIGHT_PARTY_GAP
 const RIGHT_PARTY_LEFT_COLLAPSED := BOARD_PIVOT.x + BOARD_BASE_WIDTH * BOARD_SCALE_COLLAPSED + RIGHT_PARTY_GAP
+
+# 奧義施放/生效時,在戰場正中央浮出的大字(見 _show_ultimate_banner())——不是某個
+# 角色頭像旁邊喊招式名稱那一套(那是 Skill 的表現方式,見 BattlePartyRoster.pulse_skill())。
+const ULTIMATE_BANNER_FONT_SIZE := 40
+const ULTIMATE_BANNER_COLOR := Color(1.0, 0.85, 0.35, 1.0)
+const ULTIMATE_BANNER_OUTLINE_COLOR := Color(0.15, 0.05, 0.02, 0.9)
+const ULTIMATE_BANNER_OUTLINE_SIZE := 8
+const ULTIMATE_BANNER_FADE_TIME := 0.3
+const ULTIMATE_BANNER_HOLD_TIME := 1.1
 
 
 var battle: Battle
@@ -59,6 +69,16 @@ var _pending_batch_actions := 0
 var is_report_playback := false
 var report: BattleReport
 
+# 戰鬥模式(見 GameEnums.BattleMode):AUTO 一次性模擬完直接重播(戰報/自動模式,
+# _run_battle_playback());REALTIME 逐回合跑,回合間開放玩家手動施放奧義
+# (_run_battle_realtime())。只有 _new_simulation()(自己生一場新戰鬥)這條路徑會讀
+# BattleReportStore.pending_battle_mode 決定;戰報播放/PartyEdit 帶編成兩條路徑目前
+# 固定走 AUTO。
+var battle_mode: GameEnums.BattleMode = GameEnums.BattleMode.AUTO
+# _run_battle_realtime() 已經播放到 battle.battle_log 的第幾筆(不含),下一次只播放
+# 這個索引之後新增的事件——逐回合跑,battle_log 是持續增長的,不能每次都從頭重播。
+var _played_log_index := 0
+
 var character_scene: PackedScene
 var portrait_texture: AtlasTexture
 
@@ -69,6 +89,7 @@ var log_expanded := true
 @onready var units_layer: Control = $UnitsLayer
 @onready var title_label: Label = $Title
 @onready var pause_button: Button = $UI/TopBar/PauseButton
+@onready var skip_button: Button = $UI/TopBar/SkipButton
 @onready var back_button: Button = $UI/TopBar/BackButton
 @onready var log_toggle_button: Button = $UI/TopBar/LogToggleButton
 @onready var log_panel_container: Panel = $UI/LogPanel
@@ -79,6 +100,7 @@ var log_expanded := true
 @onready var result_dialog: Control = $ResultDialog
 @onready var result_label: Label = $ResultDialog/Panel/VBox/ResultLabel
 @onready var result_detail_label: Label = $ResultDialog/Panel/VBox/DetailLabel
+@onready var ultimate_panel: BattleUltimatePanel = $UI/UltimatePanel
 
 
 # =========================================================
@@ -136,17 +158,27 @@ func _enter_playback_mode(p_report: BattleReport) -> void:
 # System/party,本函式只負責把回傳的 BattleHero 對應到畫面元件上。
 # =========================================================
 func _new_simulation() -> void:
+	battle_mode = BattleReportStore.pending_battle_mode
+	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
 	battle = BattleController.get_random_battle()
 	_setup_battlefield()
-	_run_battle_playback(true)
+	if battle_mode == GameEnums.BattleMode.REALTIME:
+		_run_battle_realtime()
+	else:
+		_run_battle_playback(true)
 
 
 ## PartyEdit「以現在編成開始戰鬥」用:玩家編好的小隊對上隨機敵方小隊,
 ## 其餘流程(佈陣/播放)跟一般隨機戰鬥共用同一套。
 func _new_simulation_with_self_party(self_party: Party) -> void:
+	battle_mode = BattleReportStore.pending_battle_mode
+	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
 	battle = BattleController.get_battle_with_self_party(self_party)
 	_setup_battlefield()
-	_run_battle_playback(true)
+	if battle_mode == GameEnums.BattleMode.REALTIME:
+		_run_battle_realtime()
+	else:
+		_run_battle_playback(true)
 
 
 ## 依目前的 battle(self_heroes/enemy_heroes 的站位與 HP)重建畫面上的單位與頭像列。
@@ -227,7 +259,9 @@ func _on_dialog_replay_pressed() -> void:
 func _run_battle_playback(should_simulate: bool) -> void:
 	is_battling = true
 	pause_button.disabled = false
+	skip_button.visible = false
 	result_dialog.visible = false
+	ultimate_panel.close_cast_window()
 	log_panel.clear_log()
 
 	if should_simulate:
@@ -251,6 +285,111 @@ func _run_battle_playback(should_simulate: bool) -> void:
 	pause_button.disabled = true
 	pause_button.text = "暫停"
 	_announce_result()
+	if should_simulate:
+		_record_battle_report()
+
+
+## 把這場戰鬥記錄進全域戰報列表(BattleReportStore),讓玩家之後能在戰報列表回顧。
+## 只有「新模擬的一場」會呼叫到這裡——_run_battle_playback() 只在 should_simulate=true
+## (剛跑完 battle.start() 的那次)呼叫,_run_battle_realtime() 整場跑完後呼叫一次;
+## 戰報播放模式(_enter_playback_mode())跟結果 Dialog 的「重播」按鈕都是重播同一份
+## 既有戰報(should_simulate=false),不會、也不該再記一次,否則戰報列表會出現重複項目。
+func _record_battle_report() -> void:
+	var mode_label := "即時" if battle_mode == GameEnums.BattleMode.REALTIME else "自動"
+	var title := "%s戰鬥 %d" % [mode_label, BattleReportStore.reports.size() + 1]
+	BattleReportStore.add_report(BattleReport.new(title, battle))
+
+
+## 即時戰鬥模式(GameEnums.BattleMode.REALTIME):跟 _run_battle_playback() 共用
+## System 層的判定/傷害邏輯(Battle.round_progress() 等完全相同),差別只在這裡逐回合
+## 呼叫 Battle.step_round() 推進,而不是一次跑完整場。戰鬥照樣自動連續播放、不會逐回合
+## 暫停詢問——奧義面板(ultimate_panel)從頭到尾一直開著,玩家隨時想放就直接按,按下去
+## 只是把這次施放排進佇列、下一回合開始才生效(見 _on_ultimate_selected()),不打斷
+## 戰鬥播放的節奏。目前只有玩家自己這一側(battle.self_ultimates)能手動施放,
+## 敵方不會使用奧義。
+func _run_battle_realtime() -> void:
+	is_battling = true
+	pause_button.disabled = false
+	skip_button.visible = true
+	result_dialog.visible = false
+	log_panel.clear_log()
+
+	ultimate_panel.setup(battle.self_ultimates)
+	if not ultimate_panel.ultimate_selected.is_connected(_on_ultimate_selected):
+		ultimate_panel.ultimate_selected.connect(_on_ultimate_selected)
+	ultimate_panel.open_cast_window()
+	_refresh_ultimate_buttons()
+
+	_played_log_index = 0
+	battle.start_realtime()
+	await _play_new_events()
+
+	var has_more_rounds := true
+	while has_more_rounds:
+		if not is_inside_tree():
+			return
+
+		has_more_rounds = battle.step_round()
+		await _play_new_events()
+
+		if not is_inside_tree():
+			return
+
+		# 這回合可能有奧義生效(HP 回復等)或用量被消耗,回合播完就刷新一次按鈕狀態,
+		# 不需要額外暫停等玩家確認。
+		_refresh_ultimate_buttons()
+
+	ultimate_panel.close_cast_window()
+
+	is_battling = false
+	pause_button.disabled = true
+	pause_button.text = "暫停"
+	skip_button.visible = false
+	_announce_result()
+	_record_battle_report()
+
+
+## 玩家在奧義面板點選一個奧義:面板全程開著,呼叫當下主迴圈(_run_battle_realtime())
+## 可能正在 await _play_new_events() 播放某一回合的動畫,這裡不要跟著搶播——直接呼叫
+## System 層排隊就結束(cast_ultimate() 只是把效果排進下一回合,不涉及畫面播放),
+## 下一回合生效時 UltimateResolveEvent 會留給主迴圈下一輪 _play_new_events() 自然播到,
+## 不會遺漏也不會被搶播兩次。施放者固定用玩家這一側目前存活的隊長(呼應 LEADER 技能的
+## 慣例,見 Spec.md「大將之風」),找不到(隊長已陣亡)就不給放。
+func _on_ultimate_selected(ultimate: Ultimate) -> void:
+	var caster := _ultimate_caster()
+	if caster == null:
+		return
+	if not battle.cast_ultimate(caster, ultimate):
+		return
+	_refresh_ultimate_buttons()
+
+
+func _ultimate_caster() -> BattleHero:
+	for battle_hero in battle.self_heroes:
+		if battle_hero.is_leader and not battle_hero.is_disabled:
+			return battle_hero
+	return null
+
+
+func _refresh_ultimate_buttons() -> void:
+	for ultimate in battle.self_ultimates:
+		ultimate_panel.refresh_button(ultimate, battle.can_cast_ultimate(ultimate), battle.ultimate_uses_remaining(ultimate))
+
+
+## 快速跳過(只有即時戰鬥模式會顯示這顆按鈕,見 skip_button.visible 的切換):不想看完
+## 剩下的即時戰鬥時,直接把剩餘回合一次模擬完(不播放動畫,battle.step_round() 本身是
+## 同步、不吃 await 的,一個迴圈瞬間跑完),照樣記錄戰報,然後直接返回上一頁——跟一般
+## 「返回」不同,一般返回是半途放棄不留紀錄,這裡戰鬥本身仍然完整跑完,只是不演給你看。
+## _run_battle_realtime() 那個協程可能還卡在某個 await(動畫/計時器)沒有真正結束,
+## 但 change_scene_to_file() 會讓這個場景離開樹,它下次恢復執行時 is_inside_tree() 會
+## 是 false 而自行提早返回,不會跟這裡重複跑完戰鬥或重複記錄戰報。
+func _on_skip_pressed() -> void:
+	if battle_mode != GameEnums.BattleMode.REALTIME or not is_battling:
+		return
+	while battle.step_round():
+		pass
+	_record_battle_report()
+	_on_back_pressed()
 
 
 ## 暫停/繼續:直接切 SceneTree.paused,配合 _safe_wait()/wait_for_animation() 都改成
@@ -314,11 +453,24 @@ func _on_back_pressed() -> void:
 # attack/skill 事件則跟緊接在後面的閃避/受傷反應事件合併同時播放(不分先後拍);
 # 其餘事件維持逐筆播放。
 # =========================================================
+## AUTO 模式用:battle 已經一次跑完整場模擬,從頭到尾整份播放。
 func _play_battle_log() -> void:
-	var i := 0
-	var log_size := battle.battle_log.size()
+	await _play_events_range(0, battle.battle_log.size())
 
-	while i < log_size:
+
+## 即時戰鬥模式用:battle_log 隨著 Battle.step_round()/cast_ultimate() 逐步增長,
+## 只播放上次播放到的位置(_played_log_index)之後新增的那一段,播完更新索引,
+## 不會每次都從頭重播已經看過的事件。
+func _play_new_events() -> void:
+	var to_index := battle.battle_log.size()
+	await _play_events_range(_played_log_index, to_index)
+	_played_log_index = to_index
+
+
+func _play_events_range(from_index: int, to_index: int) -> void:
+	var i := from_index
+
+	while i < to_index:
 		# 播放期間場景可能被切走(例如中途按「返回」),節點會離開場景樹但
 		# 尚未被釋放,協程恢復執行時若繼續呼叫 get_tree() 會拿到 null 而炸掉,
 		# 所以每輪都先確認自己還在樹上,不在就直接放棄剩餘播放。
@@ -330,7 +482,7 @@ func _play_battle_log() -> void:
 		if event.event_type in BATCHABLE_EVENT_TYPES:
 			var batch: Array[BattleEvent] = [event]
 			i += 1
-			while i < log_size and battle.battle_log[i].event_type in BATCHABLE_EVENT_TYPES and batch.size() < EVENT_BATCH_SIZE:
+			while i < to_index and battle.battle_log[i].event_type in BATCHABLE_EVENT_TYPES and batch.size() < EVENT_BATCH_SIZE:
 				batch.append(battle.battle_log[i])
 				i += 1
 			await _play_event_batch(batch)
@@ -340,11 +492,11 @@ func _play_battle_log() -> void:
 		# B. 守護觸發:guard 事件後面一定緊接著 attack/skill(見
 		# CombatResolver.resolve_guard() 的呼叫順序),整組(飛身頂替 + 攻擊 + 反應 +
 		# 歸位)當一個單位播放。
-		if event.event_type == GameEnums.BattleEventType.GUARD and i + 1 < log_size and battle.battle_log[i + 1].event_type in [GameEnums.BattleEventType.ATTACK, GameEnums.BattleEventType.SKILL]:
+		if event.event_type == GameEnums.BattleEventType.GUARD and i + 1 < to_index and battle.battle_log[i + 1].event_type in [GameEnums.BattleEventType.ATTACK, GameEnums.BattleEventType.SKILL]:
 			var guarded_action_event: BattleEvent = battle.battle_log[i + 1]
 			var guarded_reaction_events: Array[BattleEvent] = []
 			var k := i + 2
-			while k < log_size and battle.battle_log[k].event_type in REACTION_EVENT_TYPES:
+			while k < to_index and battle.battle_log[k].event_type in REACTION_EVENT_TYPES:
 				guarded_reaction_events.append(battle.battle_log[k])
 				k += 1
 			await _play_guarded_action(event as GuardEvent, guarded_action_event, guarded_reaction_events)
@@ -352,12 +504,12 @@ func _play_battle_log() -> void:
 			await _safe_wait(STEP_DELAY)
 			continue
 
-		if (event.event_type == GameEnums.BattleEventType.ATTACK or event.event_type == GameEnums.BattleEventType.SKILL) and i + 1 < log_size and battle.battle_log[i + 1].event_type in REACTION_EVENT_TYPES:
+		if (event.event_type == GameEnums.BattleEventType.ATTACK or event.event_type == GameEnums.BattleEventType.SKILL) and i + 1 < to_index and battle.battle_log[i + 1].event_type in REACTION_EVENT_TYPES:
 			# 範圍技能可能一次波及多個目標,緊接著的反應事件(dodge/damage)不保證只有一筆,
 			# 把連續出現的都收進同一批,一起套用。
 			var reaction_events: Array[BattleEvent] = []
 			var j := i + 1
-			while j < log_size and battle.battle_log[j].event_type in REACTION_EVENT_TYPES:
+			while j < to_index and battle.battle_log[j].event_type in REACTION_EVENT_TYPES:
 				reaction_events.append(battle.battle_log[j])
 				j += 1
 			await _play_action_with_reaction(event, reaction_events)
@@ -437,6 +589,8 @@ func _play_single_event(event: BattleEvent) -> void:
 			_apply_defeated(event as DefeatedEvent)
 		GameEnums.BattleEventType.BATTLE_END:
 			_log("戰鬥結束(共 %d 回合)，進行結算。" % (event as BattleEndEvent).round)
+		GameEnums.BattleEventType.ULTIMATE_RESOLVE:
+			_apply_ultimate_resolve(event as UltimateResolveEvent)
 
 
 ## attack/skill 動畫與緊接在後的閃避/受傷反應同時播放,不要分先後拍:
@@ -562,6 +716,50 @@ func _apply_defeated(event: DefeatedEvent) -> void:
 
 	visual.apply_defeated()
 	_roster_for(event.party).mark_defeated(event.party)
+
+
+## 奧義生效:延遲回合到了(Battle._round_start() 呼叫 Ultimate.resolve()),數值效果
+## (回血/傷害等)真正套用的那一刻。resolve_line 不是「即將發生」的預告,而是效果本身
+## 發生當下的天象描述(例如「詭異龍捲風攻擊敵人」)——施放的當下不會另外顯示東西,
+## 只有這裡(生效當下)才在戰場正中央浮出台詞(不是 Skill 那種「在角色頭像旁邊喊招式
+## 名稱」的表現,見 _show_ultimate_banner())。戰報文字一樣顯示這句台詞,判定細節
+## 只放在滑鼠懸停(_hint())裡,目前是方便除錯用,正式版拿掉詳細戰報後不影響玩家看到
+## 的台詞本身。
+func _apply_ultimate_resolve(event: UltimateResolveEvent) -> void:
+	_log(_hint("[color=cyan][b]%s[/b][/color]" % event.flavor_text, event))
+	_show_ultimate_banner(event.flavor_text)
+
+
+## 在戰場正中央浮出一行大字,不 await——淡入 → 停留 → 淡出後自動釋放,不擋播放節奏。
+## 位置依 board 目前的縮放狀態(log 面板展開/收合,見 _apply_log_layout())即時算出
+## 視覺中心;banner 本身掛在場景根節點下(不隨 board/units_layer 縮放),字體大小固定
+## 可讀,不會因為戰場縮小/放大而跟著變形。
+func _show_ultimate_banner(text: String) -> void:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_font_size_override("font_size", ULTIMATE_BANNER_FONT_SIZE)
+	label.add_theme_color_override("font_color", ULTIMATE_BANNER_COLOR)
+	label.add_theme_color_override("font_outline_color", ULTIMATE_BANNER_OUTLINE_COLOR)
+	label.add_theme_constant_override("outline_size", ULTIMATE_BANNER_OUTLINE_SIZE)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.z_index = 10
+	label.modulate.a = 0.0
+	add_child(label)
+
+	# 等一影格讓 Label 依內容算出實際尺寸,才能正確置中。
+	await get_tree().process_frame
+	if not is_instance_valid(label):
+		return
+
+	label.size = label.get_combined_minimum_size()
+	var board_center := BOARD_PIVOT + Vector2(BOARD_BASE_WIDTH, BOARD_BASE_HEIGHT) * 0.5 * board.scale.x
+	label.position = board_center - label.size * 0.5
+
+	var tw := label.create_tween()
+	tw.tween_property(label, "modulate:a", 1.0, ULTIMATE_BANNER_FADE_TIME)
+	tw.tween_interval(ULTIMATE_BANNER_HOLD_TIME)
+	tw.tween_property(label, "modulate:a", 0.0, ULTIMATE_BANNER_FADE_TIME)
+	tw.tween_callback(label.queue_free)
 
 
 ## B. 守護觸發的完整演出:守護者先飛身到受擊者面前(面向攻擊方)、喊出招式名稱,

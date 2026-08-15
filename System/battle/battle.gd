@@ -14,6 +14,12 @@ const TOTAL_ROUND := 10
 var self_heroes: Array[BattleHero]
 var enemy_heroes: Array[BattleHero]
 
+## 雙方可施放的奧義(見 System/ultimate/),即時戰鬥模式(start_realtime())才會用到,
+## 從 Party.ultimates 複製一份——奧義本身是無狀態資料,施放次數限制另外用
+## _ultimate_use_counts(依 Ultimate.id 計數)追蹤,不會共用/污染到 Party 上的原始清單。
+var self_ultimates: Array[Ultimate] = []
+var enemy_ultimates: Array[Ultimate] = []
+
 var _round: int = 0
 
 ## 結構化戰報,依序記錄戰鬥中發生的每一個事件,供外部(UI/場景)重播使用
@@ -24,12 +30,17 @@ func _init(self_party: Party, enemy_party: Party) -> void:
 	enemy_heroes = _attach_battle_heroes(true, enemy_party)
 	_deploy_side(self_heroes, self_party, false)
 	_deploy_side(enemy_heroes, enemy_party, true)
+	self_ultimates = self_party.ultimates.duplicate()
+	enemy_ultimates = enemy_party.ultimates.duplicate()
 	_capture_start_state()
 
-## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。
+## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。開戰前先回滿血——Hero 可能是跨多場
+## 戰鬥重複使用的實例(例如 PartyEdit 編成的角色),不會自動繼承上一場戰鬥結束當下的
+## 殘血,每場新戰鬥一律從滿血開始(見 Hero.full_heal())。
 func _attach_battle_heroes(is_enemy: bool, party: Party) -> Array[BattleHero]:
 	var battle_heroes: Array[BattleHero] = []
 	for hero in party.heroes:
+		hero.full_heal()
 		var is_leader := hero == party.leader
 		battle_heroes.append(BattleHero.new(hero, self, is_enemy, is_leader))
 	return battle_heroes
@@ -77,7 +88,7 @@ var action_order: Array[BattleHero]:
 		battle_heroes.sort_custom(func(a: BattleHero, b: BattleHero) -> bool: return a.action_speed > b.action_speed)
 		return battle_heroes
 
-## 開始戰鬥,一次性跑完整場模擬並寫入 battle_log
+## 開始戰鬥,一次性跑完整場模擬並寫入 battle_log(戰報模式,GameEnums.BattleMode.AUTO)
 func start() -> void:
 	_init_battle()
 	while _round < TOTAL_ROUND and not is_decided:
@@ -86,11 +97,42 @@ func start() -> void:
 		_round_end()
 	_conclude_battle()
 
+## 是否已經開始即時戰鬥(start_realtime() 呼叫過)/是否已經結束(跑滿 TOTAL_ROUND 或
+## 分出勝負)。AUTO 模式(start())不使用這兩個旗標。
+var is_realtime_started: bool = false
+var is_over: bool = false
+
+## 即時戰鬥模式(GameEnums.BattleMode.REALTIME)進場:只記開戰事件,不往下跑,
+## 之後由呼叫端逐回合呼叫 step_round() 推進——回合之間才有空檔讓玩家決定要不要
+## 呼叫 cast_ultimate() 施放奧義。跟 start() 共用 round_progress()/_round_start()/
+## _round_end() 這套核心迴圈,行動決策/傷害判定等規則完全不因模式而異,差別只在
+## 這裡是外部一次跑一回合,不是內部一次跑完整場。
+func start_realtime() -> void:
+	_init_battle()
+	is_realtime_started = true
+
+## 跑完剛好一個回合;回傳 false 代表戰鬥已經結束(跑滿 TOTAL_ROUND 或分出勝負),
+## 呼叫端不用再呼叫。尚未呼叫 start_realtime() 或戰鬥已結束時直接回傳 false。
+func step_round() -> bool:
+	if not is_realtime_started or is_over:
+		return false
+
+	_round_start()
+	round_progress()
+	_round_end()
+
+	if _round >= TOTAL_ROUND or is_decided:
+		_conclude_battle()
+		is_over = true
+		return false
+	return true
+
 func _init_battle() -> void:
 	log_event(BattleStartEvent.new())
 
 func _round_start() -> void:
 	log_event(RoundStartEvent.new(_round + 1))
+	_resolve_pending_ultimate_effects(_round + 1)
 
 ## 回合進行:全滅的一方沒有敵人可打,action() 內部 search_enemy() 找不到目標會自動
 ## 提前 return,不需要另外判斷戰鬥是否已經分出勝負;但只要有一方隊長陣亡
@@ -166,6 +208,74 @@ var result: GameEnums.BattleResultType:
 ## HP 總量純粹保留給畫面展示用,實際勝負一律看 result。
 func _conclude_battle() -> void:
 	log_event(BattleEndEvent.new(_round, self_total_hp, enemy_total_hp, result))
+
+# =========================================================
+# 奧義(即時戰鬥模式專用,見 System/ultimate/):施放(cast)跟生效(resolve)分成
+# 兩個時間點——cast_ultimate() 當下只記錄戰報事件、把效果排進 pending_ultimate_effects
+# 佇列,真正的數值效果留到 _round_start() 判斷「輪到這回合了」才呼叫 Ultimate.resolve()
+# 套用,對應「這回合施放,下回合才生效」的設計(見 Ultimate.delay_rounds)。
+# =========================================================
+
+## 排隊等待生效的奧義效果,每筆 {"resolve_round": int, "caster": BattleHero,
+## "ultimate": Ultimate}。不用型別化事件類別包這筆資料——這是 Battle 內部排程用的
+## 暫存狀態,不是要給外部(UI/戰報)讀的「已發生」紀錄,跟 _start_state 一樣用 Dictionary。
+var pending_ultimate_effects: Array[Dictionary] = []
+
+## 每個奧義(依 Ultimate.id)這場戰鬥已經施放過幾次,超過 Ultimate.max_uses_per_battle
+## 就不能再放,見 can_cast_ultimate()。
+var _ultimate_use_counts: Dictionary = {}
+
+func can_cast_ultimate(ultimate: Ultimate) -> bool:
+	if is_over or is_decided:
+		return false
+	if ultimate.max_uses_per_battle < 0:
+		return true
+	var uses: int = _ultimate_use_counts.get(ultimate.id, 0)
+	return uses < ultimate.max_uses_per_battle
+
+## 這個奧義這場戰鬥還能放幾次,UI(奧義按鈕)顯示用。-1 代表不限次數(Ultimate.
+## max_uses_per_battle < 0)。
+func ultimate_uses_remaining(ultimate: Ultimate) -> int:
+	if ultimate.max_uses_per_battle < 0:
+		return -1
+	var uses: int = _ultimate_use_counts.get(ultimate.id, 0)
+	return maxi(ultimate.max_uses_per_battle - uses, 0)
+
+## 施放一個奧義:caster 只影響效果解讀(例如以誰為中心算範圍),「天降甘霖」這種全隊
+## 效果不吃施法者素質。施放當下算好 resolve_round 存進 pending_ultimate_effects,實際
+## 效果留給 _round_start() 到時候呼叫。can_cast_ultimate() 為 false 時直接失敗、不計入
+## 次數。
+##
+## resolve_round 算法:即時戰鬥逐回合跑(step_round()),模擬永遠跑在畫面播放前面——
+## 玩家點下施放的當下,battle_log 播放到的那一回合(玩家「感覺上」正在看的回合)其實
+## 早就模擬完了、_round 已經被 _round_end() 加計為那一回合的編號,不是「即將開始」的
+## 編號。所以「下一回合生效」單純是 _round + delay_rounds,不能再疊加一次
+## 「+1 代表下一回合」——疊加會多算一輪,變成玩家感覺的「下下回合」才生效。
+func cast_ultimate(caster: BattleHero, ultimate: Ultimate) -> bool:
+	if not can_cast_ultimate(ultimate):
+		return false
+
+	_ultimate_use_counts[ultimate.id] = _ultimate_use_counts.get(ultimate.id, 0) + 1
+	var resolve_round := _round + ultimate.delay_rounds
+	pending_ultimate_effects.append({
+		"resolve_round": resolve_round,
+		"caster": caster,
+		"ultimate": ultimate,
+	})
+	ultimate.cast(caster, resolve_round)
+	return true
+
+## _round_start() 開場呼叫:把排定在這一回合生效的奧義效果全部套用並從佇列移除,
+## 順序在 RoundStartEvent 記錄之後、round_progress() 之前——奧義的效果(例如回血)
+## 要在角色行動前就反映在 HP 上。
+func _resolve_pending_ultimate_effects(round_number: int) -> void:
+	for pending in pending_ultimate_effects.duplicate():
+		if pending.resolve_round != round_number:
+			continue
+		var ultimate: Ultimate = pending.ultimate
+		var caster: BattleHero = pending.caster
+		ultimate.resolve(caster)
+		pending_ultimate_effects.erase(pending)
 
 ## 戰鬥結束事件,戰鬥跑完後一定有值——BattleReport/battle.gd 都改讀這個當唯一結算
 ## 來源,不要再各自寫一份「掃 battle_log 找 battle_end,找不到就退回現算」的 fallback。

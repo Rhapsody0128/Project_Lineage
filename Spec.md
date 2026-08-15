@@ -44,8 +44,9 @@
   直接把小隊裡的角色攤平成一維陣列,每個角色各自用一個 `BattleHero` 包裝、各佔一格
   獨立作戰。目前寫死 1 小隊=6 名隨機角色(對應戰場 6 路縱隊),之後小隊人數會開放
   玩家配置、可被科技研發提升。
-- HP:士兵/陣形系統已整個移除,角色直接有自己的 HP(`Hero.hp`,上限
-  `Hero.HP_MAX=600`,目前全角色統一固定值,還沒有依素質/等級計算的公式)。
+- HP:士兵/陣形系統已整個移除,角色直接有自己的 HP(`Hero.hp`,上限由
+  `Hero.COST_HP_MAP` 依 `battle_cost.cells.size()`(佔位格數 3~7)換算:600/700/800/
+  900/1000,還沒有依素質/等級計算的公式)。
   `CombatResolver.apply_damage()` 傷害直接扣 `hero.hp`,歸零視為戰敗(`DefeatedEvent`)。
 - 勝負:固定跑 `Battle.TOTAL_ROUND=10` 回合。總大將沿用現有隊長機制(`Party.leader`/
   `BattleHero.is_leader`):`Battle.is_decided` 判斷任一方總大將陣亡就提前結束戰鬥;
@@ -126,7 +127,8 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 - 士兵(`Soldier`)、陣形(`Formation`)系統已整個移除,暫時不需要這些設計;武器
   (`GameEnums.WeaponType`)保留,但只作為攻擊距離/技能綁定的標籤,不是可拾取裝備的
-  武器系統。角色 HP 現在統一固定 `Hero.HP_MAX=600`,還沒有依素質/等級計算血量的公式
+  武器系統。角色 HP 現在依 `Hero.COST_HP_MAP` 隨 battle_cost 格數(3~7)換算
+  600/700/800/900/1000,還沒有依素質/等級計算血量的公式
 - 小隊編制(`Party.heroes`)目前是寫死的隨機 6 人小隊,還沒有玩家自訂編隊 UI
 - 範圍技能命中判定還沒有「目標死活以外」的地形/隊形加成
 - `Scenes/Battle/battle_unit_visual.gd` 角色右下角常駐的武器類型文字是測試階段除錯用

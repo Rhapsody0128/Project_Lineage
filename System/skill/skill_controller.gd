@@ -33,7 +33,7 @@ static func get_random_skill_list_by_rank(skill_rank: GameEnums.RankType) -> Arr
 ## 避免技能欄/AI 骰選池被撐得過大。
 const MAX_SKILLS_PER_HERO := 4
 
-## 該武器能用的技能:bind_weapon 相符,或技能沒有綁定武器(EMPTY,徒手也能用),
+## 該武器能用的技能:bind_weapon 相符,或技能沒有綁定武器(NO_WEAPON_BINDING,任何武器都能用),
 ## 超過 MAX_SKILLS_PER_HERO 時優先保留這把武器「專屬綁定」的技能(至少要有東西能打),
 ## 其餘名額(含無綁定的被動/LEADER 技能)隨機從剩下的裡面抽,不會每次都固定同一批。
 static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array[Skill]:
@@ -42,7 +42,7 @@ static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array
 	for skill in _skill_library:
 		if skill.bind_weapon == weapon_type:
 			bound.append(skill)
-		elif skill.bind_weapon == GameEnums.WeaponType.EMPTY:
+		elif skill.bind_weapon == GameEnums.NO_WEAPON_BINDING:
 			unbound.append(skill)
 
 	var result: Array[Skill] = bound.duplicate()

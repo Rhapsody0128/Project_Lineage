@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
 BattleReportStore="*res://Scripts/Autoload/battle_report_store.gd"
 PartyEditStore="*res://Scripts/Autoload/party_edit_store.gd"
+UltimateStore="*res://Scripts/Autoload/ultimate_store.gd"
 
 [display]
 

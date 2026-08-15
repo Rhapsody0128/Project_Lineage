@@ -14,7 +14,8 @@ var area_shape: GameEnums.AreaShape
 var area_size: int
 var effect_stat: GameEnums.PotentialType
 var skill_type: GameEnums.SkillType
-var bind_weapon: GameEnums.WeaponType
+## GameEnums.WeaponType 之一,或 GameEnums.NO_WEAPON_BINDING(任何武器都能用,例如被動/隊長技能)
+var bind_weapon: int = GameEnums.NO_WEAPON_BINDING
 var is_leader_skill: bool
 ## 被動技能:不會出現在 BattleHero.action_chance_map 裡供每回合骰選,而是開戰時
 ## 套用一次(見 BattleHero._apply_passive_skills()/apply_passive())。

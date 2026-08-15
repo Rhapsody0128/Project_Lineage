@@ -9,6 +9,11 @@ rotation = -6.2831855
 script = ExtResource("1_map")
 
 [node name="Camera" type="Camera2D" parent="." unique_id=2135090404]
+limit_left = 0
+limit_top = 0
+limit_right = 8000
+limit_bottom = 4500
+limit_smoothed = true
 
 [node name="Background" type="TextureRect" parent="." unique_id=1517579340]
 offset_right = 8000.0

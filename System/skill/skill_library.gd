@@ -160,7 +160,7 @@ static func _passive_skills() -> Array[Skill]:
 		.area_size(1)
 		.effect_stat(GameEnums.PotentialType.STRENGTH)
 		.skill_type(GameEnums.SkillType.BUFF)
-		.bind_weapon(GameEnums.WeaponType.EMPTY) # 無綁定,任何角色都能有這個被動
+		.bind_weapon(GameEnums.NO_WEAPON_BINDING) # 無綁定,任何角色都能有這個被動
 		.passive()
 		.base_chance(0.0) # 被動不吃行動骰選,權重無意義
 		.skill_ratio(0.3) # 力量/智慧各 +30%
@@ -198,7 +198,7 @@ static func _leader_skills() -> Array[Skill]:
 		.area_size(1)
 		.effect_stat(GameEnums.PotentialType.STRENGTH)
 		.skill_type(GameEnums.SkillType.BUFF)
-		.bind_weapon(GameEnums.WeaponType.EMPTY) # 無綁定,任何武器的隊長都能用
+		.bind_weapon(GameEnums.NO_WEAPON_BINDING) # 無綁定,任何武器的隊長都能用
 		.leader_skill()
 		.base_chance(25.0)
 		.skill_ratio(0.2) # 每項素質 +20%

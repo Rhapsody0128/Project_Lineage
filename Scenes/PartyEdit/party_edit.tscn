@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit.gd" id="1"]
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit_board.gd" id="2"]
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit_availability_layer.gd" id="3"]
+[ext_resource type="Script" path="res://Scripts/UI/hero_sort_filter_bar.gd" id="4"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.086, 0.098, 0.145, 1)
@@ -229,6 +230,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
 text = "候補角色"
+
+[node name="SortFilterBar" type="VBoxContainer" parent="UI/RightPanel/Margin/VBox"]
+layout_mode = 2
+script = ExtResource("4")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="UI/RightPanel/Margin/VBox"]
 layout_mode = 2

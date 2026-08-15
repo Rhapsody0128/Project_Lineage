@@ -19,11 +19,6 @@ const LINE_WIDTH := 8.0
 const DRAG_SENSITIVITY_MIN := 6.0
 const DRAG_SENSITIVITY_MAX := 6.0
 
-## 每次滾輪放大(zoom in)時,相機位置往地圖中心點內插靠攏的比例。放大不是
-## 原地放大(zoom 不變、position 不變地直接縮小可視範圍),而是連續往中心
-## 收攏,縮到最大時位置已經非常靠近中心,自然不會貼到地圖邊界。
-const CENTER_PULL_PER_ZOOM_IN_NOTCH := 0.12
-
 @onready var camera: Camera2D = $Camera
 @onready var map_objects_layer: Node2D = $MapObjectsLayer
 @onready var destination_line: Line2D = $DestinationLine
@@ -205,19 +200,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			_drag_camera(motion_event.relative)
 
 
+## 縮放以滑鼠位置為中心:縮放前先記下滑鼠目前指到的世界座標,套用新 zoom
+## 後,把相機位置補償回去,讓同一個世界座標縮放後仍然落在滑鼠底下(而不是
+## 鏡頭中心)。夾在地圖邊界時(_clamp_camera_position)這個對齊會被打斷,
+## 屬預期行為。
 func _zoom_camera(zoom_in: bool) -> void:
 	var factor := (1.0 / ZOOM_FACTOR_PER_NOTCH) if zoom_in else ZOOM_FACTOR_PER_NOTCH
 	var new_zoom := camera.zoom * factor
 	new_zoom.x = clamp(new_zoom.x, ZOOM_MIN.x, ZOOM_MAX.x)
 	new_zoom.y = clamp(new_zoom.y, ZOOM_MIN.y, ZOOM_MAX.y)
-	var zoom_changed := new_zoom != camera.zoom
-	camera.zoom = new_zoom
+	if new_zoom == camera.zoom:
+		return
 
-	# 放大不是原地縮小可視範圍,而是連續往地圖中心點收攏(見常數註解)。
-	# 只在「這次真的有放大」時才收攏——已經放到 ZOOM_MIN 夾到底之後,
-	# 再往放大方向滾滾輪不該還繼續把鏡頭往中心拉。
-	if zoom_in and zoom_changed:
-		camera.position = camera.position.lerp(MapSystem.MAP_SIZE / 2.0, CENTER_PULL_PER_ZOOM_IN_NOTCH)
+	var mouse_world_before := camera.get_global_mouse_position()
+	camera.zoom = new_zoom
+	var mouse_world_after := camera.get_global_mouse_position()
+	camera.position += mouse_world_before - mouse_world_after
 
 	_clamp_camera_position()
 

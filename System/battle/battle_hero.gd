@@ -168,8 +168,7 @@ func kite_to_max_range(target: BattleHero, atk_range: int) -> void:
 func is_in_range(target: BattleHero, atk_range: int) -> bool:
 	return Util.manhattan_distance(grid_pos, target.grid_pos) <= atk_range
 
-## 基本攻擊距離:近戰武器(劍/盾/匕首)1 格、遠程武器(弓/法杖/捕夢網)2 格,
-## 徒手(EMPTY)比照近戰
+## 基本攻擊距離:近戰武器(劍/盾/匕首)1 格、遠程武器(弓/法杖/捕夢網)2 格
 var basic_attack_range: int:
 	get: return GameEnums.WEAPON_BASIC_ATTACK_RANGE[hero.weapon]
 

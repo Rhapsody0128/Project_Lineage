@@ -28,9 +28,9 @@ var battle_cost: BattleCost:
 		_update_layout()
 
 ## 決定每格填色(見 GameEnums.weapon_border_color())。呼叫端(HeroCard、
-## PartyEdit 已放置圖層、CharacterPanel)各自從 hero.weapon 帶進來,預設 EMPTY
-## 顯示中性灰。
-var weapon: GameEnums.WeaponType = GameEnums.WeaponType.EMPTY:
+## PartyEdit 已放置圖層、CharacterPanel)一律從 hero.weapon 帶進來,角色一定持有
+## 真實武器,這裡的預設值只是節點建立當下、賦值前的過渡狀態。
+var weapon: GameEnums.WeaponType = GameEnums.WeaponType.SWORD:
 	set(value):
 		weapon = value
 		queue_redraw()
@@ -128,7 +128,7 @@ func _build_standee_texture() -> Texture2D:
 
 ## 建立一個「整體形狀置中對齊游標」的拖曳浮動預覽,給 set_drag_preview() 用。
 ## 回傳的就是這個 view 本身,呼叫端要保留來後續更新 battle_cost(旋轉)。
-static func build_centered_drag_preview(shape: Array[Vector2i], p_cell_size: float, p_weapon: GameEnums.WeaponType = GameEnums.WeaponType.EMPTY) -> BattleCostView:
+static func build_centered_drag_preview(shape: Array[Vector2i], p_cell_size: float, p_weapon: GameEnums.WeaponType = GameEnums.WeaponType.SWORD) -> BattleCostView:
 	var view := BattleCostView.new()
 	view.cell_size = p_cell_size
 	view.weapon = p_weapon

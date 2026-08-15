@@ -21,9 +21,10 @@ var _buttons: Dictionary = {} # Ultimate -> Button
 
 
 ## 依可施放的奧義清單建立按鈕,只在戰鬥一開始呼叫一次(清單本身不會在戰鬥中變動,
-## 變的只是「還能不能放」,見 refresh_button())。面板固定貼在畫面最下緣一條窄帶
-## (見 battle.tscn 的 UltimatePanel offset,不管戰報面板展開/收合都在戰場之外,
-## 不會被 LogToggleButton 收合戰報時撐大的戰場蓋到),按鈕尺寸配合這條窄帶縮小。
+## 變的只是「還能不能放」,見 refresh_button())。面板貼在戰場下緣一條窄帶(跟左右
+## 頭像列、BoardCanvas/UnitsLayer 一起收在 battle.tscn 的 BattlefieldPanel 底下),
+## 寬度由 battle.gd 的 _apply_log_layout() 隨戰場縮放同步調整、左緣固定貼齊戰場左緣,
+## 按鈕尺寸配合這條窄帶縮小。
 func setup(ultimates: Array[Ultimate]) -> void:
 	for child in button_row.get_children():
 		child.queue_free()
@@ -40,15 +41,15 @@ func setup(ultimates: Array[Ultimate]) -> void:
 		_buttons[ultimate] = button
 
 
-## 依目前是否還放得出來(Battle.can_cast_ultimate())+ 還剩幾次(Battle.
-## ultimate_uses_remaining(),-1 代表不限次數)更新單一按鈕的可按狀態與文字。
+## 依目前是否還放得出來(battle.gd 同時檢查 Battle.can_cast_ultimate() 這場戰鬥內的
+## 次數與 UltimateStore.can_use() 跨場景保留的全程次數)+ 還剩幾次(UltimateStore.
+## uses_remaining(),該奧義跨場景共用、5 次用完就沒了)更新單一按鈕的可按狀態與文字。
 func refresh_button(ultimate: Ultimate, can_cast: bool, uses_remaining: int) -> void:
 	var button: Button = _buttons.get(ultimate)
 	if button == null:
 		return
 	button.disabled = not can_cast
-	var count_text := "∞" if uses_remaining < 0 else str(uses_remaining)
-	button.text = "%s (%s)" % [ultimate.name, count_text]
+	button.text = "%s (%d)" % [ultimate.name, uses_remaining]
 
 
 func open_cast_window() -> void:

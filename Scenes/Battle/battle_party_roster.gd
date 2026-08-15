@@ -1,20 +1,34 @@
 class_name BattlePartyRoster
-extends VBoxContainer
+extends HBoxContainer
 
 # =========================================================
 # 左右兩側的隊伍頭像列:一格正方形頭像(暫用 Warrier 正面圖佔位)、
 # 角色名字、以及顯示「目前 HP/最大 HP」的血條。
 # 只負責畫面表現,HP 數字全部來自 System/battle 的 BattleHero。
 #
+# 小隊人數上限未來會開放到 12(見 CLAUDE.md),固定預留「6 列 x 2 欄」版面:第一欄
+# 由上往下站滿 ROWS_PER_COLUMN(6)人,第 7 人才開始站第二欄(一樣由上往下)。這是
+# 「先欄後列」的填法,GridContainer 的預設排法是「先列後欄」(依序左右排滿一列才
+# 換下一列),兩者順序不同,所以這裡改用「HBoxContainer 包兩個 VBoxContainer 欄位」
+# 自己控制哪個角色分到哪一欄(見 _column_a/_column_b/populate()),不直接用
+# GridContainer。父節點包一層 CenterContainer(見 battle.tscn),人數不到上限時
+# 整塊置中顯示,人數滿 12 時剛好填滿面板,不需要另外切兩套版面。
+#
 # 角色行動時(移動/攻擊/發呆/放技能)頭像會往戰場方向靠近一點,提示「輪到這個
 # 角色動作」;放技能時額外把頭像框變色高亮,取代舊版「頭上飄技能名稱」的做法。
 # =========================================================
+
+## 單欄最多站幾人,滿了才開下一欄(見上面「先欄後列」註解)。
+const ROWS_PER_COLUMN := 6
 
 const ENEMY_TINT := Color(1.0, 0.55, 0.55)
 const SELF_TINT := Color(0.75, 0.85, 1.0)
 const HP_BAR_FILL_SELF := Color(0.45, 0.85, 0.45)
 const HP_BAR_BG := Color(0.1, 0.1, 0.12)
-const PORTRAIT_SIZE := Vector2(50, 50)
+## 頭像尺寸(從 50x50 縮小到 44x44):兩欄併排要塞進原本一欄的面板寬度
+## (LeftPartyPanel/RightPartyPanel 112px,見 battle.tscn),縮小頭像才留得出兩欄
+## + 欄距的空間,不用因此加寬面板、牽動戰場其餘版面。
+const PORTRAIT_SIZE := Vector2(44, 44)
 const SLOT_SEPARATION := 8
 
 # 行動提示:頭像往戰場方向位移的距離/時間(出去、停留、返回)
@@ -39,15 +53,19 @@ const SKILL_BUBBLE_TAIL_SIZE := 12.0
 const SKILL_BUBBLE_FADE_TIME := 0.15
 const SKILL_BUBBLE_HOLD_TIME := 0.45
 
-# 素質增益/減益箭頭:固定佔頭像右側一塊「上箭頭/下箭頭各一格」的區域,不是往頭像
-# 下方加一排——那樣行高會隨目前生效的 buff/debuff 數量變動,擠壓/推移同一份名單裡
-# 排在後面的角色(見 _spawn_slot() 的 portrait_row)。同時中好幾種素質時,箭頭顏色
-# 依 GameEnums.potential_color() 每隔 STATUS_ARROW_CYCLE_INTERVAL 秒輪流切換(見
-# _cycle_timer/_refresh_status_arrow()),例如 +力量 +敏捷 就是紅→黃→紅…輪流跑,
-# 不會因為要同時顯示多種顏色而另外撐開版面。
-const STATUS_ARROW_WIDTH := 20.0
-const STATUS_ARROW_GAP := 4.0
-const STATUS_ARROW_FONT_SIZE := 15
+# 素質增益/減益箭頭:疊在頭像「正上方」左右兩個角標(左上=增益、右上=減益),
+# 不再往頭像右側外溢——兩欄併排的頭像列(見上面 PORTRAIT_SIZE 註解)欄距只有
+# SLOT_SEPARATION 這幾 px,外溢的箭頭會蓋到隔壁欄的頭像,所以改成疊在頭像本人
+# 範圍內的角標,固定佔用同一塊區域,不會往下擠壓/推移同一份名單裡排在後面的角色
+# (見 _spawn_slot() 的 portrait_row)。疊在頭像圖上要加外框(outline)才看得清楚。
+# 同時中好幾種素質時,箭頭顏色依 GameEnums.potential_color() 每隔
+# STATUS_ARROW_CYCLE_INTERVAL 秒輪流切換(見 _cycle_timer/_refresh_status_arrow()),
+# 例如 +力量 +敏捷 就是紅→黃→紅…輪流跑,不會因為要同時顯示多種顏色而另外撐開版面。
+const STATUS_ARROW_WIDTH := PORTRAIT_SIZE.x / 2.0
+const STATUS_ARROW_HEIGHT := 16.0
+const STATUS_ARROW_FONT_SIZE := 11
+const STATUS_ARROW_OUTLINE_COLOR := Color(0.0, 0.0, 0.0, 0.9)
+const STATUS_ARROW_OUTLINE_SIZE := 3
 const STATUS_ARROW_CYCLE_INTERVAL := 1.0
 
 class RosterSlot:
@@ -68,6 +86,10 @@ class RosterSlot:
 
 var _is_enemy := false
 var _slots: Dictionary = {} # BattleHero -> RosterSlot
+## 兩欄各自是獨立的 VBoxContainer(見上面「先欄後列」註解),populate() 依角色
+## 索引分派到 _column_a(前 ROWS_PER_COLUMN 人)或 _column_b(第 7 人開始)。
+var _column_a: VBoxContainer
+var _column_b: VBoxContainer
 
 # 所有角色的箭頭共用同一顆計時器輪流換色,不用每個角色各開一顆計時器。
 var _cycle_index := 0
@@ -81,6 +103,12 @@ func _ready() -> void:
 	_cycle_timer.timeout.connect(_on_cycle_timer_timeout)
 	add_child(_cycle_timer)
 
+	add_theme_constant_override("separation", SLOT_SEPARATION)
+	_column_a = VBoxContainer.new()
+	_column_b = VBoxContainer.new()
+	add_child(_column_a)
+	add_child(_column_b)
+
 
 func _on_cycle_timer_timeout() -> void:
 	_cycle_index += 1
@@ -90,35 +118,38 @@ func _on_cycle_timer_timeout() -> void:
 
 
 func clear_roster() -> void:
-	for child in get_children():
-		if child == _cycle_timer:
-			continue
+	for child in _column_a.get_children():
+		child.queue_free()
+	for child in _column_b.get_children():
 		child.queue_free()
 	_slots.clear()
 
 
 ## 依隊伍清單重新產生整列頭像;is_enemy 決定紅/藍配色,也決定頭像「靠近戰場」時
 ## 該往哪個方向位移(左側隊伍往右靠近,右側隊伍往左靠近)。
-## fallback_portrait 在角色沒有頭像(face_path 空白或載入失敗)時當備用圖。
+## fallback_portrait 在角色沒有頭像(face_path 空白或載入失敗)時當備用圖。前
+## ROWS_PER_COLUMN 人分到 _column_a、由上往下排,第 ROWS_PER_COLUMN+1 人開始才
+## 輪到 _column_b(一樣由上往下),見上面「先欄後列」註解。
 func populate(battle_heroes: Array[BattleHero], is_enemy: bool, fallback_portrait: Texture2D) -> void:
 	clear_roster()
 	_is_enemy = is_enemy
-	add_theme_constant_override("separation", SLOT_SEPARATION)
-	for battle_hero in battle_heroes:
-		_spawn_slot(battle_hero, is_enemy, fallback_portrait)
+	_column_a.add_theme_constant_override("separation", SLOT_SEPARATION)
+	_column_b.add_theme_constant_override("separation", SLOT_SEPARATION)
+	for i in range(battle_heroes.size()):
+		var column := _column_a if i < ROWS_PER_COLUMN else _column_b
+		_spawn_slot(battle_heroes[i], is_enemy, fallback_portrait, column)
 
 
-func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Texture2D) -> void:
+func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Texture2D, column: VBoxContainer) -> void:
 	var slot := VBoxContainer.new()
 	slot.add_theme_constant_override("separation", 2)
 	slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	add_child(slot)
+	column.add_child(slot)
 
-	# 頭像列一格不用 Container 排版(children 手動定位),這樣箭頭區顯示/隱藏箭頭時
-	# 不會改變這一整格的大小,不會往下擠壓同排其他角色(見上面 POTENTIAL_ARROW_COLORS
-	# 註解)。custom_minimum_size 刻意只算頭像本身的大小(跟箭頭無關)——置中計算只看
-	# 這個大小,箭頭區是額外疊加在頭像右側的溢出內容(Control 預設不裁切子節點),不會
-	# 被算進置中的寬度,頭像才能維持在原本沒有箭頭時一樣的置中位置,不會被箭頭往左推。
+	# 頭像列一格不用 Container 排版(children 手動定位),這樣箭頭疊在頭像上顯示/隱藏時
+	# 不會改變這一整格的大小,不會往下擠壓同排其他角色(見上面 STATUS_ARROW_WIDTH
+	# 註解)。custom_minimum_size 就是頭像本身的大小,箭頭疊在同一塊範圍內,不會撐大
+	# 這一格,也不會被算進置中寬度時多出額外空間。
 	var portrait_row := Control.new()
 	portrait_row.custom_minimum_size = PORTRAIT_SIZE
 	portrait_row.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -150,12 +181,11 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 		portrait.modulate = ENEMY_TINT if is_enemy else Color(1, 1, 1)
 	portrait_frame.add_child(portrait)
 
-	# 箭頭區:貼著頭像「右側」,固定切成上下各半格,上半格顯示增益箭頭、下半格顯示
-	# 減益箭頭,沒有效果時該格的 Label 只是 visible=false,不影響區域本身的大小。
-	# x 座標要偏移過頭像寬度+間距,不然會疊在頭像框上面。
-	var arrow_x := PORTRAIT_SIZE.x + STATUS_ARROW_GAP
-	var buff_arrow_label := _build_status_arrow_label("↑", Vector2(arrow_x, 0))
-	var debuff_arrow_label := _build_status_arrow_label("↓", Vector2(arrow_x, PORTRAIT_SIZE.y / 2.0))
+	# 箭頭角標:疊在頭像「正上方」,固定切成左右各半格,左半格顯示增益箭頭、右半格
+	# 顯示減益箭頭,沒有效果時該格的 Label 只是 visible=false,不影響區域本身的大小。
+	# 疊在頭像圖上面(z-index 靠後加入的子節點蓋在先加入的 portrait_frame 之上)。
+	var buff_arrow_label := _build_status_arrow_label("↑", Vector2(0, 0))
+	var debuff_arrow_label := _build_status_arrow_label("↓", Vector2(STATUS_ARROW_WIDTH, 0))
 	portrait_row.add_child(buff_arrow_label)
 	portrait_row.add_child(debuff_arrow_label)
 
@@ -203,18 +233,21 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	_slots[battle_hero] = s
 
 
-## 箭頭區固定切成上下各半格(見 _spawn_slot());arrow_pos 是相對箭頭區左上角的
-## 位置,高度固定 PORTRAIT_SIZE.y/2,顏色由 _refresh_status_arrow() 依目前生效的
-## 素質即時套用,預設不可見(沒有對應方向的效果時就藏起來)。
+## 箭頭角標固定切成左右各半格,疊在頭像正上方(見 _spawn_slot());arrow_pos 是
+## 相對頭像左上角的位置,顏色由 _refresh_status_arrow() 依目前生效的素質即時套用,
+## 預設不可見(沒有對應方向的效果時就藏起來)。疊在頭像圖上面,要加黑色外框字才
+## 看得清楚(不管頭像底色深淺)。
 func _build_status_arrow_label(arrow_text: String, arrow_pos: Vector2) -> Label:
 	var label := Label.new()
 	label.text = arrow_text
 	label.position = arrow_pos
-	label.size = Vector2(STATUS_ARROW_WIDTH, PORTRAIT_SIZE.y / 2.0)
+	label.size = Vector2(STATUS_ARROW_WIDTH, STATUS_ARROW_HEIGHT)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("font_size", STATUS_ARROW_FONT_SIZE)
+	label.add_theme_color_override("font_outline_color", STATUS_ARROW_OUTLINE_COLOR)
+	label.add_theme_constant_override("outline_size", STATUS_ARROW_OUTLINE_SIZE)
 	label.visible = false
 	return label
 

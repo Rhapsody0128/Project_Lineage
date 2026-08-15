@@ -4,7 +4,7 @@ extends RefCounted
 const MIN_AGE := 16
 const MAX_AGE := 60
 
-## 隨機發放的武器池:不含 EMPTY(徒手不算「武器」,是沒領到武器時的預設值)
+## 隨機發放的武器池:角色一定會持有武器,涵蓋所有 WeaponType
 const RANDOM_WEAPON_POOL: Array[int] = [
 	GameEnums.WeaponType.SWORD,
 	GameEnums.WeaponType.BOW,

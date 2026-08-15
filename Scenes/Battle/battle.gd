@@ -82,11 +82,15 @@ var _played_log_index := 0
 var character_scene: PackedScene
 var portrait_texture: AtlasTexture
 
-# 戰報面板目前是展開還是收合,見 BOARD_SCALE_COLLAPSED/_apply_log_layout()。
-var log_expanded := true
+# 戰報面板目前是展開還是收合,見 BOARD_SCALE_COLLAPSED/_apply_log_layout()。預設收合
+# (戰場撐到最大),玩家要看詳細戰報文字才手動點開。
+var log_expanded := false
 
-@onready var board: BattleBoard = $BoardCanvas
-@onready var units_layer: Control = $UnitsLayer
+# 側邊頭像列、戰場(BoardCanvas/UnitsLayer)、奧義面板全部收在 BattlefieldPanel 底下
+# 整理成同一個容器(見 battle.tscn),彼此的相對位置/縮放邏輯集中寫在
+# _apply_log_layout() 一處,不會散落在場景樹各處各自為政。
+@onready var board: BattleBoard = $BattlefieldPanel/BoardCanvas
+@onready var units_layer: Control = $BattlefieldPanel/UnitsLayer
 @onready var title_label: Label = $Title
 @onready var pause_button: Button = $UI/TopBar/PauseButton
 @onready var skip_button: Button = $UI/TopBar/SkipButton
@@ -94,13 +98,13 @@ var log_expanded := true
 @onready var log_toggle_button: Button = $UI/TopBar/LogToggleButton
 @onready var log_panel_container: Panel = $UI/LogPanel
 @onready var log_panel: BattleLogPanel = $UI/LogPanel/LogLabel
-@onready var left_roster: BattlePartyRoster = $LeftPartyPanel/LeftPartyList
-@onready var right_party_panel: Panel = $RightPartyPanel
-@onready var right_roster: BattlePartyRoster = $RightPartyPanel/RightPartyList
+@onready var left_roster: BattlePartyRoster = $BattlefieldPanel/LeftPartyPanel/LeftPartyCenter/LeftPartyList
+@onready var right_party_panel: Panel = $BattlefieldPanel/RightPartyPanel
+@onready var right_roster: BattlePartyRoster = $BattlefieldPanel/RightPartyPanel/RightPartyCenter/RightPartyList
 @onready var result_dialog: Control = $ResultDialog
 @onready var result_label: Label = $ResultDialog/Panel/VBox/ResultLabel
 @onready var result_detail_label: Label = $ResultDialog/Panel/VBox/DetailLabel
-@onready var ultimate_panel: BattleUltimatePanel = $UI/UltimatePanel
+@onready var ultimate_panel: BattleUltimatePanel = $BattlefieldPanel/UltimatePanel
 
 
 # =========================================================
@@ -219,11 +223,15 @@ func _on_log_toggle_button_pressed() -> void:
 	_apply_log_layout(not log_expanded)
 
 
-## 切換 LogPanel 顯示狀態,並讓戰場整塊(BoardCanvas + UnitsLayer,格線/地板/場上
-## 角色全部一起)等比縮放撐大/縮回,填滿或讓出騰出來的版面。BoardCanvas/UnitsLayer
+## 切換 LogPanel 顯示狀態,並讓 BattlefieldPanel 底下的戰場整塊(BoardCanvas +
+## UnitsLayer,格線/地板/場上角色全部一起;右側頭像列;奧義面板)一起跟著撐大/縮回,
+## 填滿或讓出騰出來的版面,視覺上是同一塊會一起變化的區域。BoardCanvas/UnitsLayer
 ## 都是滿版鋪開的 Control,格子座標→像素座標的換算(BattleBoard.grid_to_pixel())本身
 ## 不用變,單純對這兩個節點套 CanvasItem 的 scale(繞同一顆 pivot 錨點縮放),場上角色
-## 是它們的子節點,會自動跟著整塊一起放大/縮小,不需要另外逐一搬動位置。
+## 是它們的子節點,會自動跟著整塊一起放大/縮小,不需要另外逐一搬動位置。右側頭像列
+## 跟著改用 position 貼齊縮放後的戰場右緣(而不是跟著等比縮放,頭像本身大小不變)。
+## 奧義面板寬度跟著戰場一起變寬/變窄,左緣固定貼齊戰場左緣(BOARD_PIVOT.x)不動,
+## 這樣不管戰場縮放與否,奧義面板永遠橫跨戰場的完整寬度,不會跟戰場對不齊。
 func _apply_log_layout(expanded: bool) -> void:
 	log_expanded = expanded
 	log_panel_container.visible = expanded
@@ -236,6 +244,9 @@ func _apply_log_layout(expanded: bool) -> void:
 
 	right_party_panel.position.x = RIGHT_PARTY_LEFT_EXPANDED if expanded else RIGHT_PARTY_LEFT_COLLAPSED
 	right_party_panel.size.x = RIGHT_PARTY_WIDTH
+
+	ultimate_panel.position.x = BOARD_PIVOT.x
+	ultimate_panel.size.x = BOARD_BASE_WIDTH * scale_factor
 
 
 # =========================================================
@@ -359,8 +370,11 @@ func _on_ultimate_selected(ultimate: Ultimate) -> void:
 	var caster := _ultimate_caster()
 	if caster == null:
 		return
+	if not UltimateStore.can_use(ultimate):
+		return
 	if not battle.cast_ultimate(caster, ultimate):
 		return
+	UltimateStore.consume(ultimate)
 	_refresh_ultimate_buttons()
 
 
@@ -373,7 +387,8 @@ func _ultimate_caster() -> BattleHero:
 
 func _refresh_ultimate_buttons() -> void:
 	for ultimate in battle.self_ultimates:
-		ultimate_panel.refresh_button(ultimate, battle.can_cast_ultimate(ultimate), battle.ultimate_uses_remaining(ultimate))
+		var can_cast := battle.can_cast_ultimate(ultimate) and UltimateStore.can_use(ultimate)
+		ultimate_panel.refresh_button(ultimate, can_cast, UltimateStore.uses_remaining(ultimate))
 
 
 ## 快速跳過(只有即時戰鬥模式會顯示這顆按鈕,見 skip_button.visible 的切換):不想看完
@@ -501,6 +516,22 @@ func _play_events_range(from_index: int, to_index: int) -> void:
 				k += 1
 			await _play_guarded_action(event as GuardEvent, guarded_action_event, guarded_reaction_events)
 			i = k
+			await _safe_wait(STEP_DELAY)
+			continue
+
+		# 奧義生效若波及全體(例如龍捲風對敵方全體造成傷害),緊接著的反應事件
+		# 比照 AoE 技能收進同一批一起套用,不要像沒有這段前瞻邏輯時那樣退化成
+		# 逐筆播放、一個人一個人受傷害。
+		if event.event_type == GameEnums.BattleEventType.ULTIMATE_RESOLVE and i + 1 < to_index and battle.battle_log[i + 1].event_type in REACTION_EVENT_TYPES:
+			var ultimate_reaction_events: Array[BattleEvent] = []
+			var u := i + 1
+			while u < to_index and battle.battle_log[u].event_type in REACTION_EVENT_TYPES:
+				ultimate_reaction_events.append(battle.battle_log[u])
+				u += 1
+			_apply_ultimate_resolve(event as UltimateResolveEvent)
+			for ultimate_reaction_event in ultimate_reaction_events:
+				_apply_reaction(ultimate_reaction_event)
+			i = u
 			await _safe_wait(STEP_DELAY)
 			continue
 

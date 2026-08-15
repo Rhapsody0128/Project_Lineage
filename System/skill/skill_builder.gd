@@ -40,7 +40,7 @@ func skill_type(value: GameEnums.SkillType) -> SkillBuilder:
 	_skill.skill_type = value
 	return self
 
-func bind_weapon(value: GameEnums.WeaponType) -> SkillBuilder:
+func bind_weapon(value: int) -> SkillBuilder:
 	_skill.bind_weapon = value
 	return self
 

@@ -51,9 +51,9 @@ func _init(
 	battle_cost = p_battle_cost
 	hp = hp_max
 
-## 該技能目前是否能施放:未綁武器(EMPTY)一律可用,綁了武器則要手持相符武器
+## 該技能目前是否能施放:未綁定特定武器(NO_WEAPON_BINDING)一律可用,綁了武器則要手持相符武器
 func can_use_skill(skill: Skill) -> bool:
-	return skill.bind_weapon == GameEnums.WeaponType.EMPTY or skill.bind_weapon == weapon
+	return skill.bind_weapon == GameEnums.NO_WEAPON_BINDING or skill.bind_weapon == weapon
 
 ## 是否學會守護技能(Skill.is_guard_skill,武器仍要相符/未綁定)——用旗標而非顯示名稱
 ## 字串比對,重新命名技能不會悄悄讓守護判定失效。CombatResolver.resolve_guard() 用。

@@ -3,7 +3,14 @@ extends RefCounted
 
 enum RankType {E, D, C, B, A, S, SS, SSS}
 enum PotentialType {STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
-enum WeaponType {EMPTY, SWORD, BOW, SHIELD, DAGGER, STAFF, DREAMCATCHER}
+enum WeaponType {SWORD, BOW, SHIELD, DAGGER, STAFF, DREAMCATCHER}
+## Skill.bind_weapon 專用的「未綁定特定武器」標記(被動/隊長技能等任何武器都能用),
+## 故意不塞進 WeaponType enum——角色一定持有真實武器,WeaponType 只代表可持有的
+## 武器種類,不該混入這種非武器的旗標值。
+const NO_WEAPON_BINDING := -1
+## 角色清單排序欄位(PartyEdit 候補清單/未來其他角色清單共用,見 HeroSortFilter),
+## 前三項是衍生值,後六項對應 PotentialType 六大素質
+enum HeroSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 ## 大地圖上的地點類型,見 System/Map/MapObjectData.gd
 enum MapObjectType {CASTLE}
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
@@ -43,7 +50,10 @@ const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈
 const RANK_TYPE_LABELS: Array[String] = ["E", "D", "C", "B", "A", "S", "SS", "SSS"]
 
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
-const WEAPON_TYPE_LABELS: Array[String] = ["徒手", "劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
+const WEAPON_TYPE_LABELS: Array[String] = ["劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
+
+## 角色清單排序欄位 UI 顯示用中文標籤,順序對應 HeroSortKey enum
+const HERO_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數", "力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 ## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
 const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城堡"]
@@ -60,13 +70,15 @@ static func rank_label(rank_type: int) -> String:
 static func weapon_label(weapon_type: int) -> String:
 	return WEAPON_TYPE_LABELS[weapon_type]
 
+static func hero_sort_key_label(sort_key: int) -> String:
+	return HERO_SORT_KEY_LABELS[sort_key]
+
 static func map_object_type_label(map_object_type: int) -> String:
 	return MAP_OBJECT_TYPE_LABELS[map_object_type]
 
 ## BATTLE_COST 方塊外框色,依武器分色一眼辨識:大劍紅、弓箭手白、盾牌綠、
-## 匕首黃、法杖藍、捕夢網青,順序對應 WeaponType enum(EMPTY 用中性灰)
+## 匕首黃、法杖藍、捕夢網青,順序對應 WeaponType enum
 const WEAPON_BORDER_COLORS: Array[Color] = [
-	Color(0.6, 0.6, 0.6, 1), # 徒手/未裝備:灰
 	Color(0.85, 0.2, 0.2, 1), # 大劍:紅
 	Color(0.92, 0.92, 0.92, 1), # 弓箭手:白
 	Color(0.35, 0.85, 0.35, 1), # 盾牌:綠
@@ -112,10 +124,10 @@ static func format_potential_type_list(potential_types: Array) -> String:
 
 ## 基本攻擊距離(曼哈頓格數):近戰(劍/盾/匕首)1 格、遠程(弓/法杖/捕夢網)2 格,
 ## 順序對應 WeaponType enum
-const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 1, 2, 1, 1, 2, 2]
+const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 2, 1, 1, 2, 2]
 
 ## 是否為魔法攻擊(法杖/捕夢網):魔法攻擊無視閃避,一定命中,順序對應 WeaponType enum
-const WEAPON_IS_MAGIC: Array[bool] = [false, false, false, false, false, true, true]
+const WEAPON_IS_MAGIC: Array[bool] = [false, false, false, false, true, true]
 
 const MALE_HERO_NAMES: Array[String] = [
 	"約翰", "保羅", "喬治", "亞歷克斯", "馬克斯", "大衛", "丹尼爾", "馬克", "約瑟夫", "派屈克",

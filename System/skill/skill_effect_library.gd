@@ -21,11 +21,12 @@ static func _skill_damage(attack_value: float, defense_value: float, multiplier:
 	var damage: float = attack_value * multiplier * damage_ratio
 	return damage
 
-## 依武器決定攻擊方要用哪個(或哪幾個)素質當輸出:法杖=智慧、弓=靈巧、
+## 依武器決定攻擊方要用哪個(或哪幾個)素質當輸出:法杖=智慧、弓=靈巧、劍=力量、
 ## 盾=力量*0.4+體質*0.6、匕首=力量*0.4+敏捷*0.6、捕夢網=智慧*0.4+信仰*0.6,
-## 其餘(劍、徒手 EMPTY)一律用力量。
 static func _attack_value(self_hero: BattleHero, weapon: GameEnums.WeaponType) -> float:
 	match weapon:
+		GameEnums.WeaponType.SWORD:
+			return self_hero.strength
 		GameEnums.WeaponType.STAFF:
 			return self_hero.intelligence
 		GameEnums.WeaponType.BOW:
@@ -36,8 +37,8 @@ static func _attack_value(self_hero: BattleHero, weapon: GameEnums.WeaponType) -
 			return self_hero.strength * 0.4 + self_hero.agility * 0.6
 		GameEnums.WeaponType.DREAMCATCHER:
 			return self_hero.intelligence * 0.4 + self_hero.mentality * 0.6
-		_: # SWORD、EMPTY(徒手比照劍)
-			return self_hero.strength
+		_:
+			return 0
 
 ## 依武器決定防禦方要用哪個素質:法杖/捕夢網打的是信仰,其餘一律是體質。
 static func _defense_value(enemy_hero: BattleHero, weapon: GameEnums.WeaponType) -> float:

@@ -20,6 +20,7 @@ extends Control
 @onready var availability_layer: PartyEditAvailabilityLayer = $AvailabilityLayer
 @onready var placed_layer: Control = $PlacedLayer
 @onready var roster_list: VBoxContainer = $UI/RightPanel/Margin/VBox/ScrollContainer/RosterList
+@onready var sort_filter_bar: HeroSortFilterBar = $UI/RightPanel/Margin/VBox/SortFilterBar
 @onready var status_label: Label = $UI/StatusLabel
 @onready var finish_edit_button: Button = $UI/TopBar/FinishEditButton
 
@@ -34,6 +35,7 @@ func _ready() -> void:
 	availability_layer.grid = grid
 	availability_layer.placement_changed.connect(_refresh_all)
 	availability_layer.leader_change_requested.connect(_on_leader_change_requested)
+	sort_filter_bar.changed.connect(_refresh_roster)
 	_refresh_all()
 
 
@@ -118,9 +120,12 @@ func _refresh_all() -> void:
 func _refresh_roster() -> void:
 	for child in roster_list.get_children():
 		child.queue_free()
+	var candidates: Array[Hero] = []
 	for hero in PartyEditStore.all_heroes:
 		if not grid.is_placed(hero):
-			roster_list.add_child(HeroCard.new(hero))
+			candidates.append(hero)
+	for hero in sort_filter_bar.filter.apply(candidates):
+		roster_list.add_child(HeroCard.new(hero))
 
 
 func _refresh_placed_layer() -> void:

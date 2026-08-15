@@ -48,7 +48,7 @@ func _attach_battle_heroes(is_enemy: bool, party: Party) -> Array[BattleHero]:
 ## 初始佈陣:Party.battle_cost_positions 有記錄站位的角色(PartyEdit 編成畫面
 ## 擺過)直接照那個位置站(座標系跟這裡的自身區同一套,見 PartyEditGrid 開頭
 ## 註解,不需要換算);沒有記錄站位的角色(例如隨機生成的敵方小隊)沿用舊版
-## 「靠邊置中排一列縱隊」規則。兩種角色可以同時出現在同一個 Battle 裡
+## 「靠邊置中排縱隊」規則。兩種角色可以同時出現在同一個 Battle 裡
 ## (玩家小隊 vs 隨機敵方小隊就是典型情況),各自獨立處理、互不影響。
 func _deploy_side(battle_heroes: Array[BattleHero], party: Party, is_enemy: bool) -> void:
 	var unplaced: Array[BattleHero] = []
@@ -58,10 +58,27 @@ func _deploy_side(battle_heroes: Array[BattleHero], party: Party, is_enemy: bool
 		else:
 			unplaced.append(battle_hero)
 
-	var start_x := 0 if not is_enemy else GRID_COLS - 1
-	var start_y := (GRID_ROWS - unplaced.size()) / 2
+	_deploy_column_formation(unplaced, is_enemy)
+
+## 縱隊靠邊排開,一欄站滿 GRID_ROWS 人就往中間多開一欄(自己這邊從 x=0 往中間開,
+## 敵方從 x=GRID_COLS-1 往中間開),不會像單欄版本那樣人數一多(例如小隊上限
+## 12 人)就超出 GRID_ROWS=6 的棋盤高度、把座標算到棋盤外面。只有「最後一欄」
+## 可能沒站滿,沿用舊規則置中;前面站滿的每一欄都是滿的,不需要置中。
+func _deploy_column_formation(unplaced: Array[BattleHero], is_enemy: bool) -> void:
+	if unplaced.is_empty():
+		return
+
+	var edge_x := 0 if not is_enemy else GRID_COLS - 1
+	var x_step := 1 if not is_enemy else -1
+	var full_columns := unplaced.size() / GRID_ROWS
+
 	for i in range(unplaced.size()):
-		unplaced[i].grid_pos = Vector2i(start_x, start_y + i)
+		var column := i / GRID_ROWS
+		var row_in_column := i % GRID_ROWS
+		var rows_in_column := GRID_ROWS if column < full_columns else unplaced.size() % GRID_ROWS
+		var row_offset := (GRID_ROWS - rows_in_column) / 2
+		var x := edge_x + column * x_step
+		unplaced[i].grid_pos = Vector2i(x, row_offset + row_in_column)
 
 ## 該格子是否已有「其他」存活角色佔據(排除 exclude 自己)。
 ## 已戰敗的角色不算佔用 —— 移動途中可以直接穿過己方存活角色,

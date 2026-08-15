@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=7 format=3]
 
-[ext_resource type="Script" path="res://Scenes/BattleReportList/battle_report_list.gd" id="1"]
+[ext_resource type="Script" path="res://Scenes/BattleReportStats/battle_report_stats.gd" id="1"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.086, 0.098, 0.145, 1)
@@ -53,7 +53,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="BattleReportList" type="Control"]
+[node name="BattleReportStats" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -80,24 +80,15 @@ offset_right = 620.0
 offset_bottom = 66.0
 theme_override_font_sizes/font_size = 30
 theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
-text = "戰報列表"
+text = "戰報統計"
 
 [node name="TopBar" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 1054.0
+offset_left = 1290.0
 offset_top = 20.0
 offset_right = 1460.0
 offset_bottom = 68.0
 theme_override_constants/separation = 16
-
-[node name="GenerateButton" type="Button" parent="TopBar"]
-custom_minimum_size = Vector2(220, 46)
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "生成隨機戰報（D）"
 
 [node name="BackButton" type="Button" parent="TopBar"]
 custom_minimum_size = Vector2(170, 46)
@@ -123,70 +114,63 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 16
 
 [node name="VBox" type="VBoxContainer" parent="MainPanel/Margin"]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="HeaderRow" type="MarginContainer" parent="MainPanel/Margin/VBox"]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_right = 16
-
-[node name="HeaderContent" type="HBoxContainer" parent="MainPanel/Margin/VBox/HeaderRow"]
-layout_mode = 2
-theme_override_constants/separation = 20
-
-[node name="GameTimeHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 3.0
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-text = "時間"
-
-[node name="SystemTimeHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-layout_mode = 2
-size_flags_horizontal = 3
-size_flags_stretch_ratio = 3.0
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-text = "實際時間"
-
-[node name="ResultHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-custom_minimum_size = Vector2(90, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-horizontal_alignment = 1
-text = "戰鬥結果"
-
-[node name="WatchHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-custom_minimum_size = Vector2(90, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-horizontal_alignment = 1
-
-[node name="StatsHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-custom_minimum_size = Vector2(90, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-horizontal_alignment = 1
-
 [node name="ScrollContainer" type="ScrollContainer" parent="MainPanel/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ReportList" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer"]
+[node name="Content" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 20
+
+[node name="StatsTable" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer/Content"]
+layout_mode = 2
 theme_override_constants/separation = 10
 
-[connection signal="pressed" from="TopBar/GenerateButton" to="." method="_on_generate_pressed"]
+[node name="Divider" type="HSeparator" parent="MainPanel/Margin/VBox/ScrollContainer/Content"]
+layout_mode = 2
+
+[node name="HpSection" type="HBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer/Content"]
+layout_mode = 2
+theme_override_constants/separation = 32
+
+[node name="SelfColumn" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer/Content/HpSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="SelfHeader" type="Label" parent="MainPanel/Margin/VBox/ScrollContainer/Content/HpSection/SelfColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.75, 0.85, 1, 1)
+text = "我方"
+
+[node name="SelfHpList" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer/Content/HpSection/SelfColumn"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="EnemyColumn" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer/Content/HpSection"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 8
+
+[node name="EnemyHeader" type="Label" parent="MainPanel/Margin/VBox/ScrollContainer/Content/HpSection/EnemyColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(1, 0.55, 0.55, 1)
+text = "敵方"
+
+[node name="EnemyHpList" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer/Content/HpSection/EnemyColumn"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
 [connection signal="pressed" from="TopBar/BackButton" to="." method="_on_back_pressed"]

@@ -20,6 +20,16 @@ extends Node
 
 var reports: Array[BattleReport] = []
 var pending_report: BattleReport = null
+## 跟 pending_report 同一套交接模式,給戰報列表「戰報」按鈕用:切去
+## Scenes/BattleReportStats 顯示這場戰鬥的統計面板,不重播戰場畫面。
+var pending_stats_report: BattleReport = null
+## AskBattle 選「是，跳過」後彈出「是否觀看戰報？」問玩家,選「觀看戰報」才會用到:
+## 存進要在 BattleReportStats 按「返回」時接續執行的動作(呼叫端原本該做的
+## on_result callback 或切去 skip_return_scene_path,見 Scenes/BattleUtil/ask_battle.gd
+## 的 _continue_after_battle())——不看報表的話這步直接跳過,不會設定這個欄位。
+## battle_report_stats.gd 的 _on_back_pressed() 讀到有效 Callable 就改呼叫它取代預設的
+## NavigationStore.go_back(),讀完立刻清空。
+var pending_stats_continuation: Callable = Callable()
 var pending_self_party: Party = null
 var pending_enemy_party: Party = null
 ## 跟 pending_self_party 同一套交接模式:PartyEdit/main 場景切去 Battle 場景前設定,
@@ -56,3 +66,7 @@ func generate_demo_report() -> BattleReport:
 ## 指定要播放的戰報,呼叫端接著自行切換到 Battle 場景
 func queue_playback(report: BattleReport) -> void:
 	pending_report = report
+
+## 指定要看統計的戰報,呼叫端接著自行切換到 BattleReportStats 場景
+func queue_stats(report: BattleReport) -> void:
+	pending_stats_report = report

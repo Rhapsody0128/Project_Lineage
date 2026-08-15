@@ -334,6 +334,13 @@ func reset_for_replay() -> void:
 		battle_hero.hero.hp = state.hp
 		battle_hero.grid_pos = state.grid_pos
 
+## 戰報統計面板用:讀開戰當下的 HP 快照,不受重播/reset_for_replay() 影響——
+## 戰報可能已經被玩家看過重播(hero.hp 被改到重播進度),統計面板要顯示的「原始血量」
+## 一律讀這裡,不能直接讀 battle_hero.hp。
+func start_hp(battle_hero: BattleHero) -> int:
+	var state: Dictionary = _start_state.get(battle_hero, {})
+	return state.get("hp", battle_hero.hp)
+
 ## 記錄一筆結構化戰報事件
 func log_event(event: BattleEvent) -> void:
 	battle_log.append(event)

@@ -8,11 +8,19 @@ extends RefCounted
 var id: String
 var title: String
 var battle: Battle
+## 生成戰報當下的現實系統時間,顯示格式 "2026/08/16 16:11:31"(戰報列表表格用,跟
+## title 的遊戲曆法時間分開兩欄——title 是遊戲世界的 BC 紀年,這個是玩家實際操作的時刻)。
+var system_time_text: String
 
 func _init(p_title: String, p_battle: Battle) -> void:
 	id = Util.generate_uuid()
 	title = p_title
 	battle = p_battle
+	system_time_text = _format_system_time()
+
+static func _format_system_time() -> String:
+	var dt := Time.get_datetime_dict_from_system()
+	return "%04d/%02d/%02d %02d:%02d:%02d" % [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
 
 ## 結算結果直接讀 battle.battle_end_event(型別化,戰鬥跑完後一定有值),不用
 ## battle.self_total_hp / enemy_total_hp 現算——那兩個 getter 讀的是角色目前 HP,

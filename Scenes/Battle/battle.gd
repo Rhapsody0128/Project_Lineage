@@ -356,13 +356,17 @@ func _run_battle_realtime() -> void:
 
 	var has_more_rounds := true
 	while has_more_rounds:
-		if not is_inside_tree():
+		# is_battling 額外檢查:玩家按了「快速跳過」時,_on_skip_pressed() 會同步跑完
+		# 剩餘回合、記錄戰報、彈出結果 Dialog,並把 is_battling 設回 false——這個協程
+		# 從 await 恢復執行後如果沒攔住,會拿舊的 has_more_rounds 繼續跑一輪,重複呼叫
+		# _announce_result()/_record_battle_report()。
+		if not is_inside_tree() or not is_battling:
 			return
 
 		has_more_rounds = battle.step_round()
 		await _play_new_events()
 
-		if not is_inside_tree():
+		if not is_inside_tree() or not is_battling:
 			return
 
 		# 這回合可能有奧義生效(HP 回復等)或用量被消耗,回合播完就刷新一次按鈕狀態,
@@ -412,18 +416,25 @@ func _refresh_ultimate_buttons() -> void:
 
 ## 快速跳過(只有即時戰鬥模式會顯示這顆按鈕,見 skip_button.visible 的切換):不想看完
 ## 剩下的即時戰鬥時,直接把剩餘回合一次模擬完(不播放動畫,battle.step_round() 本身是
-## 同步、不吃 await 的,一個迴圈瞬間跑完),照樣記錄戰報,然後直接返回上一頁——跟一般
-## 「返回」不同,一般返回是半途放棄不留紀錄,這裡戰鬥本身仍然完整跑完,只是不演給你看。
-## _run_battle_realtime() 那個協程可能還卡在某個 await(動畫/計時器)沒有真正結束,
-## 但 change_scene_to_file() 會讓這個場景離開樹,它下次恢復執行時 is_inside_tree() 會
-## 是 false 而自行提早返回,不會跟這裡重複跑完戰鬥或重複記錄戰報。
+## 同步、不吃 await 的,一個迴圈瞬間跑完),照樣記錄戰報,接著跟正常打完一樣彈出結果
+## Dialog(而不是直接離開場景)——玩家仍要自己按 Dialog 的「返回」/「重播」,只是省下
+## 中間動畫。_run_battle_realtime() 那個協程可能還卡在某個 await(動畫/計時器)沒有真正
+## 結束,但這裡會把 is_battling 設回 false,它下次恢復執行時看到 is_battling 已經不是
+## 自己開始時的狀態,配合下方 is_inside_tree() 之外的收尾判斷,不會跟這裡重複跑完戰鬥
+## 或重複記錄戰報。
 func _on_skip_pressed() -> void:
 	if battle_mode != GameEnums.BattleMode.REALTIME or not is_battling:
 		return
 	while battle.step_round():
 		pass
+	_played_log_index = battle.battle_log.size()
+	ultimate_panel.close_cast_window()
+	is_battling = false
+	pause_button.disabled = true
+	pause_button.text = "暫停"
+	skip_button.visible = false
+	_announce_result()
 	_record_battle_report()
-	_on_back_pressed()
 
 
 ## 暫停/繼續:直接切 SceneTree.paused,配合 _safe_wait()/wait_for_animation() 都改成

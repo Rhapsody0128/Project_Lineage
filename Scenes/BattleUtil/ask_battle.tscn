@@ -68,7 +68,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
 horizontal_alignment = 1
-text = "是否跳過這場戰鬥？"
+text = "戰鬥無可避免，你的選擇是？"
 
 [node name="ButtonRow" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
 layout_mode = 2
@@ -79,13 +79,62 @@ theme_override_constants/separation = 24
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "是，跳過"
+text = "坐鎮指揮"
 
 [node name="FightButton" type="Button" parent="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "否，開戰"
+text = "親臨戰場"
+
+[node name="ReportPromptBox" type="PanelContainer" parent="Root/CenterContainer"]
+visible = false
+custom_minimum_size = Vector2(420, 180)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="Margin" type="MarginContainer" parent="Root/CenterContainer/ReportPromptBox"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="Content" type="VBoxContainer" parent="Root/CenterContainer/ReportPromptBox/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="ResultLabel" type="Label" parent="Root/CenterContainer/ReportPromptBox/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+text = "勝利"
+
+[node name="QuestionLabel" type="Label" parent="Root/CenterContainer/ReportPromptBox/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+horizontal_alignment = 1
+text = "是否觀看戰報？"
+
+[node name="ButtonRow" type="HBoxContainer" parent="Root/CenterContainer/ReportPromptBox/Margin/Content"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 24
+
+[node name="ViewReportButton" type="Button" parent="Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "觀看戰報"
+
+[node name="SkipReportButton" type="Button" parent="Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "略過"
 
 [connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/SkipButton" to="." method="_on_skip_button_pressed"]
 [connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/FightButton" to="." method="_on_fight_button_pressed"]
+[connection signal="pressed" from="Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow/ViewReportButton" to="." method="_on_view_report_button_pressed"]
+[connection signal="pressed" from="Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow/SkipReportButton" to="." method="_on_skip_report_button_pressed"]

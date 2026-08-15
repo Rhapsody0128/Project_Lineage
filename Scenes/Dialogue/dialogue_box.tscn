@@ -1,0 +1,125 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scenes/Dialogue/dialogue_box.gd" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_textbox"]
+bg_color = Color(0.08, 0.08, 0.1, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.75, 0.85, 1.0, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+content_margin_left = 24.0
+content_margin_top = 14.0
+content_margin_right = 24.0
+content_margin_bottom = 14.0
+
+[node name="DialogueBox" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+script = ExtResource("1")
+
+[node name="LeftPortraitFrame" type="TextureRect" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 0.0
+anchor_bottom = 1.0
+offset_left = 60.0
+offset_top = -420.0
+offset_right = 280.0
+offset_bottom = -200.0
+grow_vertical = 0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="LeftGrayMask" type="ColorRect" parent="LeftPortraitFrame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="RightPortraitFrame" type="TextureRect" parent="."]
+layout_mode = 1
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -280.0
+offset_top = -420.0
+offset_right = -60.0
+offset_bottom = -200.0
+grow_horizontal = 0
+grow_vertical = 0
+expand_mode = 1
+stretch_mode = 5
+
+[node name="RightGrayMask" type="ColorRect" parent="RightPortraitFrame"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0, 0, 0, 0.55)
+
+[node name="TextBox" type="PanelContainer" parent="."]
+layout_mode = 1
+anchor_left = 0.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = -200.0
+offset_right = -40.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_textbox")
+
+[node name="Margin" type="MarginContainer" parent="TextBox"]
+layout_mode = 2
+
+[node name="Content" type="VBoxContainer" parent="TextBox/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SpeakerNameLabel" type="Label" parent="TextBox/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+text = "……"
+
+[node name="DialogueLabel" type="Label" parent="TextBox/Margin/Content"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 18
+autowrap_mode = 2
+text = ""
+
+[node name="ChoicesContainer" type="VBoxContainer" parent="TextBox/Margin/Content"]
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ClickCatcher" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

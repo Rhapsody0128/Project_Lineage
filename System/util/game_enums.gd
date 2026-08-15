@@ -42,6 +42,9 @@ enum BattleEventType {
 	GUARD, DEFEATED, BATTLE_END,
 	ULTIMATE_RESOLVE,
 }
+## 對話場景固定二人站位(左/右),見 System/dialogue/、Scenes/Dialogue/dialogue_box.gd——
+## 目前畫面版型只設計左右各一位發言角色,不支援多人對話
+enum DialogueSide {LEFT, RIGHT}
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]

@@ -54,15 +54,6 @@ func _ready() -> void:
 	var avg_agi := MapSystem.compute_average_agi(party)
 	var speed := MapSystem.compute_speed(avg_agi)
 
-	# 出生點預設站在第一座城堡(spec 未指定起始位置)。
-	var start_pos := _objects[0].position if not _objects.is_empty() else MapSystem.MAP_SIZE / 2.0
-	map_system = MapSystem.new(start_pos, speed)
-	world_time = WorldTime.new()
-	_current_map_object = _objects[0] if not _objects.is_empty() else null
-
-	player_avatar.position = map_system.position
-	player_avatar.play("idle_Down")
-
 	destination_line.visible = false
 	destination_line.width = LINE_WIDTH
 	destination_line.texture = _create_dash_texture()
@@ -72,11 +63,36 @@ func _ready() -> void:
 	# 導致線只有貼近起點的一小段(材質寬度 28 世界單位)看得到,後面全部透明。
 	destination_line.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 
-	camera.zoom = ZOOM_MIN
-	camera.position = start_pos
-	_clamp_camera_position()
+	if MapSessionStore.has_saved_state:
+		# 從 Scenes/MapLocation/ 按「離開」回來:還原離開當下的座標/世界時間/相機縮放,
+		# 不要重新從出生點/B.C.621 年開始(見 Scripts/Autoload/map_session_store.gd)。
+		map_system = MapSystem.new(MapSessionStore.player_position, speed)
+		world_time = WorldTime.new(1.0, MapSessionStore.day_accumulator)
+		_current_map_object = _find_object_by_id(MapSessionStore.entered_map_object_id)
+		_is_playing = MapSessionStore.is_playing
+		camera.zoom = MapSessionStore.camera_zoom
+		camera.position = MapSessionStore.player_position
+	else:
+		# 出生點預設站在第一座城堡(spec 未指定起始位置)。
+		var start_pos := _objects[0].position if not _objects.is_empty() else MapSystem.MAP_SIZE / 2.0
+		map_system = MapSystem.new(start_pos, speed)
+		world_time = WorldTime.new()
+		_current_map_object = _objects[0] if not _objects.is_empty() else null
+		camera.zoom = ZOOM_MIN
+		camera.position = start_pos
 
+	player_avatar.position = map_system.position
+	player_avatar.play("idle_Down")
+
+	_clamp_camera_position()
 	_update_date_label()
+
+
+func _find_object_by_id(id: String) -> MapObjectData:
+	for obj in _objects:
+		if obj.id == id:
+			return obj
+	return null
 
 
 func _spawn_map_objects() -> void:
@@ -114,9 +130,32 @@ func _process(delta: float) -> void:
 				_current_map_object = _traveling_to
 				_traveling_to = null
 				_is_playing = false
+				_enter_map_object(_current_map_object)
+				return
 
 	_update_date_label()
 	_update_hover_cursor()
+
+
+## 抵達地圖物件後的進入流程:相機直接貼到角色身上、zoom 歸 1,把目前狀態存進
+## MapSessionStore(見該檔案註解)供回大地圖時還原,再切去泛用的地點選單場景——
+## 顯示哪個地點、有哪些子選項全部由 map_object 這筆資料決定,這裡不寫死地點類型。
+func _enter_map_object(map_object: MapObjectData) -> void:
+	camera.position = player_avatar.position
+	camera.zoom = Vector2(1.0, 1.0)
+	_clamp_camera_position()
+
+	MapSessionStore.save_map_state(
+		map_system.position,
+		world_time.get_day_accumulator(),
+		camera.zoom,
+		_is_playing,
+		map_object.id
+	)
+
+	var error := get_tree().change_scene_to_file("res://Scenes/MapLocation/map_location.tscn")
+	if error != OK:
+		printerr("Error changing scene to map location: ", error)
 
 
 func _update_destination_line() -> void:
@@ -255,8 +294,13 @@ func _drag_camera(relative_px: Vector2) -> void:
 func _handle_click_to_move() -> void:
 	var world_pos := camera.get_global_mouse_position()
 	var picked := map_system.pick_object(world_pos, _objects, PICK_RADIUS)
-	if picked == null or picked == _current_map_object:
-		# 已經在這個地點,再點同一個 MapObject 不觸發移動、也不該讓時間重新流逝。
+	if picked == null:
+		return
+	if picked == _current_map_object:
+		# 已經站在這個地點,再點同一個 MapObject 不能走 set_destination()/_is_playing=true
+		# 那條路——之前正是這樣才會出現「已經在王城點王城,時間卻開始流逝」的 bug。
+		# 直接重新打開地點選單即可,不動 map_system/_is_playing。
+		_enter_map_object(picked)
 		return
 	map_system.set_destination(picked.position)
 	destination_line.visible = true

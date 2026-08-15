@@ -2,7 +2,7 @@ class_name PartyController
 extends RefCounted
 
 ## 小隊編制之後會開放玩家自行配置,目前先寫死隨機 6 名角色
-const RANDOM_PARTY_SIZE := 12
+const RANDOM_PARTY_SIZE := 6
 
 ## 除錯用:強制全部角色使用同一種武器,方便單獨測試某個武器的技能表現。
 ## 預設 -1 代表關閉(維持 HeroController.RANDOM_WEAPON_POOL 的正常隨機),

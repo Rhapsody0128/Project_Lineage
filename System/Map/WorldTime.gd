@@ -17,8 +17,9 @@ var days_per_real_second: float
 var _day_accumulator: float = 0.0
 
 
-func _init(p_days_per_real_second: float = 1.0) -> void:
+func _init(p_days_per_real_second: float = 1.0, p_start_day_accumulator: float = 0.0) -> void:
 	days_per_real_second = p_days_per_real_second
+	_day_accumulator = p_start_day_accumulator
 
 
 func advance(delta: float) -> void:
@@ -27,6 +28,12 @@ func advance(delta: float) -> void:
 
 func get_day_count() -> int:
 	return int(floor(_day_accumulator))
+
+
+## 存檔/還原用(見 Scripts/Autoload/map_session_store.gd)——離開大地圖前讀出目前
+## 累積進度,回來時透過 _init() 的 p_start_day_accumulator 還原,取代重新從 0 天算起。
+func get_day_accumulator() -> float:
+	return _day_accumulator
 
 
 func get_astro_year() -> int:

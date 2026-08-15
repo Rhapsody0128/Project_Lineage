@@ -21,17 +21,9 @@ anchor_bottom = 1.0
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="PartyEdit" type="Button" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-text = "小隊編成"
-
 [node name="Map" type="Button" parent="CenterContainer/VBoxContainer"]
 layout_mode = 2
-text = "大地圖"
-
-[node name="Reports" type="Button" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-text = "戰報列表"
+text = "Start"
 
 [node name="Quit" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1528908134]
 layout_mode = 2

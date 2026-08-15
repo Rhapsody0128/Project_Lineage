@@ -43,45 +43,17 @@ func _find_entered_map_object() -> MapObjectData:
 	return null
 
 
+## 城堡守衛擋門 → 戰鬥 → 依勝負反應,整段流程(對話文案/AskBattle 詢問/戰報回傳)
+## 全部交給 System/event/castle/castle_gate_event.gd 的 CastleGateEvent 接管,這裡只
+## 負責告訴它事件結束後要回哪個場景(這個地點選單本身)。
 func _on_castle_button_pressed() -> void:
-	# 守衛擋門的選擇題,選項本身決定播完去哪個場景(闖進去/離開),見
-	# DialogueLibrary.build_castle_gate_challenge() 的註解。玩家小隊抓 PartyStore.party
-	# (玩家按過「完成編輯」的隊伍);還沒編過(null)就不生假隊伍頂著,直接由
-	# build_castle_gate_challenge() 拿掉「闖進去」選項。選「闖進去」時彈出 AskBattle
-	# 詢問是否跳過戰鬥(見 Scenes/BattleUtil/ask_battle.gd),自己隊伍固定對上這裡生的
-	# guard_party(守衛小隊);「闖進去」的 DialogueChoice.next_scene_path 傳空字串
-	# (見 build_castle_gate_challenge()),改由 AskBattle 決定接下來要去哪個場景,
-	# 不讓 dialogue_box.gd 選完就先切一次場景。
-	var self_party := PartyStore.party
-	var guard_party := PartyController.get_random_party()
-
-	# 這趟會先繞去 Dialogue 場景,不是直接切去 Battle,所以「回上一頁」不能靠
-	# NavigationStore.go_to() 在切場景當下自動抓 current_scene(那樣抓到的會是
-	# Dialogue 自己)——在這裡先明講最終邏輯上的上一頁就是這個地點選單本身。
-	NavigationStore.push_return_scene_path("res://Scenes/MapLocation/map_location.tscn")
-
-	var dialogue := DialogueLibrary.build_castle_gate_challenge(
-		"res://Scenes/MapLocation/map_location.tscn",
-		self_party,
-		func():
-			AskBattle.ask(
-				self_party, guard_party,
-				"res://Scenes/Battle/battle.tscn",
-				"res://Scenes/MapLocation/map_location.tscn"
-			)
-	)
-	DialogueStore.queue(dialogue, "res://Scenes/MapLocation/map_location.tscn")
-	var error := get_tree().change_scene_to_file("res://Scenes/Dialogue/dialogue_box.tscn")
-	if error != OK:
-		printerr("Error changing scene to dialogue: ", error)
+	CastleGateEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
+## 隨機村民聊天,同樣整段交給 System/event/castle/castle_chat_event.gd 的
+## CastleChatEvent 接管,聊完回到這個地點選單本身。
 func _on_chat_button_pressed() -> void:
-	# 聊完回到同一個地點選單——DialogueStore 是交接點,見該檔案註解。
-	DialogueStore.queue(DialogueLibrary.build_random_npc_chat(), "res://Scenes/MapLocation/map_location.tscn")
-	var error := get_tree().change_scene_to_file("res://Scenes/Dialogue/dialogue_box.tscn")
-	if error != OK:
-		printerr("Error changing scene to dialogue: ", error)
+	CastleChatEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
 func _on_leave_button_pressed() -> void:

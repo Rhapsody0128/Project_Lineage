@@ -28,6 +28,14 @@ var pending_enemy_party: Party = null
 ## Scenes/Battle/battle.gd 的 _run_battle_realtime()。
 var pending_battle_mode: GameEnums.BattleMode = GameEnums.BattleMode.AUTO
 
+## AskBattle(選「否」進即時戰鬥)專用的加碼交接欄位:呼叫端想在戰鬥結束、玩家按下
+## 「返回」時依勝負做點什麼(例如城堡守衛戰鬥後依勝負秀不同台詞,見
+## Scenes/MapLocation/map_location.gd 的 _on_guard_battle_result()),就把 Callable
+## (簽章 func(result: GameEnums.BattleResultType))存進來;Battle 場景的
+## _on_back_pressed() 讀到有效 Callable 就改呼叫它取代預設的 NavigationStore.go_back(),
+## 讀完立刻清空,不會遺留到下一場沒有指定 callback 的一般戰鬥。
+var pending_battle_result_callback: Callable = Callable()
+
 func _ready() -> void:
 	_seed_demo_reports()
 

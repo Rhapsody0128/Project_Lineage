@@ -139,7 +139,7 @@ mouse_filter = 2
 
 [node name="TopBar" type="HBoxContainer" parent="UI"]
 layout_mode = 0
-offset_left = 948.0
+offset_left = 787.0
 offset_top = 20.0
 offset_right = 1576.0
 offset_bottom = 68.0
@@ -172,6 +172,15 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "開始戰鬥"
 
+[node name="FinishEditButton" type="Button" parent="UI/TopBar"]
+custom_minimum_size = Vector2(145, 46)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+text = "完成編輯"
+
 [node name="BackButton" type="Button" parent="UI/TopBar"]
 custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
@@ -180,6 +189,16 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "返回主選單"
+
+[node name="StatusLabel" type="Label" parent="UI"]
+layout_mode = 0
+offset_left = 787.0
+offset_top = 72.0
+offset_right = 1576.0
+offset_bottom = 92.0
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.95, 0.75, 0.4, 1)
+horizontal_alignment = 2
 
 [node name="RightPanel" type="Panel" parent="UI"]
 layout_mode = 0
@@ -226,4 +245,5 @@ theme_override_constants/separation = 8
 [connection signal="pressed" from="UI/TopBar/AddHeroButton" to="." method="_on_add_hero_pressed"]
 [connection signal="pressed" from="UI/TopBar/GrowGridButton" to="." method="_on_grow_grid_pressed"]
 [connection signal="pressed" from="UI/TopBar/StartBattleButton" to="." method="_on_start_battle_pressed"]
+[connection signal="pressed" from="UI/TopBar/FinishEditButton" to="." method="_on_finish_edit_pressed"]
 [connection signal="pressed" from="UI/TopBar/BackButton" to="." method="_on_back_pressed"]

@@ -38,6 +38,19 @@ func _init() -> void:
 		for x in range(UNLOCK_COL_MIN, UNLOCK_COL_MAX + 1):
 			_unlocked[Vector2i(x, y)] = true
 
+## 複製一份獨立的網格狀態快照(PartyEditStore 存「按下完成編輯當下」的版本用,
+## 跟畫面上正在編輯、尚未確定的草稿分開,避免草稿中途的每一步操作都直接
+## 反映到其他場景讀得到的 STORE 資料)。Dictionary.duplicate() 淺拷貝即可,
+## key/value 都是 Vector2i 或 Hero 參照,不需要深拷貝角色本身。
+func clone() -> PartyEditGrid:
+	var copy := PartyEditGrid.new()
+	copy._unlocked = _unlocked.duplicate()
+	copy._cell_occupant = _cell_occupant.duplicate()
+	copy._placement_anchor = _placement_anchor.duplicate()
+	copy._placement_shape = _placement_shape.duplicate()
+	copy._leader = _leader
+	return copy
+
 func is_in_bounds(cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.x < GRID_COLS and cell.y >= 0 and cell.y < GRID_ROWS
 

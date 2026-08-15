@@ -134,6 +134,12 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 func _setup_click_area() -> void:
 	var click_area := Area2D.new()
 	click_area.input_pickable = true
+	# 暫停鍵是直接切 SceneTree.paused(見 battle.gd 的 _on_pause_pressed()),預設
+	# process_mode 是 PAUSABLE,暫停後這顆 Area2D 就收不到物理揀選事件,點角色本人
+	# 會完全沒反應——PauseButton/SkipButton 等 UI 按鈕在 battle.tscn 都已經明講
+	# process_mode=ALWAYS 才能在暫停中繼續運作,這裡是程式碼動態建立的節點,一樣要
+	# 補上,玩家才能在暫停時點角色看面板。
+	click_area.process_mode = Node.PROCESS_MODE_ALWAYS
 
 	var shape := CollisionShape2D.new()
 	var rect_shape := RectangleShape2D.new()

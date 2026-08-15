@@ -38,7 +38,7 @@ func _init() -> void:
 		for x in range(UNLOCK_COL_MIN, UNLOCK_COL_MAX + 1):
 			_unlocked[Vector2i(x, y)] = true
 
-## 複製一份獨立的網格狀態快照(PartyEditStore 存「按下完成編輯當下」的版本用,
+## 複製一份獨立的網格狀態快照(PartyStore 存「按下完成編輯當下」的版本用,
 ## 跟畫面上正在編輯、尚未確定的草稿分開,避免草稿中途的每一步操作都直接
 ## 反映到其他場景讀得到的 STORE 資料)。Dictionary.duplicate() 淺拷貝即可,
 ## key/value 都是 Vector2i 或 Hero 參照,不需要深拷貝角色本身。

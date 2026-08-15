@@ -162,6 +162,10 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	portrait_frame.size = PORTRAIT_SIZE
 	portrait_frame.mouse_filter = Control.MOUSE_FILTER_STOP
 	portrait_frame.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	# 跟 BattleUnitVisual._setup_click_area() 同一個原因:暫停是直接切
+	# SceneTree.paused,這顆頭像框是程式碼動態建立的,預設 process_mode 是
+	# PAUSABLE,不補 ALWAYS 的話暫停後點頭像也會沒反應。
+	portrait_frame.process_mode = Node.PROCESS_MODE_ALWAYS
 	portrait_frame.gui_input.connect(_on_portrait_gui_input.bind(battle_hero))
 
 	var is_leader := battle_hero.is_leader

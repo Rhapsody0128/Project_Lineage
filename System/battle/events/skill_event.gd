@@ -14,6 +14,3 @@ func _init(p_actor: BattleHero, p_target: BattleHero, p_skill_name: String, p_de
 	target = p_target
 	target_name = p_target.name
 	skill_name = p_skill_name
-
-func to_debug_string() -> String:
-	return "%s 對 %s 使用技能「%s」" % [actor_name, target_name, skill_name]

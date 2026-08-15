@@ -19,6 +19,3 @@ func _init(p_actor: BattleHero, p_ultimate_name: String, p_flavor_text: String, 
 	actor_name = p_actor.name
 	ultimate_name = p_ultimate_name
 	flavor_text = p_flavor_text
-
-func to_debug_string() -> String:
-	return "奧義「%s」生效:%s" % [ultimate_name, flavor_text]

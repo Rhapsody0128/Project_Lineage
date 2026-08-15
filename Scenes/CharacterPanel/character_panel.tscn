@@ -1,8 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scenes/CharacterPanel/character_panel.gd" id="1"]
-[ext_resource type="Script" path="res://Scenes/CharacterPanel/character_potential_radar.gd" id="2"]
-[ext_resource type="Script" path="res://Scenes/BattleCost/battle_cost_view.gd" id="3"]
+[ext_resource type="Script" path="res://Scenes/CharacterPanel/character_detail_view.gd" id="2"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.13, 0.15, 0.21, 0.95)
@@ -15,18 +14,6 @@ corner_radius_top_left = 12
 corner_radius_top_right = 12
 corner_radius_bottom_right = 12
 corner_radius_bottom_left = 12
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frame"]
-bg_color = Color(0.08, 0.08, 0.1, 0.6)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.75, 0.85, 1.0, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 
 [node name="CharacterPanel" type="CanvasLayer"]
 process_mode = 3
@@ -62,7 +49,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="PanelBox" type="PanelContainer" parent="Root/CenterContainer"]
-custom_minimum_size = Vector2(760, 640)
+custom_minimum_size = Vector2(920, 380)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
@@ -93,113 +80,9 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "×"
 
-[node name="HeaderRow" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
-layout_mode = 2
-theme_override_constants/separation = 24
-
-[node name="LeftHeader" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow"]
-layout_mode = 2
-size_flags_horizontal = 0
-alignment = 1
-theme_override_constants/separation = 6
-
-[node name="AvatarFrame" type="PanelContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/LeftHeader"]
-custom_minimum_size = Vector2(128, 128)
-layout_mode = 2
-size_flags_horizontal = 4
-theme_override_styles/panel = SubResource("StyleBoxFlat_frame")
-
-[node name="AvatarTexture" type="TextureRect" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/LeftHeader/AvatarFrame"]
-layout_mode = 2
-expand_mode = 1
-stretch_mode = 5
-
-[node name="FullNameLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/LeftHeader"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 18
-horizontal_alignment = 1
-
-[node name="RightHeader" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 10
-
-[node name="StatsRow" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader"]
-layout_mode = 2
-theme_override_constants/separation = 30
-
-[node name="AgeLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "年齡：--"
-
-[node name="LevelLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "等級：--"
-
-[node name="WeaponLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/StatsRow"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "武器：--"
-
-[node name="BattleCostFrame" type="PanelContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader"]
-custom_minimum_size = Vector2(160, 160)
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_frame")
-
-[node name="BattleCostView" type="Control" parent="Root/CenterContainer/PanelBox/Margin/Content/HeaderRow/RightHeader/BattleCostFrame" node_paths=PackedStringArray()]
-layout_mode = 2
-size_flags_horizontal = 4
-size_flags_vertical = 4
-script = ExtResource("3")
-cell_size = 30.0
-
-[node name="RadarSection" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="RadarTitle" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/RadarSection"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
-text = "潛力"
-
-[node name="PotentialRadar" type="Control" parent="Root/CenterContainer/PanelBox/Margin/Content/RadarSection" node_paths=PackedStringArray()]
-custom_minimum_size = Vector2(0, 220)
+[node name="DetailView" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
 script = ExtResource("2")
-
-[node name="SkillSection" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="SkillTitle" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/SkillSection"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
-text = "技能"
-
-[node name="SkillRow" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/SkillSection"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="TraitSection" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="TraitTitle" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/TraitSection"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 16
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
-text = "特質"
-
-[node name="TraitList" type="HFlowContainer" parent="Root/CenterContainer/PanelBox/Margin/Content/TraitSection"]
-layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 6
 
 [connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/TopBar/CloseButton" to="." method="close"]

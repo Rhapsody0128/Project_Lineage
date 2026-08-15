@@ -19,24 +19,42 @@ static func build_demo() -> Dialogue:
 
 
 ## 城堡選單「城堡」按鈕用(見 Scenes/MapLocation/map_location.gd):守衛擋在門口,
-## 玩家選「闖進去」進戰鬥、選「離開」回原本場景——場景路徑一律由呼叫端傳入
-## (不寫死在 System/,見 DialogueChoice 的註解)。
-static func build_castle_gate_challenge(battle_scene_path: String, leave_scene_path: String) -> Dialogue:
-	var player := HeroController.get_random_hero()
+## 玩家選「闖進去」用 self_party(呼叫端傳入,PartyStore 編好的玩家小隊)對上一個
+## 隨機敵方小隊開戰、選「離開」回原本場景——場景路徑一律由呼叫端傳入(不寫死在
+## System/,見 DialogueChoice 的註解)。on_challenge_accepted 同理由呼叫端傳入,負責把
+## self_party 交給 Battle 場景(BattleReportStore.pending_self_party 那套交接模式),
+## DialogueLibrary 本身不碰 Scenes 層的 autoload。
+##
+## self_party 可能是 null(玩家還沒去 PartyEdit 按過「完成編輯」,沒有真正屬於他的隊伍)——
+## 這種情況不生一支假的隨機小隊頂替,直接不給「闖進去」選項,只能「離開」,守衛台詞
+## 也換成請玩家先去整隊。
+static func build_castle_gate_challenge(battle_scene_path: String, leave_scene_path: String, self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
+	var has_party := self_party != null
+	var player := self_party.leader if has_party else HeroController.get_random_hero()
 	var guard := HeroController.get_random_hero()
 
 	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
 	var guard_speaker := DialogueSpeaker.new(guard.id, guard.full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)
 
-	var choices: Array[DialogueChoice] = [
-		DialogueChoice.new("闖進去", battle_scene_path),
-		DialogueChoice.new("離開", leave_scene_path),
-	]
+	var lines: Array[DialogueLine] = []
 
-	var lines: Array[DialogueLine] = [
-		DialogueLine.new(guard_speaker.id, "站住,沒有許可不准進入。"),
-		DialogueLine.new(player_speaker.id, "", choices),
-	]
+	if has_party:
+		var choices: Array[DialogueChoice] = [
+			DialogueChoice.new("闖進去", battle_scene_path, on_challenge_accepted),
+			DialogueChoice.new("離開", leave_scene_path),
+		]
+		lines = [
+			DialogueLine.new(guard_speaker.id, "站住,沒有許可不准進入。"),
+			DialogueLine.new(player_speaker.id, "", choices),
+		]
+	else:
+		var choices: Array[DialogueChoice] = [
+			DialogueChoice.new("離開", leave_scene_path),
+		]
+		lines = [
+			DialogueLine.new(guard_speaker.id, "站住,沒有許可不准進入。"),
+			DialogueLine.new(player_speaker.id, "（我還沒整頓好隊伍,先回去編隊吧。）", choices),
+		]
 
 	return Dialogue.new([guard_speaker, player_speaker], lines)
 

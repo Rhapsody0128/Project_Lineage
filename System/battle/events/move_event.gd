@@ -24,8 +24,3 @@ func _init(
 	path = p_path
 	to = p_to
 	away = p_away
-
-func to_debug_string() -> String:
-	if away:
-		return "%s 遠離 %s" % [actor_name, target_name]
-	return "%s 接近 %s" % [actor_name, target_name]

@@ -6,7 +6,7 @@ extends Node
 # 這裡管「同一個奧義(依 Ultimate.id)整個遊戲全程總共能放幾次」——每個奧義各自
 # DEFAULT_USES 次,彼此獨立不共用池,兩層限制疊加,施放時必須同時滿足。因為要跨
 # Map/Battle 等不同場景切換仍然保留剩餘次數,所以做成 autoload 而不是存在某個
-# Party/Battle 身上(那些物件離開場景就沒了)。跟 BattleReportStore/PartyEditStore
+# Party/Battle 身上(那些物件離開場景就沒了)。跟 BattleReportStore/PartyStore
 # 一樣屬於 Scenes 層的 session 單例、不是戰鬥規則,所以放在 Scripts/ 而不是 System/——
 # 由 Scenes/Battle/battle.gd 讀取/扣減,System/battle/battle.gd 不會直接參照這裡
 # (System 不碰 autoload,見 CLAUDE.md)。

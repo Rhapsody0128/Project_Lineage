@@ -24,14 +24,14 @@ extends Control
 @onready var status_label: Label = $UI/StatusLabel
 @onready var finish_edit_button: Button = $UI/TopBar/FinishEditButton
 
-## 編輯中的草稿,從 PartyEditStore 上次「完成編輯」的快照 clone() 出一份獨立
+## 編輯中的草稿,從 PartyStore 上次「完成編輯」的快照 clone() 出一份獨立
 ## 副本(沒有就新建一份空的);編輯過程只改這份草稿,按下「完成編輯」才會
-## 把草稿寫回 PartyEditStore,見 PartyEditStore 開頭註解。
+## 把草稿寫回 PartyStore,見 PartyStore 開頭註解。
 var grid: PartyEditGrid
 
 
 func _ready() -> void:
-	grid = PartyEditStore.grid.clone() if PartyEditStore.grid != null else PartyEditGrid.new()
+	grid = PartyStore.grid.clone() if PartyStore.grid != null else PartyEditGrid.new()
 	availability_layer.grid = grid
 	availability_layer.placement_changed.connect(_refresh_all)
 	availability_layer.leader_change_requested.connect(_on_leader_change_requested)
@@ -48,7 +48,7 @@ func _on_leader_change_requested(hero: Hero) -> void:
 
 
 func _on_add_hero_pressed() -> void:
-	PartyEditStore.all_heroes.append(HeroController.get_random_hero())
+	HeroRosterStore.all_heroes.append(HeroController.get_random_hero())
 	_refresh_roster()
 
 
@@ -58,7 +58,7 @@ func _on_grow_grid_pressed() -> void:
 
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://Scenes/main.tscn")
+	NavigationStore.go_back()
 
 
 ## 以現在編成開始戰鬥:把目前放置在網格上的角色組成 Party,連同每個角色在網格上的
@@ -75,16 +75,16 @@ func _on_start_battle_pressed() -> void:
 
 	BattleReportStore.pending_self_party = party
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.REALTIME
-	get_tree().change_scene_to_file("res://Scenes/Battle/battle.tscn")
+	NavigationStore.go_to("res://Scenes/Battle/battle.tscn")
 
 
-## 完成編輯:把目前草稿(grid)寫回 PartyEditStore(快照 + 轉換出的 Party),
+## 完成編輯:把目前草稿(grid)寫回 PartyStore(快照 + 轉換出的 Party),
 ## 供其他場景讀取。按鈕本身依 _update_finish_button_state() 在不符合「戰場上
 ## 至少一人」+「至少一人是隊長」時就 disabled,這裡不用重覆判斷。
 ## 不切場景,只在原地提示結果。
 func _on_finish_edit_pressed() -> void:
-	PartyEditStore.grid = grid.clone()
-	PartyEditStore.save_party(_build_party_from_grid())
+	PartyStore.grid = grid.clone()
+	PartyStore.save_party(_build_party_from_grid())
 	status_label.text = "編輯完成,已儲存小隊"
 
 
@@ -121,7 +121,7 @@ func _refresh_roster() -> void:
 	for child in roster_list.get_children():
 		child.queue_free()
 	var candidates: Array[Hero] = []
-	for hero in PartyEditStore.all_heroes:
+	for hero in HeroRosterStore.all_heroes:
 		if not grid.is_placed(hero):
 			candidates.append(hero)
 	for hero in sort_filter_bar.filter.apply(candidates):

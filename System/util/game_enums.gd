@@ -117,7 +117,7 @@ static func leader_tint(is_enemy: bool) -> Color:
 	return LEADER_ENEMY_TINT if is_enemy else LEADER_SELF_TINT
 
 ## 素質清單轉成頓號分隔的標籤字串,例如 stat_effect 事件的「力量、敏捷」——
-## 戰報事件的 to_debug_string()/detail 組字與 Scenes/battle.gd 的戰報 UI 都共用這個,
+## 戰報事件的 detail 組字與 Scenes/battle.gd 的戰報 UI 都共用這個,
 ## 不要各自各寫一份 for 迴圈。
 static func format_potential_type_list(potential_types: Array) -> String:
 	var labels: Array[String] = []

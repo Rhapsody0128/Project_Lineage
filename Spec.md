@@ -24,8 +24,6 @@
 - 在 `System/battle/events/` 新增一個檔案,`extends BattleEvent`,`_init()` 呼叫
   `super._init(GameEnums.BattleEventType.XXX)` 並設定自己的型別化欄位
 - `GameEnums.BattleEventType` enum 補上對應的值
-- override `to_debug_string()` 回傳純文字除錯版(取代舊版集中在
-  `Battle._format_event()` 的大 `match`)
 - `battle.gd` 的 `match event.event_type:` 補畫面處理分支,需要存取欄位時用
   `event as XxxEvent` 轉型
 - `attack`/`skill` 事件在 log 裡永遠緊接著 `dodge` 或 `damage`(`BattleHero.attack()`
@@ -48,6 +46,11 @@
   `Hero.COST_HP_MAP` 依 `battle_cost.cells.size()`(佔位格數 3~7)換算:600/700/800/
   900/1000,還沒有依素質/等級計算的公式)。
   `CombatResolver.apply_damage()` 傷害直接扣 `hero.hp`,歸零視為戰敗(`DefeatedEvent`)。
+  `Hero.hp` 跨戰鬥持續累積(`Battle._attach_battle_heroes()` 不再開戰前強制回滿),只能
+  靠大地圖世界時間流逝按 `Hero.HP_REGEN_PER_DAY`(目前 30/天)自然回復,見
+  `Hero.advance_hp_regen()`(`Scenes/Map/map.gd` 的 `_process()` 逐幀呼叫)。城堡選單的
+  「休息」選項(`Scenes/MapLocation/map_location.gd`)直接退回大地圖並強制開始播放時間,
+  方便玩家停在原地等回血。
 - 勝負:固定跑 `Battle.TOTAL_ROUND=10` 回合。總大將沿用現有隊長機制(`Party.leader`/
   `BattleHero.is_leader`):`Battle.is_decided` 判斷任一方總大將陣亡就提前結束戰鬥;
   `Battle.result`(`GameEnums.BattleResultType`)只看雙方總大將死活決定 `SELF_WIN`/

@@ -34,13 +34,17 @@ func _init(self_party: Party, enemy_party: Party) -> void:
 	enemy_ultimates = enemy_party.ultimates.duplicate()
 	_capture_start_state()
 
-## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。開戰前先回滿血——Hero 可能是跨多場
-## 戰鬥重複使用的實例(例如 PartyEdit 編成的角色),不會自動繼承上一場戰鬥結束當下的
-## 殘血,每場新戰鬥一律從滿血開始(見 Hero.full_heal())。
+## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。不再開戰前強制回滿血——Hero.hp 是
+## 跨多場戰鬥持續累積的殘血(例如 PartyEdit 編成的角色),只能靠大地圖時間流逝按
+## Hero.HP_REGEN_PER_DAY 自然回復(見 Scenes/Map/map.gd 的 _process()),重傷後立刻
+## 再戰一場會直接帶著殘血上場。唯一例外是已經 0 血(戰敗)的角色:不用等時間流逝
+## 自然回血,開戰當下直接把殘血墊到 1,以極限殘血狀態硬撐著再戰一場,而不是連場
+## 上都站不了。
 func _attach_battle_heroes(is_enemy: bool, party: Party) -> Array[BattleHero]:
 	var battle_heroes: Array[BattleHero] = []
 	for hero in party.heroes:
-		hero.full_heal()
+		if hero.is_disabled:
+			hero.hp = 1
 		var is_leader := hero == party.leader
 		battle_heroes.append(BattleHero.new(hero, self, is_enemy, is_leader))
 	return battle_heroes
@@ -330,7 +334,6 @@ func reset_for_replay() -> void:
 		battle_hero.hero.hp = state.hp
 		battle_hero.grid_pos = state.grid_pos
 
-## 記錄一筆結構化戰報事件,並同步輸出除錯文字
+## 記錄一筆結構化戰報事件
 func log_event(event: BattleEvent) -> void:
 	battle_log.append(event)
-	print(event.to_debug_string())

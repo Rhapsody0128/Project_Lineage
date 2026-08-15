@@ -44,7 +44,7 @@ static func compute_average_agi(party: Party) -> float:
 ## AGI 0~200 之間線性內插移動速度。
 static func compute_speed(avg_agi: float) -> float:
 	var clamped: float = clamp(avg_agi, 0.0, 200.0)
-	return lerp(SPEED_AT_AGI_0, SPEED_AT_AGI_200, clamped / 200.0)
+	return lerp(SPEED_AT_AGI_0, SPEED_AT_AGI_200, clamped / 20.0)
 
 
 func set_destination(p_target: Vector2) -> void:
@@ -67,11 +67,19 @@ func advance(delta: float) -> void:
 		position += to_target.normalized() * step
 
 
-## 找出 world_pos 附近 radius 內最近的 MapObjectData,找不到回傳 null。
+## 找出 world_pos 命中的 MapObjectData:有 territory_polygon 的物件用多邊形範圍
+## 判定(整塊領土都能點),沒有的物件才退回用 position 附近 radius 內最近命中。
+## 找不到回傳 null。
 func pick_object(world_pos: Vector2, objects: Array[MapObjectData], radius: float) -> MapObjectData:
+	for obj in objects:
+		if not obj.territory_polygon.is_empty() and Geometry2D.is_point_in_polygon(world_pos, obj.territory_polygon):
+			return obj
+
 	var closest: MapObjectData = null
 	var closest_dist := radius
 	for obj in objects:
+		if not obj.territory_polygon.is_empty():
+			continue
 		var d := obj.position.distance_to(world_pos)
 		if d <= closest_dist:
 			closest_dist = d

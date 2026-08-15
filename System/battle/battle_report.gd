@@ -31,8 +31,8 @@ var result_text: String:
 	get:
 		match result:
 			GameEnums.BattleResultType.SELF_WIN:
-				return "我方勝利"
+				return "勝利"
 			GameEnums.BattleResultType.ENEMY_WIN:
-				return "敵方勝利"
+				return "戰敗"
 			_:
 				return "平手"

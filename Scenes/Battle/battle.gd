@@ -66,7 +66,6 @@ var _pending_batch_actions := 0
 
 # 播放模式:從戰報列表選一份戰報進來重播,而不是自己生一場新的隨機戰鬥。
 # battle 已經跑完 start(),這裡只重播固定好的 battle_log,不會重新模擬。
-var is_report_playback := false
 var report: BattleReport
 
 # 戰鬥模式(見 GameEnums.BattleMode):AUTO 一次性模擬完直接重播(戰報/自動模式,
@@ -142,7 +141,6 @@ func _ready() -> void:
 ## 進入戰報播放模式:battle 已經是模擬完成、記錄好 battle_log 的舊戰報,
 ## 不呼叫 battle.start()、只重播;返回目的地也跟著換成戰報列表情境。
 func _enter_playback_mode(p_report: BattleReport) -> void:
-	is_report_playback = true
 	report = p_report
 	battle = report.battle
 	battle.reset_for_replay()
@@ -166,6 +164,7 @@ func _new_simulation() -> void:
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
 	battle = BattleController.get_random_battle()
 	_setup_battlefield()
+	title_label.text = MapSessionStore.current_world_time_string()
 	if battle_mode == GameEnums.BattleMode.REALTIME:
 		_run_battle_realtime()
 	else:
@@ -179,6 +178,8 @@ func _new_simulation_with_self_party(self_party: Party) -> void:
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
 	battle = BattleController.get_battle_with_self_party(self_party)
 	_setup_battlefield()
+	title_label.text = MapSessionStore.current_world_time_string()
+	back_button.text = "返回隊伍編輯"
 	if battle_mode == GameEnums.BattleMode.REALTIME:
 		_run_battle_realtime()
 	else:
@@ -306,9 +307,7 @@ func _run_battle_playback(should_simulate: bool) -> void:
 ## 戰報播放模式(_enter_playback_mode())跟結果 Dialog 的「重播」按鈕都是重播同一份
 ## 既有戰報(should_simulate=false),不會、也不該再記一次,否則戰報列表會出現重複項目。
 func _record_battle_report() -> void:
-	var mode_label := "即時" if battle_mode == GameEnums.BattleMode.REALTIME else "自動"
-	var title := "%s戰鬥 %d" % [mode_label, BattleReportStore.reports.size() + 1]
-	BattleReportStore.add_report(BattleReport.new(title, battle))
+	BattleReportStore.add_report(BattleReport.new(title_label.text, battle))
 
 
 ## 即時戰鬥模式(GameEnums.BattleMode.REALTIME):跟 _run_battle_playback() 共用
@@ -437,17 +436,17 @@ func _announce_result() -> void:
 
 	match end_event.result:
 		GameEnums.BattleResultType.SELF_WIN:
-			result_text = "我方勝利！"
+			result_text = "勝利！"
 			result_color = "yellow"
 			_log("[color=yellow][b]我方擊敗敵方總大將，我方勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
 		GameEnums.BattleResultType.ENEMY_WIN:
-			result_text = "敵方勝利！"
+			result_text = "戰敗！"
 			result_color = "red"
-			_log("[color=red][b]我方總大將陣亡，敵方勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
+			_log("[color=red][b]我方總大將陣亡，我方戰敗！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
 		_:
 			result_text = "平手"
 			result_color = "white"
-			_log("雙方總大將皆存活至第 10 回合，戰鬥平手。(剩餘 HP %d : %d)" % [self_total, enemy_total])
+			_log("雙方總大將皆存活至第 10 回合，平手。(剩餘 HP %d : %d)" % [self_total, enemy_total])
 
 	result_label.text = result_text
 	result_label.add_theme_color_override("font_color", Color(result_color))
@@ -456,8 +455,7 @@ func _announce_result() -> void:
 
 
 func _on_back_pressed() -> void:
-	var target := "res://Scenes/BattleReportList/battle_report_list.tscn" if is_report_playback else "res://Scenes/main.tscn"
-	get_tree().change_scene_to_file(target)
+	NavigationStore.go_back()
 
 
 # =========================================================

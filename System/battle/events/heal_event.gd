@@ -12,6 +12,3 @@ func _init(p_target: BattleHero, p_heal_points: int, p_remaining_hp: int, p_deta
 	target_name = p_target.name
 	heal_points = p_heal_points
 	remaining_hp = p_remaining_hp
-
-func to_debug_string() -> String:
-	return "%s 恢復 %d 點 HP(剩餘 HP %d)" % [target_name, heal_points, remaining_hp]

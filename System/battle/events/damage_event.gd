@@ -17,7 +17,3 @@ func _init(
 	damage_points = p_damage_points
 	remaining_hp = p_remaining_hp
 	is_critical = p_is_critical
-
-func to_debug_string() -> String:
-	var crit_text := "(暴擊！)" if is_critical else ""
-	return "%s 受到 %d 點傷害%s(剩餘 HP %d)" % [target_name, damage_points, crit_text, remaining_hp]

@@ -26,6 +26,13 @@ var hp: int
 ## 戰場佔位形狀(俄羅斯方塊式多格圖形),用於 PartyEdit 編成畫面的格子佔用判斷
 var battle_cost: BattleCost
 
+## 大地圖時間流逝的自然回血速率(見 advance_hp_regen()),目前是寫死常數,
+## 之後若要依素質/設施調整再抽成公式。
+const HP_REGEN_PER_DAY := 30.0
+## 回血是連續的(每個 frame 傳進來的 days_elapsed 都很小),用這個累積小數部分,
+## 累積滿 1 點才實際呼叫 heal(),避免每 frame int() 無條件捨去導致永遠回不到血。
+var _hp_regen_accumulator: float = 0.0
+
 func _init(
 	p_name: String,
 	p_last_name: String,
@@ -78,11 +85,18 @@ func take_damage(damage_points: int) -> void:
 func heal(amount: int) -> void:
 	hp = mini(hp + amount, hp_max)
 
-## 回滿血:Hero 是可能跨多場戰鬥重複使用的實例(例如 PartyEdit 編成的角色,不像隨機
-## 小隊每場戰鬥都重新產生),HP 會直接留著上一場戰鬥結束當下的數值——沒有傷勢持續/
-## 療養機制前,進新的一場戰鬥理應從滿血開始,見 Battle._attach_battle_heroes()。
-func full_heal() -> void:
-	hp = hp_max
+## 大地圖時間流逝時呼叫(見 Scenes/Map/map.gd 的 _process()),依經過的天數
+## (WorldTime.days_per_real_second 換算後的小數天)按 HP_REGEN_PER_DAY 回血。
+## 滿血時提早跳出並歸零累積值,避免長時間掛在滿血後突然回血的溢出小狀況。
+func advance_hp_regen(days_elapsed: float) -> void:
+	if hp >= hp_max:
+		_hp_regen_accumulator = 0.0
+		return
+	_hp_regen_accumulator += days_elapsed * HP_REGEN_PER_DAY
+	var whole_points := int(_hp_regen_accumulator)
+	if whole_points > 0:
+		heal(whole_points)
+		_hp_regen_accumulator -= whole_points
 
 func gain_exp(exp_amount: int) -> void:
 	level_system.gain_exp(exp_amount)

@@ -21,6 +21,3 @@ func _init(
 	attacker = p_attacker
 	attacker_name = p_attacker.name
 	skill_name = p_skill_name
-
-func to_debug_string() -> String:
-	return "%s 飛身守護,替 %s 承受這次攻擊" % [actor_name, target_name]

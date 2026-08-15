@@ -15,7 +15,3 @@ var detail: String
 func _init(p_event_type: GameEnums.BattleEventType, p_detail: String = "") -> void:
 	event_type = p_event_type
 	detail = p_detail
-
-## 純文字除錯版,子類別各自 override;取代舊版集中在 Battle._format_event() 的大 match。
-func to_debug_string() -> String:
-	return ""

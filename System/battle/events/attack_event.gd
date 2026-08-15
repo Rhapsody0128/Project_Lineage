@@ -12,6 +12,3 @@ func _init(p_actor: BattleHero, p_target: BattleHero, p_detail: String = "") -> 
 	actor_name = p_actor.name
 	target = p_target
 	target_name = p_target.name
-
-func to_debug_string() -> String:
-	return "%s 攻擊 %s" % [actor_name, target_name]

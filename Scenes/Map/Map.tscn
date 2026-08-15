@@ -30,18 +30,3 @@ default_color = Color(1, 1, 1, 0.85)
 [node name="PlayerAvatar" parent="." unique_id=2023387468 instance=ExtResource("2_avatar")]
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=538919500]
-
-[node name="DateLabel" type="Label" parent="UI" unique_id=116268108]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -260.0
-offset_top = 12.0
-offset_right = 260.0
-offset_bottom = 44.0
-grow_horizontal = 2
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 4
-theme_override_font_sizes/font_size = 24
-text = "B.C. 621 年 1 月 1 日　播放中"
-horizontal_alignment = 1

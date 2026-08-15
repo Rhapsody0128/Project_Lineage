@@ -23,10 +23,13 @@ const DRAG_SENSITIVITY_MAX := 6.0
 @onready var map_objects_layer: Node2D = $MapObjectsLayer
 @onready var destination_line: Line2D = $DestinationLine
 @onready var player_avatar: AnimatedSprite2D = $PlayerAvatar
-@onready var date_label: Label = $UI/DateLabel
+@onready var ui_layer: CanvasLayer = $UI
 
+var header_bar: HeaderBar
 var map_system: MapSystem
 var world_time: WorldTime
+## 玩家小隊,離開 _ready() 後仍要留著給 _process() 的 HP 回血用(見 Hero.advance_hp_regen())。
+var party: Party
 var _objects: Array[MapObjectData] = []
 var _dragging := false
 var _mouse_down_pos := Vector2.ZERO
@@ -42,12 +45,15 @@ var _traveling_to: MapObjectData = null
 
 
 func _ready() -> void:
+	header_bar = HeaderBar.new()
+	ui_layer.add_child(header_bar)
+
 	_objects = MapObjectData.get_all()
 	_spawn_map_objects()
 
-	# 目前玩家 Party 從 PartyEditStore 取得;玩家尚未去過 PartyEdit 時該值為 null,
+	# 目前玩家 Party 從 PartyStore 取得;玩家尚未去過 PartyEdit 時該值為 null,
 	# 為避免大地圖直接崩潰/卡死,fallback 用一組隨機小隊頂替(MVP 穩健性假設)。
-	var party: Party = PartyEditStore.party
+	party = PartyStore.party
 	if party == null:
 		party = PartyController.get_random_party()
 
@@ -64,14 +70,20 @@ func _ready() -> void:
 	destination_line.texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 
 	if MapSessionStore.has_saved_state:
-		# 從 Scenes/MapLocation/ 按「離開」回來:還原離開當下的座標/世界時間/相機縮放,
-		# 不要重新從出生點/B.C.621 年開始(見 Scripts/Autoload/map_session_store.gd)。
+		# 從其他場景(地點選單、HeaderBar 選單切去的戰報/隊伍編輯等)返回:還原離開
+		# 當下的座標/移動目標/世界時間/相機,不要重新從出生點/B.C.621 年開始,也不要
+		# 弄丟正在進行中的移動(見 Scripts/Autoload/map_session_store.gd 與 _exit_tree())。
 		map_system = MapSystem.new(MapSessionStore.player_position, speed)
+		if MapSessionStore.is_moving:
+			map_system.set_destination(MapSessionStore.target_position)
+			_traveling_to = _find_object_by_id(MapSessionStore.traveling_to_map_object_id)
+			_current_map_object = null
+		else:
+			_current_map_object = _find_object_by_id(MapSessionStore.entered_map_object_id)
 		world_time = WorldTime.new(1.0, MapSessionStore.day_accumulator)
-		_current_map_object = _find_object_by_id(MapSessionStore.entered_map_object_id)
 		_is_playing = MapSessionStore.is_playing
 		camera.zoom = MapSessionStore.camera_zoom
-		camera.position = MapSessionStore.player_position
+		camera.position = MapSessionStore.camera_position
 	else:
 		# 出生點預設站在第一座城堡(spec 未指定起始位置)。
 		var start_pos := _objects[0].position if not _objects.is_empty() else MapSystem.MAP_SIZE / 2.0
@@ -86,6 +98,17 @@ func _ready() -> void:
 
 	_clamp_camera_position()
 	_update_date_label()
+	if map_system.is_moving:
+		_update_destination_line()
+
+
+## 世界時間每往前推進一點,小隊全員跟著自然回血一點(見 Hero.advance_hp_regen()),
+## 不限定要站在城堡/待在原地——大地圖上移動中也一樣回血。
+func _regen_party_hp(days_elapsed: float) -> void:
+	if party == null:
+		return
+	for hero in party.heroes:
+		hero.advance_hp_regen(days_elapsed)
 
 
 func _find_object_by_id(id: String) -> MapObjectData:
@@ -117,6 +140,7 @@ func _process(delta: float) -> void:
 	# 不因「角色本身有沒有在動」而單獨停,只受播放/暫停這個開關控制)。
 	if _is_playing:
 		world_time.advance(delta)
+		_regen_party_hp(delta * world_time.days_per_real_second)
 
 		if map_system.is_moving:
 			var prev_pos := map_system.position
@@ -137,22 +161,10 @@ func _process(delta: float) -> void:
 	_update_hover_cursor()
 
 
-## 抵達地圖物件後的進入流程:相機直接貼到角色身上、zoom 歸 1,把目前狀態存進
-## MapSessionStore(見該檔案註解)供回大地圖時還原,再切去泛用的地點選單場景——
-## 顯示哪個地點、有哪些子選項全部由 map_object 這筆資料決定,這裡不寫死地點類型。
+## 抵達地圖物件後的進入流程:切去泛用的地點選單場景——顯示哪個地點、有哪些子選項
+## 全部由 map_object 這筆資料決定,這裡不寫死地點類型。相機不做任何調整,維持玩家
+## 離開前的位置/縮放,由 _exit_tree() 統一存進 MapSessionStore 供回大地圖時還原。
 func _enter_map_object(map_object: MapObjectData) -> void:
-	camera.position = player_avatar.position
-	camera.zoom = Vector2(1.0, 1.0)
-	_clamp_camera_position()
-
-	MapSessionStore.save_map_state(
-		map_system.position,
-		world_time.get_day_accumulator(),
-		camera.zoom,
-		_is_playing,
-		map_object.id
-	)
-
 	var error := get_tree().change_scene_to_file("res://Scenes/MapLocation/map_location.tscn")
 	if error != OK:
 		printerr("Error changing scene to map location: ", error)
@@ -173,7 +185,23 @@ func _update_hover_cursor() -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if hovered != null else Input.CURSOR_ARROW)
 
 
+## 離開 Map.tscn 前(不管是抵達地點、還是被 HeaderBar 選單切去其他場景)一律把
+## 目前狀態存進 MapSessionStore,回來時才能還原座標/移動目標/世界時間/相機
+## (見 Scripts/Autoload/map_session_store.gd)。
 func _exit_tree() -> void:
+	var entered_id := _current_map_object.id if _current_map_object != null else ""
+	var traveling_id := _traveling_to.id if _traveling_to != null else ""
+	MapSessionStore.save_map_state(
+		map_system.position,
+		map_system.target_position,
+		map_system.is_moving,
+		world_time.get_day_accumulator(),
+		camera.position,
+		camera.zoom,
+		_is_playing,
+		entered_id,
+		traveling_id
+	)
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
@@ -204,7 +232,7 @@ func _dir_name(dir: Vector2) -> String:
 
 func _update_date_label() -> void:
 	var state_text := "播放中" if _is_playing else "已暫停"
-	date_label.text = "%s　%s" % [world_time.get_display_string(), state_text]
+	header_bar.set_time_text("%s　%s" % [world_time.get_display_string(), state_text])
 
 
 func _toggle_playing() -> void:
@@ -299,7 +327,11 @@ func _handle_click_to_move() -> void:
 	if picked == _current_map_object:
 		# 已經站在這個地點,再點同一個 MapObject 不能走 set_destination()/_is_playing=true
 		# 那條路——之前正是這樣才會出現「已經在王城點王城,時間卻開始流逝」的 bug。
-		# 直接重新打開地點選單即可,不動 map_system/_is_playing。
+		# 觸發 MapObject 事件(打開地點選單)一律停止時間——「休息」會讓玩家站在
+		# 原地播放中(見 Scenes/MapLocation/map_location.gd 的 _on_rest_button_pressed()),
+		# 這裡若不主動關掉 _is_playing,再點一次同一個地點會把播放中的狀態帶進
+		# MapSessionStore,回大地圖後時間會在玩家沒按空白鍵的情況下繼續偷跑。
+		_is_playing = false
 		_enter_map_object(picked)
 		return
 	map_system.set_destination(picked.position)

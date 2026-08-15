@@ -14,12 +14,18 @@ const FACE_SIZE := Vector2(56, 56)
 
 var hero: Hero
 
+## 拖曳門檻觸發後 _get_drag_data() 會先設 true,擋掉隨後那次放開滑鼠的
+## _gui_input——不然「拖去網格放置」放開滑鼠那一下會被誤判成單純的輕點,
+## 多彈出一個 CharacterPanel。NOTIFICATION_DRAG_END 統一重置回 false。
+var _dragging := false
+
 func _init(p_hero: Hero = null) -> void:
 	hero = p_hero
 
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, CARD_MIN_HEIGHT)
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	add_theme_stylebox_override("panel", UiStyle.bordered_panel(
 		Color(0.13, 0.15, 0.21, 0.95), Color(0.36, 0.4, 0.56, 1), 2, 8, 10.0, 4.0
 	))
@@ -49,6 +55,7 @@ func _ready() -> void:
 
 
 func _get_drag_data(_at_position: Vector2):
+	_dragging = true
 	var preview := BattleCostView.build_centered_drag_preview(hero.battle_cost.cells.duplicate(), PartyEditBoard.TILE_SIZE, hero.weapon)
 	set_drag_preview(preview)
 	modulate.a = 0.4
@@ -62,6 +69,16 @@ func _get_drag_data(_at_position: Vector2):
 	}
 
 
+## 輕點(按下又放開,中途沒有拉出拖曳)開啟共用角色面板,跟戰場點頭像/點場上
+## 角色本人同一套(見 battle_party_roster.gd 的 _on_portrait_gui_input()、
+## battle_unit_visual.gd 的 _on_click_area_input_event())。
+func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		if not _dragging:
+			CharacterPanel.open_for_hero(hero)
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_END:
 		modulate.a = 1.0
+		_dragging = false

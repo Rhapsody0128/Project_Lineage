@@ -29,7 +29,9 @@ func _ready() -> void:
 func _refresh_list() -> void:
 	for child in report_list.get_children():
 		child.queue_free()
-	for report in BattleReportStore.reports:
+	var reports := BattleReportStore.reports.duplicate()
+	reports.reverse()
+	for report in reports:
 		_spawn_report_row(report)
 
 
@@ -52,7 +54,7 @@ func _spawn_report_row(report: BattleReport) -> void:
 	content.add_child(title_label)
 
 	var result_label := Label.new()
-	result_label.text = "%s（我方 %d：敵方 %d）" % [report.result_text, report.self_total_hp, report.enemy_total_hp]
+	result_label.text = report.result_text
 	result_label.add_theme_font_size_override("font_size", 15)
 	result_label.add_theme_color_override("font_color", _result_color(report))
 	content.add_child(result_label)
@@ -78,7 +80,7 @@ func _result_color(report: BattleReport) -> Color:
 
 func _on_play_pressed(report: BattleReport) -> void:
 	BattleReportStore.queue_playback(report)
-	get_tree().change_scene_to_file("res://Scenes/Battle/battle.tscn")
+	NavigationStore.go_to("res://Scenes/Battle/battle.tscn")
 
 
 func _on_generate_pressed() -> void:
@@ -87,4 +89,4 @@ func _on_generate_pressed() -> void:
 
 
 func _on_back_pressed() -> void:
-	get_tree().change_scene_to_file("res://Scenes/main.tscn")
+	NavigationStore.go_back()

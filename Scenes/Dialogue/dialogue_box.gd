@@ -105,6 +105,8 @@ func _refresh_choices(line: DialogueLine) -> void:
 
 
 func _on_choice_pressed(choice: DialogueChoice) -> void:
+	if choice.on_selected.is_valid():
+		choice.on_selected.call()
 	if choice.next_scene_path.is_empty():
 		return
 	var error := get_tree().change_scene_to_file(choice.next_scene_path)

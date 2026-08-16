@@ -12,7 +12,21 @@ const NO_WEAPON_BINDING := -1
 ## 前三項是衍生值,後六項對應 PotentialType 六大素質
 enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 ## 大地圖上的地點類型,見 System/map/map_object.gd
-enum MapObjectType {CASTLE}
+enum MapObjectType {CASTLE, BASE}
+## 根據地建築類型,見 System/base/building/building_library.gd 與
+## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
+## 實作;後十二種是生產類建築,兩兩一組對應六大素質的基礎/高階內政。
+enum BuildingType {
+	TOWN_CENTER, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS,
+	LUMBER_MILL, QUARRY, FARM, MINE, CARAVAN, BLACK_MARKET,
+	HUNTING_GROUND, WORKSHOP, SCRIPTORIUM, RESEARCH_INSTITUTE,
+	ALTAR, FORBIDDEN_ALTAR,
+}
+## 根據地資源類型,見 System/base/base_production.gd / Scripts/Autoload/base_resource_store.gd
+enum ResourceType {
+	WOOD, STONE, FOOD, ORE, GOLD, CONTRABAND, FUR, CRAFT,
+	BOOK, RESEARCH, FAITH, CURSE,
+}
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
 ## caster.allies 挑,見 Spec.md。
@@ -72,7 +86,27 @@ const WEAPON_TYPE_LABELS: Array[String] = ["劍", "弓", "盾", "匕首", "法�
 const CHARACTER_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數", "力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 ## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
-const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城堡"]
+const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城堡", "根據地"]
+
+## 根據地建築 UI 顯示用中文標籤,順序對應 BuildingType enum
+const BUILDING_TYPE_LABELS: Array[String] = [
+	"城鎮中心", "住宅區", "醫療所", "倉庫", "兵營",
+	"伐木場", "採石場", "農田", "採礦場", "商隊站", "黑市",
+	"狩獵場", "工匠坊", "抄書院", "科學研究所",
+	"祭壇", "禁忌祭壇",
+]
+
+## 根據地資源 UI 顯示用中文標籤,順序對應 ResourceType enum
+const RESOURCE_STRING_LABELS: Array[String] = [
+	"木材", "石材", "糧食", "鐵礦", "金錢", "贓物", "毛皮", "製作工藝",
+	"書本", "科研", "信仰", "詛咒",
+]
+
+## 根據地資源 UI 顯示用顯示標籤,順序對應 ResourceType enum
+const RESOURCE_TYPE_LABELS: Array[String] = [
+	"🪵", "🪨", "🌾", "⛏️", "🪙", "💰", "🐺", "⚒️",
+	"📚", "🔬", "🙏", "🩸",
+]
 
 ## 血統國家 UI 顯示用中文標籤,順序對應 BloodlineNation enum
 const BLOODLINE_NATION_LABELS: Array[String] = ["獅", "鷹", "豹", "熊", "龍", "鹿"]
@@ -101,6 +135,15 @@ static func character_sort_key_label(sort_key: int) -> String:
 
 static func map_object_type_label(map_object_type: int) -> String:
 	return MAP_OBJECT_TYPE_LABELS[map_object_type]
+
+static func building_type_label(building_type: int) -> String:
+	return BUILDING_TYPE_LABELS[building_type]
+
+static func resource_type_label(resource_type: int) -> String:
+	return RESOURCE_TYPE_LABELS[resource_type]
+
+static func resource_string_label(resource_type: int) -> String:
+	return RESOURCE_STRING_LABELS[resource_type]
 
 static func bloodline_nation_label(nation: int) -> String:
 	return BLOODLINE_NATION_LABELS[nation]

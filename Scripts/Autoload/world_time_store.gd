@@ -8,11 +8,11 @@ extends Node
 #
 # 這裡只是「時鐘 + 派發規則」的存放處,不會自己每 frame 推進(RefCounted 不能自己
 # 掛 _process(),而且不是每個場景都需要世界時間在跑)——真正呼叫 advance() 的地方是
-# Scenes/Map/map.gd 的 _process()(遊戲裡目前只有大地圖移動時世界時間才會走,離開
-# 大地圖跟過去一樣暫停),之後若有第二個場景也想推進時間,一樣呼叫
-# WorldTimeStore.controller.advance(delta) 即可,不需要各自持有一份 WorldTime。DEMO 快轉
-# (set_speed_level(4),is_fast_forwarding 為真)是唯一的例外,靠這支 autoload 自己掛的
-# Timer 推進,不受上述限制,也不受 is_playing 影響。
+# Scripts/UI/header_bar.gd 的 _process()(HeaderBar 是全域唯一的倍速/暫停控制入口,
+# 只要場景掛了 HeaderBar,is_playing 為真時世界時間就會走;沒掛 HeaderBar 的場景——例如
+# MapLocation 的地點選單——本來就把 is_playing 停在 false,不需要推進)。DEMO 快轉
+# (set_speed_level(4))跟 1x/2x/3x 走同一條路——單純是 play_speed_multiplier 換成更大的
+# 倍率,一樣受 is_playing 控管,沒有另開 Timer/繞過暫停的特殊通道。
 #
 # project.godot 的 [autoload] 區塊裡這支必須排在最前面:controller 是在 _ready()
 # 才 new 出來,其他 autoload 若在自己的 _ready() 就呼叫 WorldTimeStore.get_display_string()
@@ -33,23 +33,20 @@ signal day_passed
 signal month_passed
 signal year_passed
 
-const FAST_FORWARD_INTERVAL := 0.01
-## 快轉時角色移動速度的加速倍率:跟「快轉讓時間跳多快」用同一把尺——正常播放時
-## 1 真實秒 = 1 遊戲天(WorldTime.days_per_real_second 預設 1.0),快轉是 0.01 秒
-## 跳 1 天,換算下來等於 100 倍。Scenes/Map/map.gd 移動時額外拿這個倍率乘 delta,
-## 讓走路速度跟時間流逝速度維持同一套加速比例,不會發生「時間用力跳、角色卻慢慢走」
-## 的違和感。
-const FAST_FORWARD_MOVE_MULTIPLIER := 1.0 / FAST_FORWARD_INTERVAL
+## 倍速等級(1/2/3/4)→ play_speed_multiplier,4 是 HeaderBar 上 DEMO 按鈕用的 100 倍速
+## (見 Scripts/UI/header_bar.gd)。四個等級走同一套 set_speed_level() 入口、同一份
+## play_speed_multiplier,DEMO 沒有另外的 Timer 或繞過 is_playing 的特殊通道——純粹是
+## 數字比較大而已。
+const SPEED_MULTIPLIERS := {1: 1.0, 2: 2.0, 3: 3.0, 4: 100.0}
 
 var controller: WorldTimeController
-## 一般倍速(1x/2x/3x),跟 is_fast_forwarding 互斥——切到快轉時這個值固定回 1.0,
-## 見 set_speed_level()。Scenes/Map/map.gd 的 _process() 拿這個值乘 delta,同時套用在
-## 世界時間推進與地圖移動上,讓「幾倍速」的感覺是整體一起變快,不是只有時間跳、
-## 角色還是慢慢走。
+## 目前的倍速等級(1~4),HeaderBar 重新建立節點時用這個同步按鈕外觀(見
+## Scripts/UI/header_bar.gd 的 _ready())。
+var speed_level: int = 1
+## 目前的倍速倍率,HeaderBar._process() 拿這個值乘 delta 推進世界時間(見上方說明),
+## Scenes/Map/map.gd._process() 移動地圖角色時也拿同一份值乘 delta,讓「幾倍速」的感覺
+## 是整體一起變快,不是只有時間跳、角色還是慢慢走。
 var play_speed_multiplier: float = 1.0
-var is_fast_forwarding: bool = false
-
-var _fast_forward_timer: Timer
 
 
 func _ready() -> void:
@@ -58,12 +55,6 @@ func _ready() -> void:
 	controller.register_month_event(func(): month_passed.emit())
 	controller.register_year_event(func(): year_passed.emit())
 	WorldTimeEventLibrary.register_all(controller)
-
-	_fast_forward_timer = Timer.new()
-	_fast_forward_timer.wait_time = FAST_FORWARD_INTERVAL
-	_fast_forward_timer.one_shot = false
-	_fast_forward_timer.timeout.connect(_on_fast_forward_tick)
-	add_child(_fast_forward_timer)
 
 
 func toggle_playing() -> void:
@@ -74,23 +65,8 @@ func get_display_string() -> String:
 	return controller.world_time.get_display_string()
 
 
-## HEADER 的倍速按鈕/鍵盤 1~4(見 Scripts/UI/header_bar.gd 與 Scenes/Map/map.gd)統一
-## 呼叫的入口。1~3 對應一般倍速(play_speed_multiplier = 1.0/2.0/3.0);4 對應原本的
-## DEMO 100 倍速快轉(沿用 is_fast_forwarding 的 Timer 機制——不受 is_playing 暫停狀態
-## 影響,讓玩家在原地也能主動跳過時間,不需要先讓角色移動)。四個等級互斥,切到任一個
-## 都會關掉另一種模式。
+## HeaderBar 的倍速按鈕/鍵盤 1~4(見 Scripts/UI/header_bar.gd)統一呼叫的入口,四個
+## 等級都走同一段邏輯,只是 play_speed_multiplier 的數字不同,沒有特殊通道。
 func set_speed_level(level: int) -> void:
-	if level >= 4:
-		play_speed_multiplier = 1.0
-		if not is_fast_forwarding:
-			is_fast_forwarding = true
-			_fast_forward_timer.start()
-		return
-	if is_fast_forwarding:
-		is_fast_forwarding = false
-		_fast_forward_timer.stop()
-	play_speed_multiplier = float(clampi(level, 1, 3))
-
-
-func _on_fast_forward_tick() -> void:
-	controller.add_days(1)
+	speed_level = clampi(level, 1, 4)
+	play_speed_multiplier = SPEED_MULTIPLIERS[speed_level]

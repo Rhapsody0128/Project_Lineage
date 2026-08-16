@@ -4,10 +4,10 @@ extends RefCounted
 ## 世界時間的推進 + 固定事件派發規則(見 CLAUDE.md「System 管邏輯」)。持有一份
 ## WorldTime 時鐘,包一層「今天/這個月/這一年有沒有跨過去」的偵測,推進後跨過的每一天
 ## 依序觸發 day/month/year 註冊事件——不是「每 frame 觸發」,是「每跨過一天邊界觸發一次」,
-## 快轉(add_days 一次跳好幾天)一樣會逐天觸發,不會漏掉中間跨越的月/年事件。
+## 一次推進跨過好幾天(倍速夠高時)一樣會逐天觸發,不會漏掉中間跨越的月/年事件。
 ##
-## 誰來推進(advance()/add_days())見 Scripts/Autoload/world_time_store.gd,這裡只管
-## 「推進後該通知誰」,不自己跑迴圈、不碰場景樹。
+## 誰來推進(advance())見 Scripts/Autoload/world_time_store.gd,這裡只管「推進後該通知
+## 誰」,不自己跑迴圈、不碰場景樹。
 ##
 ## 注意 RefCounted 生命週期陷阱(見 CLAUDE.md):這個 controller 是應用程式全程存活的
 ## 全域物件(掛在 WorldTimeStore autoload 下面),register_xxx_event() 存進來的 Callable
@@ -45,18 +45,8 @@ func register_year_event(callback: Callable) -> void:
 func advance(delta: float) -> void:
 	if not is_playing:
 		return
-	_advance_and_dispatch(world_time.advance.bind(delta))
-
-
-## 快轉專用:精確跳過 n 天(不受 is_playing/days_per_real_second 影響),見
-## Scripts/UI/header_bar.gd 的超快速流逝時間按鈕。
-func add_days(n: int) -> void:
-	_advance_and_dispatch(world_time.add_days.bind(n))
-
-
-func _advance_and_dispatch(advance_call: Callable) -> void:
 	var before_days := world_time.get_day_count()
-	advance_call.call()
+	world_time.advance(delta)
 	var after_days := world_time.get_day_count()
 	for day_count in range(before_days + 1, after_days + 1):
 		_dispatch(_day_events)

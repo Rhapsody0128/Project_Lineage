@@ -29,6 +29,8 @@ NavigationStore="*res://Scripts/Autoload/navigation_store.gd"
 AskBattle="*res://Scenes/BattleUtil/ask_battle.tscn"
 SceneHandoffStore="*res://Scripts/Autoload/scene_handoff_store.gd"
 NewsStore="*res://Scripts/Autoload/news_store.gd"
+BaseResourceStore="*res://Scripts/Autoload/base_resource_store.gd"
+BaseDispatchStore="*res://Scripts/Autoload/base_dispatch_store.gd"
 
 [display]
 

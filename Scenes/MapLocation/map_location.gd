@@ -10,6 +10,7 @@ const CASTLE_LABEL := "城堡"
 const CHAT_LABEL := "聊天"
 const TAVERN_LABEL := "酒館"
 const REST_LABEL := "休息"
+const ENTER_BASE_LABEL := "進入根據地"
 
 @onready var title_label: Label = $CenterContainer/VBoxContainer/TitleLabel
 @onready var sub_locations_container: VBoxContainer = $CenterContainer/VBoxContainer/SubLocationsContainer
@@ -36,6 +37,8 @@ func _ready() -> void:
 			button.pressed.connect(_on_tavern_button_pressed)
 		elif sub_location_label == REST_LABEL:
 			button.pressed.connect(_on_rest_button_pressed)
+		elif sub_location_label == ENTER_BASE_LABEL:
+			button.pressed.connect(_on_enter_base_button_pressed)
 		sub_locations_container.add_child(button)
 
 
@@ -65,18 +68,32 @@ func _on_tavern_button_pressed() -> void:
 	CastleTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
+## 進入根據地:切去 Scenes/Base/base.tscn,建築內政的實際邏輯/畫面都在那個場景,
+## 這裡只負責入口。MapSessionStore.entered_map_object_id 不需要清掉——base.gd 的
+## 「離開」按鈕會直接回到這個地點選單頁,還原時一樣讀得到「根據地」。
+func _on_enter_base_button_pressed() -> void:
+	var error := get_tree().change_scene_to_file("res://Scenes/Base/base.tscn")
+	if error != OK:
+		printerr("Error changing scene to base: ", error)
+
+
+## 離開:退回大地圖並暫停時間,跟 Scenes/Map/map.gd 抵達地點時反過來暫停
+## (_handle_click_to_move()/_process() 的 WorldTimeStore.controller.is_playing = false)
+## 對稱——不這樣主動關掉的話,若玩家在根據地/這個選單按過空白鍵切成播放中(HeaderBar
+## 在這幾個場景都掛著,見 Scripts/UI/header_bar.gd),回到大地圖會發現時間憑空偷跑。
 func _on_leave_button_pressed() -> void:
+	WorldTimeStore.controller.is_playing = false
 	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)
 
 
 ## 休息:退回大地圖並直接開始播放時間(不用玩家手動按空白鍵),讓世界時間流逝
-## 帶動 WorldTimeEventLibrary 的每日角色回血(見 Scenes/Map/map.gd 的 _process())。跟
-## 「離開」的差異只差在這裡強制把 MapSessionStore.is_playing 蓋成 true——
-## map.gd 的 _ready() 本來就會讀這個欄位還原播放狀態,不需要另外開一個交接欄位。
+## 帶動 WorldTimeEventLibrary 的每日角色回血(見 Scenes/Map/map.gd 的 _process())。
+## WorldTimeStore 是應用程式全程存活的 autoload,切場景不會重置,直接改
+## controller.is_playing 就會帶到下一個場景,不需要經過 MapSessionStore 交接。
 func _on_rest_button_pressed() -> void:
-	MapSessionStore.is_playing = true
+	WorldTimeStore.controller.is_playing = true
 	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)

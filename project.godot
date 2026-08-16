@@ -17,6 +17,7 @@ config/icon="res://icon.svg"
 
 [autoload]
 
+WorldTimeStore="*res://Scripts/Autoload/world_time_store.gd"
 CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
 BattleReportStore="*res://Scripts/Autoload/battle_report_store.gd"
 PartyStore="*res://Scripts/Autoload/party_store.gd"

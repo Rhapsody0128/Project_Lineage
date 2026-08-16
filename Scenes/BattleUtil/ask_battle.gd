@@ -68,7 +68,7 @@ func ask(self_party: Party, enemy_party: Party, battle_scene_path: String, skip_
 ## 順便看一下戰報(原本打完直接無聲切場景,玩家完全看不到這場戰鬥打得如何)。
 func _on_skip_button_pressed() -> void:
 	panel_box.visible = false
-	var title := _report_title if not _report_title.is_empty() else MapSessionStore.current_world_time_string()
+	var title := _report_title if not _report_title.is_empty() else WorldTimeStore.get_display_string()
 	var report := BattleController.generate_report_for_parties(title, _self_party, _enemy_party)
 	BattleReportStore.add_report(report)
 	_show_report_prompt(report)

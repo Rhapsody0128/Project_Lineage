@@ -1,8 +1,9 @@
 class_name WorldTime
 extends RefCounted
 
-## 大地圖的世界曆法時鐘,獨立於 MapSystem 運作——由 Scenes/Map/map.gd 在
-## _process(delta) 主動呼叫 advance() 推進,自己不碰場景樹、不自己跑迴圈。
+## 世界曆法時鐘,純資料/算式,不碰場景樹、不自己跑迴圈——推進(advance()/add_days())
+## 一律由 Scripts/Autoload/world_time_store.gd 呼叫(見 System/time/world_time_controller.gd),
+## 不再由任一場景腳本(例如原本的 Scenes/Map/map.gd)持有/驅動。
 ##
 ## 簡化曆法:12 個月,每月固定 30 天,全年 360 天,不設閏年。
 ## 天文紀年(無「西元 0 年」問題):B.C.621 年 1 月 1 日 = 天文紀年 -620 年第 0 天,
@@ -26,12 +27,18 @@ func advance(delta: float) -> void:
 	_day_accumulator += delta * days_per_real_second
 
 
+## 供快轉功能(HeaderBar 的超快速流逝時間按鈕)直接跳日用,不受 days_per_real_second
+## 換算影響——按一次就是精確 +n 天,不會因為當下倍率設定而多走或少走。
+func add_days(n: int) -> void:
+	_day_accumulator += float(n)
+
+
 func get_day_count() -> int:
 	return int(floor(_day_accumulator))
 
 
-## 存檔/還原用(見 Scripts/Autoload/map_session_store.gd)——離開大地圖前讀出目前
-## 累積進度,回來時透過 _init() 的 p_start_day_accumulator 還原,取代重新從 0 天算起。
+## 存檔/還原用——目前世界時間鐘由 WorldTimeStore autoload 全程持有,不再需要
+## 跨場景手動存讀,保留這個 getter 是給需要單獨顯示某個時間快照的呼叫端用。
 func get_day_accumulator() -> float:
 	return _day_accumulator
 

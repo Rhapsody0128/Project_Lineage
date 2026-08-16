@@ -178,7 +178,7 @@ func _new_simulation() -> void:
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
 	battle = BattleController.get_random_battle()
 	_setup_battlefield()
-	title_label.text = MapSessionStore.current_world_time_string()
+	title_label.text = WorldTimeStore.get_display_string()
 	if battle_mode == GameEnums.BattleMode.REALTIME:
 		_run_battle_realtime()
 	else:
@@ -192,7 +192,7 @@ func _new_simulation_with_self_party(self_party: Party) -> void:
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
 	battle = BattleController.get_battle_with_self_party(self_party)
 	_setup_battlefield()
-	title_label.text = MapSessionStore.current_world_time_string()
+	title_label.text = WorldTimeStore.get_display_string()
 	back_button.text = "返回隊伍編輯"
 	if battle_mode == GameEnums.BattleMode.REALTIME:
 		_run_battle_realtime()
@@ -207,7 +207,7 @@ func _new_simulation_with_parties(self_party: Party, enemy_party: Party) -> void
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
 	battle = BattleController.get_battle(self_party, enemy_party)
 	_setup_battlefield()
-	title_label.text = MapSessionStore.current_world_time_string()
+	title_label.text = WorldTimeStore.get_display_string()
 	if battle_mode == GameEnums.BattleMode.REALTIME:
 		_run_battle_realtime()
 	else:

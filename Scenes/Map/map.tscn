@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://b2lq5ghdl2v1f"]
+[gd_scene format=3 uid="uid://cpo0737ciego8"]
 
 [ext_resource type="Script" uid="uid://bgr1g22dcm84h" path="res://Scenes/Map/map.gd" id="1_map"]
 [ext_resource type="PackedScene" uid="uid://dqf4wd7iad55i" path="res://Images/Warrier/animated_sprite_2d.tscn" id="2_avatar"]

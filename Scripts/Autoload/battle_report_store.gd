@@ -51,15 +51,15 @@ func _ready() -> void:
 
 ## 開場先塞兩筆 DEMO 戰報,給戰報列表畫面一開始就有東西可看
 func _seed_demo_reports() -> void:
-	add_report(BattleController.generate_random_report(MapSessionStore.current_world_time_string()))
-	add_report(BattleController.generate_random_report(MapSessionStore.current_world_time_string()))
+	add_report(BattleController.generate_random_report(WorldTimeStore.get_display_string()))
+	add_report(BattleController.generate_random_report(WorldTimeStore.get_display_string()))
 
 func add_report(report: BattleReport) -> void:
 	reports.append(report)
 
 ## 戰報列表「生成隨機戰報」DEMO 按鈕用:現跑一場隨機戰鬥、記錄成戰報並加入列表
 func generate_demo_report() -> BattleReport:
-	var report := BattleController.generate_random_report(MapSessionStore.current_world_time_string())
+	var report := BattleController.generate_random_report(WorldTimeStore.get_display_string())
 	add_report(report)
 	return report
 

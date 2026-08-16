@@ -46,6 +46,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | `util/` | `GameEnums`(所有列舉+label 靜態函式)、`Util`(隨機/UUID/棋盤距離)、`level_system.gd` |
 | `event/` | 大地圖地點事件(酒館搭訕/城門挑戰/閒聊等),共用基底 `LocationEvent`,見下方「事件與跨場景資料交接」 |
 | `marriage/` | 聯姻規則(`MarriageRule`:告白資格/成功率判定)與告白 payload(`MarriageProposalRequest`) |
+| `time/` | 世界時間曆法(`WorldTime`)與推進/固定事件派發規則(`WorldTimeController`),見下方「世界時間」 |
 
 `battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleCharacter`:`Battle`(回合迴圈/
 佈陣/勝負判定)、`BattleCharacter`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
@@ -93,6 +94,40 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 `BattleReportStore`(autoload,見 `Scripts/Autoload/battle_report_store.gd`)是全域戰報
 存取點與場景間播放交接用的 `pending_report`。跟 `CharacterPanel` 一樣屬於 Scenes 層的
 session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需要當 autoload 的例外。
+
+## 世界時間(System/time + WorldTimeStore)
+
+`WorldTime`(`System/time/world_time.gd`)是純曆法算式(12 個月/每月 30 天/全年 360 天,
+天文紀年,見檔案內註解),`WorldTimeController`(`System/time/world_time_controller.gd`)
+包一層「推進後跨過幾天邊界」的偵測,逐天派發已註冊的 day/month/year 固定事件——不是每
+frame 觸發,是每跨過一天才觸發一次,快轉一次跳好幾天一樣會逐天觸發,不會漏掉中間的月/
+年事件。兩者都是 `RefCounted`,不自己跑迴圈。
+
+`WorldTimeStore`(autoload,`Scripts/Autoload/world_time_store.gd`)是這個 controller 唯一
+的持有者,應用程式全程存活,取代舊版「`WorldTime` 由 `Scenes/Map/map.gd` 自己 `new`、進出
+地圖手動把 `day_accumulator`/`is_playing` 存進 `MapSessionStore` 再讀出來還原」的作法——
+現在世界時間不會因為玩家離開/返回大地圖而重置。實際推進(`advance(delta)`)仍是
+`map.gd._process()` 逐幀呼叫(遊戲裡目前只有大地圖移動時世界時間才會走,`is_playing` 暫停
+時跟過去一樣凍結),之後若有第二個場景也想推進時間,一樣呼叫
+`WorldTimeStore.controller.advance(delta)` 即可,不需要各自持有一份 `WorldTime`。
+
+其他系統要在「跨過一天/月/年邊界」時收到通知,兩種管道擇一:
+
+- System 層(RefCounted 規則邏輯):直接呼叫
+  `WorldTimeStore.controller.register_day_event()`/`register_month_event()`/
+  `register_year_event()`,傳入的 `Callable` 會被永久保存,注意下方「RefCounted 生命週期
+  陷阱」——裸方法參照撐不住呼叫端物件的引用計數。
+- Scenes 層(場景腳本):接 `WorldTimeStore` 的 `day_passed`/`month_passed`/`year_passed`
+  訊號即可(見 `map.gd` 用 `day_passed` 驅動小隊 HP 自然回復,`Character.advance_hp_regen()`),
+  Node 的訊號連線會在場景節點釋放時自動斷開,不會殘留、也不會像上面 Callable 陣列那樣
+  越存越多。
+
+HEADER 的超快速流逝時間按鈕(`Scripts/UI/header_bar.gd` 的 `fast_forward_button`,切換後
+觸發 `fast_forward_toggled` 訊號)呼叫 `WorldTimeStore.toggle_fast_forward()`,啟動後每 0.1
+秒呼叫一次 `controller.add_days(1)`——不受 `is_playing` 暫停狀態影響,快轉的意義就是讓玩家
+在原地也能主動跳過時間。`HeaderBar` 是全新節點(每次進大地圖都重新 `HeaderBar.new()`),
+呼叫端要在建立後用 `header_bar.set_fast_forwarding(WorldTimeStore.is_fast_forwarding)` 同步
+按鈕外觀,不然玩家離開又返回大地圖時,快轉其實還在背景跑,但按鈕會看起來像沒按下。
 
 ## 事件與跨場景資料交接(LocationEvent + SceneHandoffStore)
 

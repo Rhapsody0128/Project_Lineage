@@ -65,14 +65,29 @@ func _ready() -> void:
 	name_label.add_theme_font_size_override("font_size", NAME_FONT_SIZE)
 	info_column.add_child(name_label)
 
-	var level_weapon_row := HBoxContainer.new()
-	level_weapon_row.add_theme_constant_override("separation", 8)
-	info_column.add_child(level_weapon_row)
+	## 「等級/武器」跟下面六大素質共用同一個 GridContainer(而不是各自獨立的
+	## HBoxContainer),讓兩欄寬度統一由 GridContainer 依欄自動撐開,每一行的
+	## 第二欄(武器/敏捷/靈巧/意志)才會對齊在同一條縱線上,不會因為
+	## 「等級 1」跟「力量 2」文字寬度不同而讓後面的欄位錯開。
+	var potential_grid := GridContainer.new()
+	potential_grid.columns = 2
+	potential_grid.add_theme_constant_override("h_separation", 16)
+	potential_grid.add_theme_constant_override("v_separation", 2)
+	info_column.add_child(potential_grid)
 
 	var level_label := Label.new()
 	level_label.text = "等級 %d" % character.level_system.level
 	level_label.add_theme_font_size_override("font_size", STAT_FONT_SIZE)
-	level_weapon_row.add_child(level_label)
+	potential_grid.add_child(level_label)
+
+	var weapon_row := HBoxContainer.new()
+	weapon_row.add_theme_constant_override("separation", 4)
+	potential_grid.add_child(weapon_row)
+
+	var weapon_label := Label.new()
+	weapon_label.text = "武器"
+	weapon_label.add_theme_font_size_override("font_size", STAT_FONT_SIZE)
+	weapon_row.add_child(weapon_label)
 
 	var weapon_icon := TextureRect.new()
 	weapon_icon.custom_minimum_size = WEAPON_ICON_SIZE
@@ -80,16 +95,10 @@ func _ready() -> void:
 	weapon_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	weapon_icon.texture = load(GameEnums.weapon_icon_path(character.weapon)) as Texture2D
 	weapon_icon.tooltip_text = GameEnums.weapon_label(character.weapon)
-	level_weapon_row.add_child(weapon_icon)
+	weapon_row.add_child(weapon_icon)
 
 	## 排列順序跟 CharacterDetailView.POTENTIAL_GRID_ORDER 共用,兩處呈現同一套
 	## 「力量/敏捷、體質/靈巧、智慧/意志」慣例,不要各自維護一份順序。
-	var potential_grid := GridContainer.new()
-	potential_grid.columns = 2
-	potential_grid.add_theme_constant_override("h_separation", 16)
-	potential_grid.add_theme_constant_override("v_separation", 2)
-	info_column.add_child(potential_grid)
-
 	for potential_type in CharacterDetailView.POTENTIAL_GRID_ORDER:
 		var stat_label := Label.new()
 		stat_label.text = "%s %d" % [GameEnums.potential_label(potential_type), roundi(character.get_potential(potential_type))]

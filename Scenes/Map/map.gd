@@ -1,8 +1,10 @@
 extends Node2D
 
-## 大地圖整合層:實例化 MapObject、驅動 MapSystem/WorldTime 逐幀推進、
-## 處理相機縮放/拖曳與點擊移動輸入、同步玩家頭像位置與朝向動畫。
+## 大地圖整合層:實例化 MapObject、驅動 MapSystem 逐幀推進、呼叫 WorldTimeStore
+## 推進世界時間、處理相機縮放/拖曳與點擊移動輸入、同步玩家頭像位置與朝向動畫。
 ## 規則邏輯全部轉發給 System/map/ 底下的 RefCounted 類別,這裡只做顯示與輸入轉呼叫。
+## 世界時間的時鐘本體/固定事件派發規則不在這裡,見 Scripts/Autoload/world_time_store.gd
+## 與 System/time/world_time_controller.gd。
 
 const ZOOM_MAX := Vector2(3.0, 3.0)
 const ZOOM_MIN := Vector2(0.3, 0.3)
@@ -27,14 +29,13 @@ const DRAG_SENSITIVITY_MAX := 6.0
 
 var header_bar: HeaderBar
 var map_system: MapSystem
-var world_time: WorldTime
-## 玩家小隊,離開 _ready() 後仍要留著給 _process() 的 HP 回血用(見 Character.advance_hp_regen())。
+## 玩家小隊,離開 _ready() 後仍要留著給 _on_world_day_passed() 的 HP 回血用
+## (見 Character.advance_hp_regen())。
 var party: Party
 var _objects: Array[MapObject] = []
 var _dragging := false
 var _mouse_down_pos := Vector2.ZERO
 var _last_dir_name := "Down"
-var _is_playing := false
 
 ## 角色目前「所在」的 MapObject(非 null 代表就站在那個地點上,不是路過);
 ## 出發後清空,抵達目的地後才會指向新的地點。用來判斷「已經在王城,再點王城」
@@ -71,8 +72,10 @@ func _ready() -> void:
 
 	if MapSessionStore.has_saved_state:
 		# 從其他場景(地點選單、HeaderBar 選單切去的戰報/隊伍編輯等)返回:還原離開
-		# 當下的座標/移動目標/世界時間/相機,不要重新從出生點/B.C.621 年開始,也不要
-		# 弄丟正在進行中的移動(見 Scripts/Autoload/map_session_store.gd 與 _exit_tree())。
+		# 當下的座標/移動目標/相機,不要重新從出生點開始,也不要弄丟正在進行中的
+		# 移動(見 Scripts/Autoload/map_session_store.gd 與 _exit_tree())。世界時間/
+		# 是否播放中不需要還原——WorldTimeStore 是應用程式全程存活的 autoload,
+		# 離開/返回地圖不會重置它的狀態。
 		map_system = MapSystem.new(MapSessionStore.player_position, speed)
 		if MapSessionStore.is_moving:
 			map_system.set_destination(MapSessionStore.target_position)
@@ -80,15 +83,12 @@ func _ready() -> void:
 			_current_map_object = null
 		else:
 			_current_map_object = _find_object_by_id(MapSessionStore.entered_map_object_id)
-		world_time = WorldTime.new(1.0, MapSessionStore.day_accumulator)
-		_is_playing = MapSessionStore.is_playing
 		camera.zoom = MapSessionStore.camera_zoom
 		camera.position = MapSessionStore.camera_position
 	else:
 		# 出生點預設站在第一座城堡(spec 未指定起始位置)。
 		var start_pos := _objects[0].position if not _objects.is_empty() else MapSystem.MAP_SIZE / 2.0
 		map_system = MapSystem.new(start_pos, speed)
-		world_time = WorldTime.new()
 		_current_map_object = _objects[0] if not _objects.is_empty() else null
 		camera.zoom = ZOOM_MIN
 		camera.position = start_pos
@@ -96,19 +96,28 @@ func _ready() -> void:
 	player_avatar.position = map_system.position
 	player_avatar.play("idle_Down")
 
+	WorldTimeStore.day_passed.connect(_on_world_day_passed)
+	header_bar.fast_forward_toggled.connect(_on_fast_forward_toggled)
+	header_bar.set_fast_forwarding(WorldTimeStore.is_fast_forwarding)
+
 	_clamp_camera_position()
 	_update_date_label()
 	if map_system.is_moving:
 		_update_destination_line()
 
 
-## 世界時間每往前推進一點,小隊全員跟著自然回血一點(見 Character.advance_hp_regen()),
-## 不限定要站在城堡/待在原地——大地圖上移動中也一樣回血。
-func _regen_party_hp(days_elapsed: float) -> void:
+## 每跨過一天邊界時(WorldTimeStore.day_passed,見 Scripts/Autoload/world_time_store.gd)
+## 觸發一次,小隊全員跟著自然回血一整天份(見 Character.advance_hp_regen()),不限定
+## 要站在城堡/待在原地——大地圖上移動中、甚至用 HeaderBar 快轉時也一樣回血。
+func _on_world_day_passed() -> void:
 	if party == null:
 		return
 	for character in party.characteres:
-		character.advance_hp_regen(days_elapsed)
+		character.advance_hp_regen(1.0)
+
+
+func _on_fast_forward_toggled(_enabled: bool) -> void:
+	WorldTimeStore.toggle_fast_forward()
 
 
 func _find_object_by_id(id: String) -> MapObject:
@@ -136,12 +145,12 @@ func _create_dash_texture() -> ImageTexture:
 
 
 func _process(delta: float) -> void:
-	# 暫停時世界時間與角色移動一起凍結;播放中則兩者一起跑(世界時間仍然
-	# 不因「角色本身有沒有在動」而單獨停,只受播放/暫停這個開關控制)。
-	if _is_playing:
-		world_time.advance(delta)
-		_regen_party_hp(delta * world_time.days_per_real_second)
-
+	# 世界時間的時鐘/固定事件派發規則放在 WorldTimeStore(見 Scripts/Autoload/
+	# world_time_store.gd),但推進動作仍是這裡呼叫——advance() 內部會檢查
+	# is_playing,暫停時呼叫也不會動。角色移動額外多一層 is_playing 判斷,
+	# 跟世界時間共用同一個開關,兩者一起凍結/一起跑。
+	WorldTimeStore.controller.advance(delta)
+	if WorldTimeStore.controller.is_playing:
 		if map_system.is_moving:
 			var prev_pos := map_system.position
 			map_system.advance(delta)
@@ -153,7 +162,7 @@ func _process(delta: float) -> void:
 				# 抵達地圖 OBJECT 後自動觸發時間暫停,同時記下「目前所在地點」。
 				_current_map_object = _traveling_to
 				_traveling_to = null
-				_is_playing = false
+				WorldTimeStore.controller.is_playing = false
 				_enter_map_object(_current_map_object)
 				return
 
@@ -186,8 +195,9 @@ func _update_hover_cursor() -> void:
 
 
 ## 離開 map.tscn 前(不管是抵達地點、還是被 HeaderBar 選單切去其他場景)一律把
-## 目前狀態存進 MapSessionStore,回來時才能還原座標/移動目標/世界時間/相機
-## (見 Scripts/Autoload/map_session_store.gd)。
+## 目前狀態存進 MapSessionStore,回來時才能還原座標/移動目標/相機(見
+## Scripts/Autoload/map_session_store.gd)。世界時間/是否播放中不需要存——那是
+## WorldTimeStore autoload 的狀態,離開/返回地圖不會重置它。
 func _exit_tree() -> void:
 	var entered_id := _current_map_object.id if _current_map_object != null else ""
 	var traveling_id := _traveling_to.id if _traveling_to != null else ""
@@ -195,10 +205,8 @@ func _exit_tree() -> void:
 		map_system.position,
 		map_system.target_position,
 		map_system.is_moving,
-		world_time.get_day_accumulator(),
 		camera.position,
 		camera.zoom,
-		_is_playing,
 		entered_id,
 		traveling_id
 	)
@@ -231,12 +239,12 @@ func _dir_name(dir: Vector2) -> String:
 
 
 func _update_date_label() -> void:
-	var state_text := "播放中" if _is_playing else "已暫停"
-	header_bar.set_time_text("%s　%s" % [world_time.get_display_string(), state_text])
+	var state_text := "播放中" if WorldTimeStore.controller.is_playing else "已暫停"
+	header_bar.set_time_text("%s　%s" % [WorldTimeStore.get_display_string(), state_text])
 
 
 func _toggle_playing() -> void:
-	_is_playing = not _is_playing
+	WorldTimeStore.toggle_playing()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -325,17 +333,17 @@ func _handle_click_to_move() -> void:
 	if picked == null:
 		return
 	if picked == _current_map_object:
-		# 已經站在這個地點,再點同一個 MapObject 不能走 set_destination()/_is_playing=true
+		# 已經站在這個地點,再點同一個 MapObject 不能走 set_destination()/is_playing=true
 		# 那條路——之前正是這樣才會出現「已經在王城點王城,時間卻開始流逝」的 bug。
 		# 觸發 MapObject 事件(打開地點選單)一律停止時間——「休息」會讓玩家站在
 		# 原地播放中(見 Scenes/MapLocation/map_location.gd 的 _on_rest_button_pressed()),
-		# 這裡若不主動關掉 _is_playing,再點一次同一個地點會把播放中的狀態帶進
-		# MapSessionStore,回大地圖後時間會在玩家沒按空白鍵的情況下繼續偷跑。
-		_is_playing = false
+		# 這裡若不主動關掉 is_playing,再點一次同一個地點會讓時間在玩家沒按空白鍵
+		# 的情況下繼續偷跑。
+		WorldTimeStore.controller.is_playing = false
 		_enter_map_object(picked)
 		return
 	map_system.set_destination(picked.position)
 	destination_line.visible = true
 	_traveling_to = picked
 	_current_map_object = null
-	_is_playing = true
+	WorldTimeStore.controller.is_playing = true

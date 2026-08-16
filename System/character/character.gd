@@ -97,8 +97,13 @@ func take_damage(damage_points: int) -> void:
 func heal(amount: int) -> void:
 	hp = mini(hp + amount, hp_max)
 
-## 大地圖時間流逝時呼叫(見 Scenes/Map/map.gd 的 _process()),依經過的天數
-## (WorldTime.days_per_real_second 換算後的小數天)按 HP_REGEN_PER_DAY 回血。
+## 結為配偶,雙向寫入 mate(資格判定見 MarriageRule.can_propose())
+func marry(target_character: Character) -> void:
+	mate = target_character
+	target_character.mate = self
+
+## 每跨過一天邊界時呼叫(見 Scenes/Map/map.gd 的 _on_world_day_passed(),接
+## WorldTimeStore.day_passed 訊號),依經過的天數按 HP_REGEN_PER_DAY 回血。
 ## 滿血時提早跳出並歸零累積值,避免長時間掛在滿血後突然回血的溢出小狀況。
 func advance_hp_regen(days_elapsed: float) -> void:
 	if hp >= hp_max:

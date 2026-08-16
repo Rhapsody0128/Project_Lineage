@@ -2,7 +2,7 @@ class_name MapSystem
 extends RefCounted
 
 ## 大地圖移動邏輯:移動速度計算、逐幀逼近目的地、點擊命中測試。
-## 不處理世界時間(見 WorldTime.gd)、不處理畫面(見 Scenes/Map/map.gd)。
+## 不處理世界時間(見 System/time/world_time.gd)、不處理畫面(見 Scenes/Map/map.gd)。
 
 ## 地圖固定尺寸(world unit)。與視窗 1600x900 同為 16:9,方便縮放換算。
 const MAP_SIZE := Vector2(8000.0, 4500.0)

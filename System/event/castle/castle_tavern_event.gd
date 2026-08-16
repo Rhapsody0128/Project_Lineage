@@ -102,18 +102,13 @@ func _on_proposal_result(accepted: bool, self_character: Character, target_chara
 ## 又沒骰中時,就是真的告白失敗,不寫入 mate,劇情文案見 _build_rejected_reaction()。
 func _resolve_acceptance(picked: Character, stranger_character: Character) -> void:
 	if MarriageRule.roll_acceptance(picked, courted):
-		_marry(picked, stranger_character)
+		picked.marry(stranger_character)
 		if picked == courted:
 			goto_dialogue(_build_accepted_reaction(picked, stranger_character), _return_scene_path)
 		else:
 			goto_dialogue(_build_change_but_accept_reaction(picked, stranger_character), _return_scene_path)
 	else:
 		goto_dialogue(_build_rejected_reaction(picked, stranger_character), _return_scene_path)
-
-
-func _marry(self_character: Character, target_character: Character) -> void:
-	self_character.mate = target_character
-	target_character.mate = self_character
 
 
 ## picked == courted 這一支的成親收尾:被搭訕的本人親自接受。

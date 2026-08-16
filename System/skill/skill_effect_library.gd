@@ -5,8 +5,8 @@ extends RefCounted
 ## SkillLibrary 只負責組裝技能資料(名稱/rank/範圍/綁定武器…),實際效果一律
 ## 透過 Callable(SkillEffectLibrary, "xxx") 帶入 Skill.action。
 ##
-## 傷害/閃避/暴擊/守護判定一律呼叫 CombatResolver,不直接呼叫 BattleHero 的實例方法——
-## BattleHero 的一般攻擊(attack())也是呼叫同一份 CombatResolver,兩邊共用同一套底層,
+## 傷害/閃避/暴擊/守護判定一律呼叫 CombatResolver,不直接呼叫 BattleCharacter 的實例方法——
+## BattleCharacter 的一般攻擊(attack())也是呼叫同一份 CombatResolver,兩邊共用同一套底層,
 ## 不再互相呼叫對方。新增效果時優先重用 _attack_value()/_defense_value()/
 ## _cast_attack_skill() 這幾個共用計算,保持每個效果 function 只需描述「綁定哪個武器」。
 
@@ -23,34 +23,34 @@ static func _skill_damage(attack_value: float, defense_value: float, multiplier:
 
 ## 依武器決定攻擊方要用哪個(或哪幾個)素質當輸出:法杖=智慧、弓=靈巧、劍=力量、
 ## 盾=力量*0.4+體質*0.6、匕首=力量*0.4+敏捷*0.6、捕夢網=智慧*0.4+信仰*0.6,
-static func _attack_value(self_hero: BattleHero, weapon: GameEnums.WeaponType) -> float:
+static func _attack_value(self_character: BattleCharacter, weapon: GameEnums.WeaponType) -> float:
 	match weapon:
 		GameEnums.WeaponType.SWORD:
-			return self_hero.strength
+			return self_character.strength
 		GameEnums.WeaponType.STAFF:
-			return self_hero.intelligence
+			return self_character.intelligence
 		GameEnums.WeaponType.BOW:
-			return self_hero.dexterity
+			return self_character.dexterity
 		GameEnums.WeaponType.SHIELD:
-			return self_hero.strength * 0.4 + self_hero.vitality * 0.6
+			return self_character.strength * 0.4 + self_character.vitality * 0.6
 		GameEnums.WeaponType.DAGGER:
-			return self_hero.strength * 0.4 + self_hero.agility * 0.6
+			return self_character.strength * 0.4 + self_character.agility * 0.6
 		GameEnums.WeaponType.DREAMCATCHER:
-			return self_hero.intelligence * 0.4 + self_hero.mentality * 0.6
+			return self_character.intelligence * 0.4 + self_character.mentality * 0.6
 		_:
 			return 0
 
 ## 依武器決定防禦方要用哪個素質:法杖/捕夢網打的是信仰,其餘一律是體質。
-static func _defense_value(enemy_hero: BattleHero, weapon: GameEnums.WeaponType) -> float:
+static func _defense_value(enemy_character: BattleCharacter, weapon: GameEnums.WeaponType) -> float:
 	match weapon:
 		GameEnums.WeaponType.STAFF, GameEnums.WeaponType.DREAMCATCHER:
-			return enemy_hero.mentality
+			return enemy_character.mentality
 		_:
-			return enemy_hero.vitality
+			return enemy_character.vitality
 
-## 基本攻擊(BattleHero.attack() 專用):套用跟技能一樣的武器素質配對,倍率固定 1。
-static func basic_attack_damage(self_hero: BattleHero, enemy_hero: BattleHero, weapon: GameEnums.WeaponType) -> float:
-	return _skill_damage(_attack_value(self_hero, weapon), _defense_value(enemy_hero, weapon), 1.0)
+## 基本攻擊(BattleCharacter.attack() 專用):套用跟技能一樣的武器素質配對,倍率固定 1。
+static func basic_attack_damage(self_character: BattleCharacter, enemy_character: BattleCharacter, weapon: GameEnums.WeaponType) -> float:
+	return _skill_damage(_attack_value(self_character, weapon), _defense_value(enemy_character, weapon), 1.0)
 
 ## 攻擊類技能共用的表現:記一筆 skill 事件(以 primary_target 決定動畫朝向與戰報文字,
 ## detail 帶施法前的選技能/選目標判定明細),再對 skill.resolve_targets() 算出的每個
@@ -62,40 +62,40 @@ static func basic_attack_damage(self_hero: BattleHero, enemy_hero: BattleHero, w
 ## ——如果附近有守護技能的友軍頂替,實際受擊的目標會換成守護者(連 skill 事件顯示的
 ## target 也一併換掉,動畫才會對準真正挨打的人),範圍技能(命中多人)則不觸發守護,
 ## 因為守護只擋得住「單體」攻擊(見 B. 守護的設計)。
-static func _cast_attack_skill(self_hero: BattleHero, primary_target: BattleHero, skill: Skill, weapon: GameEnums.WeaponType, cast_detail: String = "") -> void:
-	var targets := skill.resolve_targets(self_hero, primary_target)
+static func _cast_attack_skill(self_character: BattleCharacter, primary_target: BattleCharacter, skill: Skill, weapon: GameEnums.WeaponType, cast_detail: String = "") -> void:
+	var targets := skill.resolve_targets(self_character, primary_target)
 	var display_target := primary_target
 	var guarded := false
 	var guard_damage_multiplier := 1.0
 
 	if targets.size() == 1:
-		var guard_result := CombatResolver.resolve_guard(targets[0], self_hero)
+		var guard_result := CombatResolver.resolve_guard(targets[0], self_character)
 		guarded = guard_result.target != targets[0]
 		targets = [guard_result.target]
 		display_target = guard_result.target
 		guard_damage_multiplier = guard_result.damage_multiplier
 
-	self_hero.battle.log_event(SkillEvent.new(self_hero, display_target, skill.name, cast_detail))
+	self_character.battle.log_event(SkillEvent.new(self_character, display_target, skill.name, cast_detail))
 
-	var attack_value := _attack_value(self_hero, weapon)
-	for enemy_hero in targets:
+	var attack_value := _attack_value(self_character, weapon)
+	for enemy_character in targets:
 		var dodge_check: DodgeResult
 		if guarded:
 			# 守護的意義就是「用身體擋下來」,擋都擋了就不會再靈巧閃開,直接視為命中。
-			dodge_check = DodgeResult.new(false, "%s 挺身守護,直接承受這次攻擊,不判定閃避" % enemy_hero.name)
+			dodge_check = DodgeResult.new(false, "%s 挺身守護,直接承受這次攻擊,不判定閃避" % enemy_character.name)
 		else:
-			dodge_check = CombatResolver.judge_dodge(self_hero, enemy_hero)
+			dodge_check = CombatResolver.judge_dodge(self_character, enemy_character)
 		if dodge_check.dodged:
 			continue
-		var damage := _skill_damage(attack_value, _defense_value(enemy_hero, weapon), skill.skill_ratio)
-		var crit_check := CombatResolver.judge_crit(self_hero, enemy_hero)
+		var damage := _skill_damage(attack_value, _defense_value(enemy_character, weapon), skill.skill_ratio)
+		var crit_check := CombatResolver.judge_crit(self_character, enemy_character)
 		if crit_check.critical:
 			damage *= CombatResolver.CRIT_DAMAGE_MULTIPLIER
 		var damage_detail := "%s\n\n%s" % [dodge_check.detail, crit_check.detail]
 		if guarded:
 			damage *= guard_damage_multiplier
 			damage_detail += "\n\n此傷害因守護減少 30%"
-		CombatResolver.apply_damage(enemy_hero, damage, crit_check.critical, damage_detail)
+		CombatResolver.apply_damage(enemy_character, damage, crit_check.critical, damage_detail)
 
 
 # =========================================================
@@ -103,28 +103,28 @@ static func _cast_attack_skill(self_hero: BattleHero, primary_target: BattleHero
 # =========================================================
 
 ## 法杖:智慧 vs 信仰
-static func staff_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.STAFF, cast_detail)
+static func staff_attack(self_character: BattleCharacter, enemy_character: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	_cast_attack_skill(self_character, enemy_character, skill, GameEnums.WeaponType.STAFF, cast_detail)
 
 ## 劍:力量 vs 體質
-static func sword_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.SWORD, cast_detail)
+static func sword_attack(self_character: BattleCharacter, enemy_character: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	_cast_attack_skill(self_character, enemy_character, skill, GameEnums.WeaponType.SWORD, cast_detail)
 
 ## 弓:靈巧 vs 體質
-static func bow_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.BOW, cast_detail)
+static func bow_attack(self_character: BattleCharacter, enemy_character: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	_cast_attack_skill(self_character, enemy_character, skill, GameEnums.WeaponType.BOW, cast_detail)
 
 ## 盾:力量*0.4 + 體質*0.6 vs 體質
-static func shield_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.SHIELD, cast_detail)
+static func shield_attack(self_character: BattleCharacter, enemy_character: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	_cast_attack_skill(self_character, enemy_character, skill, GameEnums.WeaponType.SHIELD, cast_detail)
 
 ## 匕首:力量*0.4 + 敏捷*0.6 vs 體質
-static func dagger_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.DAGGER, cast_detail)
+static func dagger_attack(self_character: BattleCharacter, enemy_character: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	_cast_attack_skill(self_character, enemy_character, skill, GameEnums.WeaponType.DAGGER, cast_detail)
 
 ## 捕夢網:智慧*0.4 + 信仰*0.6 vs 信仰
-static func dreamcatcher_attack(self_hero: BattleHero, enemy_hero: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	_cast_attack_skill(self_hero, enemy_hero, skill, GameEnums.WeaponType.DREAMCATCHER, cast_detail)
+static func dreamcatcher_attack(self_character: BattleCharacter, enemy_character: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	_cast_attack_skill(self_character, enemy_character, skill, GameEnums.WeaponType.DREAMCATCHER, cast_detail)
 
 
 # =========================================================
@@ -136,54 +136,54 @@ static func dreamcatcher_attack(self_hero: BattleHero, enemy_hero: BattleHero, s
 ## 再考慮改成 Skill 自己的欄位。
 const STAT_EFFECT_ROUNDS := 3
 
-## A. 智勇兼備:被動技能,開戰時由 BattleHero._apply_passive_skills() 呼叫一次
+## A. 智勇兼備:被動技能,開戰時由 BattleCharacter._apply_passive_skills() 呼叫一次
 ## (透過 Skill.apply_passive()),永久(rounds=-1)提升力量與智慧,幅度吃
 ## skill.skill_ratio(目前 0.3 = 30%)。
-static func wisdom_and_valor_passive(self_hero: BattleHero, skill: Skill) -> void:
-	self_hero.add_stat_modifier(GameEnums.PotentialType.STRENGTH, skill.skill_ratio, -1)
-	self_hero.add_stat_modifier(GameEnums.PotentialType.INTELLIGENCE, skill.skill_ratio, -1)
+static func wisdom_and_valor_passive(self_character: BattleCharacter, skill: Skill) -> void:
+	self_character.add_stat_modifier(GameEnums.PotentialType.STRENGTH, skill.skill_ratio, -1)
+	self_character.add_stat_modifier(GameEnums.PotentialType.INTELLIGENCE, skill.skill_ratio, -1)
 
 ## B. 守護:被動技能,但效果完全不在這裡發生——它是「友軍受到單體物理攻擊時」的
 ## 反應式判定,實際邏輯在 CombatResolver.resolve_guard(),由 _cast_attack_skill()/
-## BattleHero.attack() 在命中判定前呼叫。這個函式只是給 Skill 建構子一個合法的
+## BattleCharacter.attack() 在命中判定前呼叫。這個函式只是給 Skill 建構子一個合法的
 ## Callable 佔位,apply_passive() 呼叫到也不做任何事。
-static func guard_passive_noop(self_hero: BattleHero, skill: Skill) -> void:
+static func guard_passive_noop(self_character: BattleCharacter, skill: Skill) -> void:
 	pass
 
 ## C. 治癒:以施法者自身為中心,範圍內(RADIUS)的存活隊友(不含自己)各自恢復 HP,
 ## 治療量 = 施法者 MEN(信仰) × skill.skill_ratio(目前 2.0 = 2 倍),不吃防禦、
 ## 不會被閃避,每個目標各自記一筆 heal 事件。
-static func dreamcatcher_heal(self_hero: BattleHero, primary_target: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	self_hero.battle.log_event(SkillEvent.new(self_hero, self_hero, skill.name, cast_detail))
+static func dreamcatcher_heal(self_character: BattleCharacter, primary_target: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	self_character.battle.log_event(SkillEvent.new(self_character, self_character, skill.name, cast_detail))
 
-	var heal_value: float = self_hero.mentality * skill.skill_ratio
+	var heal_value: float = self_character.mentality * skill.skill_ratio
 	var heal_detail := "%s 治療量 = MEN(%.1f)×%.1f = %.1f" % [
-		self_hero.name, self_hero.mentality, skill.skill_ratio, heal_value,
+		self_character.name, self_character.mentality, skill.skill_ratio, heal_value,
 	]
-	for ally in skill.resolve_targets(self_hero, self_hero):
+	for ally in skill.resolve_targets(self_character, self_character):
 		CombatResolver.apply_heal(ally, heal_value, heal_detail)
 
 ## D. 大將之風:LEADER 技能,area_shape=ALL_ALLIES(見 Skill.resolve_targets()),
 ## 對施法者本人+全隊存活隊友一次套用力量/敏捷/靈巧 +skill.skill_ratio(目前 0.2 =
 ## 20%),持續 STAT_EFFECT_ROUNDS 回合。
-static func commander_bearing_buff(self_hero: BattleHero, primary_target: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	self_hero.battle.log_event(SkillEvent.new(self_hero, self_hero, skill.name, cast_detail))
+static func commander_bearing_buff(self_character: BattleCharacter, primary_target: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	self_character.battle.log_event(SkillEvent.new(self_character, self_character, skill.name, cast_detail))
 
-	var targets := skill.resolve_targets(self_hero, self_hero)
+	var targets := skill.resolve_targets(self_character, self_character)
 	_apply_stat_effect(targets, skill.buffed_potential_types, skill.skill_ratio, STAT_EFFECT_ROUNDS)
 
 ## E. 降咒:以鎖定的敵方目標為中心,RADIUS 範圍內的敵人各自被降低敏捷/力量
 ## skill.skill_ratio(目前 -0.2 = -20%),持續 STAT_EFFECT_ROUNDS 回合;不判定閃避/
 ## 暴擊(這是詛咒不是傷害,跟魔法攻擊一樣視為無視物理閃躲)。
-static func curse_debuff(self_hero: BattleHero, primary_target: BattleHero, skill: Skill, cast_detail: String = "") -> void:
-	self_hero.battle.log_event(SkillEvent.new(self_hero, primary_target, skill.name, cast_detail))
+static func curse_debuff(self_character: BattleCharacter, primary_target: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
+	self_character.battle.log_event(SkillEvent.new(self_character, primary_target, skill.name, cast_detail))
 
-	var targets := skill.resolve_targets(self_hero, primary_target)
+	var targets := skill.resolve_targets(self_character, primary_target)
 	_apply_stat_effect(targets, skill.buffed_potential_types, skill.skill_ratio, STAT_EFFECT_ROUNDS)
 
 ## D/E 共用:對多個目標套用同一組素質修正,每個目標各自記一筆 stat_effect 事件
 ## (給戰報 UI/頭像箭頭用),multiplier 正值是增益、負值是減益。
-static func _apply_stat_effect(targets: Array[BattleHero], potential_types: Array[int], multiplier: float, rounds: int) -> void:
+static func _apply_stat_effect(targets: Array[BattleCharacter], potential_types: Array[int], multiplier: float, rounds: int) -> void:
 	for target in targets:
 		for potential_type in potential_types:
 			target.add_stat_modifier(potential_type, multiplier, rounds)

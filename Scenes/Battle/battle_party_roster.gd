@@ -4,7 +4,7 @@ extends HBoxContainer
 # =========================================================
 # 左右兩側的隊伍頭像列:一格正方形頭像(暫用 Warrier 正面圖佔位)、
 # 角色名字、以及顯示「目前 HP/最大 HP」的血條。
-# 只負責畫面表現,HP 數字全部來自 System/battle 的 BattleHero。
+# 只負責畫面表現,HP 數字全部來自 System/battle 的 BattleCharacter。
 #
 # 小隊人數上限未來會開放到 12(見 CLAUDE.md),固定預留「6 列 x 2 欄」版面:第一欄
 # 由上往下站滿 ROWS_PER_COLUMN(6)人,第 7 人才開始站第二欄(一樣由上往下)。這是
@@ -85,7 +85,7 @@ class RosterSlot:
 	var debuff_types: Array[int] = []
 
 var _is_enemy := false
-var _slots: Dictionary = {} # BattleHero -> RosterSlot
+var _slots: Dictionary = {} # BattleCharacter -> RosterSlot
 ## 兩欄各自是獨立的 VBoxContainer(見上面「先欄後列」註解),populate() 依角色
 ## 索引分派到 _column_a(前 ROWS_PER_COLUMN 人)或 _column_b(第 7 人開始)。
 var _column_a: VBoxContainer
@@ -130,17 +130,17 @@ func clear_roster() -> void:
 ## fallback_portrait 在角色沒有頭像(face_path 空白或載入失敗)時當備用圖。前
 ## ROWS_PER_COLUMN 人分到 _column_a、由上往下排,第 ROWS_PER_COLUMN+1 人開始才
 ## 輪到 _column_b(一樣由上往下),見上面「先欄後列」註解。
-func populate(battle_heroes: Array[BattleHero], is_enemy: bool, fallback_portrait: Texture2D) -> void:
+func populate(battle_characteres: Array[BattleCharacter], is_enemy: bool, fallback_portrait: Texture2D) -> void:
 	clear_roster()
 	_is_enemy = is_enemy
 	_column_a.add_theme_constant_override("separation", SLOT_SEPARATION)
 	_column_b.add_theme_constant_override("separation", SLOT_SEPARATION)
-	for i in range(battle_heroes.size()):
+	for i in range(battle_characteres.size()):
 		var column := _column_a if i < ROWS_PER_COLUMN else _column_b
-		_spawn_slot(battle_heroes[i], is_enemy, fallback_portrait, column)
+		_spawn_slot(battle_characteres[i], is_enemy, fallback_portrait, column)
 
 
-func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Texture2D, column: VBoxContainer) -> void:
+func _spawn_slot(battle_character: BattleCharacter, is_enemy: bool, fallback_portrait: Texture2D, column: VBoxContainer) -> void:
 	var slot := VBoxContainer.new()
 	slot.add_theme_constant_override("separation", 2)
 	slot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
@@ -166,16 +166,16 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	# SceneTree.paused,這顆頭像框是程式碼動態建立的,預設 process_mode 是
 	# PAUSABLE,不補 ALWAYS 的話暫停後點頭像也會沒反應。
 	portrait_frame.process_mode = Node.PROCESS_MODE_ALWAYS
-	portrait_frame.gui_input.connect(_on_portrait_gui_input.bind(battle_hero))
+	portrait_frame.gui_input.connect(_on_portrait_gui_input.bind(battle_character))
 
-	var is_leader := battle_hero.is_leader
-	var border_color := GameEnums.weapon_border_color(battle_hero.hero.weapon)
+	var is_leader := battle_character.is_leader
+	var border_color := GameEnums.weapon_border_color(battle_character.character.weapon)
 	var frame_style := UiStyle.bordered_panel(Color(0.08, 0.08, 0.1, 0.6), border_color, 2, 0, 2.0, 2.0)
 	portrait_frame.add_theme_stylebox_override("panel", frame_style)
 	portrait_row.add_child(portrait_frame)
 
 	var portrait := TextureRect.new()
-	portrait.texture = _load_hero_portrait(battle_hero, fallback_portrait)
+	portrait.texture = _load_character_portrait(battle_character, fallback_portrait)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait.modulate = ENEMY_TINT if is_enemy else Color(1, 1, 1)
@@ -203,18 +203,18 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	portrait_row.add_child(debuff_arrow_label)
 
 	var name_label := Label.new()
-	name_label.text = battle_hero.name
+	name_label.text = battle_character.name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_font_size_override("font_size", 12)
 	name_label.add_theme_color_override("font_color", border_color)
 	slot.add_child(name_label)
 
-	var max_count := battle_hero.hp_max
+	var max_count := battle_character.hp_max
 
 	var bar := ProgressBar.new()
 	bar.custom_minimum_size = Vector2(0, 10)
 	bar.max_value = max_count
-	bar.value = battle_hero.hp
+	bar.value = battle_character.hp
 	bar.show_percentage = false
 
 	var bar_fill := StyleBoxFlat.new()
@@ -237,7 +237,7 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	s.max_count = max_count
 	s.buff_arrow_label = buff_arrow_label
 	s.debuff_arrow_label = debuff_arrow_label
-	_slots[battle_hero] = s
+	_slots[battle_character] = s
 
 
 ## 箭頭角標固定切成左右各半格,疊在頭像正上方(見 _spawn_slot());arrow_pos 是
@@ -260,8 +260,8 @@ func _build_status_arrow_label(arrow_text: String, arrow_pos: Vector2) -> Label:
 
 
 ## 更新某隊伍的血條(remaining 為目前 HP)
-func update_hp(battle_hero: BattleHero, remaining: int) -> void:
-	var s: RosterSlot = _slots.get(battle_hero)
+func update_hp(battle_character: BattleCharacter, remaining: int) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
 		return
 
@@ -269,9 +269,9 @@ func update_hp(battle_hero: BattleHero, remaining: int) -> void:
 
 
 ## 戰敗時血條歸零,順便把還沒到期的增益/減益箭頭一起清掉(人都倒了,不用再顯示)
-func mark_defeated(battle_hero: BattleHero) -> void:
-	update_hp(battle_hero, 0)
-	var s: RosterSlot = _slots.get(battle_hero)
+func mark_defeated(battle_character: BattleCharacter) -> void:
+	update_hp(battle_character, 0)
+	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
 		return
 	s.buff_types.clear()
@@ -284,8 +284,8 @@ func mark_defeated(battle_hero: BattleHero) -> void:
 ## 頭像右側同一塊區域(見 _spawn_slot()),不會因為同時中好幾種素質就往外撐版面——
 ## 多種素質改用顏色輪流切換表示(見 _refresh_status_arrow())。同一個素質重複套用
 ## 只是刷新,不會在清單裡重複出現。
-func add_status_arrows(battle_hero: BattleHero, potential_types: Array, is_buff: bool) -> void:
-	var s: RosterSlot = _slots.get(battle_hero)
+func add_status_arrows(battle_character: BattleCharacter, potential_types: Array, is_buff: bool) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
 		return
 
@@ -297,8 +297,8 @@ func add_status_arrows(battle_hero: BattleHero, potential_types: Array, is_buff:
 
 
 ## 增益/減益到期:從清單移除對應素質,清單清空時箭頭跟著藏起來。
-func remove_status_arrows(battle_hero: BattleHero, potential_types: Array, is_buff: bool) -> void:
-	var s: RosterSlot = _slots.get(battle_hero)
+func remove_status_arrows(battle_character: BattleCharacter, potential_types: Array, is_buff: bool) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
 		return
 
@@ -327,8 +327,8 @@ func _refresh_status_arrow(s: RosterSlot, is_buff: bool) -> void:
 
 ## 角色行動時(移動/攻擊/發呆/技能)頭像往戰場方向靠近一點再返回,提示「輪到這個
 ## 角色動作」。每格頭像各自有自己的位移動畫,彼此互不影響。
-func pulse_active(battle_hero: BattleHero) -> void:
-	var s: RosterSlot = _slots.get(battle_hero)
+func pulse_active(battle_character: BattleCharacter) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
 		return
 
@@ -345,12 +345,12 @@ func pulse_active(battle_hero: BattleHero) -> void:
 
 ## 放技能時:頭像照樣靠近戰場(pulse_active),頭像框變色高亮一下,
 ## 另外在頭像面向戰場那一側彈出一個漫畫風格的對話框,寫出招式名稱。
-func pulse_skill(battle_hero: BattleHero, skill_name: String) -> void:
-	var s: RosterSlot = _slots.get(battle_hero)
+func pulse_skill(battle_character: BattleCharacter, skill_name: String) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
 		return
 
-	pulse_active(battle_hero)
+	pulse_active(battle_character)
 
 	if s.skill_tween != null and s.skill_tween.is_valid():
 		s.skill_tween.kill()
@@ -457,16 +457,16 @@ func _animate_skill_bubble(s: RosterSlot, bubble: PanelContainer, tail: Panel) -
 
 
 ## 隊長的個人頭像(Images/Face 隨機圖);沒有頭像時退回 Warrier 佔位圖
-func _load_hero_portrait(battle_hero: BattleHero, fallback_portrait: Texture2D) -> Texture2D:
-	var face_path := battle_hero.hero.face_path
+func _load_character_portrait(battle_character: BattleCharacter, fallback_portrait: Texture2D) -> Texture2D:
+	var face_path := battle_character.character.face_path
 	if face_path.is_empty():
 		return fallback_portrait
 	var texture := load(face_path) as Texture2D
 	return texture if texture != null else fallback_portrait
 
 
-## 點擊頭像開啟共用角色面板(CharacterPanel 為 autoload 單例)。多帶 battle_hero,
-## 讓面板的雷達圖能顯示套用完戰場加成的即時數值,見 CharacterPanel.open_for_hero()。
-func _on_portrait_gui_input(input_event: InputEvent, battle_hero: BattleHero) -> void:
+## 點擊頭像開啟共用角色面板(CharacterPanel 為 autoload 單例)。多帶 battle_character,
+## 讓面板的雷達圖能顯示套用完戰場加成的即時數值,見 CharacterPanel.open_for_character()。
+func _on_portrait_gui_input(input_event: InputEvent, battle_character: BattleCharacter) -> void:
 	if input_event is InputEventMouseButton and input_event.pressed and input_event.button_index == MOUSE_BUTTON_LEFT:
-		CharacterPanel.open_for_hero(battle_hero.hero, battle_hero)
+		CharacterPanel.open_for_character(battle_character.character, battle_character)

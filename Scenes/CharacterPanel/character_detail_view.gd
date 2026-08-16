@@ -17,12 +17,12 @@ extends VBoxContainer
 # 有的靠左混搭。分頁內容外圍統一包一層 TAB_CONTENT_PADDING 的
 # MarginContainer,避免文字/計量表貼齊分頁邊緣。
 #
-# 程式化建構節點,比照 HeaderBar/HeroCard 等既有共用元件的慣例,
+# 程式化建構節點,比照 HeaderBar/CharacterCard 等既有共用元件的慣例,
 # 不另外拆 .tscn。
 #
 # 用法:var view := CharacterDetailView.new(); parent.add_child(view);
-# view.set_hero(hero, battle_hero)。battle_hero 選填,語意跟
-# CharacterPotentialRadar.set_hero() 一致(戰場即時數值)。
+# view.set_character(character, battle_character)。battle_character 選填,語意跟
+# CharacterPotentialRadar.set_character() 一致(戰場即時數值)。
 # =========================================================
 
 ## 技能格 2*2 排列,GridContainer columns=2。
@@ -97,39 +97,39 @@ func _ready() -> void:
 	tabs.add_child(_build_family_tab())
 
 
-## 任何場景都可呼叫:view.set_hero(hero, battle_hero)。傳 null 代表清空
+## 任何場景都可呼叫:view.set_character(character, battle_character)。傳 null 代表清空
 ## (面板關閉/離開角色列表選取時停止雷達圖逐幀重繪,見 CharacterPotentialRadar)。
-func set_hero(hero: Hero, battle_hero: BattleHero = null) -> void:
-	if hero == null:
+func set_character(character: Character, battle_character: BattleCharacter = null) -> void:
+	if character == null:
 		portrait_texture.texture = null
 		name_label.text = ""
 		age_label.text = ""
 		gender_label.text = ""
-		radar.set_hero(null)
+		radar.set_character(null)
 		return
 
-	portrait_texture.texture = _load_face_texture(hero.face_path)
-	name_label.text = "姓名：%s" % hero.full_name
-	age_label.text = "年齡：%d" % hero.age
-	gender_label.text = "性別：%s" % GameEnums.gender_symbol(hero.gender)
+	portrait_texture.texture = _load_face_texture(character.face_path)
+	name_label.text = "姓名：%s" % character.full_name
+	age_label.text = "年齡：%d" % character.age
+	gender_label.text = "性別：%s" % GameEnums.gender_symbol(character.gender)
 
-	level_value_label.text = "%d" % hero.level_system.level
-	_update_exp_bar(hero.level_system)
-	weapon_icon.texture = load(GameEnums.weapon_icon_path(hero.weapon)) as Texture2D
-	weapon_icon.tooltip_text = GameEnums.weapon_label(hero.weapon)
+	level_value_label.text = "%d" % character.level_system.level
+	_update_exp_bar(character.level_system)
+	weapon_icon.texture = load(GameEnums.weapon_icon_path(character.weapon)) as Texture2D
+	weapon_icon.tooltip_text = GameEnums.weapon_label(character.weapon)
 
-	var is_leader := battle_hero != null and battle_hero.is_leader
+	var is_leader := battle_character != null and battle_character.is_leader
 
-	battle_cost_view.weapon = hero.weapon
+	battle_cost_view.weapon = character.weapon
 	battle_cost_view.is_leader = is_leader
-	battle_cost_view.battle_cost = hero.battle_cost
+	battle_cost_view.battle_cost = character.battle_cost
 
-	radar.set_hero(hero, battle_hero)
-	_populate_bloodline(hero.bloodline)
+	radar.set_character(character, battle_character)
+	_populate_bloodline(character.bloodline)
 
-	_update_potential_labels(hero, battle_hero)
-	_populate_skills(hero)
-	_populate_traits(hero.traits)
+	_update_potential_labels(character, battle_character)
+	_populate_skills(character)
+	_populate_traits(character.traits)
 
 
 ## 「標題靠左、數值靠右」的兩端對齊列(對照 CSS 的 justify-content: space-between),
@@ -153,7 +153,7 @@ func _build_stat_row(caption: String) -> Dictionary:
 	return {"row": row, "caption_label": caption_label, "value_label": value_label}
 
 
-## 立繪(沿用放大的 Hero.face_path 大頭貼,紙娃娃/全身立繪系統尚未製作,
+## 立繪(沿用放大的 Character.face_path 大頭貼,紙娃娃/全身立繪系統尚未製作,
 ## 見遊戲企劃設定總整理.md 十一 紙娃娃系統)左上 + 姓名/年齡/性別右上,
 ## 三行文字靠頂對齊(不隨立繪高度置中),不是整塊置中。
 func _build_identity_header() -> Control:
@@ -282,7 +282,7 @@ func _build_attribute_tab() -> Control:
 	info_labels.add_child(exp_bar)
 
 	## 「武器」這一列的數值直接用圖示表示(不再額外重複文字名稱),圖示本身的
-	## tooltip_text(見 set_hero())滑鼠停留可以看武器全名。跟 _build_stat_row()
+	## tooltip_text(見 set_character())滑鼠停留可以看武器全名。跟 _build_stat_row()
 	## 同樣是「標題靠左、數值靠右」的排版,只是數值換成圖示而不是文字 Label。
 	var weapon_row := HBoxContainer.new()
 	weapon_row.add_theme_constant_override("separation", 6)
@@ -404,15 +404,15 @@ func _build_family_tab() -> Control:
 	return _wrap_tab_content("家族", column)
 
 
-## 力量等六大素質數值:有 battle_hero(從戰鬥中點頭像開啟)時額外在括號附註套用完
+## 力量等六大素質數值:有 battle_character(從戰鬥中點頭像開啟)時額外在括號附註套用完
 ## 暴擊/被動/buff/debuff 加成後的即時數值(例如「11 (14)」),取代原本畫在雷達圖上的
-## 數字(見 CharacterPotentialRadar._draw_labels());沒有 battle_hero 時只顯示基礎值。
-func _update_potential_labels(hero: Hero, battle_hero: BattleHero) -> void:
+## 數字(見 CharacterPotentialRadar._draw_labels());沒有 battle_character 時只顯示基礎值。
+func _update_potential_labels(character: Character, battle_character: BattleCharacter) -> void:
 	for i in range(potential_value_labels.size()):
 		var potential_type: int = POTENTIAL_GRID_ORDER[i]
-		var base_value: int = roundi(hero.get_potential(potential_type))
-		if battle_hero != null:
-			var live_value: int = roundi(battle_hero.get_potential(potential_type))
+		var base_value: int = roundi(character.get_potential(potential_type))
+		if battle_character != null:
+			var live_value: int = roundi(battle_character.get_potential(potential_type))
 			potential_value_labels[i].text = "%d (%d)" % [base_value, live_value]
 		else:
 			potential_value_labels[i].text = "%d" % base_value
@@ -433,13 +433,13 @@ func _update_exp_bar(level_system: LevelSystem) -> void:
 
 
 ## 技能格固定 4 格,角色技能不足 4 個時留空;技能綁定的武器跟目前手持武器不符時
-## (Hero.can_use_skill 判斷),整格反灰並在提示文字加註需要的武器,而不是直接不顯示——
+## (Character.can_use_skill 判斷),整格反灰並在提示文字加註需要的武器,而不是直接不顯示——
 ## 玩家仍要看得到「學過這招,只是現在打不出來」。
-func _populate_skills(hero: Hero) -> void:
+func _populate_skills(character: Character) -> void:
 	for child in skill_row.get_children():
 		child.queue_free()
 
-	var skill_list := hero.skill_list
+	var skill_list := character.skill_list
 	for i in range(SKILL_SLOT_COUNT):
 		var slot := PanelContainer.new()
 		slot.custom_minimum_size = SKILL_SLOT_MIN_SIZE
@@ -462,7 +462,7 @@ func _populate_skills(hero: Hero) -> void:
 		if i < skill_list.size():
 			var skill: Skill = skill_list[i]
 			label.text = skill.name
-			if hero.can_use_skill(skill):
+			if character.can_use_skill(skill):
 				slot.tooltip_text = skill.description
 				slot.modulate = SKILL_ENABLED_MODULATE
 			else:

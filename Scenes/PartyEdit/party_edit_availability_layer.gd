@@ -15,7 +15,7 @@ signal placement_changed
 ## 右鍵點擊已放置角色時發出,呼叫端(party_edit.gd)接住後轉呼叫
 ## PartyEditGrid.set_leader()——設隊長的判斷/資料一律留在 System 層,
 ## 這裡只負責把輸入事件轉成「使用者想把誰設成隊長」的意圖。
-signal leader_change_requested(hero: Hero)
+signal leader_change_requested(character: Character)
 
 const LOCKED_TINT := Color(0, 0, 0, 0.6)
 const VALID_HIGHLIGHT := Color(0.4, 0.9, 0.4, 0.5)
@@ -81,22 +81,22 @@ func _anchor_cell_for(at_position: Vector2, shape: Array[Vector2i]) -> Vector2i:
 
 ## 拿起已放置角色:壓在該角色任一佔用格上皆可撿起,不限定佔位格(站立圖示)那一格
 ## ——比字面「拉動佔位格中的小人」寬容也更好操作,刻意簡化。撿起後可以拖到自己
-## 目前佔用的其他格子上放開,改變哪一格是佔位格(can_place() 的 excluding_hero
+## 目前佔用的其他格子上放開,改變哪一格是佔位格(can_place() 的 excluding_character
 ## 排除了自己目前佔用的格子,所以在自己形狀範圍內移動一定合法)。
 func _get_drag_data(at_position: Vector2):
 	if grid == null:
 		return null
-	var hero := grid.get_hero_at(pixel_to_cell(at_position))
-	if hero == null:
+	var character := grid.get_character_at(pixel_to_cell(at_position))
+	if character == null:
 		return null
 
-	var shape := grid.get_placement_shape(hero)
-	var preview := BattleCostView.build_centered_drag_preview(shape.duplicate(), PartyEditBoard.TILE_SIZE, hero.weapon)
+	var shape := grid.get_placement_shape(character)
+	var preview := BattleCostView.build_centered_drag_preview(shape.duplicate(), PartyEditBoard.TILE_SIZE, character.weapon)
 	set_drag_preview(preview)
 
 	return {
 		"type": "battle_cost_placement",
-		"hero": hero,
+		"character": character,
 		"shape": shape.duplicate(),
 		"preview": preview,
 		"origin": "grid",
@@ -110,7 +110,7 @@ func _can_drop_data(at_position: Vector2, data) -> bool:
 
 	var shape: Array[Vector2i] = data["shape"]
 	var anchor := _anchor_cell_for(at_position, shape)
-	var excluding: Hero = data["hero"] if data.get("origin") == "grid" else null
+	var excluding: Character = data["character"] if data.get("origin") == "grid" else null
 
 	_hover_active = true
 	_hover_anchor = anchor
@@ -122,7 +122,7 @@ func _can_drop_data(at_position: Vector2, data) -> bool:
 
 func _drop_data(at_position: Vector2, data) -> void:
 	var shape: Array[Vector2i] = data["shape"]
-	grid.place(data["hero"], shape, _anchor_cell_for(at_position, shape))
+	grid.place(data["character"], shape, _anchor_cell_for(at_position, shape))
 	_hover_active = false
 	queue_redraw()
 	placement_changed.emit()
@@ -136,9 +136,9 @@ func _gui_input(event: InputEvent) -> void:
 
 	if event.button_index == MOUSE_BUTTON_RIGHT:
 		if event.pressed:
-			var hero := grid.get_hero_at(pixel_to_cell(event.position))
-			if hero != null:
-				leader_change_requested.emit(hero)
+			var character := grid.get_character_at(pixel_to_cell(event.position))
+			if character != null:
+				leader_change_requested.emit(character)
 		return
 
 	if event.button_index != MOUSE_BUTTON_LEFT:
@@ -150,9 +150,9 @@ func _gui_input(event: InputEvent) -> void:
 		return
 
 	if _click_press_active and not get_viewport().gui_is_dragging() and pixel_to_cell(event.position) == _click_press_cell:
-		var hero := grid.get_hero_at(_click_press_cell)
-		if hero != null:
-			grid.remove(hero)
+		var character := grid.get_character_at(_click_press_cell)
+		if character != null:
+			grid.remove(character)
 			placement_changed.emit()
 	_click_press_active = false
 

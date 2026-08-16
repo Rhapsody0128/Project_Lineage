@@ -1,9 +1,9 @@
 class_name MoveEvent
 extends BattleEvent
 
-var actor: BattleHero
+var actor: BattleCharacter
 var actor_name: String
-var target: BattleHero
+var target: BattleCharacter
 var target_name: String
 var from: Vector2i
 var path: Array[Vector2i]
@@ -11,7 +11,7 @@ var to: Vector2i
 var away: bool
 
 func _init(
-	p_actor: BattleHero, p_target: BattleHero,
+	p_actor: BattleCharacter, p_target: BattleCharacter,
 	p_from: Vector2i, p_path: Array[Vector2i], p_to: Vector2i, p_away: bool,
 	p_detail: String = ""
 ) -> void:

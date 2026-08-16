@@ -30,15 +30,15 @@ func _init(p_start_position: Vector2, p_speed: float) -> void:
 	speed = p_speed
 
 
-## Party 全體成員的平均 AGI(0~200),用 hero.agility(等級加成後的算後值),
-## 不是 hero.potential.agility(未加成的原始值)。
+## Party 全體成員的平均 AGI(0~200),用 character.agility(等級加成後的算後值),
+## 不是 character.potential.agility(未加成的原始值)。
 static func compute_average_agi(party: Party) -> float:
-	if party == null or party.heroes.is_empty():
+	if party == null or party.characteres.is_empty():
 		return 0.0
 	var total := 0.0
-	for hero in party.heroes:
-		total += hero.agility
-	return clamp(total / party.heroes.size(), 0.0, 200.0)
+	for character in party.characteres:
+		total += character.agility
+	return clamp(total / party.characteres.size(), 0.0, 200.0)
 
 
 ## AGI 0~200 之間線性內插移動速度。

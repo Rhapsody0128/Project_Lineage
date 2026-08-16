@@ -2,8 +2,8 @@ extends Node
 
 # =========================================================
 # 全域小隊編成存取點(autoload,見 project.godot)。跟 BattleReportStore 一樣屬於
-# Scenes 層的 session 單例,不是戰鬥規則:只存「從 HeroRosterStore 角色池裡挑出來
-# 組隊/擺盤」的結果,不是角色池本身(那個是 HeroRosterStore.all_heroes)。
+# Scenes 層的 session 單例,不是戰鬥規則:只存「從 CharacterRosterStore 角色池裡挑出來
+# 組隊/擺盤」的結果,不是角色池本身(那個是 CharacterRosterStore.all_characteres)。
 #
 # grid/party 要等玩家按下「完成編輯」才會寫入——編輯中的每一步拖曳/擺放
 # 只留在 PartyEdit 場景自己的草稿(見 party_edit.gd 的 grid,拿 PartyStore.grid

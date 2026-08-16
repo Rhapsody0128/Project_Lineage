@@ -1,12 +1,12 @@
-class_name BattleHero
+class_name BattleCharacter
 extends RefCounted
 
-## 戰場上一個角色的狀態容器:持有 Hero 參照、棋盤座標、buff/debuff、可用技能表,
+## 戰場上一個角色的狀態容器:持有 Character 參照、棋盤座標、buff/debuff、可用技能表,
 ## 並把「怎麼做」轉發給對應的服務類別——行動決策見 BattleAi、移動尋路見
-## MovementPlanner、機率判定/傷害治療見 CombatResolver。BattleHero 自己不再寫演算法,
+## MovementPlanner、機率判定/傷害治療見 CombatResolver。BattleCharacter 自己不再寫演算法,
 ## 只做「持有狀態 + 記錄事件」。
 
-var hero: Hero
+var character: Character
 var battle: Battle
 
 ## 是否為所屬小隊的隊長:戰場上顯示黃色遮罩,陣亡會立即結束整場戰鬥
@@ -23,8 +23,8 @@ var grid_pos: Vector2i
 ## 它們不是「選擇施放」,而是開戰時就套用/隨時反應觸發,見 _apply_passive_skills()。
 var action_chance_map: Dictionary = {}
 
-func _init(p_hero: Hero, p_battle: Battle, p_is_enemy: bool, p_is_leader: bool = false) -> void:
-	hero = p_hero
+func _init(p_character: Character, p_battle: Battle, p_is_enemy: bool, p_is_leader: bool = false) -> void:
+	character = p_character
 	battle = p_battle
 	_is_enemy = p_is_enemy
 	is_leader = p_is_leader
@@ -38,8 +38,8 @@ func _init(p_hero: Hero, p_battle: Battle, p_is_enemy: bool, p_is_leader: bool =
 ## 只有手持武器與技能相符(或技能沒綁武器)、不是被動技能、且不是「不是隊長卻鎖 LEADER
 ## 技能」的情況,才能被抽到,權重直接採技能本身的基礎機率。
 func _set_action_chance() -> void:
-	for skill in hero.skill_list:
-		if not hero.can_use_skill(skill):
+	for skill in character.skill_list:
+		if not character.can_use_skill(skill):
 			continue
 		if skill.is_passive:
 			continue
@@ -48,14 +48,14 @@ func _set_action_chance() -> void:
 		action_chance_map[skill.id] = skill.base_chance
 
 ## 被動技能(A. 智勇兼備/B. 守護這類)不吃行動骰選,開戰當下就套用一次:被動技能的
-## action Callable 簽名是 (self_hero, skill),沒有目標/cast_detail 的概念,見
+## action Callable 簽名是 (self_character, skill),沒有目標/cast_detail 的概念,見
 ## Skill.apply_passive()。B. 守護的效果其實不在這裡發生(它是反應式,見
 ## CombatResolver.resolve_guard()),這裡呼叫的效果函式只是佔位、不做事。
 func _apply_passive_skills() -> void:
-	for skill in hero.skill_list:
+	for skill in character.skill_list:
 		if not skill.is_passive:
 			continue
-		if not hero.can_use_skill(skill):
+		if not character.can_use_skill(skill):
 			continue
 		if skill.is_leader_skill and not is_leader:
 			continue
@@ -66,7 +66,7 @@ func action() -> void:
 	BattleAi.take_turn(self)
 
 func find_skill_by_id(id: String) -> Skill:
-	for s in hero.skill_list:
+	for s in character.skill_list:
 		if s.id == id:
 			return s
 	return null
@@ -74,9 +74,9 @@ func find_skill_by_id(id: String) -> Skill:
 ## 普攻永遠是單體,出手前先過一次 CombatResolver.resolve_guard()——附近若有守護技能的
 ## 友軍願意頂替,實際受擊(閃避/暴擊/傷害判定全部換算)的對象就換成守護者,連戰報顯示的
 ## target 也一併換掉,動畫才會對準真正挨打的人。
-func attack(target: BattleHero, action_detail: String = "") -> void:
+func attack(target: BattleCharacter, action_detail: String = "") -> void:
 	var guard_result := CombatResolver.resolve_guard(target, self)
-	var actual_target: BattleHero = guard_result.target
+	var actual_target: BattleCharacter = guard_result.target
 
 	var target_pick_detail := "%s 鎖定距離最近的敵人 %s(距離 %d 格)作為普攻目標" % [
 		name, target.name, Util.manhattan_distance(grid_pos, target.grid_pos),
@@ -96,7 +96,7 @@ func attack(target: BattleHero, action_detail: String = "") -> void:
 		dodge_check = CombatResolver.judge_dodge(self, actual_target)
 	if dodge_check.dodged:
 		return
-	var damage := SkillEffectLibrary.basic_attack_damage(self, actual_target, hero.weapon)
+	var damage := SkillEffectLibrary.basic_attack_damage(self, actual_target, character.weapon)
 	var crit_check := CombatResolver.judge_crit(self, actual_target)
 	if crit_check.critical:
 		damage *= CombatResolver.CRIT_DAMAGE_MULTIPLIER
@@ -112,18 +112,18 @@ func daze(action_detail: String = "") -> void:
 ## 往目標方向移動,實際路徑交給 MovementPlanner 計算,這裡只負責套用結果(移動棋盤格、
 ## 記一筆 move 事件)。整趟移動只記一筆 MoveEvent(內含完整路徑),讓畫面端可以連續
 ## 播放,不必每格都停頓。
-func move(target: BattleHero, atk_range: int, action_detail: String = "") -> void:
+func move(target: BattleCharacter, atk_range: int, action_detail: String = "") -> void:
 	_move_towards_or_away(target, false, atk_range, action_detail)
 
 ## ESCAPE 類型用:往目標的反方向移動(遠離戰場)。max_range 預設 0,代表沒有距離上限、
 ## 盡量遠離戰場;遠程角色「退到最遠射程再出手」(kite_to_max_range)則會傳入該次攻擊/
 ## 技能的射程,一旦退到剛好等於射程就停止,不會白白退出射程外導致這次攻擊落空。
-func move_away(target: BattleHero, max_range: int = 0, action_detail: String = "") -> void:
+func move_away(target: BattleCharacter, max_range: int = 0, action_detail: String = "") -> void:
 	_move_towards_or_away(target, true, max_range, action_detail)
 
 ## action_detail 是外層(BattleAi 的行動類型抽選)傳進來的說明前綴,可為空字串;
 ## 移動本身的公式(可走幾格/實際走了幾格/移動目的)一律自己組,不需要呼叫端提供。
-func _move_towards_or_away(target: BattleHero, away: bool, atk_range: int, action_detail: String = "") -> void:
+func _move_towards_or_away(target: BattleCharacter, away: bool, atk_range: int, action_detail: String = "") -> void:
 	var start_pos := grid_pos
 	var path := MovementPlanner.plan_path(self, target, away, atk_range)
 
@@ -156,7 +156,7 @@ func _move_towards_or_away(target: BattleHero, away: bool, atk_range: int, actio
 
 ## 遠程攻擊(atk_range > 1)已經在射程內、但離目標比射程還近時,退到接近最遠射程再出手。
 ## 近戰(atk_range<=1)沒有後退空間,略過。
-func kite_to_max_range(target: BattleHero, atk_range: int) -> void:
+func kite_to_max_range(target: BattleCharacter, atk_range: int) -> void:
 	if atk_range <= 1:
 		return
 	if Util.manhattan_distance(grid_pos, target.grid_pos) >= atk_range:
@@ -165,16 +165,16 @@ func kite_to_max_range(target: BattleHero, atk_range: int) -> void:
 
 ## 是否進入攻擊範圍(以格子曼哈頓距離判定):atk_range 由呼叫端決定——
 ## 普攻依武器種類(見 basic_attack_range),技能依技能自己的 skill_range。
-func is_in_range(target: BattleHero, atk_range: int) -> bool:
+func is_in_range(target: BattleCharacter, atk_range: int) -> bool:
 	return Util.manhattan_distance(grid_pos, target.grid_pos) <= atk_range
 
 ## 基本攻擊距離:近戰武器(劍/盾/匕首)1 格、遠程武器(弓/法杖/捕夢網)2 格
 var basic_attack_range: int:
-	get: return GameEnums.WEAPON_BASIC_ATTACK_RANGE[hero.weapon]
+	get: return GameEnums.WEAPON_BASIC_ATTACK_RANGE[character.weapon]
 
 ## 找尋最近的敵人(以格子曼哈頓距離判定)
-func search_enemy() -> BattleHero:
-	var best: BattleHero = null
+func search_enemy() -> BattleCharacter:
+	var best: BattleCharacter = null
 	var best_dist := -1
 	for other in enemies:
 		var d := Util.manhattan_distance(grid_pos, other.grid_pos)
@@ -184,30 +184,30 @@ func search_enemy() -> BattleHero:
 	return best
 
 ## 敵人列表(存活中)
-var enemies: Array[BattleHero]:
+var enemies: Array[BattleCharacter]:
 	get:
-		var source: Array[BattleHero] = battle.self_heroes if _is_enemy else battle.enemy_heroes
-		var result: Array[BattleHero] = []
+		var source: Array[BattleCharacter] = battle.self_characteres if _is_enemy else battle.enemy_characteres
+		var result: Array[BattleCharacter] = []
 		for p in source:
 			if not p.is_disabled:
 				result.append(p)
 		return result
 
 ## 隊友列表(存活中,不含自己;CONFUSE 叛變攻擊用)
-var allies: Array[BattleHero]:
+var allies: Array[BattleCharacter]:
 	get:
-		var source: Array[BattleHero] = battle.enemy_heroes if _is_enemy else battle.self_heroes
-		var result: Array[BattleHero] = []
+		var source: Array[BattleCharacter] = battle.enemy_characteres if _is_enemy else battle.self_characteres
+		var result: Array[BattleCharacter] = []
 		for p in source:
 			if p != self and not p.is_disabled:
 				result.append(p)
 		return result
 
 var hp: int:
-	get: return hero.hp
+	get: return character.hp
 
 var hp_max: int:
-	get: return hero.hp_max
+	get: return character.hp_max
 
 ## 目前 HP 比例(當前/最大),ESCAPE 是否列入抽選就看這個
 var hp_ratio: float:
@@ -217,10 +217,10 @@ var hp_ratio: float:
 		return float(hp) / float(hp_max)
 
 var is_disabled: bool:
-	get: return hero.is_disabled
+	get: return character.is_disabled
 
 var name: String:
-	get: return hero.name
+	get: return character.name
 
 var is_enemy: bool:
 	get: return _is_enemy
@@ -301,26 +301,26 @@ func tick_status_effects() -> Array[StatModifier]:
 	return expired
 
 var strength: float:
-	get: return hero.strength * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.STRENGTH))
+	get: return character.strength * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.STRENGTH))
 var agility: float:
-	get: return hero.agility * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.AGILITY))
+	get: return character.agility * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.AGILITY))
 var dexterity: float:
-	get: return hero.dexterity * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.DEXTERITY))
+	get: return character.dexterity * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.DEXTERITY))
 var vitality: float:
-	get: return hero.vitality * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.VITALITY))
+	get: return character.vitality * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.VITALITY))
 var intelligence: float:
-	get: return hero.intelligence * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.INTELLIGENCE))
+	get: return character.intelligence * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.INTELLIGENCE))
 var mentality: float:
-	get: return hero.mentality * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.MENTALITY))
+	get: return character.mentality * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.MENTALITY))
 
-## 跟 Hero.get_potential() 對應,但回傳的是套用完戰場加成(裝備/等級皆含 Hero 本身
+## 跟 Character.get_potential() 對應,但回傳的是套用完戰場加成(裝備/等級皆含 Character 本身
 ## 已算好的部分,再疊加 _replay_stat_modifiers 的被動/主動技能、buff/debuff)之後的
 ## 「即時」數值——這裡刻意讀 _replay_stat_modifiers 而不是上面 strength/agility 等
 ## 屬性讀的 _stat_modifiers,因為後者是整場模擬結束後的最終結果,前者才會隨重播進度
 ## 增減(見 _replay_stat_modifiers 註解)。UI(角色面板雷達圖)想顯示戰場當下的真實
-## 素質時用這個,不要直接讀 Hero.get_potential()。
+## 素質時用這個,不要直接讀 Character.get_potential()。
 func get_potential(potential_type: int) -> float:
-	var base: float = hero.get_potential(potential_type)
+	var base: float = character.get_potential(potential_type)
 	return base * (1.0 + _replay_stat_modifier_multiplier(potential_type))
 
 ## 行動速度(回合排序用),暫以敏捷做為速度來源

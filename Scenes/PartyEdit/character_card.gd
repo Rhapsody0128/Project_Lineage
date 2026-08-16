@@ -1,4 +1,4 @@
-class_name HeroCard
+class_name CharacterCard
 extends PanelContainer
 
 # =========================================================
@@ -12,15 +12,15 @@ const CARD_MIN_HEIGHT := 72.0
 const CARD_COST_CELL_SIZE := 16.0
 const FACE_SIZE := Vector2(56, 56)
 
-var hero: Hero
+var character: Character
 
 ## 拖曳門檻觸發後 _get_drag_data() 會先設 true,擋掉隨後那次放開滑鼠的
 ## _gui_input——不然「拖去網格放置」放開滑鼠那一下會被誤判成單純的輕點,
 ## 多彈出一個 CharacterPanel。NOTIFICATION_DRAG_END 統一重置回 false。
 var _dragging := false
 
-func _init(p_hero: Hero = null) -> void:
-	hero = p_hero
+func _init(p_character: Character = null) -> void:
+	character = p_character
 
 
 func _ready() -> void:
@@ -38,32 +38,32 @@ func _ready() -> void:
 	face.custom_minimum_size = FACE_SIZE
 	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	face.stretch_mode = TextureRect.STRETCH_SCALE
-	if not hero.face_path.is_empty():
-		face.texture = load(hero.face_path) as Texture2D
+	if not character.face_path.is_empty():
+		face.texture = load(character.face_path) as Texture2D
 	content.add_child(face)
 
 	var name_label := Label.new()
-	name_label.text = hero.full_name
+	name_label.text = character.full_name
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_child(name_label)
 
 	var cost_view := BattleCostView.new()
 	cost_view.cell_size = CARD_COST_CELL_SIZE
-	cost_view.weapon = hero.weapon
-	cost_view.battle_cost = hero.battle_cost
+	cost_view.weapon = character.weapon
+	cost_view.battle_cost = character.battle_cost
 	content.add_child(cost_view)
 
 
 func _get_drag_data(_at_position: Vector2):
 	_dragging = true
-	var preview := BattleCostView.build_centered_drag_preview(hero.battle_cost.cells.duplicate(), PartyEditBoard.TILE_SIZE, hero.weapon)
+	var preview := BattleCostView.build_centered_drag_preview(character.battle_cost.cells.duplicate(), PartyEditBoard.TILE_SIZE, character.weapon)
 	set_drag_preview(preview)
 	modulate.a = 0.4
 
 	return {
 		"type": "battle_cost_placement",
-		"hero": hero,
-		"shape": hero.battle_cost.cells.duplicate(),
+		"character": character,
+		"shape": character.battle_cost.cells.duplicate(),
 		"preview": preview,
 		"origin": "roster",
 	}
@@ -75,7 +75,7 @@ func _get_drag_data(_at_position: Vector2):
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		if not _dragging:
-			CharacterPanel.open_for_hero(hero)
+			CharacterPanel.open_for_character(character)
 
 
 func _notification(what: int) -> void:

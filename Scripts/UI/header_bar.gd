@@ -9,7 +9,7 @@ extends Control
 # party_edit.gd/battle_report_list.gd/character_roster.gd 的返回鍵才能正確
 # 回到這裡,而不是寫死回 Scenes/main.tscn。
 #
-# 跟 HeroSortFilterBar 一樣是純程式碼組畫面的共用元件,用法:
+# 跟 CharacterSortFilterBar 一樣是純程式碼組畫面的共用元件,用法:
 # var header := HeaderBar.new(); some_canvas_layer.add_child(header)
 # header.set_time_text(...) 更新時間顯示。
 # =========================================================

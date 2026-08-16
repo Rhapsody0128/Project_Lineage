@@ -7,13 +7,13 @@ extends LocationEvent
 ## 接管,Scenes 層不需要知道任何細節。擋門前跟打完戰鬥後講話的固定是同一位守衛
 ## (guard,trigger() 當下隨機挑一位、整個事件過程只挑這一次),不是兩個對不上臉的路人。
 
-var guard: Hero
+var guard: Character
 var _return_scene_path: String
 
 
 func _init(p_return_scene_path: String = "") -> void:
 	_return_scene_path = p_return_scene_path
-	guard = HeroController.get_random_hero()
+	guard = CharacterController.get_random_character()
 
 
 ## 呼叫端(map_location.gd)按下「城堡」按鈕時呼叫這裡啟動整段事件。return_scene_path
@@ -59,7 +59,7 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 ## 守衛台詞也換成請玩家先去整隊。
 func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
 	var has_party := self_party != null
-	var player := self_party.leader if has_party else HeroController.get_random_hero()
+	var player := self_party.leader if has_party else CharacterController.get_random_character()
 
 	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
 	var guard_speaker := DialogueSpeaker.new(guard.id, guard.full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)

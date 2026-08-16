@@ -20,7 +20,7 @@ extends Control
 @onready var availability_layer: PartyEditAvailabilityLayer = $AvailabilityLayer
 @onready var placed_layer: Control = $PlacedLayer
 @onready var roster_list: VBoxContainer = $UI/RightPanel/Margin/VBox/ScrollContainer/RosterList
-@onready var sort_filter_bar: HeroSortFilterBar = $UI/RightPanel/Margin/VBox/SortFilterBar
+@onready var sort_filter_bar: CharacterSortFilterBar = $UI/RightPanel/Margin/VBox/SortFilterBar
 @onready var status_label: Label = $UI/StatusLabel
 @onready var finish_edit_button: Button = $UI/TopBar/FinishEditButton
 
@@ -41,14 +41,14 @@ func _ready() -> void:
 
 ## 右鍵點擊已放置角色 = 設為隊長(見 PartyEditAvailabilityLayer.leader_change_requested);
 ## 只影響已放置圖層的金色標記,不用重新整理候補清單。
-func _on_leader_change_requested(hero: Hero) -> void:
-	grid.set_leader(hero)
+func _on_leader_change_requested(character: Character) -> void:
+	grid.set_leader(character)
 	_refresh_placed_layer()
 	_update_finish_button_state()
 
 
-func _on_add_hero_pressed() -> void:
-	HeroRosterStore.all_heroes.append(HeroController.get_random_hero())
+func _on_add_character_pressed() -> void:
+	CharacterRosterStore.all_characteres.append(CharacterController.get_random_character())
 	_refresh_roster()
 
 
@@ -92,22 +92,22 @@ func _on_finish_edit_pressed() -> void:
 ## get_leader() 只要場上有人就一定會退回預設隊長(見 PartyEditGrid.get_leader()),
 ## 這裡仍明確檢查兩個條件,呼應需求的兩項各自獨立條件,不依賴實作細節。
 func _update_finish_button_state() -> void:
-	finish_edit_button.disabled = grid.get_all_placed_heroes().is_empty() or grid.get_leader() == null
+	finish_edit_button.disabled = grid.get_all_placed_characteres().is_empty() or grid.get_leader() == null
 
 
 func _build_party_from_grid() -> Party:
-	var placed := grid.get_all_placed_heroes()
+	var placed := grid.get_all_placed_characteres()
 	if placed.is_empty():
 		return null
 
-	var heroes: Array[Hero] = []
-	for hero in placed:
-		heroes.append(hero)
+	var characteres: Array[Character] = []
+	for character in placed:
+		characteres.append(character)
 
-	var party := Party.new("玩家小隊", heroes, grid.get_leader())
+	var party := Party.new("玩家小隊", characteres, grid.get_leader())
 	party.ultimates = UltimateLibrary.default_ultimates()
-	for hero in placed:
-		party.set_battle_position(hero, grid.get_placement_anchor(hero))
+	for character in placed:
+		party.set_battle_position(character, grid.get_placement_anchor(character))
 	return party
 
 
@@ -120,28 +120,28 @@ func _refresh_all() -> void:
 func _refresh_roster() -> void:
 	for child in roster_list.get_children():
 		child.queue_free()
-	var candidates: Array[Hero] = []
-	for hero in HeroRosterStore.all_heroes:
-		if not grid.is_placed(hero):
-			candidates.append(hero)
-	for hero in sort_filter_bar.filter.apply(candidates):
-		roster_list.add_child(HeroCard.new(hero))
+	var candidates: Array[Character] = []
+	for character in CharacterRosterStore.all_characteres:
+		if not grid.is_placed(character):
+			candidates.append(character)
+	for character in sort_filter_bar.filter.apply(candidates):
+		roster_list.add_child(CharacterCard.new(character))
 
 
 func _refresh_placed_layer() -> void:
 	for child in placed_layer.get_children():
 		child.queue_free()
 	var leader := grid.get_leader()
-	for hero in grid.get_all_placed_heroes():
+	for character in grid.get_all_placed_characteres():
 		var view := BattleCostView.new()
 		view.cell_size = PartyEditBoard.TILE_SIZE
-		view.weapon = hero.weapon
-		view.is_leader = hero == leader
-		view.battle_cost = BattleCost.new(grid.get_placement_shape(hero))
+		view.weapon = character.weapon
+		view.is_leader = character == leader
+		view.battle_cost = BattleCost.new(grid.get_placement_shape(character))
 		placed_layer.add_child(view)
 		# 佔位格(view 內軸心)要精準對齊 anchor 格,view 本地原點卻是 bounding box
 		# 角落,所以要用 bounds_min 換算擺放位置。
-		view.position = board.grid_corner_to_pixel(grid.get_placement_anchor(hero)) + Vector2(view.bounds_min) * PartyEditBoard.TILE_SIZE
+		view.position = board.grid_corner_to_pixel(grid.get_placement_anchor(character)) + Vector2(view.bounds_min) * PartyEditBoard.TILE_SIZE
 
 
 ## 拖出網格外(例如拖回右側清單)= 取消放置。只接受來自網格的拖曳
@@ -151,7 +151,7 @@ func _can_drop_data(_at_position: Vector2, data) -> bool:
 
 
 func _drop_data(_at_position: Vector2, data) -> void:
-	grid.remove(data["hero"])
+	grid.remove(data["character"])
 	_refresh_all()
 
 

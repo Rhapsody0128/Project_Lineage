@@ -4,7 +4,7 @@ extends Control
 # 戰鬥場景整合層(僅負責把 System/battle 算出的結果接到畫面元件上)
 #
 # 格子大小/初始佈陣/移動與攻擊判定全部由 System/battle 的
-# Battle、BattleHero 決定;棋盤格線/地板繪製交給 BattleBoard、
+# Battle、BattleCharacter 決定;棋盤格線/地板繪製交給 BattleBoard、
 # 角色顯示交給 BattleUnitVisual、戰報交給 BattleLogPanel、
 # 左右頭像列交給 BattlePartyRoster,本檔案只負責串接與播放時序。
 # =========================================================
@@ -59,7 +59,7 @@ const ULTIMATE_BANNER_HOLD_TIME := 1.1
 
 
 var battle: Battle
-var visuals: Dictionary = {} # BattleHero -> BattleUnitVisual
+var visuals: Dictionary = {} # BattleCharacter -> BattleUnitVisual
 var is_battling := false
 var _pending_batch_actions := 0
 
@@ -171,7 +171,7 @@ func _enter_playback_mode(p_report: BattleReport) -> void:
 # 產生一場新的隨機戰鬥
 #
 # 小隊/角色資料、初始佈陣與戰鬥判定全部呼叫 System/battle、
-# System/party,本函式只負責把回傳的 BattleHero 對應到畫面元件上。
+# System/party,本函式只負責把回傳的 BattleCharacter 對應到畫面元件上。
 # =========================================================
 func _new_simulation() -> void:
 	battle_mode = BattleReportStore.pending_battle_mode
@@ -214,36 +214,36 @@ func _new_simulation_with_parties(self_party: Party, enemy_party: Party) -> void
 		_run_battle_playback(true)
 
 
-## 依目前的 battle(self_heroes/enemy_heroes 的站位與 HP)重建畫面上的單位與頭像列。
+## 依目前的 battle(self_characteres/enemy_characteres 的站位與 HP)重建畫面上的單位與頭像列。
 ## 一般模式(_new_simulation)跟戰報播放模式(_enter_playback_mode/重播)共用。
 func _setup_battlefield() -> void:
 	for child in units_layer.get_children():
 		child.queue_free()
 	visuals.clear()
 
-	for battle_hero in battle.self_heroes:
-		_spawn_unit_visual(battle_hero, false)
+	for battle_character in battle.self_characteres:
+		_spawn_unit_visual(battle_character, false)
 
-	for battle_hero in battle.enemy_heroes:
-		_spawn_unit_visual(battle_hero, true)
+	for battle_character in battle.enemy_characteres:
+		_spawn_unit_visual(battle_character, true)
 
-	left_roster.populate(battle.self_heroes, false, portrait_texture)
-	right_roster.populate(battle.enemy_heroes, true, portrait_texture)
+	left_roster.populate(battle.self_characteres, false, portrait_texture)
+	right_roster.populate(battle.enemy_characteres, true, portrait_texture)
 
 	round_label.text = "回合 1"
 	board.queue_redraw()
 
 
-func _spawn_unit_visual(battle_hero: BattleHero, is_enemy: bool) -> void:
+func _spawn_unit_visual(battle_character: BattleCharacter, is_enemy: bool) -> void:
 	var visual := BattleUnitVisual.new()
 	units_layer.add_child(visual)
-	visual.setup(battle_hero, is_enemy, character_scene, board.grid_to_pixel(battle_hero.grid_pos))
-	visuals[battle_hero] = visual
+	visual.setup(battle_character, is_enemy, character_scene, board.grid_to_pixel(battle_character.grid_pos))
+	visuals[battle_character] = visual
 
 
 ## 依角色所屬陣營回傳對應的頭像列
-func _roster_for(battle_hero: BattleHero) -> BattlePartyRoster:
-	return right_roster if battle_hero.is_enemy else left_roster
+func _roster_for(battle_character: BattleCharacter) -> BattlePartyRoster:
+	return right_roster if battle_character.is_enemy else left_roster
 
 
 # =========================================================
@@ -424,10 +424,10 @@ func _on_ultimate_selected(ultimate: Ultimate) -> void:
 	_refresh_ultimate_buttons()
 
 
-func _ultimate_caster() -> BattleHero:
-	for battle_hero in battle.self_heroes:
-		if battle_hero.is_leader and not battle_hero.is_disabled:
-			return battle_hero
+func _ultimate_caster() -> BattleCharacter:
+	for battle_character in battle.self_characteres:
+		if battle_character.is_leader and not battle_character.is_disabled:
+			return battle_character
 	return null
 
 
@@ -694,11 +694,11 @@ func _play_single_event(event: BattleEvent) -> void:
 ## 攻擊/技能動畫本身,_anim_attack()/_anim_skill() 共用這份實作。
 func _play_action_with_reaction(action_event: BattleEvent, reaction_events: Array[BattleEvent]) -> void:
 	var is_skill := action_event is SkillEvent
-	var actor_hero: BattleHero = (action_event as SkillEvent).actor if is_skill else (action_event as AttackEvent).actor
-	var target_hero: BattleHero = (action_event as SkillEvent).target if is_skill else (action_event as AttackEvent).target
+	var actor_character: BattleCharacter = (action_event as SkillEvent).actor if is_skill else (action_event as AttackEvent).actor
+	var target_character: BattleCharacter = (action_event as SkillEvent).target if is_skill else (action_event as AttackEvent).target
 
-	var actor: BattleUnitVisual = visuals.get(actor_hero)
-	var target: BattleUnitVisual = visuals.get(target_hero)
+	var actor: BattleUnitVisual = visuals.get(actor_character)
+	var target: BattleUnitVisual = visuals.get(target_character)
 	if actor == null or target == null:
 		return
 
@@ -707,12 +707,12 @@ func _play_action_with_reaction(action_event: BattleEvent, reaction_events: Arra
 		# 中性措辭「對 X 使用技能」,不寫死「攻擊」——C. 治癒/D. 大將之風這類技能
 		# 的 target 是施法者自己或全隊,講「攻擊」會語意不通。
 		_log(_hint("%s 對 %s 使用技能「%s」！" % [skill_event.actor_name, skill_event.target_name, skill_event.skill_name], skill_event))
-		_roster_for(actor_hero).pulse_skill(actor_hero, skill_event.skill_name)
+		_roster_for(actor_character).pulse_skill(actor_character, skill_event.skill_name)
 		actor.play_skill_light()
 	else:
 		var attack_event := action_event as AttackEvent
 		_log(_hint("%s 攻擊 %s！" % [attack_event.actor_name, attack_event.target_name], attack_event))
-		_roster_for(actor_hero).pulse_active(actor_hero)
+		_roster_for(actor_character).pulse_active(actor_character)
 
 	var anim := actor.play_attack_towards(target.grid_pos)
 
@@ -756,9 +756,9 @@ func _apply_reaction(event: BattleEvent) -> void:
 				GameEnums.format_potential_type_list(stat_event.potential_types),
 			], stat_event))
 			_roster_for(stat_event.target).add_status_arrows(stat_event.target, stat_event.potential_types, stat_event.is_buff)
-			# 整場戰鬥其實在 Battle.start() 就瞬間模擬完了,BattleHero 的「真實」素質修正
+			# 整場戰鬥其實在 Battle.start() 就瞬間模擬完了,BattleCharacter 的「真實」素質修正
 			# 早就是模擬結束當下的最終結果——這裡重播到這個事件時,同步更新一份「顯示用」
-			# 修正清單(見 BattleHero._replay_stat_modifiers),角色面板雷達圖才能跟上
+			# 修正清單(見 BattleCharacter._replay_stat_modifiers),角色面板雷達圖才能跟上
 			# 重播進度顯示正確數值,而不是整場戰鬥都定格在結局。
 			for potential_type in stat_event.potential_types:
 				stat_event.target.apply_replay_stat_effect(potential_type, stat_event.multiplier, stat_event.rounds)

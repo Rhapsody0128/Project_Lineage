@@ -1,10 +1,10 @@
 class_name CombatResolver
 extends RefCounted
 
-## 戰鬥判定共用服務:閃避/暴擊/守護判定與傷害/治療施放。BattleHero 的一般攻擊
+## 戰鬥判定共用服務:閃避/暴擊/守護判定與傷害/治療施放。BattleCharacter 的一般攻擊
 ## (attack())與 SkillEffectLibrary 的技能效果都呼叫這裡,不再互相呼叫對方——
-## 原本 BattleHero ↔ SkillEffectLibrary 雙向耦合,現在收斂成兩邊都指向這個共用底層。
-## 公式/常數原封不動從 BattleHero 搬過來,行為不變。
+## 原本 BattleCharacter ↔ SkillEffectLibrary 雙向耦合,現在收斂成兩邊都指向這個共用底層。
+## 公式/常數原封不動從 BattleCharacter 搬過來,行為不變。
 
 ## 判斷是否閃避:
 ## 魔法攻擊(法杖／捕夢網,見 GameEnums.WEAPON_IS_MAGIC)無視閃避,必定命中,
@@ -49,8 +49,8 @@ const GUARD_DAMAGE_MULTIPLIER := 0.7
 ## detail 是給戰報 UI 用的完整公式說明(實際代入雙方數值/骰值),讓玩家滑鼠移到
 ## 「閃避了攻擊」那行時能看到判定細節,不要在字串裡用方括號 [ ],會被 RichTextLabel
 ## 的 BBCode 解析成標籤提早截斷。
-static func judge_dodge(attacker: BattleHero, defender: BattleHero) -> DodgeResult:
-	if GameEnums.WEAPON_IS_MAGIC[attacker.hero.weapon]:
+static func judge_dodge(attacker: BattleCharacter, defender: BattleCharacter) -> DodgeResult:
+	if GameEnums.WEAPON_IS_MAGIC[attacker.character.weapon]:
 		var magic_detail := "%s 使用魔法攻擊,無視閃避判定,必定命中" % attacker.name
 		return DodgeResult.new(false, magic_detail)
 
@@ -84,8 +84,8 @@ static func judge_dodge(attacker: BattleHero, defender: BattleHero) -> DodgeResu
 
 ## detail 同樣是給戰報 UI 用的完整公式說明(見 judge_dodge() 的 detail 規則,一樣不能
 ## 用方括號)。
-static func judge_crit(attacker: BattleHero, defender: BattleHero) -> CritResult:
-	var is_magic: bool = GameEnums.WEAPON_IS_MAGIC[attacker.hero.weapon]
+static func judge_crit(attacker: BattleCharacter, defender: BattleCharacter) -> CritResult:
+	var is_magic: bool = GameEnums.WEAPON_IS_MAGIC[attacker.character.weapon]
 	var resist_value: float = defender.mentality if is_magic else defender.vitality
 	var resist_label := "MEN(信仰)" if is_magic else "VIT(體質)"
 	var diff: float = attacker.dexterity - resist_value
@@ -109,16 +109,16 @@ static func judge_crit(attacker: BattleHero, defender: BattleHero) -> CritResult
 	return CritResult.new(critical, detail)
 
 ## 回傳值見 GuardResult。
-static func resolve_guard(original_target: BattleHero, attacker: BattleHero) -> GuardResult:
+static func resolve_guard(original_target: BattleCharacter, attacker: BattleCharacter) -> GuardResult:
 	var no_guard := GuardResult.new(original_target, "", 1.0)
 
-	if GameEnums.WEAPON_IS_MAGIC[attacker.hero.weapon]:
+	if GameEnums.WEAPON_IS_MAGIC[attacker.character.weapon]:
 		return no_guard
 
 	for guardian in original_target.allies:
-		if guardian.hero.weapon != GameEnums.WeaponType.SHIELD:
+		if guardian.character.weapon != GameEnums.WeaponType.SHIELD:
 			continue
-		if not guardian.hero.knows_guard_skill():
+		if not guardian.character.knows_guard_skill():
 			continue
 		if Util.manhattan_distance(guardian.grid_pos, original_target.grid_pos) > GUARD_RANGE:
 			continue
@@ -148,19 +148,19 @@ static func resolve_guard(original_target: BattleHero, attacker: BattleHero) -> 
 ## 傷害直接扣角色本身的 HP,HP 歸零視為戰敗(記一筆 DefeatedEvent)。is_critical 由
 ## 呼叫端(judge_crit() 判定結果)傳入,純粹供事件標記,不在這裡重算;detail 是呼叫端
 ## 組好的閃避+暴擊判定明細文字,原封不動存進事件給戰報 UI 顯示。
-static func apply_damage(target: BattleHero, damage: float, is_critical: bool = false, detail: String = "") -> void:
+static func apply_damage(target: BattleCharacter, damage: float, is_critical: bool = false, detail: String = "") -> void:
 	var damage_points: int = roundi(damage)
-	target.hero.take_damage(damage_points)
+	target.character.take_damage(damage_points)
 
 	target.battle.log_event(DamageEvent.new(target, damage_points, target.hp, is_critical, detail))
 
 	if target.is_disabled:
 		target.battle.log_event(DefeatedEvent.new(target))
 
-## 恢復 HP,不會超過上限(Hero.heal() 負責夾限);detail 是呼叫端組好的治療量公式說明,
+## 恢復 HP,不會超過上限(Character.heal() 負責夾限);detail 是呼叫端組好的治療量公式說明,
 ## 原封不動存進事件給戰報 UI 顯示。
-static func apply_heal(target: BattleHero, amount: float, detail: String = "") -> void:
+static func apply_heal(target: BattleCharacter, amount: float, detail: String = "") -> void:
 	var heal_points: int = roundi(amount)
-	target.hero.heal(heal_points)
+	target.character.heal(heal_points)
 
 	target.battle.log_event(HealEvent.new(target, heal_points, target.hp, detail))

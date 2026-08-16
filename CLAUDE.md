@@ -35,27 +35,27 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 | 資料夾 | 內容 |
 |---|---|
-| `hero/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600) |
+| `character/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600) |
 | `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/DEXTERITY/INTELLIGENCE/MENTALITY) |
 | `skill/` | 技能池與效果,依主動/被動/LEADER 分類(`SkillLibrary` 的 `_active_skills()`/`_passive_skills()`/`_leader_skills()`,用 `SkillBuilder` 鏈式組裝);數值計算/戰鬥表現在 `SkillEffectLibrary`,一律呼叫 `System/battle/combat_resolver.gd` |
 | `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
-| `party/` | 小隊,由多個 `Hero` 組成(`Party.heroes`) |
+| `party/` | 小隊,由多個 `Character` 組成(`Party.characteres`) |
 | `battle/` | 自動戰鬥流程與戰報,見下方拆解 |
 | `util/` | `GameEnums`(所有列舉+label 靜態函式)、`Util`(隨機/UUID/棋盤距離)、`level_system.gd` |
 
-`battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleHero`:`Battle`(回合迴圈/
-佈陣/勝負判定)、`BattleHero`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
+`battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleCharacter`:`Battle`(回合迴圈/
+佈陣/勝負判定)、`BattleCharacter`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
 薄封裝,實際算法轉發給下面幾個服務類別)、`BattleAi`(每回合的行動決策:骰行動類型/選
 技能/AOE 選目標)、`MovementPlanner`(移動/尋路計算)、`CombatResolver`(閃避/暴擊/守護
-判定、傷害/治療施放——`BattleHero.attack()` 與 `SkillEffectLibrary` 的技能效果都呼叫
+判定、傷害/治療施放——`BattleCharacter.attack()` 與 `SkillEffectLibrary` 的技能效果都呼叫
 這裡,不再互相呼叫對方)、`StatModifier`(單筆素質加成/減益資料)、`events/`(型別化戰報
 事件 `BattleEvent` 子類別,見 Spec.md 一)。
 
 士兵/陣形系統已整個移除(暫時不需要這些設計)。武器(`GameEnums.WeaponType`)保留,但只
 作為角色的基本攻擊距離/技能綁定標籤,不是可拾取裝備的武器系統。編制階層是
-`Hero`(角色)⊂ `Party`(小隊),`BattleController.get_random_battle()` 直接拿
-`Party` 對戰,每個角色各自佔一格獨立作戰(見 `System/battle/battle_hero.gd` 的
-`BattleHero`,直接包一個 `Hero`)。小隊人數之後會開放玩家配置與科技研發提升,
+`Character`(角色)⊂ `Party`(小隊),`BattleController.get_random_battle()` 直接拿
+`Party` 對戰,每個角色各自佔一格獨立作戰(見 `System/battle/battle_character.gd` 的
+`BattleCharacter`,直接包一個 `Character`)。小隊人數之後會開放玩家配置與科技研發提升,
 目前寫死:1 小隊 = 6 名隨機角色(對應戰場 6 路縱隊)。
 
 ## 戰鬥系統(System/battle + Scenes/Battle)
@@ -63,7 +63,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 `Battle.start()` 一次性把整場戰鬥模擬完,事件存進 `battle.battle_log`(`Array[BattleEvent]`,
 型別化子類別,見 Spec.md 一);`battle.gd` 事後依序重播,不影響模擬。事件合約細節、戰場
 座標/移動/閃避/勝負公式見 Spec.md 一、二。固定跑 10 回合,總大將沿用現有隊長機制
-(`Party.leader`/`BattleHero.is_leader`):總大將陣亡立即分出勝負,雙方總大將都撐過 10
+(`Party.leader`/`BattleCharacter.is_leader`):總大將陣亡立即分出勝負,雙方總大將都撐過 10
 回合則直接判平手,不比較雙方剩餘 HP;角色 HP 歸零視為戰敗(`DefeatedEvent`)。
 
 畫面元件已拆分單一職責:`battle.gd`(整合層,重播時連續的 `move`/`daze` 事件會併發
@@ -79,12 +79,12 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 角色美術暫代:全部共用 `Images/Warrier/animated_sprite_2d.tscn`,動畫全設 loop,
 `animation_finished` 不會觸發,等待動畫改用「幀數/播放速度」算時長(`wait_for_animation()`)。
 
-角色頭像:`Images/Face/` 隨機取一張,`FaceController` 指派給 `Hero.face_path`。
+角色頭像:`Images/Face/` 隨機取一張,`FaceController` 指派給 `Character.face_path`。
 
 ## 共用 UI
 
 `CharacterPanel`(autoload,見 `project.godot` 與 `Scenes/CharacterPanel/`)是彈出式角色
-資料面板,任何場景呼叫 `CharacterPanel.open_for_hero(hero)` 即可開啟,右上角 × 關閉。
+資料面板,任何場景呼叫 `CharacterPanel.open_for_character(character)` 即可開啟,右上角 × 關閉。
 
 `BattleReportStore`(autoload,見 `Scripts/Autoload/battle_report_store.gd`)是全域戰報
 存取點與場景間播放交接用的 `pending_report`。跟 `CharacterPanel` 一樣屬於 Scenes 層的

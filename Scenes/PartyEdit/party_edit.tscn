@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit.gd" id="1"]
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit_board.gd" id="2"]
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit_availability_layer.gd" id="3"]
-[ext_resource type="Script" path="res://Scripts/UI/hero_sort_filter_bar.gd" id="4"]
+[ext_resource type="Script" path="res://Scripts/UI/character_sort_filter_bar.gd" id="4"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.086, 0.098, 0.145, 1)
@@ -146,7 +146,7 @@ offset_right = 1576.0
 offset_bottom = 68.0
 theme_override_constants/separation = 16
 
-[node name="AddHeroButton" type="Button" parent="UI/TopBar"]
+[node name="AddCharacterButton" type="Button" parent="UI/TopBar"]
 custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
@@ -247,7 +247,7 @@ size_flags_horizontal = 3
 mouse_filter = 1
 theme_override_constants/separation = 8
 
-[connection signal="pressed" from="UI/TopBar/AddHeroButton" to="." method="_on_add_hero_pressed"]
+[connection signal="pressed" from="UI/TopBar/AddCharacterButton" to="." method="_on_add_character_pressed"]
 [connection signal="pressed" from="UI/TopBar/GrowGridButton" to="." method="_on_grow_grid_pressed"]
 [connection signal="pressed" from="UI/TopBar/StartBattleButton" to="." method="_on_start_battle_pressed"]
 [connection signal="pressed" from="UI/TopBar/FinishEditButton" to="." method="_on_finish_edit_pressed"]

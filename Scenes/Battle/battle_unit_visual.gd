@@ -6,7 +6,7 @@ extends Node2D
 # 頭上不常駐顯示名字/HP,也不顯示技能名稱橫幅——放技能時改成左右頭像列
 # (BattlePartyRoster)的頭像框高亮+靠近戰場提示,名字與 HP 也是由頭像列常駐顯示。
 # 只負責畫面表現,不含任何戰鬥判定邏輯 —— 判定全部來自
-# System/battle 的 BattleHero,棋盤座標/像素座標換算則由
+# System/battle 的 BattleCharacter,棋盤座標/像素座標換算則由
 # battle.gd(棋盤)負責,本檔案只依照傳進來的結果播放。
 # =========================================================
 
@@ -90,7 +90,7 @@ const LEADER_ICON_POSITION := Vector2(CLICK_AREA_OFFSET.x + CLICK_AREA_SIZE.x / 
 # 換來一個簡單、不會再被 UI 反蓋住的固定圖層規則)。
 const CHARACTER_Z_INDEX := -1
 
-var battle_hero: BattleHero
+var battle_character: BattleCharacter
 var is_enemy: bool
 var grid_pos: Vector2i
 
@@ -98,10 +98,10 @@ var sprite: AnimatedSprite2D
 
 
 ## 建立角色顯示(動畫),pixel_pos 為棋盤換算好的初始位置
-func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedScene, pixel_pos: Vector2) -> void:
-	battle_hero = p_battle_hero
+func setup(p_battle_character: BattleCharacter, p_is_enemy: bool, character_scene: PackedScene, pixel_pos: Vector2) -> void:
+	battle_character = p_battle_character
 	is_enemy = p_is_enemy
-	grid_pos = battle_hero.grid_pos
+	grid_pos = battle_character.grid_pos
 	position = pixel_pos
 	z_index = CHARACTER_Z_INDEX
 
@@ -122,7 +122,7 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 		else:
 			sprite.play("idle_Right")
 
-	if battle_hero.is_leader:
+	if battle_character.is_leader:
 		_setup_leader_icon()
 
 	if SHOW_DEBUG_WEAPON_LABEL:
@@ -171,13 +171,13 @@ func _setup_click_area() -> void:
 
 func _on_click_area_input_event(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		CharacterPanel.open_for_hero(battle_hero.hero, battle_hero)
+		CharacterPanel.open_for_character(battle_character.character, battle_character)
 
 
 ## 測試階段除錯用,見 SHOW_DEBUG_WEAPON_LABEL 常數說明
 func _setup_weapon_label() -> void:
 	var label := Label.new()
-	label.text = GameEnums.weapon_label(battle_hero.hero.weapon)
+	label.text = GameEnums.weapon_label(battle_character.character.weapon)
 	label.add_theme_font_size_override("font_size", WEAPON_LABEL_FONT_SIZE)
 	label.add_theme_color_override("font_color", Color.WHITE)
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -212,7 +212,7 @@ func _play_dir_anim(dir: Vector2i, prefix: String) -> String:
 	if sprite.sprite_frames.has_animation(anim):
 		sprite.play(anim)
 	else:
-		printerr("找不到動畫：", anim, " / 角色：", battle_hero.name)
+		printerr("找不到動畫：", anim, " / 角色：", battle_character.name)
 
 	return anim
 

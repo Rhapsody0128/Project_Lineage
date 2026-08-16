@@ -36,8 +36,8 @@ func _ready() -> void:
 	_fallback_portrait.region = FALLBACK_PORTRAIT_REGION
 
 	var stats := BattleReportStats.new(report.battle)
-	_populate_hp_list(self_hp_list, stats.self_hero_rows)
-	_populate_hp_list(enemy_hp_list, stats.enemy_hero_rows)
+	_populate_hp_list(self_hp_list, stats.self_character_rows)
+	_populate_hp_list(enemy_hp_list, stats.enemy_character_rows)
 	_populate_stats_table(stats)
 
 
@@ -98,10 +98,10 @@ func _populate_stats_table(stats: BattleReportStats) -> void:
 	_add_stat_row("奧義使用次數", str(stats.ultimate_use_count))
 
 
-func _top_text(hero_name: String, value: int) -> String:
-	if hero_name.is_empty():
+func _top_text(character_name: String, value: int) -> String:
+	if character_name.is_empty():
 		return "無"
-	return "%s（%d）" % [hero_name, value]
+	return "%s（%d）" % [character_name, value]
 
 
 func _result_color(result: GameEnums.BattleResultType) -> Color:

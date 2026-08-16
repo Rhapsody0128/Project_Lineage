@@ -4,7 +4,7 @@ extends Control
 ## 場景,由呼叫端透過 DialogueStore.queue(dialogue, next_scene_path) 先存好、再
 ## change_scene_to_file 過來,這裡的 _ready() 直接讀出來播放。「誰在說話」「這一句
 ## 該顯示哪一側的頭像」全部轉發給 Dialogue(見 System/dialogue/dialogue.gd)判定,
-## 這裡只負責把資料轉成畫面呈現——頭像單純顯示 Hero.face_path 那張圖,沒有講過話
+## 這裡只負責把資料轉成畫面呈現——頭像單純顯示 Character.face_path 那張圖,沒有講過話
 ## 的那一側直接隱藏(不留空框);已經講過但目前不是輪到他的那一側蓋灰色遮罩,
 ## 對比出「這是上一句講話的人」。
 ##

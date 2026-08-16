@@ -5,9 +5,9 @@ extends RefCounted
 ## - _active_skills():消耗本回合行動骰選(SKILL 類型)才會施放的技能,任何角色只要
 ##   武器相符就能用,包含傷害/治療/增益/減益,不限攻擊
 ## - _passive_skills():不吃行動骰選——開戰時直接套用一次(SkillBuilder.passive(),
-##   見 BattleHero._apply_passive_skills()),或是像「守護」這種效果完全交給
+##   見 BattleCharacter._apply_passive_skills()),或是像「守護」這種效果完全交給
 ##   CombatResolver.resolve_guard() 反應式判定的技能(SkillBuilder.guard_skill())
-## - _leader_skills():只有隊長(BattleHero.is_leader)能用(SkillBuilder.leader_skill()),
+## - _leader_skills():只有隊長(BattleCharacter.is_leader)能用(SkillBuilder.leader_skill()),
 ##   其餘規則跟主動技能一樣要消耗行動骰選
 ## 技能的數值計算/戰鬥表現一律寫在 SkillEffectLibrary,這裡只組裝資料。
 ## 用 SkillBuilder 鏈式組裝取代舊版 14 個位置參數的建構子——GDScript 沒有具名參數,

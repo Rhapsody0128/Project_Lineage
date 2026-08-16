@@ -1,12 +1,12 @@
 class_name DodgeEvent
 extends BattleEvent
 
-var actor: BattleHero
+var actor: BattleCharacter
 var actor_name: String
-var target: BattleHero
+var target: BattleCharacter
 var target_name: String
 
-func _init(p_actor: BattleHero, p_target: BattleHero, p_detail: String = "") -> void:
+func _init(p_actor: BattleCharacter, p_target: BattleCharacter, p_detail: String = "") -> void:
 	super._init(GameEnums.BattleEventType.DODGE, p_detail)
 	actor = p_actor
 	actor_name = p_actor.name

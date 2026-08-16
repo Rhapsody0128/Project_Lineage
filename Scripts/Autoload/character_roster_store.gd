@@ -8,4 +8,4 @@ extends Node
 # PartyEdit 候補清單都從這裡取完整角色池,不是各自維護一份。
 # =========================================================
 
-var all_heroes: Array[Hero] = []
+var all_characteres: Array[Character] = []

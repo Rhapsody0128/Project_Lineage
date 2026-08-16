@@ -1,7 +1,7 @@
 [gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://Scenes/CharacterRoster/character_roster.gd" id="1"]
-[ext_resource type="Script" path="res://Scripts/UI/hero_sort_filter_bar.gd" id="2"]
+[ext_resource type="Script" path="res://Scripts/UI/character_sort_filter_bar.gd" id="2"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.086, 0.098, 0.145, 1)

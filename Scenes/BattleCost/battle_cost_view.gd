@@ -4,7 +4,7 @@ extends Control
 # =========================================================
 # 純視覺元件:把一個 BattleCost 的多格圖形畫出來,佔位格
 # (cells[0],軸心)額外疊一張朝右站立的角色 icon。
-# 不含任何拖曳/合法性判斷邏輯——CharacterPanel、HeroCard、
+# 不含任何拖曳/合法性判斷邏輯——CharacterPanel、CharacterCard、
 # PartyEdit 的網格擺放層都各自唯讀重用這顆元件。
 # =========================================================
 
@@ -31,8 +31,8 @@ var battle_cost: BattleCost:
 		battle_cost = value
 		_update_layout()
 
-## 決定每格填色(見 GameEnums.weapon_border_color())。呼叫端(HeroCard、
-## PartyEdit 已放置圖層、CharacterPanel)一律從 hero.weapon 帶進來,角色一定持有
+## 決定每格填色(見 GameEnums.weapon_border_color())。呼叫端(CharacterCard、
+## PartyEdit 已放置圖層、CharacterPanel)一律從 character.weapon 帶進來,角色一定持有
 ## 真實武器,這裡的預設值只是節點建立當下、賦值前的過渡狀態。
 var weapon: GameEnums.WeaponType = GameEnums.WeaponType.SWORD:
 	set(value):
@@ -41,7 +41,7 @@ var weapon: GameEnums.WeaponType = GameEnums.WeaponType.SWORD:
 
 ## 隊長標記:疊在佔位格右上角一面小旗子圖示(見 LEADER_ICON_WIDTH_RATIO)。
 ## 呼叫端依當下的隊長判斷結果帶進來(PartyEdit 的 PartyEditGrid.get_leader()、
-## 戰鬥中的 BattleHero.is_leader)。
+## 戰鬥中的 BattleCharacter.is_leader)。
 var is_leader: bool = false:
 	set(value):
 		is_leader = value

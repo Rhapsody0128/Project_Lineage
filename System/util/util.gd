@@ -42,7 +42,7 @@ static func clone(value):
 		return value.duplicate(true)
 	return value
 
-## 棋盤格曼哈頓距離,戰鬥相關模組(MovementPlanner/CombatResolver/BattleAi/BattleHero)
+## 棋盤格曼哈頓距離,戰鬥相關模組(MovementPlanner/CombatResolver/BattleAi/BattleCharacter)
 ## 共用同一份,不要各自各寫一份 abs(a.x-b.x)+abs(a.y-b.y)。
 static func manhattan_distance(a: Vector2i, b: Vector2i) -> int:
 	return abs(a.x - b.x) + abs(a.y - b.y)

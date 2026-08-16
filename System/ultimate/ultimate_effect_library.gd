@@ -9,8 +9,8 @@ extends RefCounted
 
 ## 天降甘霖:生效當下,全體友軍(含施法者本人)恢復生命上限的 Ultimate.effect_ratio
 ## (目前 0.4 = 40%)。
-static func rain_of_blessing_resolve(caster: BattleHero, ultimate: Ultimate) -> void:
-	var targets: Array[BattleHero] = caster.allies.duplicate()
+static func rain_of_blessing_resolve(caster: BattleCharacter, ultimate: Ultimate) -> void:
+	var targets: Array[BattleCharacter] = caster.allies.duplicate()
 	if not caster.is_disabled:
 		targets.append(caster)
 
@@ -23,7 +23,7 @@ static func rain_of_blessing_resolve(caster: BattleHero, ultimate: Ultimate) -> 
 
 ## 龍捲風:生效當下,敵方全體(存活中)各自受到「自己」生命上限的 Ultimate.effect_ratio
 ## (目前 0.2 = 20%)傷害——不吃防禦、不判定閃避/暴擊,單純是天災。
-static func tornado_resolve(caster: BattleHero, ultimate: Ultimate) -> void:
+static func tornado_resolve(caster: BattleCharacter, ultimate: Ultimate) -> void:
 	for target in caster.enemies:
 		var damage_value: float = target.hp_max * ultimate.effect_ratio
 		var detail := "奧義「%s」生效:%s 受到生命上限(%d)的 %.0f%% = %.1f 傷害" % [

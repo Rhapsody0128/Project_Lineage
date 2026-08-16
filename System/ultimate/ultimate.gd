@@ -24,10 +24,10 @@ var max_uses_per_battle: int
 ## 效果數值比例,不同奧義各自解讀這個欄位的意義(天降甘霖是回復生命上限的比例、
 ## 龍捲風是造成傷害的比例)。
 var effect_ratio: float
-## 施放當下呼叫,簽名 (caster: BattleHero, ultimate: Ultimate, resolve_round: int),
+## 施放當下呼叫,簽名 (caster: BattleCharacter, ultimate: Ultimate, resolve_round: int),
 ## 給需要在施放當下就套用額外效果的奧義用(目前兩個內建奧義都不需要,留空即可)。
 var cast_action: Callable
-## 延遲生效當下呼叫,簽名 (caster: BattleHero, ultimate: Ultimate),做實際數值效果
+## 延遲生效當下呼叫,簽名 (caster: BattleCharacter, ultimate: Ultimate),做實際數值效果
 ## (治療/傷害等),由 resolve() 在對應回合到達時呼叫。
 var resolve_action: Callable
 
@@ -36,11 +36,11 @@ func _init() -> void:
 
 ## 施放當下:只給有特殊需求的奧義一個掛勾(cast_action),預設不記錄任何戰報事件、
 ## 不顯示任何東西——玩家看得到的只有 resolve() 那一刻的 resolve_line。
-func cast(caster: BattleHero, resolve_round: int) -> void:
+func cast(caster: BattleCharacter, resolve_round: int) -> void:
 	if cast_action.is_valid():
 		cast_action.call(caster, self, resolve_round)
 
-func resolve(caster: BattleHero) -> void:
+func resolve(caster: BattleCharacter) -> void:
 	if resolve_line != "":
 		caster.battle.log_event(UltimateResolveEvent.new(caster, name, resolve_line, "奧義「%s」生效" % name))
 	if resolve_action.is_valid():

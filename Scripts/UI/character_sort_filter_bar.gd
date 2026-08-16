@@ -1,24 +1,24 @@
-class_name HeroSortFilterBar
+class_name CharacterSortFilterBar
 extends VBoxContainer
 
 # =========================================================
 # 角色清單共用的排序/篩選列:排序欄位用下拉選單(單選,固定由高到低,
 # 沒有低到高的需求)+ 武器篩選用一排 CheckBox(可複選,全部取消勾選 =
 # 不篩選)。這裡只組畫面與轉發點擊,實際排序/篩選規則一律轉呼叫
-# System 層的 HeroSortFilter,不在這裡重算。
+# System 層的 CharacterSortFilter,不在這裡重算。
 #
 # 用法:掛在任何角色清單畫面裡,監聽 changed 訊號後呼叫
-# sort_filter_bar.filter.apply(heroes) 重新整理清單即可,見 party_edit.gd。
+# sort_filter_bar.filter.apply(characteres) 重新整理清單即可,見 party_edit.gd。
 # =========================================================
 
 signal changed
 
-var filter := HeroSortFilter.new()
+var filter := CharacterSortFilter.new()
 
 const _FONT_SIZE := 14
 const _FONT_COLOR := Color(0.9, 0.9, 0.95, 1)
 
-## OptionButton 索引 0 固定是「不排序」,索引 1 起依序對應 GameEnums.HeroSortKey
+## OptionButton 索引 0 固定是「不排序」,索引 1 起依序對應 GameEnums.CharacterSortKey
 
 
 func _ready() -> void:
@@ -27,8 +27,8 @@ func _ready() -> void:
 	var sort_option := OptionButton.new()
 	sort_option.add_theme_font_size_override("font_size", _FONT_SIZE)
 	sort_option.add_item("不排序(由高到低)")
-	for key in GameEnums.HeroSortKey.values():
-		sort_option.add_item(GameEnums.hero_sort_key_label(key))
+	for key in GameEnums.CharacterSortKey.values():
+		sort_option.add_item(GameEnums.character_sort_key_label(key))
 	sort_option.item_selected.connect(_on_sort_selected)
 	add_child(sort_option)
 

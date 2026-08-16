@@ -7,7 +7,7 @@ extends RefCounted
 # 組成小隊的角色),所以跟 Party/PartyController 放在同一個資料夾。
 #
 # 目前沒有共用的網格佔用資料結構可重用(戰鬥格用的是線性掃描
-# BattleHero.grid_pos),這裡用 Dictionary 另開一份佔用表,範圍
+# BattleCharacter.grid_pos),這裡用 Dictionary 另開一份佔用表,範圍
 # 限定在這個新功能裡,不影響既有戰鬥系統。
 #
 # 編成畫面只顯示/管理玩家自己這一方的 6x6——不需要呈現敵方那半的戰場。
@@ -25,13 +25,13 @@ const UNLOCK_COL_MIN := 0
 const UNLOCK_COL_MAX := 3
 
 var _unlocked: Dictionary = {}          # Vector2i -> true
-var _cell_occupant: Dictionary = {}     # Vector2i -> Hero
-var _placement_anchor: Dictionary = {}  # Hero -> Vector2i
-var _placement_shape: Dictionary = {}   # Hero -> Array[Vector2i]
+var _cell_occupant: Dictionary = {}     # Vector2i -> Character
+var _placement_anchor: Dictionary = {}  # Character -> Vector2i
+var _placement_shape: Dictionary = {}   # Character -> Array[Vector2i]
 
 ## 玩家明確指定的隊長(見 set_leader());null 時 get_leader() 退回「第一個
 ## 放上來的角色」,呼應 Party.leader 的預設規則(見 Party._init())。
-var _leader: Hero = null
+var _leader: Character = null
 
 func _init() -> void:
 	for y in range(UNLOCK_ROW_MIN, UNLOCK_ROW_MAX + 1):
@@ -41,7 +41,7 @@ func _init() -> void:
 ## 複製一份獨立的網格狀態快照(PartyStore 存「按下完成編輯當下」的版本用,
 ## 跟畫面上正在編輯、尚未確定的草稿分開,避免草稿中途的每一步操作都直接
 ## 反映到其他場景讀得到的 STORE 資料)。Dictionary.duplicate() 淺拷貝即可,
-## key/value 都是 Vector2i 或 Hero 參照,不需要深拷貝角色本身。
+## key/value 都是 Vector2i 或 Character 參照,不需要深拷貝角色本身。
 func clone() -> PartyEditGrid:
 	var copy := PartyEditGrid.new()
 	copy._unlocked = _unlocked.duplicate()
@@ -57,66 +57,66 @@ func is_in_bounds(cell: Vector2i) -> bool:
 func is_unlocked(cell: Vector2i) -> bool:
 	return _unlocked.has(cell)
 
-func get_hero_at(cell: Vector2i) -> Hero:
+func get_character_at(cell: Vector2i) -> Character:
 	return _cell_occupant.get(cell)
 
-func is_placed(hero: Hero) -> bool:
-	return _placement_anchor.has(hero)
+func is_placed(character: Character) -> bool:
+	return _placement_anchor.has(character)
 
-func get_all_placed_heroes() -> Array:
+func get_all_placed_characteres() -> Array:
 	return _placement_anchor.keys()
 
-func get_placement_anchor(hero: Hero) -> Vector2i:
-	return _placement_anchor.get(hero, Vector2i.ZERO)
+func get_placement_anchor(character: Character) -> Vector2i:
+	return _placement_anchor.get(character, Vector2i.ZERO)
 
-func get_placement_shape(hero: Hero) -> Array[Vector2i]:
-	return _placement_shape.get(hero, [])
+func get_placement_shape(character: Character) -> Array[Vector2i]:
+	return _placement_shape.get(character, [])
 
-## excluding_hero:移動自己已放置的角色時,傳入自己,讓自己目前佔用的格子
+## excluding_character:移動自己已放置的角色時,傳入自己,讓自己目前佔用的格子
 ## 不會被判定成「被別人佔用」
-func can_place(shape: Array[Vector2i], anchor: Vector2i, excluding_hero: Hero = null) -> bool:
+func can_place(shape: Array[Vector2i], anchor: Vector2i, excluding_character: Character = null) -> bool:
 	for offset in shape:
 		var cell := anchor + offset
 		if not is_in_bounds(cell) or not is_unlocked(cell):
 			return false
-		var occupant: Hero = _cell_occupant.get(cell)
-		if occupant != null and occupant != excluding_hero:
+		var occupant: Character = _cell_occupant.get(cell)
+		if occupant != null and occupant != excluding_character:
 			return false
 	return true
 
-func place(hero: Hero, shape: Array[Vector2i], anchor: Vector2i) -> bool:
-	if not can_place(shape, anchor, hero):
+func place(character: Character, shape: Array[Vector2i], anchor: Vector2i) -> bool:
+	if not can_place(shape, anchor, character):
 		return false
-	if is_placed(hero):
-		remove(hero)
+	if is_placed(character):
+		remove(character)
 	for offset in shape:
-		_cell_occupant[anchor + offset] = hero
-	_placement_anchor[hero] = anchor
-	_placement_shape[hero] = shape.duplicate()
+		_cell_occupant[anchor + offset] = character
+	_placement_anchor[character] = anchor
+	_placement_shape[character] = shape.duplicate()
 	return true
 
-func remove(hero: Hero) -> void:
-	if not is_placed(hero):
+func remove(character: Character) -> void:
+	if not is_placed(character):
 		return
-	var anchor: Vector2i = _placement_anchor[hero]
-	for offset in _placement_shape[hero]:
+	var anchor: Vector2i = _placement_anchor[character]
+	for offset in _placement_shape[character]:
 		_cell_occupant.erase(anchor + offset)
-	_placement_anchor.erase(hero)
-	_placement_shape.erase(hero)
-	if hero == _leader:
+	_placement_anchor.erase(character)
+	_placement_shape.erase(character)
+	if character == _leader:
 		_leader = null
 
 ## 明確指定隊長;只有已放置的角色才能被設為隊長。
-func set_leader(hero: Hero) -> void:
-	if is_placed(hero):
-		_leader = hero
+func set_leader(character: Character) -> void:
+	if is_placed(character):
+		_leader = character
 
 ## 目前隊長:有明確指定且仍在場上就回傳那一位,否則退回「第一個放上來的
 ## 角色」(呼應 Party.leader 的預設規則),沒有任何角色放上場則回傳 null。
-func get_leader() -> Hero:
+func get_leader() -> Character:
 	if _leader != null and is_placed(_leader):
 		return _leader
-	var placed := get_all_placed_heroes()
+	var placed := get_all_placed_characteres()
 	return placed[0] if not placed.is_empty() else null
 
 ## 隨機解鎖一格目前反灰(未解鎖)的格子,回傳解鎖的格子座標;

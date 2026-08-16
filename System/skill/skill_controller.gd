@@ -31,10 +31,10 @@ static func get_random_skill_list_by_rank(skill_rank: GameEnums.RankType) -> Arr
 
 ## 一個角色最多能持有的技能數——不是每個角色都要把全部「武器綁定+無綁定」技能塞滿,
 ## 避免技能欄/AI 骰選池被撐得過大。
-const MAX_SKILLS_PER_HERO := 4
+const MAX_SKILLS_PER_CHARACTER := 4
 
 ## 該武器能用的技能:bind_weapon 相符,或技能沒有綁定武器(NO_WEAPON_BINDING,任何武器都能用),
-## 超過 MAX_SKILLS_PER_HERO 時優先保留這把武器「專屬綁定」的技能(至少要有東西能打),
+## 超過 MAX_SKILLS_PER_CHARACTER 時優先保留這把武器「專屬綁定」的技能(至少要有東西能打),
 ## 其餘名額(含無綁定的被動/LEADER 技能)隨機從剩下的裡面抽,不會每次都固定同一批。
 static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array[Skill]:
 	var bound: Array[Skill] = []
@@ -48,14 +48,14 @@ static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array
 	var result: Array[Skill] = bound.duplicate()
 	unbound.shuffle()
 	for skill in unbound:
-		if result.size() >= MAX_SKILLS_PER_HERO:
+		if result.size() >= MAX_SKILLS_PER_CHARACTER:
 			break
 		result.append(skill)
 
 	# 保險:萬一單一武器專屬技能本身就超過上限(目前不會發生),還是要夾住上限。
-	if result.size() > MAX_SKILLS_PER_HERO:
+	if result.size() > MAX_SKILLS_PER_CHARACTER:
 		result.shuffle()
-		result = result.slice(0, MAX_SKILLS_PER_HERO)
+		result = result.slice(0, MAX_SKILLS_PER_CHARACTER)
 
 	return result
 

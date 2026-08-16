@@ -1,4 +1,4 @@
-class_name Hero
+class_name Character
 extends RefCounted
 
 ## 血量上限與 battle_cost 佔位格數掛勾(見 BattleCostController 的 MIN_CELLS/MAX_CELLS),

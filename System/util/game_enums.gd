@@ -8,9 +8,9 @@ enum WeaponType {SWORD, BOW, SHIELD, DAGGER, STAFF, DREAMCATCHER}
 ## 故意不塞進 WeaponType enum——角色一定持有真實武器,WeaponType 只代表可持有的
 ## 武器種類,不該混入這種非武器的旗標值。
 const NO_WEAPON_BINDING := -1
-## 角色清單排序欄位(PartyEdit 候補清單/未來其他角色清單共用,見 HeroSortFilter),
+## 角色清單排序欄位(PartyEdit 候補清單/未來其他角色清單共用,見 CharacterSortFilter),
 ## 前三項是衍生值,後六項對應 PotentialType 六大素質
-enum HeroSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
+enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 ## 大地圖上的地點類型,見 System/Map/MapObjectData.gd
 enum MapObjectType {CASTLE}
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
@@ -20,7 +20,7 @@ enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND}
 enum ActionType {ATTACK, DAZE, ESCAPE, CONFUSE, SKILL}
 enum Relations {SELF, ALLIES, NEUTRAL, HOSTILE, UNKNOWN}
 enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
-## 戰鬥結果:依總大將(Party.leader/BattleHero.is_leader)死活判定,見 Battle.result
+## 戰鬥結果:依總大將(Party.leader/BattleCharacter.is_leader)死活判定,見 Battle.result
 enum BattleResultType {SELF_WIN, ENEMY_WIN, DRAW}
 ## 戰鬥模式:AUTO 一次性模擬完直接重播(戰報模式,Battle.start());REALTIME 逐回合跑
 ## (Battle.start_realtime()/step_round()),回合間開放玩家手動施放奧義(見
@@ -49,7 +49,7 @@ enum DialogueSide {LEFT, RIGHT}
 enum BloodlineNation {LION, EAGLE, LEOPARD, BEAR, DRAGON, DEER}
 ## 血統階級:平民血統/高階血統,同一國家內兩者是分開計量的獨立欄位
 enum BloodlineRank {COMMON, NOBLE}
-## 角色性別。目前 HeroController 隨機產生的角色池只有男性姓名庫(MALE_HERO_NAMES),
+## 角色性別。目前 CharacterController 隨機產生的角色池只有男性姓名庫(MALE_CHARACTER_NAMES),
 ## 一律指派 MALE,先開這個欄位是為了女性角色(玩家間聯姻等企劃內容)日後擴充鋪路。
 enum Gender {MALE, FEMALE}
 
@@ -62,8 +62,8 @@ const RANK_TYPE_LABELS: Array[String] = ["E", "D", "C", "B", "A", "S", "SS", "SS
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
 const WEAPON_TYPE_LABELS: Array[String] = ["劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
 
-## 角色清單排序欄位 UI 顯示用中文標籤,順序對應 HeroSortKey enum
-const HERO_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數", "力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
+## 角色清單排序欄位 UI 顯示用中文標籤,順序對應 CharacterSortKey enum
+const CHARACTER_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數", "力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 ## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
 const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城堡"]
@@ -90,8 +90,8 @@ static func rank_label(rank_type: int) -> String:
 static func weapon_label(weapon_type: int) -> String:
 	return WEAPON_TYPE_LABELS[weapon_type]
 
-static func hero_sort_key_label(sort_key: int) -> String:
-	return HERO_SORT_KEY_LABELS[sort_key]
+static func character_sort_key_label(sort_key: int) -> String:
+	return CHARACTER_SORT_KEY_LABELS[sort_key]
 
 static func map_object_type_label(map_object_type: int) -> String:
 	return MAP_OBJECT_TYPE_LABELS[map_object_type]
@@ -185,14 +185,14 @@ const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 2, 1, 1, 2, 2]
 ## 是否為魔法攻擊(法杖/捕夢網):魔法攻擊無視閃避,一定命中,順序對應 WeaponType enum
 const WEAPON_IS_MAGIC: Array[bool] = [false, false, false, false, true, true]
 
-const MALE_HERO_NAMES: Array[String] = [
+const MALE_CHARACTER_NAMES: Array[String] = [
 	"約翰", "保羅", "喬治", "亞歷克斯", "馬克斯", "大衛", "丹尼爾", "馬克", "約瑟夫", "派屈克",
 	"安德魯", "安東尼", "理查德", "查爾斯", "托馬斯", "威廉", "萊恩", "雅各布", "凱文", "邁克爾",
 	"史蒂文", "彌敦", "愛德華", "布蘭登", "史考特", "班傑明", "埃里克", "約書亞", "菲利普", "布賴恩",
 	"賈森", "格雷戈里", "撒迦",
 ]
 
-const MALE_HERO_LAST_NAMES: Array[String] = [
+const MALE_CHARACTER_LAST_NAMES: Array[String] = [
 	"貝克", "史密斯", "約翰遜", "威廉斯", "瓊斯", "布朗", "戴維斯", "米勒", "威爾遜", "摩爾",
 	"泰勒", "安德森", "托馬斯", "傑克遜", "懷特", "哈里斯", "馬丁", "湯普森", "加西亞", "馬丁内斯",
 	"羅賓遜", "克拉克", "羅德里格斯", "路易斯", "李", "沃克", "霍爾", "艾倫", "楊", "埃爾南德斯",

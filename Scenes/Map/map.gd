@@ -28,7 +28,7 @@ const DRAG_SENSITIVITY_MAX := 6.0
 var header_bar: HeaderBar
 var map_system: MapSystem
 var world_time: WorldTime
-## 玩家小隊,離開 _ready() 後仍要留著給 _process() 的 HP 回血用(見 Hero.advance_hp_regen())。
+## 玩家小隊,離開 _ready() 後仍要留著給 _process() 的 HP 回血用(見 Character.advance_hp_regen())。
 var party: Party
 var _objects: Array[MapObjectData] = []
 var _dragging := false
@@ -102,13 +102,13 @@ func _ready() -> void:
 		_update_destination_line()
 
 
-## 世界時間每往前推進一點,小隊全員跟著自然回血一點(見 Hero.advance_hp_regen()),
+## 世界時間每往前推進一點,小隊全員跟著自然回血一點(見 Character.advance_hp_regen()),
 ## 不限定要站在城堡/待在原地——大地圖上移動中也一樣回血。
 func _regen_party_hp(days_elapsed: float) -> void:
 	if party == null:
 		return
-	for hero in party.heroes:
-		hero.advance_hp_regen(days_elapsed)
+	for character in party.characteres:
+		character.advance_hp_regen(days_elapsed)
 
 
 func _find_object_by_id(id: String) -> MapObjectData:

@@ -1,16 +1,18 @@
 extends Control
 
 # =========================================================
-# 角色列表畫面:上方 1/4 顯示目前選取角色的詳細資訊(CharacterDetailView,
-# 橫向排版,跟彈出式 CharacterPanel 共用同一顆元件),下方 3/4 是
+# 角色列表畫面:左側固定寬度(DetailPanel custom_minimum_size,跟
+# character_panel.tscn 的 PanelBox 同寬,兩處視覺尺寸一致)顯示目前選取
+# 角色的詳細資訊(CharacterDetailView,直式排版,跟彈出式 CharacterPanel
+# 共用同一顆元件),右側 RosterPanel 自動撐滿剩餘寬度,是
 # HeroRosterStore.all_heroes(玩家擁有的全部角色,不是 PartyStore 的
 # 隊伍編成)的頭像卡片網格,排序/篩選比照 PartyEdit 候補清單共用
-# HeroSortFilterBar + System 層的 HeroSortFilter。點卡片切換上方顯示。
+# HeroSortFilterBar + System 層的 HeroSortFilter。點卡片切換左側顯示。
 # =========================================================
 
-@onready var detail_margin: MarginContainer = $VBox/DetailPanel/DetailMargin
-@onready var sort_filter_bar: HeroSortFilterBar = $VBox/BottomPanel/BottomMargin/BottomVBox/SortFilterBar
-@onready var roster_grid: HFlowContainer = $VBox/BottomPanel/BottomMargin/BottomVBox/ScrollContainer/RosterGrid
+@onready var detail_margin: MarginContainer = $MainRow/DetailPanel/DetailMargin
+@onready var sort_filter_bar: HeroSortFilterBar = $MainRow/RosterPanel/RosterMargin/RosterVBox/SortFilterBar
+@onready var roster_grid: HFlowContainer = $MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer/RosterGrid
 
 var _detail_view: CharacterDetailView
 var _selected_card: CharacterAvatarCard

@@ -66,10 +66,6 @@ const STAT_EFFECT_SPIN_SEQUENCE: Array[Vector2i] = [
 	Vector2i(0, 1), Vector2i(-1, 0), Vector2i(0, -1), Vector2i(1, 0),
 ]
 
-# 隊長標記(小人物本身變色遮罩,不額外畫圈)的顏色定義見 GameEnums.leader_tint()——
-# PartyEdit/CharacterPanel 的 battle_cost 縮圖(見 BattleCostView)也用同一套色,
-# 標記邏輯要一致,所以顏色集中放在 GameEnums 不在這裡各自定義一份。
-
 # 測試階段除錯用:角色右下角常駐顯示目前所持武器文字,方便肉眼核對武器與距離/傷害
 # 行為是否對得上;正式美術/UI 定案後把這個常數改成 false 即可整段關閉,不用刪程式碼。
 const SHOW_DEBUG_WEAPON_LABEL := true
@@ -80,6 +76,13 @@ const WEAPON_LABEL_FONT_SIZE := 12
 # 32x46 原始素材套用 SPRITE_SCALE 後的大小,置中對齊 sprite.position(見 setup())。
 const CLICK_AREA_SIZE := Vector2(42, 60)
 const CLICK_AREA_OFFSET := Vector2(0, -8)
+
+# 隊長標記:小人物右上角疊一面小旗子圖示(見 GameEnums.LEADER_FLAG_ICON_PATH)——
+# PartyEdit/CharacterPanel 的 battle_cost 縮圖(見 BattleCostView)也用同一張圖,
+# 標記邏輯要一致,所以路徑集中放在 GameEnums 不在這裡各自定義一份。圖示中心點對齊
+# 點擊判定範圍(CLICK_AREA_SIZE/OFFSET)的右上角,呈現「掛在角落」的效果。
+const LEADER_ICON_TARGET_WIDTH := 22.0
+const LEADER_ICON_POSITION := Vector2(CLICK_AREA_OFFSET.x + CLICK_AREA_SIZE.x / 2.0, CLICK_AREA_OFFSET.y - CLICK_AREA_SIZE.y / 2.0)
 
 # 圖層順序:地板(BattleBoard)固定 z_index=-2 墊底,角色固定疊在地板上方一層,
 # 頭像列彈出的招式喊話框等 UI 疊層維持預設(0)或正值,永遠蓋在角色之上——不再依
@@ -112,20 +115,34 @@ func setup(p_battle_hero: BattleHero, p_is_enemy: bool, character_scene: PackedS
 		sprite.scale = SPRITE_SCALE
 		sprite.position = Vector2(0, -8)
 
-		# 我方(左側)面朝右與敵人對戰,敵方(右側)面朝左;隊長改用 GameEnums.leader_tint()
-		# 蓋掉預設 tint,不再另外畫圈標記(見上方常數說明)。
+		# 我方(左側)面朝右與敵人對戰,敵方(右側)面朝左。
 		if is_enemy:
 			sprite.play("idle_Left")
-			sprite.modulate = GameEnums.leader_tint(true) if battle_hero.is_leader else ENEMY_TINT
+			sprite.modulate = ENEMY_TINT
 		else:
 			sprite.play("idle_Right")
-			if battle_hero.is_leader:
-				sprite.modulate = GameEnums.leader_tint(false)
+
+	if battle_hero.is_leader:
+		_setup_leader_icon()
 
 	if SHOW_DEBUG_WEAPON_LABEL:
 		_setup_weapon_label()
 
 	_setup_click_area()
+
+
+## 隊長標記:右上角疊一面小旗子(見上方 LEADER_ICON_* 常數說明)。
+func _setup_leader_icon() -> void:
+	var icon := Sprite2D.new()
+	icon.texture = load(GameEnums.LEADER_FLAG_ICON_PATH)
+	icon.centered = true
+	icon.position = LEADER_ICON_POSITION
+	icon.z_as_relative = true
+	icon.z_index = 1
+	var tex_width := icon.texture.get_width()
+	if tex_width > 0:
+		icon.scale = Vector2.ONE * (LEADER_ICON_TARGET_WIDTH / tex_width)
+	add_child(icon)
 
 
 ## 場上角色本人(不是頭像列的頭像,見 BattlePartyRoster._on_portrait_gui_input)也能

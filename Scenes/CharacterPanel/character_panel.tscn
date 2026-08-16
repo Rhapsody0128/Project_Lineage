@@ -49,7 +49,7 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="PanelBox" type="PanelContainer" parent="Root/CenterContainer"]
-custom_minimum_size = Vector2(920, 380)
+custom_minimum_size = Vector2(400, 700)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
@@ -80,9 +80,10 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "×"
 
-[node name="DetailView" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
+[node name="DetailView" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("2")
 
 [connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/TopBar/CloseButton" to="." method="close"]

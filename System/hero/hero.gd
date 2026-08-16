@@ -15,9 +15,11 @@ var id: String
 var name: String
 var last_name: String
 var age: int
+var gender: GameEnums.Gender
 var face_path: String
 var traits: Array[CharacterTrait]
 var potential: Potential
+var bloodline: Bloodline
 ## 目前手持的武器,決定哪些 bind_weapon 技能能施放
 var weapon: GameEnums.WeaponType
 var skill_list: Array[Skill]
@@ -37,9 +39,11 @@ func _init(
 	p_name: String,
 	p_last_name: String,
 	p_age: int,
+	p_gender: GameEnums.Gender,
 	p_face_path: String,
 	p_traits: Array[CharacterTrait],
 	p_potential: Potential,
+	p_bloodline: Bloodline,
 	p_weapon: GameEnums.WeaponType,
 	p_skill_list: Array[Skill],
 	p_level_system: LevelSystem,
@@ -49,9 +53,11 @@ func _init(
 	name = p_name
 	last_name = p_last_name
 	age = p_age
+	gender = p_gender
 	face_path = p_face_path
 	traits = p_traits
 	potential = p_potential
+	bloodline = p_bloodline
 	weapon = p_weapon
 	skill_list = p_skill_list
 	level_system = p_level_system

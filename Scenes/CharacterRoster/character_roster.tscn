@@ -100,7 +100,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 text = "返回"
 
-[node name="VBox" type="VBoxContainer" parent="."]
+[node name="MainRow" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -113,50 +113,53 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
 
-[node name="DetailPanel" type="PanelContainer" parent="VBox"]
+[node name="DetailPanel" type="PanelContainer" parent="MainRow"]
+custom_minimum_size = Vector2(400, 0)
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="DetailMargin" type="MarginContainer" parent="VBox/DetailPanel"]
+[node name="DetailMargin" type="MarginContainer" parent="MainRow/DetailPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 14
 
-[node name="BottomPanel" type="PanelContainer" parent="VBox"]
+[node name="RosterPanel" type="PanelContainer" parent="MainRow"]
 layout_mode = 2
+size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
-[node name="BottomMargin" type="MarginContainer" parent="VBox/BottomPanel"]
+[node name="RosterMargin" type="MarginContainer" parent="MainRow/RosterPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 16
 
-[node name="BottomVBox" type="VBoxContainer" parent="VBox/BottomPanel/BottomMargin"]
+[node name="RosterVBox" type="VBoxContainer" parent="MainRow/RosterPanel/RosterMargin"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="RosterTitle" type="Label" parent="VBox/BottomPanel/BottomMargin/BottomVBox"]
+[node name="RosterTitle" type="Label" parent="MainRow/RosterPanel/RosterMargin/RosterVBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
 text = "全部角色"
 
-[node name="SortFilterBar" type="VBoxContainer" parent="VBox/BottomPanel/BottomMargin/BottomVBox"]
+[node name="SortFilterBar" type="VBoxContainer" parent="MainRow/RosterPanel/RosterMargin/RosterVBox"]
 layout_mode = 2
 script = ExtResource("2")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="VBox/BottomPanel/BottomMargin/BottomVBox"]
+[node name="ScrollContainer" type="ScrollContainer" parent="MainRow/RosterPanel/RosterMargin/RosterVBox"]
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 1
 horizontal_scroll_mode = 0
 
-[node name="RosterGrid" type="HFlowContainer" parent="VBox/BottomPanel/BottomMargin/BottomVBox/ScrollContainer"]
+[node name="RosterGrid" type="HFlowContainer" parent="MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/h_separation = 12

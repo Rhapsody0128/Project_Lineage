@@ -110,6 +110,17 @@ theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
 theme_override_font_sizes/font_size = 30
 text = "戰鬥模擬 - 6 路縱隊"
 
+[node name="RoundLabel" type="Label" parent="." unique_id=1139592330]
+layout_mode = 0
+offset_left = 681.0
+offset_top = 92.0
+offset_right = 841.0
+offset_bottom = 128.0
+theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+theme_override_font_sizes/font_size = 24
+text = "回合 1"
+horizontal_alignment = 1
+
 [node name="BattlefieldPanel" type="Control" parent="." unique_id=1139592329]
 layout_mode = 1
 anchors_preset = 15
@@ -275,29 +286,78 @@ theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
-text = "顯示詳細"
+text = "戰報詳細"
 
-[node name="LogPanel" type="Panel" parent="UI" unique_id=314981703]
+[node name="LogDialog" type="Control" parent="." unique_id=314981703]
+process_mode = 3
 visible = false
-layout_mode = 0
-offset_left = 1096.0
-offset_top = 88.0
-offset_right = 1576.0
-offset_bottom = 868.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+z_index = 100
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
 
-[node name="LogLabel" type="RichTextLabel" parent="UI/LogPanel" unique_id=111737801]
+[node name="Dim" type="ColorRect" parent="LogDialog" unique_id=314981704]
 process_mode = 3
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.6)
+
+[node name="Panel" type="PanelContainer" parent="LogDialog" unique_id=314981705]
+process_mode = 3
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -390.0
+offset_top = -340.0
+offset_right = 390.0
+offset_bottom = 340.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
+
+[node name="VBox" type="VBoxContainer" parent="LogDialog/Panel" unique_id=314981706]
+process_mode = 3
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TitleRow" type="HBoxContainer" parent="LogDialog/Panel/VBox" unique_id=314981707]
+process_mode = 3
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="LogDialog/Panel/VBox/TitleRow" unique_id=314981708]
+process_mode = 3
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "戰報詳細"
+
+[node name="CloseButton" type="Button" parent="LogDialog/Panel/VBox/TitleRow" unique_id=314981709]
+process_mode = 3
+custom_minimum_size = Vector2(80, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+theme_override_styles/normal = SubResource("StyleBoxFlat_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+text = "關閉"
+
+[node name="LogLabel" type="RichTextLabel" parent="LogDialog/Panel/VBox" unique_id=111737801]
+process_mode = 3
+layout_mode = 2
+size_flags_vertical = 3
+custom_minimum_size = Vector2(760, 560)
 theme_override_font_sizes/normal_font_size = 15
 bbcode_enabled = true
 scroll_following = true

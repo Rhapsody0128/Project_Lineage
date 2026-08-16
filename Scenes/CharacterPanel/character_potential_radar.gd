@@ -7,9 +7,10 @@ extends Control
 # 不含任何數值判定邏輯。
 #
 # 從戰鬥場景(點頭像)開啟時會多帶一個 BattleHero(見 set_hero() 的第二參數)——
-# 這時雷達圖形狀本身跟標籤數字都改用 BattleHero.get_potential()(套用完暴擊/被動/
-# buff/debuff 加成後的即時數值),標籤格式變成「力量 SSS 60 (86)」,括號裡是戰場當下
-# 的即時值;沒有 BattleHero(例如創角面板)時維持只顯示基礎潛力數字。
+# 這時雷達圖形狀本身改用 BattleHero.get_potential()(套用完暴擊/被動/buff/debuff
+# 加成後的即時數值)。標籤只顯示素質名稱+等級(例如「力量S」),數值改在
+# CharacterDetailView 的屬性分頁顯示(見該檔 _update_potential_labels()),
+# 雷達圖本身不重複列數字。
 # =========================================================
 
 const AXIS_COUNT := 6
@@ -114,14 +115,7 @@ func _draw_labels(center: Vector2, radius: float) -> void:
 	for i in range(AXIS_COUNT):
 		var potential_type: int = POTENTIAL_TYPES[i]
 		var rank: int = _hero.get_potential_rank(potential_type)
-		var base_value: int = roundi(_hero.get_potential(potential_type))
-
-		var label: String
-		if _battle_hero != null:
-			var live_value: int = roundi(_battle_hero.get_potential(potential_type))
-			label = "%s %s %d (%d)" % [GameEnums.potential_label(i), GameEnums.rank_label(rank), base_value, live_value]
-		else:
-			label = "%s %s %d" % [GameEnums.potential_label(i), GameEnums.rank_label(rank), base_value]
+		var label := "%s%s" % [GameEnums.potential_label(potential_type), GameEnums.rank_label(rank)]
 
 		var anchor := _axis_point(center, radius + LABEL_MARGIN * 0.7, i)
 		var text_size := font.get_string_size(label, HORIZONTAL_ALIGNMENT_CENTER, -1, font_size)

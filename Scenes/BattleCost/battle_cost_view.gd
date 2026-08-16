@@ -17,6 +17,10 @@ const ANCHOR_CELL_FILL_ALPHA := 0.95
 const STANDEE_ATLAS_PATH := "res://Images/Warrier/character_walk.png"
 const STANDEE_REGION := Rect2(0, 46, 32, 46)
 
+## 隊長標記:疊在佔位格右上角的小旗子圖示,跟 BattleUnitVisual/BattlePartyRoster
+## 共用同一張圖(見 GameEnums.LEADER_FLAG_ICON_PATH),標記邏輯要一致。
+const LEADER_ICON_WIDTH_RATIO := 0.55
+
 @export var cell_size: float = 24.0:
 	set(value):
 		cell_size = value
@@ -35,18 +39,12 @@ var weapon: GameEnums.WeaponType = GameEnums.WeaponType.SWORD:
 		weapon = value
 		queue_redraw()
 
-## 隊長標記:跟 BattleUnitVisual 同一套邏輯——不畫額外圖形,直接把佔位格圖示
-## (站立小人)套色(見 GameEnums.leader_tint()),is_enemy 決定套淡黃還是深紅。
+## 隊長標記:疊在佔位格右上角一面小旗子圖示(見 LEADER_ICON_WIDTH_RATIO)。
 ## 呼叫端依當下的隊長判斷結果帶進來(PartyEdit 的 PartyEditGrid.get_leader()、
-## 戰鬥中的 BattleHero.is_leader/is_enemy)。
+## 戰鬥中的 BattleHero.is_leader)。
 var is_leader: bool = false:
 	set(value):
 		is_leader = value
-		queue_redraw()
-
-var is_enemy: bool = false:
-	set(value):
-		is_enemy = value
 		queue_redraw()
 
 ## 形狀 bounding box 左上角(以格為單位)。這顆 view 的本地座標原點是
@@ -55,6 +53,7 @@ var is_enemy: bool = false:
 var bounds_min: Vector2i = Vector2i.ZERO
 
 var _standee_texture: Texture2D
+var _leader_icon_texture: Texture2D
 
 ## true 時,_process() 每一幀都會把這顆 view 的 global_position 對齊到滑鼠游標
 ## (置中),用於拖曳浮動預覽——見 build_centered_drag_preview()。一般用途
@@ -71,6 +70,7 @@ func _init() -> void:
 
 func _ready() -> void:
 	_standee_texture = _build_standee_texture()
+	_leader_icon_texture = load(GameEnums.LEADER_FLAG_ICON_PATH)
 	queue_redraw()
 
 
@@ -105,7 +105,6 @@ func _draw() -> void:
 		return
 
 	var weapon_color := GameEnums.weapon_border_color(weapon)
-	var standee_tint := GameEnums.leader_tint(is_enemy) if is_leader else Color(1, 1, 1)
 
 	for cell in battle_cost.cells:
 		var local := Vector2(cell - bounds_min) * cell_size
@@ -115,8 +114,15 @@ func _draw() -> void:
 
 		draw_rect(rect, Color(weapon_color.r, weapon_color.g, weapon_color.b, alpha))
 
-		if is_anchor and _standee_texture:
-			draw_texture_rect(_standee_texture, rect, false, standee_tint)
+	# 站立圖示保留原始比例後(見 _standee_rect())會突出佔位格邊界,可能延伸進
+	# 相鄰格子的範圍——放在所有格子填色「之後」畫,確保永遠疊在格子上層,
+	# 不會被後畫的鄰接格蓋掉一部分(單一 _draw() 內沒有真的 z_index 概念,
+	# 疊層順序就是呼叫順序,所以只能靠畫的先後來保證疊在最上層)。
+	if _standee_texture:
+		var anchor_rect := Rect2(Vector2(-bounds_min) * cell_size, Vector2(cell_size, cell_size))
+		draw_texture_rect(_standee_texture, _standee_rect(anchor_rect), false)
+		if is_leader and _leader_icon_texture:
+			draw_texture_rect(_leader_icon_texture, _leader_icon_rect(anchor_rect), false)
 
 
 func _build_standee_texture() -> Texture2D:
@@ -124,6 +130,28 @@ func _build_standee_texture() -> Texture2D:
 	texture.atlas = load(STANDEE_ATLAS_PATH)
 	texture.region = STANDEE_REGION
 	return texture
+
+
+## 佔位格圖示要保留 STANDEE_REGION 原始比例(32x46),不能直接拉伸塞進正方形格子
+## 變形——寬度貼齊格子寬、高度依原始比例縮放後置中對齊,人物會比格子稍高一點,
+## 跟 Battle 戰場上的角色顯示比例一致(見 battle_unit_visual.gd 的 SPRITE_SCALE
+## 等比縮放,不擠壓角色),格子被圖示稍微突出沒關係,不能整隻被壓扁。
+func _standee_rect(cell_rect: Rect2) -> Rect2:
+	var native_size := STANDEE_REGION.size
+	var scaled_height := cell_rect.size.x * (native_size.y / native_size.x)
+	var y_offset := (cell_rect.size.y - scaled_height) / 2.0
+	return Rect2(
+		cell_rect.position + Vector2(0, y_offset),
+		Vector2(cell_rect.size.x, scaled_height)
+	)
+
+
+## 隊長圖示疊在佔位格右上角,中心點對齊格子右上角(見 LEADER_ICON_WIDTH_RATIO),
+## 效果跟 BattleUnitVisual/BattlePartyRoster 的「掛在角落」badge 一致。
+func _leader_icon_rect(cell_rect: Rect2) -> Rect2:
+	var icon_size := cell_rect.size.x * LEADER_ICON_WIDTH_RATIO
+	var center := cell_rect.position + Vector2(cell_rect.size.x, 0)
+	return Rect2(center - Vector2(icon_size, icon_size) / 2.0, Vector2(icon_size, icon_size))
 
 
 ## 建立一個「整體形狀置中對齊游標」的拖曳浮動預覽,給 set_drag_preview() 用。

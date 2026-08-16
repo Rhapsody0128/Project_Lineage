@@ -25,10 +25,11 @@ const ENEMY_TINT := Color(1.0, 0.55, 0.55)
 const SELF_TINT := Color(0.75, 0.85, 1.0)
 const HP_BAR_FILL_SELF := Color(0.45, 0.85, 0.45)
 const HP_BAR_BG := Color(0.1, 0.1, 0.12)
+const HP_BAR_CORNER_RADIUS := 5
 ## 頭像尺寸(從 50x50 縮小到 44x44):兩欄併排要塞進原本一欄的面板寬度
 ## (LeftPartyPanel/RightPartyPanel 112px,見 battle.tscn),縮小頭像才留得出兩欄
 ## + 欄距的空間,不用因此加寬面板、牽動戰場其餘版面。
-const PORTRAIT_SIZE := Vector2(44, 44)
+const PORTRAIT_SIZE := Vector2(60, 60)
 const SLOT_SEPARATION := 8
 
 # 行動提示:頭像往戰場方向位移的距離/時間(出去、停留、返回)
@@ -40,9 +41,9 @@ const ACTIVE_RETURN_TIME := 0.2
 # 放技能時頭像框的高亮顏色
 const SKILL_FRAME_COLOR := Color(1.0, 0.85, 0.2, 1.0)
 
-# 隊長頭像框:邊框顏色跟其他人一樣依武器分色(見 _spawn_slot()),只用加粗邊框寬度
-# 區分隊長,實際的隊長標記(淡黃/深紅遮罩)改套在頭像本身,見 GameEnums.leader_tint()。
-const LEADER_FRAME_BORDER_WIDTH := 3
+# 隊長標記:頭像右上角疊一面小旗子圖示(見 GameEnums.LEADER_FLAG_ICON_PATH),
+# 邊框顏色/寬度跟其他人一樣依武器分色,不再另外加粗區分。
+const LEADER_ICON_SIZE := Vector2(22, 22)
 
 # 技能名稱對話框(魔法漫畫風):偏紫的底色 + 金色邊框,跟頭像框高亮同色系
 const SKILL_BUBBLE_BG := Color(0.16, 0.05, 0.28, 0.95)
@@ -74,7 +75,6 @@ class RosterSlot:
 	var frame_style: StyleBoxFlat
 	var base_border_color: Color
 	var bar: ProgressBar
-	var hp_label: Label
 	var max_count: int
 	var active_tween: Tween
 	var skill_tween: Tween
@@ -170,8 +170,7 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 
 	var is_leader := battle_hero.is_leader
 	var border_color := GameEnums.weapon_border_color(battle_hero.hero.weapon)
-	var border_width := LEADER_FRAME_BORDER_WIDTH if is_leader else 2
-	var frame_style := UiStyle.bordered_panel(Color(0.08, 0.08, 0.1, 0.6), border_color, border_width, 0, 2.0, 2.0)
+	var frame_style := UiStyle.bordered_panel(Color(0.08, 0.08, 0.1, 0.6), border_color, 2, 0, 2.0, 2.0)
 	portrait_frame.add_theme_stylebox_override("panel", frame_style)
 	portrait_row.add_child(portrait_frame)
 
@@ -179,11 +178,21 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	portrait.texture = _load_hero_portrait(battle_hero, fallback_portrait)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	if is_leader:
-		portrait.modulate = GameEnums.leader_tint(is_enemy)
-	else:
-		portrait.modulate = ENEMY_TINT if is_enemy else Color(1, 1, 1)
+	portrait.modulate = ENEMY_TINT if is_enemy else Color(1, 1, 1)
 	portrait_frame.add_child(portrait)
+
+	if is_leader:
+		var leader_icon := TextureRect.new()
+		leader_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		# expand_mode 要先設好(否則預設 EXPAND_KEEP_SIZE 會讓 minimum_size 等於原圖
+		# 512x512),下面設定 texture 時才不會把 size 立刻撐大鎖住,見下面 size 賦值。
+		leader_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		leader_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		leader_icon.texture = load(GameEnums.LEADER_FLAG_ICON_PATH)
+		leader_icon.custom_minimum_size = LEADER_ICON_SIZE
+		leader_icon.size = LEADER_ICON_SIZE
+		leader_icon.position = Vector2(PORTRAIT_SIZE.x - LEADER_ICON_SIZE.x / 2.0, -LEADER_ICON_SIZE.y / 2.0)
+		portrait_row.add_child(leader_icon)
 
 	# 箭頭角標:疊在頭像「正上方」,固定切成左右各半格,左半格顯示增益箭頭、右半格
 	# 顯示減益箭頭,沒有效果時該格的 Label 只是 visible=false,不影響區域本身的大小。
@@ -210,19 +219,14 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 
 	var bar_fill := StyleBoxFlat.new()
 	bar_fill.bg_color = ENEMY_TINT if is_enemy else HP_BAR_FILL_SELF
+	bar_fill.set_corner_radius_all(HP_BAR_CORNER_RADIUS)
 	bar.add_theme_stylebox_override("fill", bar_fill)
 
 	var bar_bg := StyleBoxFlat.new()
 	bar_bg.bg_color = HP_BAR_BG
+	bar_bg.set_corner_radius_all(HP_BAR_CORNER_RADIUS)
 	bar.add_theme_stylebox_override("background", bar_bg)
 	slot.add_child(bar)
-
-	var hp_label := Label.new()
-	hp_label.text = "%d/%d" % [battle_hero.hp, max_count]
-	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hp_label.add_theme_font_size_override("font_size", 10)
-	hp_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	slot.add_child(hp_label)
 
 	var s := RosterSlot.new()
 	s.slot = slot
@@ -230,7 +234,6 @@ func _spawn_slot(battle_hero: BattleHero, is_enemy: bool, fallback_portrait: Tex
 	s.frame_style = frame_style
 	s.base_border_color = border_color
 	s.bar = bar
-	s.hp_label = hp_label
 	s.max_count = max_count
 	s.buff_arrow_label = buff_arrow_label
 	s.debuff_arrow_label = debuff_arrow_label
@@ -256,14 +259,13 @@ func _build_status_arrow_label(arrow_text: String, arrow_pos: Vector2) -> Label:
 	return label
 
 
-## 更新某隊伍的血條與數字(remaining 為目前 HP)
+## 更新某隊伍的血條(remaining 為目前 HP)
 func update_hp(battle_hero: BattleHero, remaining: int) -> void:
 	var s: RosterSlot = _slots.get(battle_hero)
 	if s == null:
 		return
 
 	s.bar.value = remaining
-	s.hp_label.text = "%d/%d" % [remaining, s.max_count]
 
 
 ## 戰敗時血條歸零,順便把還沒到期的增益/減益箭頭一起清掉(人都倒了,不用再顯示)

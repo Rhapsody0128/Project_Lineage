@@ -45,6 +45,13 @@ enum BattleEventType {
 ## 對話場景固定二人站位(左/右),見 System/dialogue/、Scenes/Dialogue/dialogue_box.gd——
 ## 目前畫面版型只設計左右各一位發言角色,不支援多人對話
 enum DialogueSide {LEFT, RIGHT}
+## 血統六大國家,對應血統代表色紅/白/黃/綠/藍/青,見 System/bloodline/
+enum BloodlineNation {LION, EAGLE, LEOPARD, BEAR, DRAGON, DEER}
+## 血統階級:平民血統/高階血統,同一國家內兩者是分開計量的獨立欄位
+enum BloodlineRank {COMMON, NOBLE}
+## 角色性別。目前 HeroController 隨機產生的角色池只有男性姓名庫(MALE_HERO_NAMES),
+## 一律指派 MALE,先開這個欄位是為了女性角色(玩家間聯姻等企劃內容)日後擴充鋪路。
+enum Gender {MALE, FEMALE}
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
@@ -60,6 +67,16 @@ const HERO_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數",
 
 ## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
 const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城堡"]
+
+## 血統國家 UI 顯示用中文標籤,順序對應 BloodlineNation enum
+const BLOODLINE_NATION_LABELS: Array[String] = ["獅", "鷹", "豹", "熊", "龍", "鹿"]
+
+## 血統階級 UI 顯示用中文標籤,順序對應 BloodlineRank enum,跟國家標籤相接組成
+## 「獅血」「獅高血」這種完整血統名稱,見 bloodline_full_label()
+const BLOODLINE_RANK_LABELS: Array[String] = ["血", "高血"]
+
+## 性別 UI 顯示用符號,順序對應 Gender enum
+const GENDER_SYMBOLS: Array[String] = ["♂", "♀"]
 
 ## 以下四個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
 ## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
@@ -79,6 +96,19 @@ static func hero_sort_key_label(sort_key: int) -> String:
 static func map_object_type_label(map_object_type: int) -> String:
 	return MAP_OBJECT_TYPE_LABELS[map_object_type]
 
+static func bloodline_nation_label(nation: int) -> String:
+	return BLOODLINE_NATION_LABELS[nation]
+
+static func bloodline_rank_label(rank: int) -> String:
+	return BLOODLINE_RANK_LABELS[rank]
+
+static func gender_symbol(gender: int) -> String:
+	return GENDER_SYMBOLS[gender]
+
+## 組合國家+階級的完整血統名稱,例如「獅血」「獅高血」,UI 一律呼叫這個,不要自己串字串
+static func bloodline_full_label(nation: int, rank: int) -> String:
+	return bloodline_nation_label(nation) + bloodline_rank_label(rank)
+
 ## BATTLE_COST 方塊外框色,依武器分色一眼辨識:大劍紅、弓箭手白、盾牌綠、
 ## 匕首黃、法杖藍、捕夢網青,順序對應 WeaponType enum
 const WEAPON_BORDER_COLORS: Array[Color] = [
@@ -92,6 +122,20 @@ const WEAPON_BORDER_COLORS: Array[Color] = [
 
 static func weapon_border_color(weapon_type: int) -> Color:
 	return WEAPON_BORDER_COLORS[weapon_type]
+
+## 武器圖示路徑(見 Images/Weapon/),檔名對應 WeaponType enum 的成員名稱,
+## 順序對應 WeaponType enum
+const WEAPON_ICON_PATHS: Array[String] = [
+	"res://Images/Weapon/SWORD.svg",
+	"res://Images/Weapon/BOW.svg",
+	"res://Images/Weapon/SHIELD.svg",
+	"res://Images/Weapon/DAGGER.svg",
+	"res://Images/Weapon/STAFF.svg",
+	"res://Images/Weapon/DREAMCATCHER.svg",
+]
+
+static func weapon_icon_path(weapon_type: int) -> String:
+	return WEAPON_ICON_PATHS[weapon_type]
 
 ## 六大素質代表色(素質增益/減益箭頭、雷達圖等畫面共用同一份配色表),
 ## 順序對應 PotentialType enum
@@ -107,14 +151,23 @@ const POTENTIAL_TYPE_COLORS: Array[Color] = [
 static func potential_color(potential_type: int) -> Color:
 	return POTENTIAL_TYPE_COLORS[potential_type]
 
-## 隊長標記色:小人物本身變色遮罩(modulate),不額外畫圈/光暈——我方隊長淡黃、
-## 敵方隊長深紅。BattleUnitVisual(戰場角色)與 BattleCostView(PartyEdit/
-## CharacterPanel 的 battle_cost 縮圖)共用同一組色,標記邏輯要一致。
-const LEADER_SELF_TINT := Color(1.0, 0.95, 0.55)
-const LEADER_ENEMY_TINT := Color(0.55, 0.05, 0.05)
+## 血統國家代表色(計量槽顏色),順序對應 BloodlineNation enum:獅紅/鷹白/豹黃/熊綠/龍藍/鹿青
+const BLOODLINE_NATION_COLORS: Array[Color] = [
+	Color(0.85, 0.2, 0.2), # 紅:獅
+	Color(0.92, 0.92, 0.92), # 白:鷹
+	Color(1.0, 0.85, 0.15), # 黃:豹
+	Color(0.35, 0.85, 0.35), # 綠:熊
+	Color(0.35, 0.55, 1.0), # 藍:龍
+	Color(0.3, 0.9, 0.9), # 青:鹿
+]
 
-static func leader_tint(is_enemy: bool) -> Color:
-	return LEADER_ENEMY_TINT if is_enemy else LEADER_SELF_TINT
+static func bloodline_nation_color(nation: int) -> Color:
+	return BLOODLINE_NATION_COLORS[nation]
+
+## 隊長標記圖示:疊在頭像/小人物右上角的小旗子,取代舊版變色遮罩。
+## BattleUnitVisual(戰場角色)、BattlePartyRoster(頭像列)與 BattleCostView
+## (PartyEdit/CharacterPanel 的 battle_cost 縮圖)共用同一張圖,標記邏輯要一致。
+const LEADER_FLAG_ICON_PATH := "res://Images/ICON/FLAG.png"
 
 ## 素質清單轉成頓號分隔的標籤字串,例如 stat_effect 事件的「力量、敏捷」——
 ## 戰報事件的 detail 組字與 Scenes/battle.gd 的戰報 UI 都共用這個,

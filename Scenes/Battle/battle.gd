@@ -35,19 +35,18 @@ const CHARACTER_SCENE_PATH := "res://Images/Warrier/animated_sprite_2d.tscn"
 const PORTRAIT_ATLAS_PATH := "res://Images/Warrier/character_walk.png"
 const PORTRAIT_REGION := Rect2(0, 0, 32, 46)
 
-# 戰報面板(LogPanel)可以展開/收合(見 LogToggleButton):展開時維持原本版面
-# (戰場侷限在左側,右側留給戰報);收合時 LogPanel 整個藏起來,戰場改撐大填滿騰出來
-# 的空間——不另外維護「展開/收合」兩份獨立版面數據,單純把 BoardCanvas + UnitsLayer
-# 整塊(格線、地板、場上角色全部一起)用 Control.scale 等比放大,角色不會因為換算
-# 格子大小而跟地板對不上,永遠貼著同一顆 pivot 錨點(戰場面板左上角)長大/縮回。
+# 戰報改成點擊 LogToggleButton 彈出 LogDialog(見 _on_log_toggle_button_pressed()),
+# 不再佔用版面、也不會讓戰場跟著縮放——戰場(BoardCanvas + UnitsLayer,格線/地板/
+# 場上角色全部一起)固定用 Control.scale 放大到填滿版面,永遠貼著同一顆 pivot 錨點
+# (戰場面板左上角)長大,不會因為戰報開關而改變大小,場上其他元件(RoundLabel 等)
+# 才能用固定座標對齊,不用另外處理兩套版面。
 const BOARD_PIVOT := Vector2(140.0, 140.0)
 const BOARD_BASE_WIDTH := 828.0
 const BOARD_BASE_HEIGHT := 480.0
-const BOARD_SCALE_COLLAPSED := 1.5
+const BOARD_SCALE := 1.5
 const RIGHT_PARTY_WIDTH := 112.0
 const RIGHT_PARTY_GAP := 8.0
-const RIGHT_PARTY_LEFT_EXPANDED := BOARD_PIVOT.x + BOARD_BASE_WIDTH + RIGHT_PARTY_GAP
-const RIGHT_PARTY_LEFT_COLLAPSED := BOARD_PIVOT.x + BOARD_BASE_WIDTH * BOARD_SCALE_COLLAPSED + RIGHT_PARTY_GAP
+const RIGHT_PARTY_LEFT := BOARD_PIVOT.x + BOARD_BASE_WIDTH * BOARD_SCALE + RIGHT_PARTY_GAP
 
 # 奧義施放/生效時,在戰場正中央浮出的大字(見 _show_ultimate_banner())——不是某個
 # 角色頭像旁邊喊招式名稱那一套(那是 Skill 的表現方式,見 BattlePartyRoster.pulse_skill())。
@@ -91,22 +90,20 @@ var _played_log_index := 0
 var character_scene: PackedScene
 var portrait_texture: AtlasTexture
 
-# 戰報面板目前是展開還是收合,見 BOARD_SCALE_COLLAPSED/_apply_log_layout()。預設收合
-# (戰場撐到最大),玩家要看詳細戰報文字才手動點開。
-var log_expanded := false
-
 # 側邊頭像列、戰場(BoardCanvas/UnitsLayer)、奧義面板全部收在 BattlefieldPanel 底下
 # 整理成同一個容器(見 battle.tscn),彼此的相對位置/縮放邏輯集中寫在
-# _apply_log_layout() 一處,不會散落在場景樹各處各自為政。
+# _apply_board_layout() 一處,不會散落在場景樹各處各自為政。
 @onready var board: BattleBoard = $BattlefieldPanel/BoardCanvas
 @onready var units_layer: Control = $BattlefieldPanel/UnitsLayer
 @onready var title_label: Label = $Title
+@onready var round_label: Label = $RoundLabel
 @onready var pause_button: Button = $UI/TopBar/PauseButton
 @onready var skip_button: Button = $UI/TopBar/SkipButton
 @onready var back_button: Button = $UI/TopBar/BackButton
 @onready var log_toggle_button: Button = $UI/TopBar/LogToggleButton
-@onready var log_panel_container: Panel = $UI/LogPanel
-@onready var log_panel: BattleLogPanel = $UI/LogPanel/LogLabel
+@onready var log_dialog: Control = $LogDialog
+@onready var log_dialog_close_button: Button = $LogDialog/Panel/VBox/TitleRow/CloseButton
+@onready var log_panel: BattleLogPanel = $LogDialog/Panel/VBox/LogLabel
 @onready var left_roster: BattlePartyRoster = $BattlefieldPanel/LeftPartyPanel/LeftPartyCenter/LeftPartyList
 @onready var right_party_panel: Panel = $BattlefieldPanel/RightPartyPanel
 @onready var right_roster: BattlePartyRoster = $BattlefieldPanel/RightPartyPanel/RightPartyCenter/RightPartyList
@@ -125,7 +122,8 @@ func _ready() -> void:
 	get_viewport().physics_object_picking = true
 
 	log_toggle_button.pressed.connect(_on_log_toggle_button_pressed)
-	_apply_log_layout(log_expanded)
+	log_dialog_close_button.pressed.connect(_on_log_dialog_close_pressed)
+	_apply_board_layout()
 
 	character_scene = load(CHARACTER_SCENE_PATH)
 
@@ -232,6 +230,7 @@ func _setup_battlefield() -> void:
 	left_roster.populate(battle.self_heroes, false, portrait_texture)
 	right_roster.populate(battle.enemy_heroes, true, portrait_texture)
 
+	round_label.text = "回合 1"
 	board.queue_redraw()
 
 
@@ -248,36 +247,30 @@ func _roster_for(battle_hero: BattleHero) -> BattlePartyRoster:
 
 
 # =========================================================
-# 戰報面板展開/收合
+# 戰場版面(固定不變)/戰報 Dialog 開關
 # =========================================================
-func _on_log_toggle_button_pressed() -> void:
-	_apply_log_layout(not log_expanded)
-
-
-## 切換 LogPanel 顯示狀態,並讓 BattlefieldPanel 底下的戰場整塊(BoardCanvas +
-## UnitsLayer,格線/地板/場上角色全部一起;右側頭像列;奧義面板)一起跟著撐大/縮回,
-## 填滿或讓出騰出來的版面,視覺上是同一塊會一起變化的區域。BoardCanvas/UnitsLayer
-## 都是滿版鋪開的 Control,格子座標→像素座標的換算(BattleBoard.grid_to_pixel())本身
-## 不用變,單純對這兩個節點套 CanvasItem 的 scale(繞同一顆 pivot 錨點縮放),場上角色
-## 是它們的子節點,會自動跟著整塊一起放大/縮小,不需要另外逐一搬動位置。右側頭像列
-## 跟著改用 position 貼齊縮放後的戰場右緣(而不是跟著等比縮放,頭像本身大小不變)。
-## 奧義面板寬度跟著戰場一起變寬/變窄,左緣固定貼齊戰場左緣(BOARD_PIVOT.x)不動,
-## 這樣不管戰場縮放與否,奧義面板永遠橫跨戰場的完整寬度,不會跟戰場對不齊。
-func _apply_log_layout(expanded: bool) -> void:
-	log_expanded = expanded
-	log_panel_container.visible = expanded
-	log_toggle_button.text = "隱藏詳細" if expanded else "顯示詳細"
-
-	var scale_factor := 1.0 if expanded else BOARD_SCALE_COLLAPSED
+## 戰場(BoardCanvas + UnitsLayer,格線/地板/場上角色全部一起;右側頭像列;奧義面板)
+## 版面固定,只在 _ready() 呼叫一次——戰報改用 LogDialog 彈出顯示(見
+## _on_log_toggle_button_pressed()),不再佔用版面,戰場不需要跟著開關戰報縮放,
+## RoundLabel 等其他元件才能用固定座標對齊,不會因為戰報開關而跑位。
+func _apply_board_layout() -> void:
 	for node in [board, units_layer]:
 		node.pivot_offset = BOARD_PIVOT
-		node.scale = Vector2.ONE * scale_factor
+		node.scale = Vector2.ONE * BOARD_SCALE
 
-	right_party_panel.position.x = RIGHT_PARTY_LEFT_EXPANDED if expanded else RIGHT_PARTY_LEFT_COLLAPSED
+	right_party_panel.position.x = RIGHT_PARTY_LEFT
 	right_party_panel.size.x = RIGHT_PARTY_WIDTH
 
 	ultimate_panel.position.x = BOARD_PIVOT.x
-	ultimate_panel.size.x = BOARD_BASE_WIDTH * scale_factor
+	ultimate_panel.size.x = BOARD_BASE_WIDTH * BOARD_SCALE
+
+
+func _on_log_toggle_button_pressed() -> void:
+	log_dialog.visible = true
+
+
+func _on_log_dialog_close_pressed() -> void:
+	log_dialog.visible = false
 
 
 # =========================================================
@@ -666,7 +659,9 @@ func _play_single_event(event: BattleEvent) -> void:
 		GameEnums.BattleEventType.BATTLE_START:
 			_log("戰鬥開始")
 		GameEnums.BattleEventType.ROUND_START:
-			_log("[b]—— 第 %d 回合 ——[/b]" % (event as RoundStartEvent).round)
+			var round_start_event := event as RoundStartEvent
+			_log("[b]—— 第 %d 回合 ——[/b]" % round_start_event.round)
+			round_label.text = "回合 %d" % round_start_event.round
 		GameEnums.BattleEventType.ROUND_END:
 			_log("回合結束")
 			await _safe_wait_frame()
@@ -830,9 +825,9 @@ func _apply_ultimate_resolve(event: UltimateResolveEvent) -> void:
 
 
 ## 在戰場正中央浮出一行大字,不 await——淡入 → 停留 → 淡出後自動釋放,不擋播放節奏。
-## 位置依 board 目前的縮放狀態(log 面板展開/收合,見 _apply_log_layout())即時算出
-## 視覺中心;banner 本身掛在場景根節點下(不隨 board/units_layer 縮放),字體大小固定
-## 可讀,不會因為戰場縮小/放大而跟著變形。
+## 位置依 board 目前的縮放狀態(見 _apply_board_layout())即時算出視覺中心;banner
+## 本身掛在場景根節點下(不隨 board/units_layer 縮放),字體大小固定可讀,不會因為
+## 戰場縮小/放大而跟著變形。
 func _show_ultimate_banner(text: String) -> void:
 	var label := Label.new()
 	label.text = text

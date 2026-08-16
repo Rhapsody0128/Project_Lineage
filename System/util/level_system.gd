@@ -48,3 +48,13 @@ func _judge_can_upgrade() -> void:
 
 var potential_level_constant: float:
 	get: return level * potential_level_ratio
+
+## 升到下一級所需的總 exp(UI 計量表用,例如角色面板的 EXP/NextExp 條)。
+## 已經到 level_required_exp 定義的最高等級時回傳 0,呼叫端用 is_max_level() 判斷要不要顯示滿條。
+func exp_to_next_level() -> int:
+	if is_max_level():
+		return 0
+	return level_required_exp[level]
+
+func is_max_level() -> bool:
+	return level >= level_required_exp.size()

@@ -9,25 +9,29 @@ extends Control
 # ScrollContainer 底下,custom_minimum_size 撐開成整棵樹的實際範圍,ScrollContainer
 # 才滾得到全部內容。
 #
-# 卡片內容比照使用者需求:「本人 | 配偶」左右兩欄,各自頭像/姓名/年齡/性別/血統
-# 清單(含百分比計量表,資料來源/配色跟 CharacterDetailView._populate_bloodline()
-# 一致)。沒有配偶時卡片只有一欄、不留空欄——所以卡片寬度依 unit 是否有 partner 分
-# 兩種(CARD_WIDTH_SINGLE/CARD_WIDTH_COUPLE),但仍統一用同一個 slot pitch(取兩者
-# 較寬的 CARD_WIDTH_COUPLE 為準)置中排列,卡片幾何中心(_rect_by_unit 存的 Rect2)
-# 永遠等於「本人跟配偶之間的中線」(單人卡就是那一欄本身的中線),連接線直接讀這個
-# 中心點,不用另外校正。
+# 卡片內容比照使用者需求:「本人 | 配偶」左右兩欄,每欄左上頭像、右上姓名/年齡/
+# 性別並排,下面一條分隔線接血統清單(含百分比計量表,資料來源/配色跟
+# CharacterDetailView._populate_bloodline() 一致;固定只留約 3~4 條的高度,超過用
+# ScrollContainer 內部捲動,不撐高卡片)。沒有配偶時卡片只有一欄、不留空欄——所以
+# 卡片寬度依 unit 是否有 partner 分兩種(CARD_WIDTH_SINGLE/CARD_WIDTH_COUPLE),但
+# 仍統一用同一個 slot pitch(取兩者較寬的 CARD_WIDTH_COUPLE 為準)置中排列,卡片
+# 幾何中心(_rect_by_unit 存的 Rect2)永遠等於「本人跟配偶之間的中線」(單人卡就是
+# 那一欄本身的中線),連接線直接讀這個中心點,不用另外校正。
+#
+# FamilyTreeBuilder.build() 只往下追 children/mate 邊,focus 永遠是世代 1(樹頂),
+# 祖譜線一律往下長,不會往上長出 focus 的祖先。
 #
 # 點卡片任一欄(整欄都能點,不是只有小頭像)開 CharacterPanel;整個 ScrollContainer
 # 範圍內也能按住拖曳平移(_input() 而非 _gui_input(),見下方拖曳段落)。
 # =========================================================
 
-const CARD_HEIGHT := 270.0
-const CARD_WIDTH_SINGLE := 180.0
-const CARD_WIDTH_COUPLE := 340.0
-const SLOT_GAP := 60.0
+const CARD_HEIGHT := 250.0
+const CARD_WIDTH_SINGLE := 240.0
+const CARD_WIDTH_COUPLE := 480.0
+const SLOT_GAP := 70.0
 const ROW_GAP := 90.0
 const CANVAS_MARGIN := 40.0
-const COLUMN_WIDTH := 140.0
+const COLUMN_WIDTH := 210.0
 const PORTRAIT_SIZE := Vector2(56, 56)
 
 const PANEL_BG := Color(0.13, 0.15, 0.21, 0.95)
@@ -38,6 +42,8 @@ const LINE_WIDTH := 3.0
 const BLOODLINE_BAR_HEIGHT := 8.0
 const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
 const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
+## 血統清單固定只留約 3~4 條的高度,超過的用 ScrollContainer 內部捲動,不撐高卡片。
+const BLOODLINE_LIST_HEIGHT := 140.0
 
 ## 拖曳判定:按住移動超過這個距離(像素)才算「有拖曳」,放開時才不會被
 ## _on_person_gui_input 誤判成單純點擊而開錯的 CharacterPanel。
@@ -178,11 +184,14 @@ func _build_person_column(character: Character) -> Control:
 
 	var content := VBoxContainer.new()
 	content.set_anchors_preset(Control.PRESET_FULL_RECT)
-	content.add_theme_constant_override("separation", 4)
+	content.add_theme_constant_override("separation", 6)
 	wrapper.add_child(content)
 
-	var portrait_center := CenterContainer.new()
-	content.add_child(portrait_center)
+	## 左上頭像 + 右上姓名/年齡/性別並排(不是頭像置中疊上面、資訊往下堆),下面用一條
+	## 分隔線隔開血統清單,比照使用者要的排版。
+	var top_row := HBoxContainer.new()
+	top_row.add_theme_constant_override("separation", 8)
+	content.add_child(top_row)
 
 	var portrait := TextureRect.new()
 	portrait.custom_minimum_size = PORTRAIT_SIZE
@@ -190,15 +199,31 @@ func _build_person_column(character: Character) -> Control:
 	portrait.stretch_mode = TextureRect.STRETCH_SCALE
 	if not character.face_path.is_empty():
 		portrait.texture = load(character.face_path) as Texture2D
-	portrait_center.add_child(portrait)
+	top_row.add_child(portrait)
 
-	content.add_child(_build_stat_row("姓名", character.full_name))
-	content.add_child(_build_stat_row("年齡", "%d" % character.age))
-	content.add_child(_build_stat_row("性別", GameEnums.gender_symbol(character.gender)))
+	var info_column := VBoxContainer.new()
+	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_column.add_theme_constant_override("separation", 2)
+	top_row.add_child(info_column)
 
+	info_column.add_child(_build_stat_row("姓名", character.full_name, 14))
+	info_column.add_child(_build_stat_row("年齡", "%d歲" % character.age, 12))
+	info_column.add_child(_build_stat_row("性別", GameEnums.gender_symbol(character.gender), 12))
+
+	content.add_child(HSeparator.new())
+
+	var bloodline_list := VBoxContainer.new()
+	bloodline_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bloodline_list.add_theme_constant_override("separation", 6)
 	if character.bloodline != null:
 		for entry in character.bloodline.get_nonzero_entries():
-			content.add_child(_build_bloodline_entry(entry))
+			bloodline_list.add_child(_build_bloodline_entry(entry))
+
+	var bloodline_scroll := ScrollContainer.new()
+	bloodline_scroll.custom_minimum_size = Vector2(0, BLOODLINE_LIST_HEIGHT)
+	bloodline_scroll.size_flags_vertical = Control.SIZE_FILL
+	bloodline_scroll.add_child(bloodline_list)
+	content.add_child(bloodline_scroll)
 
 	var click_catcher := Control.new()
 	click_catcher.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -248,21 +273,30 @@ func _build_bloodline_entry(entry: Dictionary) -> Control:
 	return entry_column
 
 
-func _build_stat_row(caption: String, value: String) -> HBoxContainer:
+## caption 靠左、value 靠右的兩端對齊列(space between),血統清單跟姓名/年齡/性別
+## 資訊列共用同一個 helper——後者字級不同(姓名 14 大一點跟年齡/性別區分主次),
+## 所以開放 font_size 覆寫,預設沿用血統列原本的 12。
+##
+## 注意:expand-fill 要放在 value_label 而不是 caption_label——caption 都是「姓名」
+## 「年齡」這種固定短字,不需要搶空間;value(尤其姓名)長度不固定,才需要吃剩餘
+## 寬度。clip_text=true 會讓 Label 的 minimum_size 直接算成 0(讓它可以被裁切),
+## 如果沒有另外用 size_flags_horizontal=EXPAND_FILL 讓它分到實際寬度,裁切後寬度就是
+## 0,文字整個看不見——不是資料不見,是版位被算成 0 寬度,曾經踩過這個雷。
+func _build_stat_row(caption: String, value: String, font_size: int = 12) -> HBoxContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 
 	var caption_label := Label.new()
 	caption_label.text = caption
-	caption_label.add_theme_font_size_override("font_size", 12)
-	caption_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	caption_label.clip_text = true
+	caption_label.add_theme_font_size_override("font_size", font_size)
 	row.add_child(caption_label)
 
 	var value_label := Label.new()
 	value_label.text = value
-	value_label.add_theme_font_size_override("font_size", 12)
+	value_label.add_theme_font_size_override("font_size", font_size)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	value_label.clip_text = true
 	row.add_child(value_label)
 
 	return row

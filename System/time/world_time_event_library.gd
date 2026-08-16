@@ -16,10 +16,20 @@ static func register_all(controller: WorldTimeController) -> void:
 	controller.register_year_event(func(): _age_up())
 
 
-## 每年 1/1:所有玩家角色年紀 +1(見 Character.age_up())
+## 每年 1/1:所有角色年紀 +1(見 Character.age_up())。要跑 AllCharacterStore 而不是
+## CharacterRosterStore——後者只有「可操控」角色,小孩(_deliver_child() 只註冊進
+## AllCharacterStore)、配偶(CastleTavernEvent 告白成功後只註冊進 AllCharacterStore)
+## 都不在 roster 裡,年紀卻一樣要正常增長。角色剛好跨過 MIN_AGE 那一年順便從
+## AllCharacterStore 補進 CharacterRosterStore,讓小孩成年後才能被操控/上場
+## (has() 防呆:CharacterController.get_random_character() 生成的角色一律
+## >= MIN_AGE,PartyEdit 新增時已經同時進了兩邊,這裡不會重複加)。
 static func _age_up() -> void:
-	for character in CharacterRosterStore.all_characteres:
+	for character in AllCharacterStore.all_characteres:
 		character.age_up()
+		if character.age == CharacterController.MIN_AGE and not CharacterRosterStore.all_characteres.has(character):
+			CharacterRosterStore.all_characteres.append(character)
+			NewsController.post("%s 成年了。" % character.full_name)
+
 
 
 ## 每月:符合資格(女性/已婚/未懷孕)的角色機率懷孕(目前 100%),寫入 NEWS。判定對象
@@ -53,11 +63,12 @@ static func _advance_pregnancies() -> void:
 			_deliver_child(wife)
 
 
-## 產下孩子(見 Character.give_birth()),加入 CharacterRosterStore(讓孩子成為可用角色),
-## 並寫入 NEWS
+## 產下孩子(見 Character.give_birth()),只註冊進 AllCharacterStore(讓孩子開始
+## 隨世界時間長大),不直接進 CharacterRosterStore——小孩未滿 MIN_AGE 前不能操控/
+## 上場,要等 _age_up() 偵測到年紀跨過 MIN_AGE 才會補進 roster。並寫入 NEWS。
 static func _deliver_child(mother: Character) -> void:
 	var child := mother.give_birth()
-	CharacterRosterStore.all_characteres.append(child)
+	AllCharacterStore.register(child)
 	NewsController.post("%s 誕下了孩子 %s。" % [mother.full_name, child.full_name])
 
 

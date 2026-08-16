@@ -103,6 +103,11 @@ func _on_proposal_result(accepted: bool, self_character: Character, target_chara
 func _resolve_acceptance(picked: Character, stranger_character: Character) -> void:
 	if MarriageRule.roll_acceptance(picked, courted):
 		picked.marry(stranger_character)
+		# stranger_character 是 CharacterController.get_random_character() 生成的一次性
+		# NPC,結婚前不屬於玩家任何角色池;成親後變成配偶,年紀要跟著世界時間增長
+		# (見 WorldTimeEventLibrary._age_up()),但配偶依設計不進 CharacterRosterStore
+		# (不可操控/上場),所以只註冊進 AllCharacterStore。
+		AllCharacterStore.register(stranger_character)
 		if picked == courted:
 			goto_dialogue(_build_accepted_reaction(picked, stranger_character), _return_scene_path)
 		else:

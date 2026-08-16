@@ -99,18 +99,20 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
 入口只有一處:`CharacterDetailView`(`Scenes/CharacterPanel/character_detail_view.gd`)的
-「家族」分頁最下面「觀看祖譜」按鈕,對目前分頁顯示的角色開啟。走
+「家族」分頁最上面「觀看祖譜」按鈕,對目前分頁顯示的角色開啟。走
 `SceneHandoffStore.queue("family_tree_focus", character)` 交接起點角色,再
 `NavigationStore.go_to("res://Scenes/FamilyTree/family_tree.tscn")` 切場景,`family_tree.gd`
 的 `_ready()` 用 `take()` 一次性讀出(不是 Dialogue 那種需要撐住 lambda 生命週期的用途)。
 
-`FamilyTreeBuilder.build(focus)`(`System/family_tree/family_tree_builder.gd`)從 `focus`
-角色出發沿三種邊做世代 BFS——走 `parent` 邊世代 -1、走 `children` 邊世代 +1、走 `mate` 邊
-世代不變——把整個連通的家族圖(雙親祖先鏈+配偶+子孫,不是只追單一血脈)分組成
-`FamilyTreeUnit`(一對夫妻或一個單身角色),`generation` 由上至下從 1 起算。已知限制:若
-配偶本身也是樹內已出現的血親(近親聯姻),同一角色理論上會有兩條血親線可以連到上一代,
-`_find_parent_unit()` 只認第一個找到的,不畫第二條線,避免變成非樹狀的蜘蛛網(遊戲企劃
-設定總整理.md 二十三節已列為已知的未來問題,`family_tree` 這版不處理)。
+`FamilyTreeBuilder.build(focus)`(`System/family_tree/family_tree_builder.gd`)裡 `focus`
+角色永遠是世代 1(樹的頂端),只沿 `children`/`mate` 兩種邊往下做世代 BFS(走 `children`
+邊世代 +1、走 `mate` 邊世代不變)——不追 `parent` 邊,祖譜線一律只往下長,不會往上長出
+`focus` 的祖先,才不會因為雙親兩側血緣記錄深淺不一(例如一邊是初始角色沒有記錄祖先、
+另一邊往上還有好幾代)讓樹在中途冒出斷頭的孤立節點,看起來像同時往上又往下分裂。走完
+`focus` 所在的整個連通「子孫圖」後,分組成 `FamilyTreeUnit`(一對夫妻或一個單身角色)。
+已知限制:若某個子孫的配偶本身也是樹內已出現的血親(表親聯姻),理論上會有兩條血親線
+可以連到上一代,`_find_parent_unit()` 只認第一個找到的,不畫第二條線,避免變成非樹狀的
+蜘蛛網(遊戲企劃設定總整理.md 二十三節已列為已知的未來問題,`family_tree` 這版不處理)。
 
 `Scenes/FamilyTree/family_tree_canvas.gd` 的 `FamilyTreeCanvas` 拿到 `FamilyTreeUnit` 陣列後
 自己算版面座標(後序遞迴分配 x slot、`generation` 決定 y)手動 `position`/`size` 每張卡片、
@@ -120,7 +122,8 @@ Scenes 而不是 System(比照 `battle_board.gd` 的格線/座標換算)。卡�
 用較寬那個當 slot 間距置中對齊,卡片幾何中心永遠等於「本人與配偶之間的中線」(單人卡就是
 那一欄的中線),連接線直接讀這個中心點。卡片內容(頭像/姓名/年齡/性別/血統清單+計量表)
 跟 `CharacterDetailView._populate_bloodline()` 同一套資料來源/配色(`Bloodline.
-get_nonzero_entries()` + `GameEnums.bloodline_full_label`/`bloodline_nation_color`)。整欄
+get_nonzero_entries()` + `GameEnums.bloodline_full_label`/`bloodline_nation_color`),血統
+清單固定只留約 3~4 條的高度,超過用內部 `ScrollContainer` 捲動、不撐高卡片。整欄
 (不只小頭像)都能點擊開 `CharacterPanel`,且 `ScrollContainer` 範圍內按住可拖曳平移
 (`FamilyTreeCanvas._input()`,不受卡片 `mouse_filter=STOP` 影響;拖曳距離超過門檻才算
 「有拖曳」,放開時才不會被誤判成點擊開錯面板)。

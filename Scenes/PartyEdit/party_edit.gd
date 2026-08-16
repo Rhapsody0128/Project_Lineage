@@ -21,7 +21,6 @@ extends Control
 @onready var placed_layer: Control = $PlacedLayer
 @onready var roster_list: VBoxContainer = $UI/RightPanel/Margin/VBox/ScrollContainer/RosterList
 @onready var sort_filter_bar: CharacterSortFilterBar = $UI/RightPanel/Margin/VBox/SortFilterBar
-@onready var status_label: Label = $UI/StatusLabel
 @onready var finish_edit_button: Button = $UI/TopBar/FinishEditButton
 
 ## 編輯中的草稿,從 PartyStore 上次「完成編輯」的快照 clone() 出一份獨立
@@ -48,7 +47,9 @@ func _on_leader_change_requested(character: Character) -> void:
 
 
 func _on_add_character_pressed() -> void:
-	CharacterRosterStore.all_characteres.append(CharacterController.get_random_character())
+	var character := CharacterController.get_random_character()
+	AllCharacterStore.register(character)
+	CharacterRosterStore.all_characteres.append(character)
 	_refresh_roster()
 
 
@@ -85,7 +86,6 @@ func _on_start_battle_pressed() -> void:
 func _on_finish_edit_pressed() -> void:
 	PartyStore.grid = grid.clone()
 	PartyStore.save_party(_build_party_from_grid())
-	status_label.text = "編輯完成,已儲存小隊"
 
 
 ## 「完成編輯」是否可按:戰場上至少要有一人,且必須有一人是隊長。

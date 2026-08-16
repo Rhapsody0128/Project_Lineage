@@ -1,12 +1,15 @@
 extends Control
 
 ## 獨立的對話場景(不是疊加在別的場景上的 overlay)。播放內容跟播完之後要去哪個
-## 場景,由呼叫端透過 DialogueStore.queue(dialogue, next_scene_path) 先存好、再
-## change_scene_to_file 過來,這裡的 _ready() 直接讀出來播放。「誰在說話」「這一句
+## 場景,由呼叫端透過 System/event/location_event.gd 的 goto_dialogue() 存進
+## SceneHandoffStore(key 是 LocationEvent.DIALOGUE_MAILBOX_KEY)、再 change_scene_to_file
+## 過來,這裡的 _ready() 直接讀出來播放。「誰在說話」「這一句
 ## 該顯示哪一側的頭像」全部轉發給 Dialogue(見 System/dialogue/dialogue.gd)判定,
 ## 這裡只負責把資料轉成畫面呈現——頭像單純顯示 Character.face_path 那張圖,沒有講過話
 ## 的那一側直接隱藏(不留空框);已經講過但目前不是輪到他的那一側蓋灰色遮罩,
-## 對比出「這是上一句講話的人」。
+## 對比出「這是上一句講話的人」。旁白(GameEnums.DialogueSide.NARRATOR)講話時不屬於
+## LEFT 也不屬於 RIGHT,is_speaking(LEFT)/is_speaking(RIGHT) 自然都回傳 false,兩側頭像
+## (如果先前露過臉)會一起蓋上遮罩變暗,不用額外分支處理。
 ##
 ## 操作方式:畫面上點一下(ClickCatcher 蓋住全螢幕)就推進下一句,播完最後一句(或
 ## 呼叫端根本沒塞資料)自動切去 next_scene_path。遇到選擇題(DialogueLine.has_choices)
@@ -28,11 +31,14 @@ var _next_scene_path: String = ""
 func _ready() -> void:
 	click_catcher.gui_input.connect(_on_click_catcher_gui_input)
 
-	dialogue = DialogueStore.pending_dialogue
-	_next_scene_path = DialogueStore.next_scene_path
+	# peek() 不清空——DialogueLine.choices 裡可能嵌著捕捉呼叫端 self 的 lambda,提早
+	# 清掉這份參照會讓 RefCounted 事件物件提早被釋放(見 SceneHandoffStore 的註解)。
+	var handoff := SceneHandoffStore.peek(LocationEvent.DIALOGUE_MAILBOX_KEY)
+	dialogue = handoff.payload as Dialogue if handoff != null else null
+	_next_scene_path = handoff.next_scene_path if handoff != null else ""
 
 	if dialogue == null or dialogue.lines.is_empty():
-		# 防呆:不是從 DialogueStore.queue() 的正常流程進來(例如直接開這個場景測試)。
+		# 防呆:不是從 LocationEvent.goto_dialogue() 的正常流程進來(例如直接開這個場景測試)。
 		_leave()
 		return
 

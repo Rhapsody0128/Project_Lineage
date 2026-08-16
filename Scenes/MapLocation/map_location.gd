@@ -8,6 +8,7 @@ extends Control
 ## TYPE_SUB_LOCATIONS),其餘子地點還是空按鈕佔位。
 const CASTLE_LABEL := "城堡"
 const CHAT_LABEL := "聊天"
+const TAVERN_LABEL := "酒館"
 const REST_LABEL := "休息"
 
 @onready var title_label: Label = $CenterContainer/VBoxContainer/TitleLabel
@@ -31,6 +32,8 @@ func _ready() -> void:
 			button.pressed.connect(_on_castle_button_pressed)
 		elif sub_location_label == CHAT_LABEL:
 			button.pressed.connect(_on_chat_button_pressed)
+		elif sub_location_label == TAVERN_LABEL:
+			button.pressed.connect(_on_tavern_button_pressed)
 		elif sub_location_label == REST_LABEL:
 			button.pressed.connect(_on_rest_button_pressed)
 		sub_locations_container.add_child(button)
@@ -54,6 +57,12 @@ func _on_castle_button_pressed() -> void:
 ## CastleChatEvent 接管,聊完回到這個地點選單本身。
 func _on_chat_button_pressed() -> void:
 	CastleChatEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
+
+
+## 酒館搭訕,整段交給 System/event/castle/castle_tavern_event.gd 的 CastleTavernEvent
+## 接管,結束後回到這個地點選單本身。
+func _on_tavern_button_pressed() -> void:
+	CastleTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
 func _on_leave_button_pressed() -> void:

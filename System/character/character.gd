@@ -25,6 +25,12 @@ var weapon: GameEnums.WeaponType
 var skill_list: Array[Skill]
 var level_system: LevelSystem
 var hp: int
+## 婚姻/血緣資料,見 遊戲企劃設定總整理.md 二十二~三十一。目前只開欄位,
+## 實際寫入邏輯(結婚/生子)留給呼叫端(見 System/event/castle/castle_tavern_event.gd),
+## 這裡不做任何自動判斷。
+var parent: Array[Character] = []
+var mate: Character = null
+var children: Array[Character] = []
 ## 戰場佔位形狀(俄羅斯方塊式多格圖形),用於 PartyEdit 編成畫面的格子佔用判斷
 var battle_cost: BattleCost
 

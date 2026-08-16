@@ -26,9 +26,11 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
   不要在場景腳本用 if/else 兜。
 - **`Scenes/<場景>/`**:只做「呼叫 System 取資料 → 跑模擬 → 把結果轉成畫面(節點位置/
   動畫/文字/Tween)→ 輸入事件轉呼叫 System」,不寫規則邏輯。
-- **`Scripts/`**:非戰鬥場景零散 UI 腳本,含 `Autoload/`(全域單例,例如 `BattleReportStore`
-  ——負責場景間資料交接/session 狀態,不是戰鬥規則,所以放這裡而不是 `System/`)與
-  `UI/`(共用畫面小工具,例如 `UiStyle` 的邊框樣式 helper)。
+- **`Scripts/`**:非戰鬥場景零散 UI 腳本,含 `Autoload/`(全域單例,例如 `BattleReportStore`/
+  `SceneHandoffStore`——負責場景間資料交接/session 狀態,不是戰鬥規則,所以放這裡而不是
+  `System/`)與 `UI/`(共用畫面小工具,例如 `UiStyle` 的邊框樣式 helper)。不是 autoload、
+  也不是 UI 元件的零散共用資料類別(例如 `SceneHandoff` 信封)直接放 `Scripts/` 這層,
+  不要塞進 `Autoload/`——那個子資料夾只放真的註冊進 `project.godot` 的單例。
 - **`Images/`**:美術素材與對應小型 `.tscn`(角色動畫 Scene 等)。
 
 ## System/ 資料夾對照
@@ -42,6 +44,8 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | `party/` | 小隊,由多個 `Character` 組成(`Party.characteres`) |
 | `battle/` | 自動戰鬥流程與戰報,見下方拆解 |
 | `util/` | `GameEnums`(所有列舉+label 靜態函式)、`Util`(隨機/UUID/棋盤距離)、`level_system.gd` |
+| `event/` | 大地圖地點事件(酒館搭訕/城門挑戰/閒聊等),共用基底 `LocationEvent`,見下方「事件與跨場景資料交接」 |
+| `marriage/` | 聯姻規則(`MarriageRule`:告白資格/成功率判定)與告白 payload(`MarriageProposalRequest`) |
 
 `battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleCharacter`:`Battle`(回合迴圈/
 佈陣/勝負判定)、`BattleCharacter`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
@@ -89,6 +93,47 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 `BattleReportStore`(autoload,見 `Scripts/Autoload/battle_report_store.gd`)是全域戰報
 存取點與場景間播放交接用的 `pending_report`。跟 `CharacterPanel` 一樣屬於 Scenes 層的
 session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需要當 autoload 的例外。
+
+## 事件與跨場景資料交接(LocationEvent + SceneHandoffStore)
+
+大地圖地點事件(`System/event/castle/*Event.gd`,例如 `CastleTavernEvent`/`CastleGateEvent`/
+`CastleChatEvent`)共用基底 `LocationEvent`(`RefCounted`,不是 Node):呼叫端(Scenes 層,
+例如 `map_location.gd` 的按鈕)只呼叫一次子類別的 `trigger(return_scene_path)`,接下來對話/
+戰鬥怎麼串、播完要回哪裡,全部交給事件物件自己接管,文案常數跟流程方法集中寫在同一個
+class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好幾次場景切換(例如
+`MapLocation → Dialogue → Battle → Dialogue → MapLocation`),中途發起事件的場景節點早就
+被釋放了。
+
+**跨場景資料轉手一律走 `SceneHandoffStore`**(autoload,`Scripts/Autoload/scene_handoff_store.gd`)
+這個通用信箱,不要再為每個新情境各開一支 `pending_xxx` 欄位 + Autoload .gd(舊的
+`DialogueStore`/`ProposalStore` 已合併掉,不要再新增類似的專用 autoload)。用字串 key
+分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `CastleTavernEvent` 一次呼叫
+會先 queue `"marriage_proposal"` 給下下個場景用,又 queue `"dialogue"` 給下一個場景用):
+
+- `queue(key, payload, next_scene_path, result_callback)` 存資料,再自己切場景。
+- `take(key)` 讀取後立刻清空——一次性用途(例如 `MarriageProposalRequest`)。
+- `peek(key)` 讀取後保留不清——目前只有對話系統用,見下方生命週期陷阱。
+- payload 型別不限定,呼叫端跟接收端自己約定;資料不只一個欄位時另外寫一個小型
+  `RefCounted` 資料類別(比照 `System/marriage/marriage_proposal_request.gd`),裡面放一個
+  `const MAILBOX_KEY` 讓兩端共用同一把 key,不要去改 `SceneHandoffStore`/`SceneHandoff`
+  (`Scripts/scene_handoff.gd`,純資料信封,不是 autoload)這兩支通用檔案本身。
+
+**對話系統**(`Scenes/Dialogue/dialogue_box.gd`)是最大宗的使用者:`LocationEvent.goto_dialogue()`
+把 `Dialogue` 塞進 key `"dialogue"`(常數 `LocationEvent.DIALOGUE_MAILBOX_KEY`)、切去
+`dialogue_box.tscn`,`dialogue_box.gd` 讀取時用 `peek()` 而不是 `take()`——因為
+`DialogueLine.choices` 裡可能嵌著捕捉呼叫端 `self` 的 lambda(例如 `CastleGateEvent`
+「闖進去」選項接 `AskBattle.ask(...)`),提早清掉這份參照會讓觸發事件的 `RefCounted`
+物件提早被釋放,導致後續 callback 悄悄失效。
+
+**RefCounted 生命週期陷阱(容易踩雷,務必注意)**:`Callable` 綁在方法上時(例如
+`SceneHandoffStore.queue(..., _on_result)` 直接傳裸方法名稱)底層只存 `ObjectID`,不會讓
+`RefCounted` 的引用計數增加——事件物件沒有其他地方被強參照時,`trigger()`/`_start()`
+一返回就會立刻被釋放,`callback` 到了該被呼叫的時候早已失效(`Callable.is_valid()` 悄悄
+回傳 `false`,不會報錯,呼叫端多半會 fallback 成別的預設行為,例如直接跳回上一頁、跳過
+原本該播的反應對話——非常難察覺,只能靠實際跑一輪整段流程才會發現)。要讓事件物件撐到
+callback 真正被呼叫的那一刻,必須包一層 lambda 讓它捕捉 `self`(例如
+`func(accepted, a, b): _on_result(accepted, a, b)` 或 `func(): AskBattle.ask(..., _on_result)`),
+靠 Variant 對 `RefCounted` 的 `Ref<>` 語意撐住,不能直接傳裸方法參照當 callback。
 
 ## Unity → Godot 移植備忘
 

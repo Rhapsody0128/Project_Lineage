@@ -42,6 +42,10 @@ const BLOODLINE_BAR_HEIGHT := 10.0
 const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
 const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
 
+## 家族分頁每個成員列的小頭像,比 header 的 PORTRAIT_SIZE 小一號——一行只需要
+## 辨識用,不需要跟主要立繪搶視覺。
+const FAMILY_PORTRAIT_SIZE := Vector2(60, 60)
+
 ## 分頁內容跟 TabContainer 邊緣的內距,避免捲動內容貼邊
 const TAB_CONTENT_PADDING := 14
 
@@ -59,7 +63,7 @@ const SKILL_ENABLED_MODULATE := Color(1, 1, 1, 1)
 
 ## 六大素質列的排列順序(2 欄 GridContainer 依序左上→右下填格),
 ## 對照使用者要的排版:力量/敏捷、體質/靈巧、智慧/信仰。
-const POTENTIAL_GRID_ORDER: Array[int] = [
+const POTENTIAL_GRID_ORDER := [
 	GameEnums.PotentialType.STRENGTH, GameEnums.PotentialType.AGILITY,
 	GameEnums.PotentialType.VITALITY, GameEnums.PotentialType.DEXTERITY,
 	GameEnums.PotentialType.INTELLIGENCE, GameEnums.PotentialType.MENTALITY,
@@ -79,6 +83,9 @@ var radar: CharacterPotentialRadar
 var bloodline_list: VBoxContainer
 var skill_row: GridContainer
 var trait_list: HFlowContainer
+var parent_list: VBoxContainer
+var mate_list: VBoxContainer
+var children_list: VBoxContainer
 
 
 func _ready() -> void:
@@ -109,9 +116,9 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 		return
 
 	portrait_texture.texture = _load_face_texture(character.face_path)
-	name_label.text = "姓名：%s" % character.full_name
-	age_label.text = "年齡：%d" % character.age
-	gender_label.text = "性別：%s" % GameEnums.gender_symbol(character.gender)
+	name_label.text = character.full_name
+	age_label.text = "%d" % character.age
+	gender_label.text = GameEnums.gender_symbol(character.gender)
 
 	level_value_label.text = "%d" % character.level_system.level
 	_update_exp_bar(character.level_system)
@@ -130,6 +137,7 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 	_update_potential_labels(character, battle_character)
 	_populate_skills(character)
 	_populate_traits(character.traits)
+	_populate_family(character)
 
 
 ## 「標題靠左、數值靠右」的兩端對齊列(對照 CSS 的 justify-content: space-between),
@@ -154,8 +162,11 @@ func _build_stat_row(caption: String) -> Dictionary:
 
 
 ## 立繪(沿用放大的 Character.face_path 大頭貼,紙娃娃/全身立繪系統尚未製作,
-## 見遊戲企劃設定總整理.md 十一 紙娃娃系統)左上 + 姓名/年齡/性別右上,
-## 三行文字靠頂對齊(不隨立繪高度置中),不是整塊置中。
+## 見遊戲企劃設定總整理.md 十一 紙娃娃系統)左半 + 姓名/年齡/性別右半,兩邊各佔
+## header 一半寬度(立繪置中不被撐大,比照 _build_attribute_tab() 的
+## battle_cost_frame+CenterContainer 寫法);右半三行都是 _build_stat_row() 的
+## 「標題靠左、數值靠右」列(justify-content: space-between),跟下面素質分頁同一套
+## 排版語彙,不再是單純堆疊的姓名/年齡/性別純文字。
 func _build_identity_header() -> Control:
 	var header := HBoxContainer.new()
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -163,31 +174,35 @@ func _build_identity_header() -> Control:
 
 	var portrait_frame := PanelContainer.new()
 	portrait_frame.custom_minimum_size = PORTRAIT_SIZE
+	portrait_frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(portrait_frame)
+
+	var portrait_center := CenterContainer.new()
+	portrait_frame.add_child(portrait_center)
 
 	portrait_texture = TextureRect.new()
 	portrait_texture.custom_minimum_size = PORTRAIT_SIZE
 	portrait_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait_texture.stretch_mode = TextureRect.STRETCH_SCALE
-	portrait_frame.add_child(portrait_texture)
+	portrait_center.add_child(portrait_texture)
 
 	var info_column := VBoxContainer.new()
 	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	info_column.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	info_column.add_theme_constant_override("separation", 6)
+	info_column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	info_column.add_theme_constant_override("separation", 8)
 	header.add_child(info_column)
 
-	name_label = Label.new()
-	name_label.add_theme_font_size_override("font_size", 18)
-	info_column.add_child(name_label)
+	var name_row := _build_stat_row("姓名")
+	name_label = name_row["value_label"]
+	info_column.add_child(name_row["row"])
 
-	age_label = Label.new()
-	age_label.add_theme_font_size_override("font_size", 15)
-	info_column.add_child(age_label)
+	var age_row := _build_stat_row("年齡")
+	age_label = age_row["value_label"]
+	info_column.add_child(age_row["row"])
 
-	gender_label = Label.new()
-	gender_label.add_theme_font_size_override("font_size", 15)
-	info_column.add_child(gender_label)
+	var gender_row := _build_stat_row("性別")
+	gender_label = gender_row["value_label"]
+	info_column.add_child(gender_row["row"])
 
 	return header
 
@@ -387,19 +402,50 @@ func _build_bloodline_tab() -> Control:
 	return _wrap_tab_content("血統", column)
 
 
-## 「家族」分頁:家族/婚姻系統尚未實作(見遊戲企劃設定總整理.md 二十二~三十二),
-## 先放佔位文字,之後系統做出來再補實際內容。
+## 「家族」分頁:父母/配偶/孩子三個區塊,各自一行一個成員(小頭像 + 姓名/年齡/性別),
+## 對照 Character.parent(0~2 筆)/mate(0~1 筆)/children(0~N 筆)。三個區塊的成員列表容器
+## 在這裡建好存起來,實際內容在 _populate_family() 依角色資料動態填入。
 func _build_family_tab() -> Control:
 	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override("separation", 6)
 
-	var placeholder := Label.new()
-	placeholder.text = "（家族系統尚未開放）"
-	placeholder.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	placeholder.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	placeholder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	placeholder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	placeholder.add_theme_font_size_override("font_size", 15)
-	column.add_child(placeholder)
+	var parent_title := Label.new()
+	parent_title.text = "父母"
+	parent_title.add_theme_font_size_override("font_size", 15)
+	parent_title.add_theme_color_override("font_color", TITLE_COLOR)
+	column.add_child(parent_title)
+
+	parent_list = VBoxContainer.new()
+	parent_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent_list.add_theme_constant_override("separation", 6)
+	column.add_child(parent_list)
+
+	column.add_child(HSeparator.new())
+
+	var mate_title := Label.new()
+	mate_title.text = "配偶"
+	mate_title.add_theme_font_size_override("font_size", 15)
+	mate_title.add_theme_color_override("font_color", TITLE_COLOR)
+	column.add_child(mate_title)
+
+	mate_list = VBoxContainer.new()
+	mate_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mate_list.add_theme_constant_override("separation", 6)
+	column.add_child(mate_list)
+
+	column.add_child(HSeparator.new())
+
+	var children_title := Label.new()
+	children_title.text = "孩子"
+	children_title.add_theme_font_size_override("font_size", 15)
+	children_title.add_theme_color_override("font_color", TITLE_COLOR)
+	column.add_child(children_title)
+
+	children_list = VBoxContainer.new()
+	children_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	children_list.add_theme_constant_override("separation", 6)
+	column.add_child(children_list)
 
 	return _wrap_tab_content("家族", column)
 
@@ -528,8 +574,6 @@ func _populate_traits(traits: Array[CharacterTrait]) -> void:
 
 	if traits.is_empty():
 		var empty_label := Label.new()
-		empty_label.text = "（無特性）"
-		empty_label.add_theme_font_size_override("font_size", 13)
 		trait_list.add_child(empty_label)
 		return
 
@@ -550,6 +594,81 @@ func _populate_traits(traits: Array[CharacterTrait]) -> void:
 		chip.add_child(label)
 
 		trait_list.add_child(chip)
+
+
+## 家族三區塊(父母/配偶/孩子)共用同一套填入邏輯:清空舊列表 → 沒有成員時顯示
+## 「（無）」→ 有成員則每人一行(_build_family_member_row())。
+func _populate_family(character: Character) -> void:
+	_populate_family_section(parent_list, character.parent)
+	_populate_family_section(mate_list, [] if character.mate == null else [character.mate])
+	_populate_family_section(children_list, character.children)
+
+
+func _populate_family_section(list: VBoxContainer, members: Array) -> void:
+	for child in list.get_children():
+		child.queue_free()
+
+	if members.is_empty():
+		var empty_label := Label.new()
+		list.add_child(empty_label)
+		return
+
+	for member in members:
+		list.add_child(_build_family_member_row(member as Character))
+
+
+## 家族分頁一行一個成員:左邊小頭像、右邊姓名/年齡/性別三行(比照 _build_identity_header()
+## 的排版語彙,只是頭像縮小、資訊欄改用較小字級)。
+func _build_family_member_row(member: Character) -> Control:
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 10)
+
+	var portrait_frame := PanelContainer.new()
+	portrait_frame.custom_minimum_size = FAMILY_PORTRAIT_SIZE
+	portrait_frame.mouse_filter = Control.MOUSE_FILTER_STOP
+	portrait_frame.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	portrait_frame.gui_input.connect(_on_family_portrait_gui_input.bind(member))
+	row.add_child(portrait_frame)
+
+	var portrait_center := CenterContainer.new()
+	portrait_frame.add_child(portrait_center)
+
+	var portrait := TextureRect.new()
+	portrait.custom_minimum_size = FAMILY_PORTRAIT_SIZE
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	portrait.texture = _load_face_texture(member.face_path)
+	portrait_center.add_child(portrait)
+
+	var info_column := VBoxContainer.new()
+	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	info_column.add_theme_constant_override("separation", 4)
+	row.add_child(info_column)
+
+	var name_row := _build_stat_row("姓名")
+	name_row["value_label"].text = member.full_name
+	info_column.add_child(name_row["row"])
+
+	var age_row := _build_stat_row("年齡")
+	age_row["value_label"].text = "%d" % member.age
+	info_column.add_child(age_row["row"])
+
+	var gender_row := _build_stat_row("性別")
+	gender_row["value_label"].text = GameEnums.gender_symbol(member.gender)
+	info_column.add_child(gender_row["row"])
+
+	return row
+
+
+## 點擊家族分頁的成員頭像:直接呼叫 CharacterPanel(autoload 單例)切換成該成員本人的
+## 資料,跟戰場點頭像(battle_party_roster.gd 的 _on_portrait_gui_input())同一套慣例。
+## CharacterPanel 只有一個彈出面板,呼叫 open_for_character() 會直接原地覆蓋成新角色,
+## 不會疊出第二層面板,也因此不需要額外處理「返回上一位」。
+func _on_family_portrait_gui_input(input_event: InputEvent, member: Character) -> void:
+	if input_event is InputEventMouseButton and input_event.pressed and input_event.button_index == MOUSE_BUTTON_LEFT:
+		CharacterPanel.open_for_character(member)
 
 
 func _trait_color(polarity: int) -> Color:

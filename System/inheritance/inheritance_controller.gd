@@ -15,7 +15,7 @@ static func create_child(father: Character, mother: Character) -> Character:
 		character_name = Util.get_random_from_array(GameEnums.MALE_CHARACTER_NAMES)
 	else:
 		character_name = Util.get_random_from_array(GameEnums.FEMALE_CHARACTER_NAMES)
-	var last_name: String = Util.get_random_from_array(GameEnums.CHARACTER_LAST_NAMES)
+	var last_name: String = father.last_name
 	var age := InheritanceConstants.CHILD_STARTING_AGE
 	var face_path := FaceController.get_child_face_path(age, gender)
 

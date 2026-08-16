@@ -107,12 +107,15 @@ func marry(target_character: Character) -> void:
 
 ## 世界時間每跨過一年時呼叫(見 WorldTimeEventLibrary),年紀 +1。未滿成人隨機池
 ## 起始年齡(CharacterController.MIN_AGE)的角色一定是遺傳出生的小孩(一般隨機角色
-## 一開始就是成人),年紀增長跨過 FaceController 的頭像級距時一併刷新 face_path,
-## 對已成年的角色沒有作用(age 只會越來越大,不會再落回未成年區間)。
+## 一開始就是成人),年紀增長跨過 FaceController 的頭像級距時一併刷新 face_path;
+## 剛好跨過 MIN_AGE 那一年額外從成人隨機池抽一張換上(僅此一次——已成年角色之後
+## age 只會越來越大,不會再落回未成年區間,也不會每年重抽頭像)。
 func age_up() -> void:
 	age += 1
 	if age < CharacterController.MIN_AGE:
 		face_path = FaceController.get_child_face_path(age, gender)
+	elif age == CharacterController.MIN_AGE:
+		face_path = FaceController.get_random_face_path(gender)
 
 ## 進入懷孕狀態,月數從 0 起算(資格判定見 PregnancyRule.is_eligible(),呼叫端見
 ## WorldTimeEventLibrary._roll_new_pregnancies())

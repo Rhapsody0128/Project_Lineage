@@ -21,6 +21,10 @@ const LINE_WIDTH := 8.0
 const DRAG_SENSITIVITY_MIN := 6.0
 const DRAG_SENSITIVITY_MAX := 6.0
 
+## WASD 平移鏡頭速度(world units/sec,再乘上 camera.zoom,縮到越小畫面涵蓋範圍
+## 越大,平移也要等比加快,手感才會跟拖曳一致)。
+const WASD_PAN_SPEED := 5000.0
+
 @onready var camera: Camera2D = $Camera
 @onready var map_objects_layer: Node2D = $MapObjectsLayer
 @onready var destination_line: Line2D = $DestinationLine
@@ -159,13 +163,17 @@ func _process(delta: float) -> void:
 			_update_destination_line()
 			if not map_system.is_moving:
 				destination_line.visible = false
-				# 抵達地圖 OBJECT 後自動觸發時間暫停,同時記下「目前所在地點」。
+				# 抵達目的地後一律自動觸發時間暫停,不論走去的是 MapObject 還是地圖
+				# 空白處;只有走到 MapObject(_traveling_to 非 null)才記下「目前所在
+				# 地點」並觸發進入流程——點空白處單純是移動過去,沒有對應地點可進。
 				_current_map_object = _traveling_to
 				_traveling_to = null
 				WorldTimeStore.controller.is_playing = false
-				_enter_map_object(_current_map_object)
-				return
+				if _current_map_object != null:
+					_enter_map_object(_current_map_object)
+					return
 
+	_update_wasd_pan(delta)
 	_update_date_label()
 	_update_hover_cursor()
 
@@ -344,12 +352,31 @@ func _drag_camera(relative_px: Vector2) -> void:
 	_clamp_camera_position()
 
 
+## 點 MapObject 觸發地點事件,點地圖空白處則單純移動過去(抵達後暫停時間,
+## 但不進入任何地點選單,見 _process() 的抵達判斷)。
+## WASD 平移鏡頭,效果等同拖曳畫面——同樣直接套用位移,再交給
+## _clamp_camera_position() 硬夾回地圖範圍內,不做慣性/加速。跟拖曳一樣不受
+## is_playing 影響,時間暫停時也能看地圖。
+func _update_wasd_pan(delta: float) -> void:
+	var dir := Vector2.ZERO
+	if Input.is_key_pressed(KEY_W):
+		dir.y -= 1.0
+	if Input.is_key_pressed(KEY_S):
+		dir.y += 1.0
+	if Input.is_key_pressed(KEY_A):
+		dir.x -= 1.0
+	if Input.is_key_pressed(KEY_D):
+		dir.x += 1.0
+	if dir == Vector2.ZERO:
+		return
+	camera.position += dir.normalized() * WASD_PAN_SPEED * camera.zoom * delta
+	_clamp_camera_position()
+
+
 func _handle_click_to_move() -> void:
 	var world_pos := camera.get_global_mouse_position()
 	var picked := map_system.pick_object(world_pos, _objects, PICK_RADIUS)
-	if picked == null:
-		return
-	if picked == _current_map_object:
+	if picked != null and picked == _current_map_object:
 		# 已經站在這個地點,再點同一個 MapObject 不能走 set_destination()/is_playing=true
 		# 那條路——之前正是這樣才會出現「已經在王城點王城,時間卻開始流逝」的 bug。
 		# 觸發 MapObject 事件(打開地點選單)一律停止時間——「休息」會讓玩家站在
@@ -359,8 +386,18 @@ func _handle_click_to_move() -> void:
 		WorldTimeStore.controller.is_playing = false
 		_enter_map_object(picked)
 		return
-	map_system.set_destination(picked.position)
+	var destination := picked.position if picked != null else _clamp_to_map(world_pos)
+	map_system.set_destination(destination)
 	destination_line.visible = true
 	_traveling_to = picked
 	_current_map_object = null
 	WorldTimeStore.controller.is_playing = true
+
+
+## 點空白處移動時,目的地夾在地圖範圍內——縮到很小時可以點到地圖外的灰色
+## 區域,不夾住的話角色會走出 MAP_SIZE 邊界。
+func _clamp_to_map(world_pos: Vector2) -> Vector2:
+	return Vector2(
+		clamp(world_pos.x, 0.0, MapSystem.MAP_SIZE.x),
+		clamp(world_pos.y, 0.0, MapSystem.MAP_SIZE.y)
+	)

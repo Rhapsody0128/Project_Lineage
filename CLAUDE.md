@@ -47,6 +47,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | `event/` | 大地圖地點事件(酒館搭訕/城門挑戰/閒聊等),共用基底 `LocationEvent`,見下方「事件與跨場景資料交接」 |
 | `marriage/` | 聯姻規則(`MarriageRule`:告白資格/成功率判定)與告白 payload(`MarriageProposalRequest`) |
 | `time/` | 世界時間曆法(`WorldTime`)與推進/固定事件派發規則(`WorldTimeController`),見下方「世界時間」 |
+| `family_tree/` | 從任一角色出發,沿 `Character.parent`/`mate`/`children` 邊做世代分組,產出祖譜樹狀結構(`FamilyTreeBuilder`/`FamilyTreeUnit`),見下方「祖譜」 |
 
 `battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleCharacter`:`Battle`(回合迴圈/
 佈陣/勝負判定)、`BattleCharacter`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
@@ -94,6 +95,35 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 `BattleReportStore`(autoload,見 `Scripts/Autoload/battle_report_store.gd`)是全域戰報
 存取點與場景間播放交接用的 `pending_report`。跟 `CharacterPanel` 一樣屬於 Scenes 層的
 session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需要當 autoload 的例外。
+
+## 祖譜(System/family_tree + Scenes/FamilyTree)
+
+入口只有一處:`CharacterDetailView`(`Scenes/CharacterPanel/character_detail_view.gd`)的
+「家族」分頁最下面「觀看祖譜」按鈕,對目前分頁顯示的角色開啟。走
+`SceneHandoffStore.queue("family_tree_focus", character)` 交接起點角色,再
+`NavigationStore.go_to("res://Scenes/FamilyTree/family_tree.tscn")` 切場景,`family_tree.gd`
+的 `_ready()` 用 `take()` 一次性讀出(不是 Dialogue 那種需要撐住 lambda 生命週期的用途)。
+
+`FamilyTreeBuilder.build(focus)`(`System/family_tree/family_tree_builder.gd`)從 `focus`
+角色出發沿三種邊做世代 BFS——走 `parent` 邊世代 -1、走 `children` 邊世代 +1、走 `mate` 邊
+世代不變——把整個連通的家族圖(雙親祖先鏈+配偶+子孫,不是只追單一血脈)分組成
+`FamilyTreeUnit`(一對夫妻或一個單身角色),`generation` 由上至下從 1 起算。已知限制:若
+配偶本身也是樹內已出現的血親(近親聯姻),同一角色理論上會有兩條血親線可以連到上一代,
+`_find_parent_unit()` 只認第一個找到的,不畫第二條線,避免變成非樹狀的蜘蛛網(遊戲企劃
+設定總整理.md 二十三節已列為已知的未來問題,`family_tree` 這版不處理)。
+
+`Scenes/FamilyTree/family_tree_canvas.gd` 的 `FamilyTreeCanvas` 拿到 `FamilyTreeUnit` 陣列後
+自己算版面座標(後序遞迴分配 x slot、`generation` 決定 y)手動 `position`/`size` 每張卡片、
+覆寫 `_draw()` 畫世代間的直角連接線——這一層是純版面/像素計算,不是規則邏輯,所以留在
+Scenes 而不是 System(比照 `battle_board.gd` 的格線/座標換算)。卡片沒有配偶時只留一欄,
+不留空欄佔位——所以卡片寬度分 `CARD_WIDTH_SINGLE`/`CARD_WIDTH_COUPLE` 兩種,但排版仍統一
+用較寬那個當 slot 間距置中對齊,卡片幾何中心永遠等於「本人與配偶之間的中線」(單人卡就是
+那一欄的中線),連接線直接讀這個中心點。卡片內容(頭像/姓名/年齡/性別/血統清單+計量表)
+跟 `CharacterDetailView._populate_bloodline()` 同一套資料來源/配色(`Bloodline.
+get_nonzero_entries()` + `GameEnums.bloodline_full_label`/`bloodline_nation_color`)。整欄
+(不只小頭像)都能點擊開 `CharacterPanel`,且 `ScrollContainer` 範圍內按住可拖曳平移
+(`FamilyTreeCanvas._input()`,不受卡片 `mouse_filter=STOP` 影響;拖曳距離超過門檻才算
+「有拖曳」,放開時才不會被誤判成點擊開錯面板)。
 
 ## 世界時間(System/time + WorldTimeStore)
 

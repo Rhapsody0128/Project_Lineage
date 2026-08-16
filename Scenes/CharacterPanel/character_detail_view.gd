@@ -46,6 +46,14 @@ const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
 ## 辨識用,不需要跟主要立繪搶視覺。
 const FAMILY_PORTRAIT_SIZE := Vector2(60, 60)
 
+## 「觀看祖譜」按鈕三態配色,沿用 character_roster.tscn/family_tree.tscn 的
+## BackButton 同一套深藍配色,程式化建構元件沒有 .tscn 可以放子資源,直接寫成常數。
+const FAMILY_TREE_BUTTON_BG := Color(0.2, 0.24, 0.36, 1)
+const FAMILY_TREE_BUTTON_BORDER := Color(0.4, 0.46, 0.66, 1)
+const FAMILY_TREE_BUTTON_HOVER_BG := Color(0.27, 0.32, 0.46, 1)
+const FAMILY_TREE_BUTTON_HOVER_BORDER := Color(0.55, 0.62, 0.85, 1)
+const FAMILY_TREE_BUTTON_PRESSED_BG := Color(0.16, 0.19, 0.28, 1)
+
 ## 分頁內容跟 TabContainer 邊緣的內距,避免捲動內容貼邊
 const TAB_CONTENT_PADDING := 14
 
@@ -87,6 +95,9 @@ var parent_list: VBoxContainer
 var mate_list: VBoxContainer
 var children_list: VBoxContainer
 
+## 「觀看祖譜」按鈕的入口需要知道目前分頁顯示的是誰,set_character() 開頭記錄。
+var current_character: Character
+
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 10)
@@ -107,6 +118,8 @@ func _ready() -> void:
 ## 任何場景都可呼叫:view.set_character(character, battle_character)。傳 null 代表清空
 ## (面板關閉/離開角色列表選取時停止雷達圖逐幀重繪,見 CharacterPotentialRadar)。
 func set_character(character: Character, battle_character: BattleCharacter = null) -> void:
+	current_character = character
+
 	if character == null:
 		portrait_texture.texture = null
 		name_label.text = ""
@@ -410,6 +423,23 @@ func _build_family_tab() -> Control:
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 6)
 
+	var view_family_tree_button := Button.new()
+	view_family_tree_button.text = "觀看祖譜"
+	view_family_tree_button.add_theme_font_size_override("font_size", 16)
+	view_family_tree_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(
+		FAMILY_TREE_BUTTON_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
+	))
+	view_family_tree_button.add_theme_stylebox_override("hover", UiStyle.bordered_panel(
+		FAMILY_TREE_BUTTON_HOVER_BG, FAMILY_TREE_BUTTON_HOVER_BORDER, 2, 8
+	))
+	view_family_tree_button.add_theme_stylebox_override("pressed", UiStyle.bordered_panel(
+		FAMILY_TREE_BUTTON_PRESSED_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
+	))
+	view_family_tree_button.pressed.connect(_on_view_family_tree_pressed)
+	column.add_child(view_family_tree_button)
+
+	column.add_child(HSeparator.new())
+
 	var parent_title := Label.new()
 	parent_title.text = "父母"
 	parent_title.add_theme_font_size_override("font_size", 15)
@@ -669,6 +699,18 @@ func _build_family_member_row(member: Character) -> Control:
 func _on_family_portrait_gui_input(input_event: InputEvent, member: Character) -> void:
 	if input_event is InputEventMouseButton and input_event.pressed and input_event.button_index == MOUSE_BUTTON_LEFT:
 		CharacterPanel.open_for_character(member)
+
+
+## 「觀看祖譜」按鈕:把目前顯示的角色透過 SceneHandoffStore 交給 FamilyTree 場景當
+## 起點(見 Scenes/FamilyTree/family_tree.gd),再切場景過去。CharacterPanel.close()
+## 在 CharacterDetailView 嵌在 CharacterRoster(非彈出式)裡呼叫也安全——只是把
+## autoload 的隱藏彈窗關掉,本來就是關的狀態,等同 no-op。
+func _on_view_family_tree_pressed() -> void:
+	if current_character == null:
+		return
+	SceneHandoffStore.queue("family_tree_focus", current_character)
+	CharacterPanel.close()
+	NavigationStore.go_to("res://Scenes/FamilyTree/family_tree.tscn")
 
 
 func _trait_color(polarity: int) -> Color:

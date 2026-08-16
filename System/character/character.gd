@@ -105,9 +105,14 @@ func marry(target_character: Character) -> void:
 	mate = target_character
 	target_character.mate = self
 
-## 世界時間每跨過一年時呼叫(見 WorldTimeEventLibrary),年紀 +1
+## 世界時間每跨過一年時呼叫(見 WorldTimeEventLibrary),年紀 +1。未滿成人隨機池
+## 起始年齡(CharacterController.MIN_AGE)的角色一定是遺傳出生的小孩(一般隨機角色
+## 一開始就是成人),年紀增長跨過 FaceController 的頭像級距時一併刷新 face_path,
+## 對已成年的角色沒有作用(age 只會越來越大,不會再落回未成年區間)。
 func age_up() -> void:
 	age += 1
+	if age < CharacterController.MIN_AGE:
+		face_path = FaceController.get_child_face_path(age, gender)
 
 ## 進入懷孕狀態,月數從 0 起算(資格判定見 PregnancyRule.is_eligible(),呼叫端見
 ## WorldTimeEventLibrary._roll_new_pregnancies())
@@ -120,18 +125,17 @@ func advance_pregnancy() -> bool:
 	pregnancy_months += 1
 	return pregnancy_months >= PregnancyRule.MONTHS_TO_BIRTH
 
-## 生產:占位用 CharacterController.get_random_character() 生成孩子(見該函式底下的
-## TODO),雙向寫入親子關係並重置懷孕狀態。回傳新生兒——加入 CharacterRosterStore/
-## 發 NEWS 是全域註冊/播報,不是角色自身的規則,留給呼叫端(WorldTimeEventLibrary)處理。
+## 生產:小孩由 InheritanceController.create_child() 依父母資料算出(遺傳公式集中在
+## System/inheritance/,不寫在這裡),雙向寫入親子關係並重置懷孕狀態。回傳新生兒——
+## 加入 CharacterRosterStore/發 NEWS 是全域註冊/播報,不是角色自身的規則,留給呼叫端
+## (WorldTimeEventLibrary)處理。self 一定是母親(PregnancyRule.is_eligible() 限定
+## gender == FEMALE 才能懷孕),mate 在懷孕當下已確保非 null,故不需要額外 null 分支。
 func give_birth() -> Character:
-	var child := CharacterController.get_random_character()
-	var new_parents: Array[Character] = [self]
-	if mate != null:
-		new_parents.append(mate)
+	var child := InheritanceController.create_child(mate, self)
+	var new_parents: Array[Character] = [self, mate]
 	child.parent = new_parents
 	children.append(child)
-	if mate != null:
-		mate.children.append(child)
+	mate.children.append(child)
 	is_pregnant = false
 	pregnancy_months = 0
 	return child

@@ -22,20 +22,35 @@ static func _age_up() -> void:
 		character.age_up()
 
 
-## 每月:符合資格(女性/已婚/未懷孕)的角色機率懷孕(目前 100%),寫入 NEWS
+## 每月:符合資格(女性/已婚/未懷孕)的角色機率懷孕(目前 100%),寫入 NEWS。判定對象
+## 用 PregnancyRule.resolve_pregnancy_candidate() 從配偶雙方解出,不能只看 character 本人
+## ——配偶可能不在 CharacterRosterStore 裡(見該函式註解)。processed_ids 避免雙方剛好都
+## 在 roster 時,同一對配偶被兩個迴圈疊代各骰一次。
 static func _roll_new_pregnancies() -> void:
+	var processed_ids: Dictionary = {}
 	for character in CharacterRosterStore.all_characteres:
-		if PregnancyRule.is_eligible(character) and PregnancyRule.roll_pregnancy():
-			character.start_pregnancy()
-			NewsController.post("%s 懷孕了。" % character.full_name)
+		var wife := PregnancyRule.resolve_pregnancy_candidate(character)
+		if wife == null or processed_ids.has(wife.id):
+			continue
+		processed_ids[wife.id] = true
+		if PregnancyRule.is_eligible(wife) and PregnancyRule.roll_pregnancy():
+			wife.start_pregnancy()
+			NewsController.post("%s 懷孕了。" % wife.full_name)
 
 
 ## 每月:懷孕中的角色累積月數(見 Character.advance_pregnancy()),滿了就產下孩子。
 ## 剛懷孕當月與 _roll_new_pregnancies() 同一個月邊界觸發,即計入第 1 個月,是刻意的簡化行為。
+## 判定對象一樣要用 PregnancyRule.resolve_pregnancy_candidate() 從配偶雙方解出(理由同
+## _roll_new_pregnancies()),否則懷孕的配偶不在 roster 時,懷孕月數永遠不會推進。
 static func _advance_pregnancies() -> void:
+	var processed_ids: Dictionary = {}
 	for character in CharacterRosterStore.all_characteres:
-		if character.is_pregnant and character.advance_pregnancy():
-			_deliver_child(character)
+		var wife := PregnancyRule.resolve_pregnancy_candidate(character)
+		if wife == null or processed_ids.has(wife.id):
+			continue
+		processed_ids[wife.id] = true
+		if wife.is_pregnant and wife.advance_pregnancy():
+			_deliver_child(wife)
 
 
 ## 產下孩子(見 Character.give_birth()),加入 CharacterRosterStore(讓孩子成為可用角色),

@@ -133,16 +133,21 @@ func _build_standee_texture() -> Texture2D:
 
 
 ## 佔位格圖示要保留 STANDEE_REGION 原始比例(32x46),不能直接拉伸塞進正方形格子
-## 變形——寬度貼齊格子寬、高度依原始比例縮放後置中對齊,人物會比格子稍高一點,
-## 跟 Battle 戰場上的角色顯示比例一致(見 battle_unit_visual.gd 的 SPRITE_SCALE
-## 等比縮放,不擠壓角色),格子被圖示稍微突出沒關係,不能整隻被壓扁。
+## 變形——改成依高度縮放(留一點頂部餘白)、寬度依比例算出後水平置中、底部貼齊格子
+## 下緣,人物完整站在格子「裡面」,不再撐滿整格寬度導致上下溢出格子外。這個高度比例
+## 跟 Battle 戰場上的角色顯示比例大致一致(見 battle_unit_visual.gd 的 SPRITE_SCALE
+## 等比縮放後,人物大約佔戰場格高度的九成,寬度明顯窄於格寬)。
+const STANDEE_HEIGHT_RATIO := 0.9
+
 func _standee_rect(cell_rect: Rect2) -> Rect2:
 	var native_size := STANDEE_REGION.size
-	var scaled_height := cell_rect.size.x * (native_size.y / native_size.x)
-	var y_offset := (cell_rect.size.y - scaled_height) / 2.0
+	var scaled_height := cell_rect.size.y * STANDEE_HEIGHT_RATIO
+	var scaled_width := scaled_height * (native_size.x / native_size.y)
+	var x_offset := (cell_rect.size.x - scaled_width) / 2.0
+	var y_offset := cell_rect.size.y - scaled_height
 	return Rect2(
-		cell_rect.position + Vector2(0, y_offset),
-		Vector2(cell_rect.size.x, scaled_height)
+		cell_rect.position + Vector2(x_offset, y_offset),
+		Vector2(scaled_width, scaled_height)
 	)
 
 

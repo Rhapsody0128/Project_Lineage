@@ -3,11 +3,12 @@ extends Control
 
 # =========================================================
 # 大地圖等場景共用的頂部列:左側顯示目前世界時間(由外部呼叫 set_time_text()
-# 更新,HeaderBar 本身不管時間怎麼算)、旁邊一顆超快速流逝時間切換按鈕(按下去
-# 觸發 fast_forward_toggled 訊號,HeaderBar 只負責按鈕外觀切換,實際上要讓誰的
-# 時間快轉由呼叫端接訊號決定,見 Scenes/Map/map.gd),右上角一顆漢堡選單按鈕,
-# 點開下拉選單可直接切去戰報列表/隊伍編輯/角色列表,或直接跳回主選單,不用像
-# main.gd 那樣得先繞回主選單才能到這些畫面。切場景一律走 NavigationStore.go_to(),
+# 更新,HeaderBar 本身不管時間怎麼算)、旁邊四顆倍速按鈕(1x/2x/3x/DEMO,互斥的
+# 單選按鈕組,點下去觸發 speed_level_changed 訊號,HeaderBar 只負責按鈕外觀切換,
+# 實際上要讓誰的時間/移動變快由呼叫端接訊號決定,見 Scenes/Map/map.gd——同一個
+# 場景同時支援鍵盤 1/2/3/4 直接切等級),右上角一顆漢堡選單按鈕,點開下拉選單可
+# 直接切去戰報列表/隊伍編輯/角色列表,或直接跳回主選單,不用像 main.gd 那樣得先
+# 繞回主選單才能到這些畫面。切場景一律走 NavigationStore.go_to(),
 # party_edit.gd/battle_report_list.gd/character_roster.gd 的返回鍵才能正確
 # 回到這裡,而不是寫死回 Scenes/main.tscn。
 #
@@ -33,18 +34,22 @@ const _ID_CHARACTERS := 2
 const _ID_NEWS := 3
 const _ID_MAIN_MENU := 4
 
-const _FAST_FORWARD_TEXT := "⏩ 快轉"
-const _FAST_FORWARD_ACTIVE_TEXT := "⏹ 停止快轉"
-const _FAST_FORWARD_BG := Color(0.2, 0.24, 0.36, 1)
-const _FAST_FORWARD_ACTIVE_BG := Color(0.55, 0.32, 0.16, 1)
+## 倍速按鈕的等級 → 顯示文字,4 是 DEMO 用的 100 倍速(見
+## Scripts/Autoload/world_time_store.gd 的 set_speed_level())。▶️ 代表一般倍速、
+## ⏩ 代表快轉,跟 _update_date_label()(Scenes/Map/map.gd)裡播放中/暫停用的
+## ▶️/⏸️ 圖示呼應,同一套視覺語言。
+const _SPEED_LEVEL_LABELS := {1: "▶️ 1x", 2: "▶️ 2x", 3: "▶️ 3x", 4: "⏩ DEMO"}
+const _SPEED_BUTTON_BG := Color(0.2, 0.24, 0.36, 1)
+const _SPEED_BUTTON_ACTIVE_BG := Color(0.55, 0.32, 0.16, 1)
 
-## 呼叫端(目前是 Scenes/Map/map.gd)接這個訊號決定要不要開始/停止快轉,HeaderBar
-## 本身不知道快轉實際上要對誰生效(見 Scripts/Autoload/world_time_store.gd 的
-## toggle_fast_forward())。
-signal fast_forward_toggled(enabled: bool)
+## 呼叫端(目前是 Scenes/Map/map.gd)接這個訊號決定要讓誰的時間/移動變快,HeaderBar
+## 本身不知道倍速實際上要對誰生效(見 Scripts/Autoload/world_time_store.gd 的
+## set_speed_level())。
+signal speed_level_changed(level: int)
 
 var time_label: Label
-var fast_forward_button: Button
+## 等級(1/2/3/4)→ 對應按鈕,單選按鈕組(ButtonGroup)確保同時間只有一顆按下。
+var speed_buttons: Dictionary = {}
 
 
 func _ready() -> void:
@@ -79,16 +84,21 @@ func _ready() -> void:
 	time_label.add_theme_constant_override("outline_size", 4)
 	row.add_child(time_label)
 
-	fast_forward_button = Button.new()
-	fast_forward_button.text = _FAST_FORWARD_TEXT
-	fast_forward_button.toggle_mode = true
-	fast_forward_button.custom_minimum_size = Vector2(110, 36)
-	fast_forward_button.add_theme_font_size_override("font_size", 18)
-	fast_forward_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(_FAST_FORWARD_BG, _BUTTON_BORDER, 2, 8))
-	fast_forward_button.add_theme_stylebox_override("hover", UiStyle.bordered_panel(_BUTTON_HOVER_BG, _BUTTON_HOVER_BORDER, 2, 8))
-	fast_forward_button.add_theme_stylebox_override("pressed", UiStyle.bordered_panel(_FAST_FORWARD_ACTIVE_BG, _BUTTON_HOVER_BORDER, 2, 8))
-	fast_forward_button.toggled.connect(_on_fast_forward_button_toggled)
-	row.add_child(fast_forward_button)
+	var speed_button_group := ButtonGroup.new()
+	for level in _SPEED_LEVEL_LABELS.keys():
+		var speed_button := Button.new()
+		speed_button.text = _SPEED_LEVEL_LABELS[level]
+		speed_button.toggle_mode = true
+		speed_button.button_group = speed_button_group
+		speed_button.custom_minimum_size = Vector2(76, 36)
+		speed_button.add_theme_font_size_override("font_size", 16)
+		speed_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(_SPEED_BUTTON_BG, _BUTTON_BORDER, 2, 8))
+		speed_button.add_theme_stylebox_override("hover", UiStyle.bordered_panel(_BUTTON_HOVER_BG, _BUTTON_HOVER_BORDER, 2, 8))
+		speed_button.add_theme_stylebox_override("pressed", UiStyle.bordered_panel(_SPEED_BUTTON_ACTIVE_BG, _BUTTON_HOVER_BORDER, 2, 8))
+		speed_button.toggled.connect(_on_speed_button_toggled.bind(level))
+		row.add_child(speed_button)
+		speed_buttons[level] = speed_button
+	speed_buttons[1].set_pressed_no_signal(true)
 
 	var menu_button := MenuButton.new()
 	menu_button.text = "☰"
@@ -112,19 +122,20 @@ func set_time_text(text: String) -> void:
 	time_label.text = text
 
 
-## 呼叫端在 _ready() 建立 HeaderBar 後,用目前實際的快轉狀態(例如
-## WorldTimeStore.is_fast_forwarding)同步按鈕外觀——快轉是全域狀態,離開/返回
-## 場景不會重置,但每次都是全新的 HeaderBar 節點,按鈕預設是未按下,需要呼叫端
+## 呼叫端在 _ready() 建立 HeaderBar 後,或鍵盤 1/2/3/4 切換等級後,用目前實際的
+## 倍速等級(例如 WorldTimeStore.is_fast_forwarding 為真時傳 4,否則傳
+## int(WorldTimeStore.play_speed_multiplier))同步按鈕外觀——倍速是全域狀態,離開/
+## 返回場景不會重置,但每次都是全新的 HeaderBar 節點,按鈕預設停在 1x,需要呼叫端
 ## 主動同步一次,不然畫面看起來像沒在快轉,實際上時鐘還在背景跳。不觸發
-## fast_forward_toggled(避免呼叫端自己觸發自己的 handler 造成迴圈)。
-func set_fast_forwarding(enabled: bool) -> void:
-	fast_forward_button.set_pressed_no_signal(enabled)
-	fast_forward_button.text = _FAST_FORWARD_ACTIVE_TEXT if enabled else _FAST_FORWARD_TEXT
+## speed_level_changed(避免呼叫端自己觸發自己的 handler 造成迴圈)。
+func set_speed_level(level: int) -> void:
+	for button_level in speed_buttons.keys():
+		speed_buttons[button_level].set_pressed_no_signal(button_level == level)
 
 
-func _on_fast_forward_button_toggled(enabled: bool) -> void:
-	fast_forward_button.text = _FAST_FORWARD_ACTIVE_TEXT if enabled else _FAST_FORWARD_TEXT
-	fast_forward_toggled.emit(enabled)
+func _on_speed_button_toggled(enabled: bool, level: int) -> void:
+	if enabled:
+		speed_level_changed.emit(level)
 
 
 func _on_menu_id_pressed(id: int) -> void:

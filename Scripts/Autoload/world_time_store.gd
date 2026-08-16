@@ -10,9 +10,9 @@ extends Node
 # 掛 _process(),而且不是每個場景都需要世界時間在跑)——真正呼叫 advance() 的地方是
 # Scenes/Map/map.gd 的 _process()(遊戲裡目前只有大地圖移動時世界時間才會走,離開
 # 大地圖跟過去一樣暫停),之後若有第二個場景也想推進時間,一樣呼叫
-# WorldTimeStore.controller.advance(delta) 即可,不需要各自持有一份 WorldTime。快轉
-# (toggle_fast_forward())是唯一的例外,靠這支 autoload 自己掛的 Timer 推進,不受
-# 上述限制,也不受 is_playing 影響。
+# WorldTimeStore.controller.advance(delta) 即可,不需要各自持有一份 WorldTime。DEMO 快轉
+# (set_speed_level(4),is_fast_forwarding 為真)是唯一的例外,靠這支 autoload 自己掛的
+# Timer 推進,不受上述限制,也不受 is_playing 影響。
 #
 # project.godot 的 [autoload] 區塊裡這支必須排在最前面:controller 是在 _ready()
 # 才 new 出來,其他 autoload 若在自己的 _ready() 就呼叫 WorldTimeStore.get_display_string()
@@ -34,8 +34,19 @@ signal month_passed
 signal year_passed
 
 const FAST_FORWARD_INTERVAL := 0.01
+## 快轉時角色移動速度的加速倍率:跟「快轉讓時間跳多快」用同一把尺——正常播放時
+## 1 真實秒 = 1 遊戲天(WorldTime.days_per_real_second 預設 1.0),快轉是 0.01 秒
+## 跳 1 天,換算下來等於 100 倍。Scenes/Map/map.gd 移動時額外拿這個倍率乘 delta,
+## 讓走路速度跟時間流逝速度維持同一套加速比例,不會發生「時間用力跳、角色卻慢慢走」
+## 的違和感。
+const FAST_FORWARD_MOVE_MULTIPLIER := 1.0 / FAST_FORWARD_INTERVAL
 
 var controller: WorldTimeController
+## 一般倍速(1x/2x/3x),跟 is_fast_forwarding 互斥——切到快轉時這個值固定回 1.0,
+## 見 set_speed_level()。Scenes/Map/map.gd 的 _process() 拿這個值乘 delta,同時套用在
+## 世界時間推進與地圖移動上,讓「幾倍速」的感覺是整體一起變快,不是只有時間跳、
+## 角色還是慢慢走。
+var play_speed_multiplier: float = 1.0
 var is_fast_forwarding: bool = false
 
 var _fast_forward_timer: Timer
@@ -63,15 +74,22 @@ func get_display_string() -> String:
 	return controller.world_time.get_display_string()
 
 
-## HEADER 的超快速流逝時間按鈕(見 Scripts/UI/header_bar.gd)呼叫,切換後每
-## FAST_FORWARD_INTERVAL 秒 +1 天,不受 is_playing 暫停狀態影響——快轉的意義就是
-## 讓玩家在原地(例如停留在城堡)也能主動跳過時間,不需要先讓角色移動。
-func toggle_fast_forward() -> void:
-	is_fast_forwarding = not is_fast_forwarding
+## HEADER 的倍速按鈕/鍵盤 1~4(見 Scripts/UI/header_bar.gd 與 Scenes/Map/map.gd)統一
+## 呼叫的入口。1~3 對應一般倍速(play_speed_multiplier = 1.0/2.0/3.0);4 對應原本的
+## DEMO 100 倍速快轉(沿用 is_fast_forwarding 的 Timer 機制——不受 is_playing 暫停狀態
+## 影響,讓玩家在原地也能主動跳過時間,不需要先讓角色移動)。四個等級互斥,切到任一個
+## 都會關掉另一種模式。
+func set_speed_level(level: int) -> void:
+	if level >= 4:
+		play_speed_multiplier = 1.0
+		if not is_fast_forwarding:
+			is_fast_forwarding = true
+			_fast_forward_timer.start()
+		return
 	if is_fast_forwarding:
-		_fast_forward_timer.start()
-	else:
+		is_fast_forwarding = false
 		_fast_forward_timer.stop()
+	play_speed_multiplier = float(clampi(level, 1, 3))
 
 
 func _on_fast_forward_tick() -> void:

@@ -94,8 +94,8 @@ func _ready() -> void:
 	player_avatar.position = map_system.position
 	player_avatar.play("idle_Down")
 
-	header_bar.fast_forward_toggled.connect(_on_fast_forward_toggled)
-	header_bar.set_fast_forwarding(WorldTimeStore.is_fast_forwarding)
+	header_bar.speed_level_changed.connect(_on_speed_level_changed)
+	header_bar.set_speed_level(4 if WorldTimeStore.is_fast_forwarding else int(WorldTimeStore.play_speed_multiplier))
 
 	_clamp_camera_position()
 	_update_date_label()
@@ -104,8 +104,12 @@ func _ready() -> void:
 
 
 
-func _on_fast_forward_toggled(_enabled: bool) -> void:
-	WorldTimeStore.toggle_fast_forward()
+## HeaderBar 的倍速按鈕(見 Scripts/UI/header_bar.gd)或 _unhandled_input() 的鍵盤
+## 1/2/3/4 共用這個入口,兩邊都要記得同步 header_bar.set_speed_level(),不然按鍵盤
+## 切換後畫面上的按鈕不會跟著亮。
+func _on_speed_level_changed(level: int) -> void:
+	WorldTimeStore.set_speed_level(level)
+	header_bar.set_speed_level(level)
 
 
 func _find_object_by_id(id: String) -> MapObject:
@@ -136,12 +140,20 @@ func _process(delta: float) -> void:
 	# 世界時間的時鐘/固定事件派發規則放在 WorldTimeStore(見 Scripts/Autoload/
 	# world_time_store.gd),但推進動作仍是這裡呼叫——advance() 內部會檢查
 	# is_playing,暫停時呼叫也不會動。角色移動額外多一層 is_playing 判斷,
-	# 跟世界時間共用同一個開關,兩者一起凍結/一起跑。
-	WorldTimeStore.controller.advance(delta)
+	# 跟世界時間共用同一個開關,兩者一起凍結/一起跑。一般倍速(WorldTimeStore.
+	# play_speed_multiplier,由 1/2/3 鍵或 HeaderBar 按鈕切換)套用在這裡的 delta
+	# 上,時間跟移動一起等比變快;DEMO 100 倍速(is_fast_forwarding,4 鍵)的時間
+	# 流逝已經由 WorldTimeStore 自己的 Timer 處理(不受 is_playing 影響,見
+	# set_speed_level()),這裡不再重複疊加,只需要額外加速移動本身,見
+	# WorldTimeStore.FAST_FORWARD_MOVE_MULTIPLIER。
+	var time_delta := delta if WorldTimeStore.is_fast_forwarding else delta * WorldTimeStore.play_speed_multiplier
+	WorldTimeStore.controller.advance(time_delta)
 	if WorldTimeStore.controller.is_playing:
 		if map_system.is_moving:
+			var move_multiplier := WorldTimeStore.FAST_FORWARD_MOVE_MULTIPLIER if WorldTimeStore.is_fast_forwarding else WorldTimeStore.play_speed_multiplier
+			var move_delta := delta * move_multiplier
 			var prev_pos := map_system.position
-			map_system.advance(delta)
+			map_system.advance(move_delta)
 			_update_player_visual(map_system.position - prev_pos, map_system.is_moving)
 			player_avatar.position = map_system.position
 			_update_destination_line()
@@ -226,9 +238,18 @@ func _dir_name(dir: Vector2) -> String:
 	return "Down"
 
 
+## 圖示跟 HeaderBar 倍速按鈕的 ▶️/⏩ 用同一套視覺語言:快轉不受 is_playing 影響
+## (見 WorldTimeStore.set_speed_level()),優先顯示⏩;沒在快轉時才看 is_playing
+## 顯示▶️/⏸️。
 func _update_date_label() -> void:
-	var state_text := "播放中" if WorldTimeStore.controller.is_playing else "已暫停"
-	header_bar.set_time_text("%s　%s" % [WorldTimeStore.get_display_string(), state_text])
+	var state_icon: String
+	if WorldTimeStore.is_fast_forwarding:
+		state_icon = "⏩"
+	elif WorldTimeStore.controller.is_playing:
+		state_icon = "▶️"
+	else:
+		state_icon = "⏸️"
+	header_bar.set_time_text("%s　%s" % [WorldTimeStore.get_display_string(), state_icon])
 
 
 func _toggle_playing() -> void:
@@ -240,6 +261,14 @@ func _unhandled_input(event: InputEvent) -> void:
 		var key_event := event as InputEventKey
 		if key_event.pressed and not key_event.echo and key_event.keycode == KEY_SPACE:
 			_toggle_playing()
+		elif key_event.pressed and not key_event.echo and key_event.keycode == KEY_1:
+			_on_speed_level_changed(1)
+		elif key_event.pressed and not key_event.echo and key_event.keycode == KEY_2:
+			_on_speed_level_changed(2)
+		elif key_event.pressed and not key_event.echo and key_event.keycode == KEY_3:
+			_on_speed_level_changed(3)
+		elif key_event.pressed and not key_event.echo and key_event.keycode == KEY_4:
+			_on_speed_level_changed(4)
 	elif event is InputEventMouseButton:
 		var button_event := event as InputEventMouseButton
 		if button_event.pressed and button_event.button_index == MOUSE_BUTTON_WHEEL_UP:

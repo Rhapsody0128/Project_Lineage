@@ -7,6 +7,7 @@ var agility: float
 var dexterity: float
 var intelligence: float
 var mentality: float
+## 區間 0 - 200
 
 var strength_ratio: float
 var vitality_ratio: float
@@ -14,6 +15,7 @@ var agility_ratio: float
 var dexterity_ratio: float
 var intelligence_ratio: float
 var mentality_ratio: float
+## 區間 0.5 - 2
 
 var strength_rank: int
 var vitality_rank: int

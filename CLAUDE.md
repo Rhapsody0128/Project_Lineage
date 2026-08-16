@@ -122,12 +122,21 @@ frame 觸發,是每跨過一天才觸發一次,快轉一次跳好幾天一樣會
   Node 的訊號連線會在場景節點釋放時自動斷開,不會殘留、也不會像上面 Callable 陣列那樣
   越存越多。
 
-HEADER 的超快速流逝時間按鈕(`Scripts/UI/header_bar.gd` 的 `fast_forward_button`,切換後
-觸發 `fast_forward_toggled` 訊號)呼叫 `WorldTimeStore.toggle_fast_forward()`,啟動後每 0.1
-秒呼叫一次 `controller.add_days(1)`——不受 `is_playing` 暫停狀態影響,快轉的意義就是讓玩家
-在原地也能主動跳過時間。`HeaderBar` 是全新節點(每次進大地圖都重新 `HeaderBar.new()`),
-呼叫端要在建立後用 `header_bar.set_fast_forwarding(WorldTimeStore.is_fast_forwarding)` 同步
-按鈕外觀,不然玩家離開又返回大地圖時,快轉其實還在背景跑,但按鈕會看起來像沒按下。
+HEADER 上的倍速按鈕(`Scripts/UI/header_bar.gd`,`▶️1x`/`▶️2x`/`▶️3x`/`⏩DEMO` 四顆
+互斥的單選按鈕,`ButtonGroup` 確保同時只有一顆按下,點下去觸發 `speed_level_changed(level)`
+訊號)與大地圖上的鍵盤 1/2/3/4(`Scenes/Map/map.gd` 的 `_unhandled_input()`)共用同一個入口
+`WorldTimeStore.set_speed_level(level)`:1~3 對應一般倍速(寫進 `play_speed_multiplier`,
+`map.gd._process()` 拿這個值乘 `delta`,同時套用在世界時間推進與地圖移動上,兩者一起等比
+變快);4 是 DEMO 用的 100 倍速,沿用舊的 `is_fast_forwarding` 旗標+`Timer`機制——每
+`FAST_FORWARD_INTERVAL`(0.01)秒呼叫一次 `controller.add_days(1)`,不受 `is_playing` 暫停
+狀態影響,讓玩家在原地也能主動跳過時間;此時地圖移動改乘 `FAST_FORWARD_MOVE_MULTIPLIER`
+(跟 100 倍時間換算出的同一個倍率)加速,但世界時間推進不再重複疊加倍率(那顆已經由
+`Timer` 單獨處理)。四個等級互斥,切到任一個都會關掉另一種模式。`HeaderBar` 是全新節點
+(每次進大地圖都重新 `HeaderBar.new()`),呼叫端要在建立後用
+`header_bar.set_speed_level(4 if WorldTimeStore.is_fast_forwarding else int(WorldTimeStore.play_speed_multiplier))`
+同步按鈕外觀,不然玩家離開又返回大地圖時,倍速其實還在背景跑,但按鈕會看起來像沒按下。
+`map.gd._update_date_label()` 額外用 `⏩`(快轉中)/`▶️`(播放中)/`⏸️`(暫停)三個圖示跟
+按鈕的視覺語言呼應,顯示在時間文字旁邊。
 
 ## 事件與跨場景資料交接(LocationEvent + SceneHandoffStore)
 

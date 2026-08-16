@@ -72,7 +72,7 @@ func _on_leave_button_pressed() -> void:
 
 
 ## 休息:退回大地圖並直接開始播放時間(不用玩家手動按空白鍵),讓世界時間流逝
-## 帶動 Character.advance_hp_regen() 自然回血(見 Scenes/Map/map.gd 的 _process())。跟
+## 帶動 WorldTimeEventLibrary 的每日角色回血(見 Scenes/Map/map.gd 的 _process())。跟
 ## 「離開」的差異只差在這裡強制把 MapSessionStore.is_playing 蓋成 true——
 ## map.gd 的 _ready() 本來就會讀這個欄位還原播放狀態,不需要另外開一個交接欄位。
 func _on_rest_button_pressed() -> void:

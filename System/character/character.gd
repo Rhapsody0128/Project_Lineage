@@ -31,15 +31,12 @@ var hp: int
 var parent: Array[Character] = []
 var mate: Character = null
 var children: Array[Character] = []
+## 懷孕狀態,見 PregnancyRule/WorldTimeEventLibrary——每月累積,滿
+## PregnancyRule.MONTHS_TO_BIRTH 個月產下孩子後歸零。
+var is_pregnant: bool = false
+var pregnancy_months: int = 0
 ## 戰場佔位形狀(俄羅斯方塊式多格圖形),用於 PartyEdit 編成畫面的格子佔用判斷
 var battle_cost: BattleCost
-
-## 大地圖時間流逝的自然回血速率(見 advance_hp_regen()),目前是寫死常數,
-## 之後若要依素質/設施調整再抽成公式。
-const HP_REGEN_PER_DAY := 30.0
-## 回血是連續的(每個 frame 傳進來的 days_elapsed 都很小),用這個累積小數部分,
-## 累積滿 1 點才實際呼叫 heal(),避免每 frame int() 無條件捨去導致永遠回不到血。
-var _hp_regen_accumulator: float = 0.0
 
 func _init(
 	p_name: String,
@@ -97,23 +94,47 @@ func take_damage(damage_points: int) -> void:
 func heal(amount: int) -> void:
 	hp = mini(hp + amount, hp_max)
 
+## 世界時間每跨過一天,所有角色固定回復的血量(見 WorldTimeEventLibrary)
+const DAILY_HP_REGEN := 50
+
+func regen_daily_hp() -> void:
+	heal(DAILY_HP_REGEN)
+
 ## 結為配偶,雙向寫入 mate(資格判定見 MarriageRule.can_propose())
 func marry(target_character: Character) -> void:
 	mate = target_character
 	target_character.mate = self
 
-## 每跨過一天邊界時呼叫(見 Scenes/Map/map.gd 的 _on_world_day_passed(),接
-## WorldTimeStore.day_passed 訊號),依經過的天數按 HP_REGEN_PER_DAY 回血。
-## 滿血時提早跳出並歸零累積值,避免長時間掛在滿血後突然回血的溢出小狀況。
-func advance_hp_regen(days_elapsed: float) -> void:
-	if hp >= hp_max:
-		_hp_regen_accumulator = 0.0
-		return
-	_hp_regen_accumulator += days_elapsed * HP_REGEN_PER_DAY
-	var whole_points := int(_hp_regen_accumulator)
-	if whole_points > 0:
-		heal(whole_points)
-		_hp_regen_accumulator -= whole_points
+## 世界時間每跨過一年時呼叫(見 WorldTimeEventLibrary),年紀 +1
+func age_up() -> void:
+	age += 1
+
+## 進入懷孕狀態,月數從 0 起算(資格判定見 PregnancyRule.is_eligible(),呼叫端見
+## WorldTimeEventLibrary._roll_new_pregnancies())
+func start_pregnancy() -> void:
+	is_pregnant = true
+	pregnancy_months = 0
+
+## 懷孕月數 +1,回傳是否已到分娩月數(PregnancyRule.MONTHS_TO_BIRTH)
+func advance_pregnancy() -> bool:
+	pregnancy_months += 1
+	return pregnancy_months >= PregnancyRule.MONTHS_TO_BIRTH
+
+## 生產:占位用 CharacterController.get_random_character() 生成孩子(見該函式底下的
+## TODO),雙向寫入親子關係並重置懷孕狀態。回傳新生兒——加入 CharacterRosterStore/
+## 發 NEWS 是全域註冊/播報,不是角色自身的規則,留給呼叫端(WorldTimeEventLibrary)處理。
+func give_birth() -> Character:
+	var child := CharacterController.get_random_character()
+	var new_parents: Array[Character] = [self]
+	if mate != null:
+		new_parents.append(mate)
+	child.parent = new_parents
+	children.append(child)
+	if mate != null:
+		mate.children.append(child)
+	is_pregnant = false
+	pregnancy_months = 0
+	return child
 
 func gain_exp(exp_amount: int) -> void:
 	level_system.gain_exp(exp_amount)

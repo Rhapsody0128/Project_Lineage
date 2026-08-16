@@ -33,7 +33,7 @@ signal day_passed
 signal month_passed
 signal year_passed
 
-const FAST_FORWARD_INTERVAL := 0.1
+const FAST_FORWARD_INTERVAL := 0.01
 
 var controller: WorldTimeController
 var is_fast_forwarding: bool = false
@@ -46,6 +46,7 @@ func _ready() -> void:
 	controller.register_day_event(func(): day_passed.emit())
 	controller.register_month_event(func(): month_passed.emit())
 	controller.register_year_event(func(): year_passed.emit())
+	WorldTimeEventLibrary.register_all(controller)
 
 	_fast_forward_timer = Timer.new()
 	_fast_forward_timer.wait_time = FAST_FORWARD_INTERVAL

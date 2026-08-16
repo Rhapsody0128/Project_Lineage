@@ -29,8 +29,6 @@ const DRAG_SENSITIVITY_MAX := 6.0
 
 var header_bar: HeaderBar
 var map_system: MapSystem
-## 玩家小隊,離開 _ready() 後仍要留著給 _on_world_day_passed() 的 HP 回血用
-## (見 Character.advance_hp_regen())。
 var party: Party
 var _objects: Array[MapObject] = []
 var _dragging := false
@@ -96,7 +94,6 @@ func _ready() -> void:
 	player_avatar.position = map_system.position
 	player_avatar.play("idle_Down")
 
-	WorldTimeStore.day_passed.connect(_on_world_day_passed)
 	header_bar.fast_forward_toggled.connect(_on_fast_forward_toggled)
 	header_bar.set_fast_forwarding(WorldTimeStore.is_fast_forwarding)
 
@@ -105,15 +102,6 @@ func _ready() -> void:
 	if map_system.is_moving:
 		_update_destination_line()
 
-
-## 每跨過一天邊界時(WorldTimeStore.day_passed,見 Scripts/Autoload/world_time_store.gd)
-## 觸發一次,小隊全員跟著自然回血一整天份(見 Character.advance_hp_regen()),不限定
-## 要站在城堡/待在原地——大地圖上移動中、甚至用 HeaderBar 快轉時也一樣回血。
-func _on_world_day_passed() -> void:
-	if party == null:
-		return
-	for character in party.characteres:
-		character.advance_hp_regen(1.0)
 
 
 func _on_fast_forward_toggled(_enabled: bool) -> void:

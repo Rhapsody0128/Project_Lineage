@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://Scenes/BattleReportList/battle_report_list.gd" id="1"]
+[ext_resource type="Script" path="res://Scenes/News/news_list.gd" id="1"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
 bg_color = Color(0.086, 0.098, 0.145, 1)
@@ -53,7 +53,7 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[node name="BattleReportList" type="Control"]
+[node name="NewsList" type="Control"]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -80,7 +80,7 @@ offset_right = 620.0
 offset_bottom = 66.0
 theme_override_font_sizes/font_size = 30
 theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
-text = "戰報列表"
+text = "消息列表"
 
 [node name="TopBar" type="HBoxContainer" parent="."]
 layout_mode = 0
@@ -97,7 +97,7 @@ theme_override_font_sizes/font_size = 16
 theme_override_styles/normal = SubResource("StyleBoxFlat_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "生成隨機戰報（D）"
+text = "生成測試消息(D)"
 
 [node name="BackButton" type="Button" parent="TopBar"]
 custom_minimum_size = Vector2(170, 46)
@@ -144,7 +144,7 @@ theme_override_constants/separation = 20
 [node name="GameTimeHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 3.0
+size_flags_stretch_ratio = 2.0
 theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
 text = "時間"
@@ -152,38 +152,24 @@ text = "時間"
 [node name="SystemTimeHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 3.0
+size_flags_stretch_ratio = 2.0
 theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
 text = "系統時間"
 
-[node name="ResultHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-custom_minimum_size = Vector2(90, 0)
+[node name="ContentHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 5.0
 theme_override_font_sizes/font_size = 15
 theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-horizontal_alignment = 1
-text = "戰鬥結果"
-
-[node name="WatchHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-custom_minimum_size = Vector2(90, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-horizontal_alignment = 1
-
-[node name="StatsHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
-custom_minimum_size = Vector2(90, 0)
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.6, 0.64, 0.78, 1)
-horizontal_alignment = 1
+text = "消息內容"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="MainPanel/Margin/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="ReportList" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer"]
+[node name="NewsList" type="VBoxContainer" parent="MainPanel/Margin/VBox/ScrollContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 10

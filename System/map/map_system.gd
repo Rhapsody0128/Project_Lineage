@@ -67,15 +67,15 @@ func advance(delta: float) -> void:
 		position += to_target.normalized() * step
 
 
-## 找出 world_pos 命中的 MapObjectData:有 territory_polygon 的物件用多邊形範圍
+## 找出 world_pos 命中的 MapObject:有 territory_polygon 的物件用多邊形範圍
 ## 判定(整塊領土都能點),沒有的物件才退回用 position 附近 radius 內最近命中。
 ## 找不到回傳 null。
-func pick_object(world_pos: Vector2, objects: Array[MapObjectData], radius: float) -> MapObjectData:
+func pick_object(world_pos: Vector2, objects: Array[MapObject], radius: float) -> MapObject:
 	for obj in objects:
 		if not obj.territory_polygon.is_empty() and Geometry2D.is_point_in_polygon(world_pos, obj.territory_polygon):
 			return obj
 
-	var closest: MapObjectData = null
+	var closest: MapObject = null
 	var closest_dist := radius
 	for obj in objects:
 		if not obj.territory_polygon.is_empty():

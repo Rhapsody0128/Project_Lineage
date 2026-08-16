@@ -1,7 +1,7 @@
 class_name MapObjectVisual
 extends Node2D
 
-## 大地圖上單一 MapObjectData 的畫面呈現:有 territory_polygon 的地點畫領土多邊形,
+## 大地圖上單一 MapObject 的畫面呈現:有 territory_polygon 的地點畫領土多邊形,
 ## 沒有的暫用正方形色塊代替——一個地點只會有其中一種圖形,不會兩個同時畫。
 ## 只負責顯示,不做點擊判定——點擊命中測試統一由 MapSystem.pick_object()
 ## 處理(見 Scenes/Map/map.gd),避免多一套判定入口。
@@ -11,10 +11,10 @@ const CASTLE_COLOR := Color(0.55, 0.45, 0.35)
 const TERRITORY_COLOR := Color(0.55, 0.45, 0.35, 0.12)
 const LABEL_OFFSET := Vector2(-80, -150)
 
-var data: MapObjectData
+var data: MapObject
 
 
-func setup(p_data: MapObjectData) -> void:
+func setup(p_data: MapObject) -> void:
 	data = p_data
 	position = data.position
 

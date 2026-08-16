@@ -1,10 +1,10 @@
 extends Control
 
-## 泛用的「地點選單」畫面:抵達大地圖上的某個 MapObjectData 後顯示,顯示哪個地點、
-## 有哪些子選項完全由該地點的資料決定(見 System/Map/MapObjectData.gd 的
+## 泛用的「地點選單」畫面:抵達大地圖上的某個 MapObject 後顯示,顯示哪個地點、
+## 有哪些子選項完全由該地點的資料決定(見 System/map/map_object.gd 的
 ## get_sub_locations()),這裡不寫死任何特定地點類型(城堡/村莊/遺跡等)的語意。
 
-## 目前接了真實行為的子地點按鈕文字(見 System/Map/MapObjectData.gd 的
+## 目前接了真實行為的子地點按鈕文字(見 System/map/map_object.gd 的
 ## TYPE_SUB_LOCATIONS),其餘子地點還是空按鈕佔位。
 const CASTLE_LABEL := "城堡"
 const CHAT_LABEL := "聊天"
@@ -14,7 +14,7 @@ const REST_LABEL := "休息"
 @onready var title_label: Label = $CenterContainer/VBoxContainer/TitleLabel
 @onready var sub_locations_container: VBoxContainer = $CenterContainer/VBoxContainer/SubLocationsContainer
 
-var _map_object: MapObjectData
+var _map_object: MapObject
 
 
 func _ready() -> void:
@@ -25,7 +25,7 @@ func _ready() -> void:
 		return
 
 	title_label.text = _map_object.name
-	for sub_location_label in MapObjectData.get_sub_locations(_map_object.type):
+	for sub_location_label in MapObject.get_sub_locations(_map_object.type):
 		var button := Button.new()
 		button.text = sub_location_label
 		if sub_location_label == CASTLE_LABEL:
@@ -39,8 +39,8 @@ func _ready() -> void:
 		sub_locations_container.add_child(button)
 
 
-func _find_entered_map_object() -> MapObjectData:
-	for obj in MapObjectData.get_all():
+func _find_entered_map_object() -> MapObject:
+	for obj in MapObject.get_all():
 		if obj.id == MapSessionStore.entered_map_object_id:
 			return obj
 	return null
@@ -66,7 +66,7 @@ func _on_tavern_button_pressed() -> void:
 
 
 func _on_leave_button_pressed() -> void:
-	var error := get_tree().change_scene_to_file("res://Scenes/Map/Map.tscn")
+	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)
 
@@ -77,6 +77,6 @@ func _on_leave_button_pressed() -> void:
 ## map.gd 的 _ready() 本來就會讀這個欄位還原播放狀態,不需要另外開一個交接欄位。
 func _on_rest_button_pressed() -> void:
 	MapSessionStore.is_playing = true
-	var error := get_tree().change_scene_to_file("res://Scenes/Map/Map.tscn")
+	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)

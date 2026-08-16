@@ -28,7 +28,8 @@ const _TIME_FONT_COLOR := Color(0.95, 0.9, 0.72, 1)
 const _ID_REPORTS := 0
 const _ID_PARTY := 1
 const _ID_CHARACTERS := 2
-const _ID_MAIN_MENU := 3
+const _ID_NEWS := 3
+const _ID_MAIN_MENU := 4
 
 var time_label: Label
 
@@ -78,6 +79,7 @@ func _ready() -> void:
 	popup.add_item("戰報", _ID_REPORTS)
 	popup.add_item("隊伍", _ID_PARTY)
 	popup.add_item("角色", _ID_CHARACTERS)
+	popup.add_item("消息", _ID_NEWS)
 	popup.add_item("主選單", _ID_MAIN_MENU)
 	popup.id_pressed.connect(_on_menu_id_pressed)
 
@@ -94,5 +96,7 @@ func _on_menu_id_pressed(id: int) -> void:
 			NavigationStore.go_to("res://Scenes/PartyEdit/party_edit.tscn")
 		_ID_CHARACTERS:
 			NavigationStore.go_to("res://Scenes/CharacterRoster/character_roster.tscn")
+		_ID_NEWS:
+			NavigationStore.go_to("res://Scenes/News/news_list.tscn")
 		_ID_MAIN_MENU:
 			NavigationStore.go_to("res://Scenes/main.tscn")

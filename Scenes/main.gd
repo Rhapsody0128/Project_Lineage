@@ -1,7 +1,7 @@
 extends Control
 
 func _on_map_pressed() -> void:
-	var error := get_tree().change_scene_to_file("res://Scenes/Map/Map.tscn")
+	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)
 

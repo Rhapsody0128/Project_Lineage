@@ -5,10 +5,10 @@ extends Node
 # PartyStore 同一套「mailbox」模式:Scenes 層的 session 狀態,不是規則邏輯,
 # 所以放 Scripts/Autoload/ 不放 System/。
 #
-# 離開 Scenes/Map/Map.tscn 時(不管是抵達地點切去 Scenes/MapLocation/,還是從
+# 離開 Scenes/Map/map.tscn 時(不管是抵達地點切去 Scenes/MapLocation/,還是從
 # HeaderBar 選單切去戰報/隊伍編輯),整個場景樹會被換掉,map.gd 的節點狀態
 # (MapSystem/WorldTime/相機 zoom/移動目標)全部消失,所以 map.gd 的 _exit_tree()
-# 一律把這些值存進這裡,回到 Map.tscn 的 _ready() 再讀出來還原,而不是重新從
+# 一律把這些值存進這裡,回到 map.tscn 的 _ready() 再讀出來還原,而不是重新從
 # 出生點/B.C.621 年開始、或是弄丟正在進行中的移動。entered_map_object_id 身兼
 # 「這次要進哪個地點」的交接欄位給 map_location.gd 讀——存檔當下玩家一定正站在
 # 那個地點上,不需要另外拆一個欄位。traveling_to_map_object_id 則是「正走去哪個

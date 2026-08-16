@@ -2,7 +2,7 @@ extends Node2D
 
 ## 大地圖整合層:實例化 MapObject、驅動 MapSystem/WorldTime 逐幀推進、
 ## 處理相機縮放/拖曳與點擊移動輸入、同步玩家頭像位置與朝向動畫。
-## 規則邏輯全部轉發給 System/Map/ 底下的 RefCounted 類別,這裡只做顯示與輸入轉呼叫。
+## 規則邏輯全部轉發給 System/map/ 底下的 RefCounted 類別,這裡只做顯示與輸入轉呼叫。
 
 const ZOOM_MAX := Vector2(3.0, 3.0)
 const ZOOM_MIN := Vector2(0.3, 0.3)
@@ -30,7 +30,7 @@ var map_system: MapSystem
 var world_time: WorldTime
 ## 玩家小隊,離開 _ready() 後仍要留著給 _process() 的 HP 回血用(見 Character.advance_hp_regen())。
 var party: Party
-var _objects: Array[MapObjectData] = []
+var _objects: Array[MapObject] = []
 var _dragging := false
 var _mouse_down_pos := Vector2.ZERO
 var _last_dir_name := "Down"
@@ -39,16 +39,16 @@ var _is_playing := false
 ## 角色目前「所在」的 MapObject(非 null 代表就站在那個地點上,不是路過);
 ## 出發後清空,抵達目的地後才會指向新的地點。用來判斷「已經在王城,再點王城」
 ## 這種不該觸發任何事的情況,以及地圖是否有多個地點正確之外的其他判斷。
-var _current_map_object: MapObjectData = null
+var _current_map_object: MapObject = null
 ## 目前正前往的 MapObject,抵達時用來把它寫進 _current_map_object。
-var _traveling_to: MapObjectData = null
+var _traveling_to: MapObject = null
 
 
 func _ready() -> void:
 	header_bar = HeaderBar.new()
 	ui_layer.add_child(header_bar)
 
-	_objects = MapObjectData.get_all()
+	_objects = MapObject.get_all()
 	_spawn_map_objects()
 
 	# 目前玩家 Party 從 PartyStore 取得;玩家尚未去過 PartyEdit 時該值為 null,
@@ -111,7 +111,7 @@ func _regen_party_hp(days_elapsed: float) -> void:
 		character.advance_hp_regen(days_elapsed)
 
 
-func _find_object_by_id(id: String) -> MapObjectData:
+func _find_object_by_id(id: String) -> MapObject:
 	for obj in _objects:
 		if obj.id == id:
 			return obj
@@ -164,7 +164,7 @@ func _process(delta: float) -> void:
 ## 抵達地圖物件後的進入流程:切去泛用的地點選單場景——顯示哪個地點、有哪些子選項
 ## 全部由 map_object 這筆資料決定,這裡不寫死地點類型。相機不做任何調整,維持玩家
 ## 離開前的位置/縮放,由 _exit_tree() 統一存進 MapSessionStore 供回大地圖時還原。
-func _enter_map_object(map_object: MapObjectData) -> void:
+func _enter_map_object(map_object: MapObject) -> void:
 	var error := get_tree().change_scene_to_file("res://Scenes/MapLocation/map_location.tscn")
 	if error != OK:
 		printerr("Error changing scene to map location: ", error)
@@ -185,7 +185,7 @@ func _update_hover_cursor() -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if hovered != null else Input.CURSOR_ARROW)
 
 
-## 離開 Map.tscn 前(不管是抵達地點、還是被 HeaderBar 選單切去其他場景)一律把
+## 離開 map.tscn 前(不管是抵達地點、還是被 HeaderBar 選單切去其他場景)一律把
 ## 目前狀態存進 MapSessionStore,回來時才能還原座標/移動目標/世界時間/相機
 ## (見 Scripts/Autoload/map_session_store.gd)。
 func _exit_tree() -> void:

@@ -11,7 +11,7 @@ const NO_WEAPON_BINDING := -1
 ## 角色清單排序欄位(PartyEdit 候補清單/未來其他角色清單共用,見 CharacterSortFilter),
 ## 前三項是衍生值,後六項對應 PotentialType 六大素質
 enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
-## 大地圖上的地點類型,見 System/Map/MapObjectData.gd
+## 大地圖上的地點類型,見 System/map/map_object.gd
 enum MapObjectType {CASTLE}
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是

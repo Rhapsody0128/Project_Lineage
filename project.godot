@@ -26,6 +26,7 @@ MapSessionStore="*res://Scripts/Autoload/map_session_store.gd"
 NavigationStore="*res://Scripts/Autoload/navigation_store.gd"
 AskBattle="*res://Scenes/BattleUtil/ask_battle.tscn"
 SceneHandoffStore="*res://Scripts/Autoload/scene_handoff_store.gd"
+NewsStore="*res://Scripts/Autoload/news_store.gd"
 
 [display]
 

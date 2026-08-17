@@ -8,9 +8,9 @@ extends Node
 ##
 ## Dialogue 這種只是路過的中繼場景不會自己呼叫 go_to(),不會被算進堆疊裡(中繼
 ## 場景本身不是一個能「返回」的頁面)。如果某段流程會先繞去中繼場景才抵達真正
-## 目的地(例如 MapLocation 城堡守衛的「闖進去」流程繞去 Dialogue 才到 Battle),
+## 目的地(例如 MapLocation 城門守衛的「闖進去」流程繞去 Dialogue 才到 Battle),
 ## 由發起這趟轉場的呼叫端在切場景前自己呼叫 push_return_scene_path(),把邏輯上
-## 的上一頁手動推進堆疊,見 map_location.gd 的 _on_castle_button_pressed()。
+## 的上一頁手動推進堆疊,見 map_location.gd 的 _on_town_button_pressed()。
 
 var _history: Array[String] = []
 

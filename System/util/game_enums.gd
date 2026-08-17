@@ -12,7 +12,7 @@ const NO_WEAPON_BINDING := -1
 ## 前三項是衍生值,後六項對應 PotentialType 六大素質
 enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 ## 大地圖上的地點類型,見 System/map/map_object.gd
-enum MapObjectType {CASTLE, BASE}
+enum MapObjectType {TOWN, BASE}
 ## 根據地建築類型,見 System/base/building/building_library.gd 與
 ## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
 ## 實作;後十二種是生產類建築,兩兩一組對應六大素質的基礎/高階內政。
@@ -86,7 +86,7 @@ const WEAPON_TYPE_LABELS: Array[String] = ["劍", "弓", "盾", "匕首", "法�
 const CHARACTER_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數", "力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 ## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
-const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城堡", "根據地"]
+const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城鎮", "根據地"]
 
 ## 根據地建築 UI 顯示用中文標籤,順序對應 BuildingType enum
 const BUILDING_TYPE_LABELS: Array[String] = [

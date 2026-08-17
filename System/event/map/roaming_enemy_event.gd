@@ -2,7 +2,7 @@ class_name RoamingEnemyEvent
 extends LocationEvent
 
 ## 大地圖走近遊蕩敵人(RoamingEnemy)觸發的「先跳對話,再選擇要不要開戰」流程,比照
-## System/event/castle/castle_gate_event.gd 的 CastleGateEvent,但精簡掉城門守衛「已經
+## System/event/town/town_gate_event.gd 的 TownGateEvent,但精簡掉城門守衛「已經
 ## 站在門口」的判斷與 NavigationStore.push_return_scene_path()——這裡本來就是在
 ## Scenes/Map/map.tscn 上直接觸發,對話/戰鬥打完也是回到同一個 map.tscn,不需要額外記錄
 ## 「上一頁」。呼叫端(map.gd 偵測到玩家走近敵人時)只呼叫一次
@@ -50,7 +50,7 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 
 
 ## self_party 可能是 null(玩家還沒去 PartyEdit 按過「完成編輯」)——這種情況不生一支假的
-## 隨機小隊頂替,直接不給「戰鬥」選項,只能「離開」,比照 CastleGateEvent._build_challenge。
+## 隨機小隊頂替,直接不給「戰鬥」選項,只能「離開」,比照 TownGateEvent._build_challenge。
 func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
 	var has_party := self_party != null
 	var player := self_party.leader if has_party else CharacterController.get_random_character()
@@ -87,7 +87,7 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 
 
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 RETURN_SCENE_PATH 自動接手轉場。
-## DRAW(平手)沒有另外的台詞,一律當作沒能擊退盜賊,跟戰敗共用同一句,比照 CastleGateEvent。
+## DRAW(平手)沒有另外的台詞,一律當作沒能擊退盜賊,跟戰敗共用同一句,比照 TownGateEvent。
 func _build_result(result: GameEnums.BattleResultType) -> Dialogue:
 	var bandit_speaker := DialogueSpeaker.new(_enemy.party.leader.id, _enemy.party.leader.full_name, _enemy.party.leader.face_path, GameEnums.DialogueSide.RIGHT)
 	var won := result == GameEnums.BattleResultType.SELF_WIN

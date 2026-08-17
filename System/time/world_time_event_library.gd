@@ -18,7 +18,7 @@ static func register_all(controller: WorldTimeController) -> void:
 
 ## 每年 1/1:所有角色年紀 +1(見 Character.age_up())。要跑 AllCharacterStore 而不是
 ## CharacterRosterStore——後者只有「可操控」角色,小孩(_deliver_child() 只註冊進
-## AllCharacterStore)、配偶(CastleTavernEvent 告白成功後只註冊進 AllCharacterStore)
+## AllCharacterStore)、配偶(TownTavernEvent 告白成功後只註冊進 AllCharacterStore)
 ## 都不在 roster 裡,年紀卻一樣要正常增長。角色剛好跨過 MIN_AGE 那一年順便從
 ## AllCharacterStore 補進 CharacterRosterStore,讓小孩成年後才能被操控/上場
 ## (has() 防呆:CharacterController.get_random_character() 生成的角色一律

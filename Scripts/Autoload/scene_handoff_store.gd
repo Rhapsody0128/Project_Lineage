@@ -10,7 +10,7 @@ extends Node
 # marriage_proposal_request.gd),不用碰這支檔案。
 #
 # 用字串 key 分流不同用途,同一時間可以有好幾筆不同用途的資料同時待處理——例如
-# CastleTavernEvent 一次呼叫會先 queue "marriage_proposal" 給下下個場景用,又 queue
+# TownTavernEvent 一次呼叫會先 queue "marriage_proposal" 給下下個場景用,又 queue
 # "dialogue" 給下一個場景用,兩筆不會互相覆蓋。
 #
 # take() 讀取後立刻清空(比照原本 ProposalStore 在 _ready() 讀完就清空的用法);

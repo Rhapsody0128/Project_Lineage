@@ -2,11 +2,11 @@ extends Control
 
 ## 泛用的「地點選單」畫面:抵達大地圖上的某個 MapObject 後顯示,顯示哪個地點、
 ## 有哪些子選項完全由該地點的資料決定(見 System/map/map_object.gd 的
-## get_sub_locations()),這裡不寫死任何特定地點類型(城堡/村莊/遺跡等)的語意。
+## get_sub_locations()),這裡不寫死任何特定地點類型(城鎮/村莊/遺跡等)的語意。
 
 ## 目前接了真實行為的子地點按鈕文字(見 System/map/map_object.gd 的
 ## TYPE_SUB_LOCATIONS),其餘子地點還是空按鈕佔位。
-const CASTLE_LABEL := "城堡"
+const TOWN_LABEL := "城門"
 const CHAT_LABEL := "聊天"
 const TAVERN_LABEL := "酒館"
 const REST_LABEL := "休息"
@@ -29,8 +29,8 @@ func _ready() -> void:
 	for sub_location_label in MapObject.get_sub_locations(_map_object.type):
 		var button := Button.new()
 		button.text = sub_location_label
-		if sub_location_label == CASTLE_LABEL:
-			button.pressed.connect(_on_castle_button_pressed)
+		if sub_location_label == TOWN_LABEL:
+			button.pressed.connect(_on_town_button_pressed)
 		elif sub_location_label == CHAT_LABEL:
 			button.pressed.connect(_on_chat_button_pressed)
 		elif sub_location_label == TAVERN_LABEL:
@@ -49,23 +49,23 @@ func _find_entered_map_object() -> MapObject:
 	return null
 
 
-## 城堡守衛擋門 → 戰鬥 → 依勝負反應,整段流程(對話文案/AskBattle 詢問/戰報回傳)
-## 全部交給 System/event/castle/castle_gate_event.gd 的 CastleGateEvent 接管,這裡只
+## 城門守衛擋門 → 戰鬥 → 依勝負反應,整段流程(對話文案/AskBattle 詢問/戰報回傳)
+## 全部交給 System/event/town/town_gate_event.gd 的 TownGateEvent 接管,這裡只
 ## 負責告訴它事件結束後要回哪個場景(這個地點選單本身)。
-func _on_castle_button_pressed() -> void:
-	CastleGateEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
+func _on_town_button_pressed() -> void:
+	TownGateEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
-## 隨機村民聊天,同樣整段交給 System/event/castle/castle_chat_event.gd 的
-## CastleChatEvent 接管,聊完回到這個地點選單本身。
+## 隨機村民聊天,同樣整段交給 System/event/town/town_chat_event.gd 的
+## TownChatEvent 接管,聊完回到這個地點選單本身。
 func _on_chat_button_pressed() -> void:
-	CastleChatEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
+	TownChatEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
-## 酒館搭訕,整段交給 System/event/castle/castle_tavern_event.gd 的 CastleTavernEvent
+## 酒館搭訕,整段交給 System/event/town/town_tavern_event.gd 的 TownTavernEvent
 ## 接管,結束後回到這個地點選單本身。
 func _on_tavern_button_pressed() -> void:
-	CastleTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
+	TownTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
 ## 進入根據地:切去 Scenes/Base/base.tscn,建築內政的實際邏輯/畫面都在那個場景,

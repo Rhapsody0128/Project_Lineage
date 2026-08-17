@@ -509,7 +509,7 @@ func _announce_result() -> void:
 
 
 ## 一般情況直接照原路退回上一頁;但如果這場戰鬥是 AskBattle 選「否」進來、呼叫端有
-## 指定 on_result callback(例如城堡守衛戰鬥後要依勝負秀不同台詞,見
+## 指定 on_result callback(例如城門守衛戰鬥後要依勝負秀不同台詞,見
 ## BattleReportStore.pending_battle_result_callback 的註解),改成呼叫它、由它決定
 ## 接下來去哪個場景——讀到就立刻清空,不會遺留到下一場沒有指定 callback 的一般戰鬥。
 func _on_back_pressed() -> void:

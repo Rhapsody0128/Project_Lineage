@@ -1,4 +1,4 @@
-class_name CastleTavernEvent
+class_name TownTavernEvent
 extends LocationEvent
 
 ## 酒館搭訕事件,見 Scenes/MapLocation/map_location.gd「酒館」按鈕:隨機生一位
@@ -21,7 +21,7 @@ extends LocationEvent
 ## 直接播婉拒台詞收尾。
 
 const MARRIAGE_PROPOSAL_SCENE_PATH := "res://Scenes/Marriage/marriage_proposal.tscn"
-const BACKGROUND_PATH := "res://Images/Dialogue/Castle/tavern.png"
+const BACKGROUND_PATH := "res://Images/Dialogue/Town/town_tavern.png"
 
 var stranger: Character
 var courted: Character
@@ -29,7 +29,7 @@ var _return_scene_path: String
 
 
 static func trigger(return_scene_path: String) -> void:
-	var event := CastleTavernEvent.new()
+	var event := TownTavernEvent.new()
 	event._start(return_scene_path)
 
 
@@ -61,7 +61,7 @@ func _start(return_scene_path: String) -> void:
 
 
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 next_scene_path 自動接手轉場到
-## 告白畫面,跟 castle_chat_event.gd 的寫法一致。
+## 告白畫面,跟 town_chat_event.gd 的寫法一致。
 func _build_approach() -> Dialogue:
 	var stranger_speaker := DialogueSpeaker.new(stranger.id, stranger.full_name, stranger.face_path, GameEnums.DialogueSide.RIGHT)
 	var courted_speaker := DialogueSpeaker.new(courted.id, courted.full_name, courted.face_path, GameEnums.DialogueSide.LEFT)

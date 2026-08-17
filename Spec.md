@@ -48,7 +48,7 @@
   `CombatResolver.apply_damage()` 傷害直接扣 `character.hp`,歸零視為戰敗(`DefeatedEvent`)。
   `Character.hp` 跨戰鬥持續累積(`Battle._attach_battle_characteres()` 不再開戰前強制回滿),只能
   靠大地圖世界時間流逝按 `Character.HP_REGEN_PER_DAY`(目前 30/天)自然回復,見
-  `Character.advance_hp_regen()`(`Scenes/Map/map.gd` 的 `_process()` 逐幀呼叫)。城堡選單的
+  `Character.advance_hp_regen()`(`Scenes/Map/map.gd` 的 `_process()` 逐幀呼叫)。城鎮選單的
   「休息」選項(`Scenes/MapLocation/map_location.gd`)直接退回大地圖並強制開始播放時間,
   方便玩家停在原地等回血。
 - 勝負:固定跑 `Battle.TOTAL_ROUND=10` 回合。總大將沿用現有隊長機制(`Party.leader`/

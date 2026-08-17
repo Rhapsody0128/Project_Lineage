@@ -102,7 +102,7 @@ func _ready() -> void:
 		camera.zoom = MapSessionStore.camera_zoom
 		camera.position = MapSessionStore.camera_position
 	else:
-		# 出生點預設站在第一座城堡(spec 未指定起始位置)。
+		# 出生點預設站在第一座城鎮(spec 未指定起始位置)。
 		var start_pos := _objects[0].position if not _objects.is_empty() else MapSystem.MAP_SIZE / 2.0
 		map_system = MapSystem.new(start_pos, speed)
 		_current_map_object = _objects[0] if not _objects.is_empty() else null

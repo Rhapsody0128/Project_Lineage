@@ -30,7 +30,7 @@ var skill_list: Array[Skill]
 var level_system: LevelSystem
 var hp: int
 ## 婚姻/血緣資料,見 遊戲企劃設定總整理.md 二十二~三十一。目前只開欄位,
-## 實際寫入邏輯(結婚/生子)留給呼叫端(見 System/event/castle/castle_tavern_event.gd),
+## 實際寫入邏輯(結婚/生子)留給呼叫端(見 System/event/town/town_tavern_event.gd),
 ## 這裡不做任何自動判斷。
 var parent: Array[Character] = []
 var mate: Character = null

@@ -6,8 +6,8 @@ extends Node2D
 ## 只負責顯示,不做點擊判定——點擊命中測試統一由 MapSystem.pick_object()
 ## 處理(見 Scenes/Map/map.gd),避免多一套判定入口。
 
-const CASTLE_SIZE := Vector2(160, 160)
-const CASTLE_COLOR := Color(0.55, 0.45, 0.35)
+const TOWN_SIZE := Vector2(160, 160)
+const TOWN_COLOR := Color(0.55, 0.45, 0.35)
 const TERRITORY_COLOR := Color(0.55, 0.45, 0.35, 0.12)
 const LABEL_OFFSET := Vector2(-80, -150)
 
@@ -34,9 +34,9 @@ func setup(p_data: MapObject) -> void:
 
 func _add_square() -> void:
 	var square := ColorRect.new()
-	square.size = CASTLE_SIZE
-	square.position = -CASTLE_SIZE / 2.0
-	square.color = CASTLE_COLOR if data.type == GameEnums.MapObjectType.CASTLE else Color.GRAY
+	square.size = TOWN_SIZE
+	square.position = -TOWN_SIZE / 2.0
+	square.color = TOWN_COLOR if data.type == GameEnums.MapObjectType.TOWN else Color.GRAY
 	# Control 預設 mouse_filter = STOP,會把滑鼠事件吃掉、傳不到 map.gd 的
 	# _unhandled_input(),導致點正方形本身沒反應、點旁邊反而有反應(因為
 	# 落在 pick_object() 的圓形判定範圍內但沒被這個 Control 攔截)。這裡純

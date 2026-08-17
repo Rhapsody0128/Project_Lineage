@@ -13,14 +13,14 @@ extends Control
 # 下方選人清單點選一律會真的換我方人選(見 _on_picker_character_selected),兩種模式
 # 都一樣——INCOMING 模式下預設 _self_character 是對方原本屬意的 courted,但玩家可以
 # 改選清單裡其他符合資格的角色頂替上場;選了不是 courted 的人,接受機率就會降低
-# (見 MarriageRule.acceptance_chance(),由呼叫端 castle_tavern_event.gd 骰定並決定
+# (見 MarriageRule.acceptance_chance(),由呼叫端 town_tavern_event.gd 骰定並決定
 # 後續分支對話),這裡不算機率、不寫任何角色資料。
 #
 # 進場資料一律透過 SceneHandoffStore 這個通用 mailbox autoload 交接(key 是
 # MarriageProposalRequest.MAILBOX_KEY,見 System/marriage/marriage_proposal_request.gd)。
 # 這裡完全不寫 Character.mate/parent/children——接受/婉拒/取消只是把結果丟回呼叫端
 # 傳入的 callback,實際資料寫入時機由呼叫端決定(見
-# System/event/castle/castle_tavern_event.gd)。
+# System/event/town/town_tavern_event.gd)。
 # =========================================================
 
 @onready var title_label: Label = $Title

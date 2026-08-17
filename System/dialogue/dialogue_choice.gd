@@ -9,7 +9,7 @@ extends RefCounted
 ## System/ 底下。
 ##
 ## on_selected 是選了這個選項、切場景前要執行的額外副作用(例如把資料寫進場景交接用
-## 的 autoload,見 System/event/castle/castle_gate_event.gd 的 CastleGateEvent._start()
+## 的 autoload,見 System/event/town/town_gate_event.gd 的 TownGateEvent._start()
 ## 傳的那個彈 AskBattle 的 Callable),同樣一律由呼叫端傳入——DialogueChoice 不知道
 ## 也不需要知道 Callable 裡實際做了什麼,才不會讓這裡反過來牽扯特定事件的細節。
 

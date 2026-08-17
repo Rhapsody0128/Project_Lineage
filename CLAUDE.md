@@ -174,8 +174,8 @@ frame 觸發,是每跨過一天才觸發一次,快轉一次跳好幾天一樣會
 
 ## 事件與跨場景資料交接(LocationEvent + SceneHandoffStore)
 
-大地圖地點事件(`System/event/castle/*Event.gd`,例如 `CastleTavernEvent`/`CastleGateEvent`/
-`CastleChatEvent`)共用基底 `LocationEvent`(`RefCounted`,不是 Node):呼叫端(Scenes 層,
+大地圖地點事件(`System/event/town/*Event.gd`,例如 `TownTavernEvent`/`TownGateEvent`/
+`TownChatEvent`)共用基底 `LocationEvent`(`RefCounted`,不是 Node):呼叫端(Scenes 層,
 例如 `map_location.gd` 的按鈕)只呼叫一次子類別的 `trigger(return_scene_path)`,接下來對話/
 戰鬥怎麼串、播完要回哪裡,全部交給事件物件自己接管,文案常數跟流程方法集中寫在同一個
 class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好幾次場景切換(例如
@@ -185,7 +185,7 @@ class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好�
 **跨場景資料轉手一律走 `SceneHandoffStore`**(autoload,`Scripts/Autoload/scene_handoff_store.gd`)
 這個通用信箱,不要再為每個新情境各開一支 `pending_xxx` 欄位 + Autoload .gd(舊的
 `DialogueStore`/`ProposalStore` 已合併掉,不要再新增類似的專用 autoload)。用字串 key
-分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `CastleTavernEvent` 一次呼叫
+分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `TownTavernEvent` 一次呼叫
 會先 queue `"marriage_proposal"` 給下下個場景用,又 queue `"dialogue"` 給下一個場景用):
 
 - `queue(key, payload, next_scene_path, result_callback)` 存資料,再自己切場景。
@@ -199,7 +199,7 @@ class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好�
 **對話系統**(`Scenes/Dialogue/dialogue_box.gd`)是最大宗的使用者:`LocationEvent.goto_dialogue()`
 把 `Dialogue` 塞進 key `"dialogue"`(常數 `LocationEvent.DIALOGUE_MAILBOX_KEY`)、切去
 `dialogue_box.tscn`,`dialogue_box.gd` 讀取時用 `peek()` 而不是 `take()`——因為
-`DialogueLine.choices` 裡可能嵌著捕捉呼叫端 `self` 的 lambda(例如 `CastleGateEvent`
+`DialogueLine.choices` 裡可能嵌著捕捉呼叫端 `self` 的 lambda(例如 `TownGateEvent`
 「闖進去」選項接 `AskBattle.ask(...)`),提早清掉這份參照會讓觸發事件的 `RefCounted`
 物件提早被釋放,導致後續 callback 悄悄失效。
 

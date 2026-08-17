@@ -14,7 +14,7 @@ extends Node
 # 就用這個小隊對上一個隨機敵方小隊,而不是雙方都隨機生。
 #
 # pending_enemy_party 是 AskBattle(見 Scenes/BattleUtil/ask_battle.gd)專用的加碼交接
-# 欄位:敵方也是呼叫端指定的特定小隊(例如城堡守衛),不是隨機生的——跟 pending_self_party
+# 欄位:敵方也是呼叫端指定的特定小隊(例如城門守衛),不是隨機生的——跟 pending_self_party
 # 一起設定時,Battle 場景改用兩邊都指定的對戰,不會再幫敵方另外隨機生一支。
 # =========================================================
 
@@ -39,7 +39,7 @@ var pending_enemy_party: Party = null
 var pending_battle_mode: GameEnums.BattleMode = GameEnums.BattleMode.AUTO
 
 ## AskBattle(選「否」進即時戰鬥)專用的加碼交接欄位:呼叫端想在戰鬥結束、玩家按下
-## 「返回」時依勝負做點什麼(例如城堡守衛戰鬥後依勝負秀不同台詞,見
+## 「返回」時依勝負做點什麼(例如城門守衛戰鬥後依勝負秀不同台詞,見
 ## Scenes/MapLocation/map_location.gd 的 _on_guard_battle_result()),就把 Callable
 ## (簽章 func(result: GameEnums.BattleResultType))存進來;Battle 場景的
 ## _on_back_pressed() 讀到有效 Callable 就改呼叫它取代預設的 NavigationStore.go_back(),

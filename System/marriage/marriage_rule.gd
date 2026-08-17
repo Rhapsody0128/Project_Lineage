@@ -13,7 +13,7 @@ static func can_propose(self_character: Character, target_character: Character) 
 
 ## 告白成功率:玩家選的角色正是對方屬意的 intended_target 時 100% 接受,選了其他人
 ## (等於是拿別人去反告白,不是對方原本想要的人)只有 20%——見
-## System/event/castle/castle_tavern_event.gd 的告白後續分支,沒骰中就是真的告白失敗,
+## System/event/town/town_tavern_event.gd 的告白後續分支,沒骰中就是真的告白失敗,
 ## 沒有補骰的餘地。
 static func acceptance_chance(picked_character: Character, intended_target: Character) -> float:
 	return 100.0 if picked_character == intended_target else 20.0

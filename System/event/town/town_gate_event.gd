@@ -1,13 +1,13 @@
-class_name CastleGateEvent
+class_name TownGateEvent
 extends LocationEvent
 
-## 城堡守衛「擋門 → 戰鬥 → 依勝負反應」整段事件,見 Scenes/MapLocation/map_location.gd
-## 「城堡」按鈕:呼叫端只呼叫一次 CastleGateEvent.trigger(return_scene_path),接下來
+## 城門守衛「擋門 → 戰鬥 → 依勝負反應」整段事件,見 Scenes/MapLocation/map_location.gd
+## 「城門」按鈕:呼叫端只呼叫一次 TownGateEvent.trigger(return_scene_path),接下來
 ## 對話怎麼串、什麼時候彈 AskBattle、戰鬥打完依勝負秀哪句台詞,全部交給這個事件物件
 ## 接管,Scenes 層不需要知道任何細節。擋門前跟打完戰鬥後講話的固定是同一位守衛
 ## (guard,trigger() 當下隨機挑一位、整個事件過程只挑這一次),不是兩個對不上臉的路人。
 
-const BACKGROUND_PATH := "res://Images/Dialogue/Castle/castle_gate.png"
+const BACKGROUND_PATH := "res://Images/Dialogue/Town/town_gate.png"
 
 var guard: Character
 var _return_scene_path: String
@@ -18,11 +18,11 @@ func _init(p_return_scene_path: String = "") -> void:
 	guard = CharacterController.get_random_character()
 
 
-## 呼叫端(map_location.gd)按下「城堡」按鈕時呼叫這裡啟動整段事件。return_scene_path
+## 呼叫端(map_location.gd)按下「城門」按鈕時呼叫這裡啟動整段事件。return_scene_path
 ## 是這個事件全程「回原地」的目的地——擋門對話選「離開」、或闖進去打完戰鬥依勝負秀完
 ## 台詞,最後都是回到這裡,不會停在事件中途繞去的 Dialogue/Battle 場景上。
 static func trigger(return_scene_path: String) -> void:
-	var event := CastleGateEvent.new(return_scene_path)
+	var event := TownGateEvent.new(return_scene_path)
 	event._start()
 
 
@@ -45,7 +45,7 @@ func _start() -> void:
 	goto_dialogue(dialogue, _return_scene_path)
 
 
-## AskBattle 打完城堡守衛挑戰(不管是選「是」跳過戰鬥、還是選「否」走完即時戰鬥)呼叫
+## AskBattle 打完城門守衛挑戰(不管是選「是」跳過戰鬥、還是選「否」走完即時戰鬥)呼叫
 ## 這裡收尾:依勝負繞去 Dialogue 場景秀同一位守衛的一句反應,播完回到 _return_scene_path。
 func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 	var won := result == GameEnums.BattleResultType.SELF_WIN

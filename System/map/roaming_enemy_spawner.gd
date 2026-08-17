@@ -13,7 +13,7 @@ const SPAWN_RADIUS := 2200.0
 const VISION_RADIUS := 900.0
 const DESPAWN_RADIUS := 3200.0
 const SPAWN_CHANCE_PER_CELL := 0.35
-## 避免直接生成在城堡/根據地的領土範圍內。
+## 避免直接生成在城鎮/根據地的領土範圍內。
 const MIN_DISTANCE_FROM_MAP_OBJECT := 260.0
 ## 玩家選擇「離開」放過某隻敵人後,要先遠離這個距離才會解除避免重觸發的保護,見
 ## should_skip_encounter()。比 RoamingEnemyEvent 觸發用的 ENCOUNTER_RADIUS(30)大得多,

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bk5fpq6uyp5ev"
-path="res://.godot/imported/tavern.png-778c83df82da60d79f4637317bf84bbf.ctex"
+uid="uid://um1me3k2d6l4"
+path="res://.godot/imported/town_civilian.png-4876160fe7cd35e208c140cba44f3e0d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Castle/tavern.png"
-dest_files=["res://.godot/imported/tavern.png-778c83df82da60d79f4637317bf84bbf.ctex"]
+source_file="res://Images/Dialogue/Town/town_civilian.png"
+dest_files=["res://.godot/imported/town_civilian.png-4876160fe7cd35e208c140cba44f3e0d.ctex"]
 
 [params]
 

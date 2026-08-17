@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://gxvrtpcs5ng5"
-path="res://.godot/imported/castle_gate.png-074b85ea6ee92725c13de19477aef366.ctex"
+path="res://.godot/imported/town_gate.png-0d58b626aa550e62ec72e68fd259d0c6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Castle/castle_gate.png"
-dest_files=["res://.godot/imported/castle_gate.png-074b85ea6ee92725c13de19477aef366.ctex"]
+source_file="res://Images/Dialogue/Town/town_gate.png"
+dest_files=["res://.godot/imported/town_gate.png-0d58b626aa550e62ec72e68fd259d0c6.ctex"]
 
 [params]
 

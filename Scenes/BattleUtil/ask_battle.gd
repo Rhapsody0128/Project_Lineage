@@ -44,10 +44,10 @@ func _ready() -> void:
 	report_prompt_box.visible = false
 
 
-## 呼叫端(例如城堡守衛「闖進去」)問玩家是否跳過戰鬥,雙方固定用 self_party
+## 呼叫端(例如城門守衛「闖進去」)問玩家是否跳過戰鬥,雙方固定用 self_party
 ## 對上 enemy_party(呼叫端指定,不是隨機生的敵方隊伍)。report_title 留空時
 ## 用目前世界時間字串,跟其他戰報標題一致(見 BattleReportStore._seed_demo_reports())。
-## on_result 是選填的加碼:呼叫端想在戰鬥結束時依勝負做點什麼(例如城堡守衛依勝負
+## on_result 是選填的加碼:呼叫端想在戰鬥結束時依勝負做點什麼(例如城門守衛依勝負
 ## 秀不同台詞),就傳一個簽章 func(result: GameEnums.BattleResultType) 的 Callable——
 ## 傳了就由它決定戰鬥結束後要去哪個場景,不再直接切去 skip_return_scene_path/
 ## Battle 場景的預設返回行為(見 _on_skip_button_pressed()/Scenes/Battle/battle.gd 的

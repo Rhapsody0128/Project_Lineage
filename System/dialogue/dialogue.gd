@@ -11,10 +11,14 @@ extends RefCounted
 var speakers: Array[DialogueSpeaker]
 var lines: Array[DialogueLine]
 var current_index: int = 0
+## 場景背景圖資源路徑,留空(預設)就不顯示背景,比照 DialogueSpeaker.portrait_path 只存
+## 路徑字串,實際載入交給 Scenes 層(Scenes/Dialogue/dialogue_box.gd)。
+var background_path: String
 
-func _init(p_speakers: Array[DialogueSpeaker], p_lines: Array[DialogueLine]) -> void:
+func _init(p_speakers: Array[DialogueSpeaker], p_lines: Array[DialogueLine], p_background_path: String = "") -> void:
 	speakers = p_speakers
 	lines = p_lines
+	background_path = p_background_path
 
 var is_finished: bool:
 	get: return current_index >= lines.size()

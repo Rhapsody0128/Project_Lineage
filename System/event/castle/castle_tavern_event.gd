@@ -21,6 +21,7 @@ extends LocationEvent
 ## 直接播婉拒台詞收尾。
 
 const MARRIAGE_PROPOSAL_SCENE_PATH := "res://Scenes/Marriage/marriage_proposal.tscn"
+const BACKGROUND_PATH := "res://Images/Dialogue/Castle/tavern.png"
 
 var stranger: Character
 var courted: Character
@@ -65,11 +66,11 @@ func _build_approach() -> Dialogue:
 	var stranger_speaker := DialogueSpeaker.new(stranger.id, stranger.full_name, stranger.face_path, GameEnums.DialogueSide.RIGHT)
 	var courted_speaker := DialogueSpeaker.new(courted.id, courted.full_name, courted.face_path, GameEnums.DialogueSide.LEFT)
 	var lines: Array[DialogueLine] = [
-		DialogueLine.new(stranger_speaker.id, "請問..."),
-		DialogueLine.new(stranger_speaker.id, "我可以請你喝一杯嗎?"),
-		DialogueLine.new(courted_speaker.id, "這..."),
+		DialogueLine.new(stranger_speaker.id, "請問...",),
+		DialogueLine.new(stranger_speaker.id, "我可以請你喝一杯嗎?",),
+		DialogueLine.new(courted_speaker.id, "這...",),
 	]
-	return Dialogue.new([stranger_speaker, courted_speaker], lines)
+	return Dialogue.new([stranger_speaker, courted_speaker], lines, BACKGROUND_PATH)
 
 
 func _build_no_one_available() -> Dialogue:
@@ -78,7 +79,7 @@ func _build_no_one_available() -> Dialogue:
 		DialogueLine.new(stranger_speaker.id, "請問..."),
 		DialogueLine.new(stranger_speaker.id, "...不好意思,認錯人了。"),
 	]
-	return Dialogue.new([stranger_speaker], lines)
+	return Dialogue.new([stranger_speaker], lines, BACKGROUND_PATH)
 
 
 ## MarriageProposal 場景按下「接受」/「婉拒」後呼叫:self_character 是玩家最終選的
@@ -124,7 +125,8 @@ func _build_accepted_reaction(picked: Character, stranger_character: Character) 
 		DialogueLine.new(picked_speaker.id, "這是我的榮幸。"),
 		DialogueLine.new(stranger_speaker.id, "❤"),
 	]
-	return Dialogue.new([picked_speaker, stranger_speaker], lines)
+	return Dialogue.new([picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
+
 
 
 ## 玩家選了不是 courted 的人反告白,20% 成功率骰中的收尾:courted 出面引薦 picked,
@@ -138,7 +140,7 @@ func _build_change_but_accept_reaction(picked: Character, stranger_character: Ch
 		DialogueLine.new(picked_speaker.id, "你好...請問我有這個榮幸請你喝一杯嗎?"),
 		DialogueLine.new(stranger_speaker.id, "好啊!❤"),
 	]
-	return Dialogue.new([courted_speaker, picked_speaker, stranger_speaker], lines)
+	return Dialogue.new([courted_speaker, picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
 
 
 ## 玩家選了不是 courted 的人反告白,20% 成功率沒骰中的收尾:stranger 婉拒這位
@@ -152,7 +154,7 @@ func _build_rejected_reaction(picked: Character, stranger_character: Character) 
 		DialogueLine.new(picked_speaker.id, "你好...請問我有這個榮幸請你喝一杯嗎?"),
 		DialogueLine.new(stranger_speaker.id, "這...恐怕有點不合適。"),
 	]
-	return Dialogue.new([courted_speaker, picked_speaker, stranger_speaker], lines)
+	return Dialogue.new([courted_speaker, picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
 
 
 func _build_declined_reaction(self_character: Character) -> Dialogue:
@@ -160,4 +162,4 @@ func _build_declined_reaction(self_character: Character) -> Dialogue:
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(speaker.id, "這恐怕有點不合適..."),
 	]
-	return Dialogue.new([speaker], lines)
+	return Dialogue.new([speaker], lines, BACKGROUND_PATH)

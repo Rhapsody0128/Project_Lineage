@@ -7,6 +7,8 @@ extends LocationEvent
 ## 接管,Scenes 層不需要知道任何細節。擋門前跟打完戰鬥後講話的固定是同一位守衛
 ## (guard,trigger() 當下隨機挑一位、整個事件過程只挑這一次),不是兩個對不上臉的路人。
 
+const BACKGROUND_PATH := "res://Images/Dialogue/Castle/castle_gate.png"
+
 var guard: Character
 var _return_scene_path: String
 
@@ -84,7 +86,7 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 			DialogueLine.new(player_speaker.id, "（我還沒整頓好隊伍,先回去編隊吧。）", choices),
 		]
 
-	return Dialogue.new([guard_speaker, player_speaker], lines)
+	return Dialogue.new([guard_speaker, player_speaker], lines, BACKGROUND_PATH)
 
 
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 next_scene_path 自動接手轉場。
@@ -94,4 +96,4 @@ func _build_result(won: bool) -> Dialogue:
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(guard_speaker.id, "國王不會饒過你的..." if won else "不要再來了"),
 	]
-	return Dialogue.new([guard_speaker], lines)
+	return Dialogue.new([guard_speaker], lines, BACKGROUND_PATH)

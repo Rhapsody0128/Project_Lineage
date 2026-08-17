@@ -15,6 +15,7 @@ extends Control
 ## 呼叫端根本沒塞資料)自動切去 next_scene_path。遇到選擇題(DialogueLine.has_choices)
 ## 改成顯示選項按鈕、讓 ClickCatcher 讓開,玩家只能靠選按鈕離開這句,見 _refresh_choices()。
 
+@onready var background: TextureRect = $Background
 @onready var left_portrait: TextureRect = $LeftPortraitFrame
 @onready var left_mask: ColorRect = $LeftPortraitFrame/LeftGrayMask
 @onready var right_portrait: TextureRect = $RightPortraitFrame
@@ -41,6 +42,8 @@ func _ready() -> void:
 		# 防呆:不是從 LocationEvent.goto_dialogue() 的正常流程進來(例如直接開這個場景測試)。
 		_leave()
 		return
+
+	background.texture = load(dialogue.background_path) as Texture2D if not dialogue.background_path.is_empty() else null
 
 	dialogue.current_index = 0
 	_refresh()

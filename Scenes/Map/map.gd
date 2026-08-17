@@ -112,7 +112,7 @@ func _ready() -> void:
 	player_avatar.position = map_system.position
 	player_avatar.play("idle_Down")
 
-	header_bar.add_resource_menu_button()
+	header_bar.add_status_button()
 
 	_clamp_camera_position()
 	if map_system.is_moving:

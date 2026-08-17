@@ -106,6 +106,26 @@ func remove(character: Character) -> void:
 	if character == _leader:
 		_leader = null
 
+## 找出離「靠左、垂直置中」目標格最近的合法擺放位置,只在解鎖區內找,用曼哈頓
+## 距離排序;找不到任何合法擺放時回傳 Vector2i(-1, -1)。給尚未經玩家手動編輯過的
+## 初始擺盤用(見 main.gd 的 _ensure_starting_party()),不管形狀多大/多不規則
+## 都能找到最貼近「靠左置中」語意的位置,而不是死板寫死一個格子、遇到形狀擺不下
+## 就整個放置失敗。
+func find_leaning_left_anchor(shape: Array[Vector2i]) -> Vector2i:
+	var target := Vector2i(UNLOCK_COL_MIN, roundi((UNLOCK_ROW_MIN + UNLOCK_ROW_MAX) / 2.0))
+	var best := Vector2i(-1, -1)
+	var best_dist := -1
+	for y in range(UNLOCK_ROW_MIN, UNLOCK_ROW_MAX + 1):
+		for x in range(UNLOCK_COL_MIN, UNLOCK_COL_MAX + 1):
+			var anchor := Vector2i(x, y)
+			if not can_place(shape, anchor):
+				continue
+			var dist := absi(anchor.x - target.x) + absi(anchor.y - target.y)
+			if best_dist == -1 or dist < best_dist:
+				best = anchor
+				best_dist = dist
+	return best
+
 ## 明確指定隊長;只有已放置的角色才能被設為隊長。
 func set_leader(character: Character) -> void:
 	if is_placed(character):

@@ -3,8 +3,8 @@ extends Node2D
 ## 根據地場景整合層,比照 Scenes/Map/map.gd 的角色分工,但沒有走位/攝影機拖曳縮放
 ## (使用者已確認:直接點擊建築物,不做角色走到定點——見計畫)。背景圖 1024x559,
 ## 靠根節點 scale 撐滿視窗寬度,UI 放獨立 CanvasLayer 不受這個 scale 影響。跟大地圖
-## 一樣掛 HeaderBar(見 Scripts/UI/header_bar.gd),資源下拉選單走
-## HeaderBar.add_resource_menu_button()(Map 場景也掛同一顆,見 map.gd),不另外開一條
+## 一樣掛 HeaderBar(見 Scripts/UI/header_bar.gd),隊伍/資源狀態面板走
+## HeaderBar.add_status_button()(Map 場景也掛同一顆,見 map.gd),不另外開一條
 ## 常駐的資源列。建築本身不畫任何額外圖層(不疊色塊、不顯示中文名稱標籤)——
 ## Images/Base/base.jpg 的美術已經畫好建築長相,BuildingLibrary 的 territory_polygon
 ## 只用來做點擊命中判定(見 BaseSystem.pick_building()),純資料、不需要對應的畫面節點。
@@ -22,7 +22,7 @@ func _ready() -> void:
 
 	header_bar = HeaderBar.new()
 	ui_layer.add_child(header_bar)
-	header_bar.add_resource_menu_button()
+	header_bar.add_status_button()
 
 
 func _process(_delta: float) -> void:

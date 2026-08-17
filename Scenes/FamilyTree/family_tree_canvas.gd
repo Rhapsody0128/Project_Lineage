@@ -10,7 +10,8 @@ extends Control
 # 才滾得到全部內容。
 #
 # 卡片內容比照使用者需求:「本人 | 配偶」左右兩欄,每欄左上頭像、右上姓名/年齡/
-# 性別並排,下面一條分隔線接血統清單(含百分比計量表,資料來源/配色跟
+# 性別/血統評級(Character.noble_bloodline_rank)並排,下面一條分隔線接血統清單
+# (含百分比計量表,資料來源/配色跟
 # CharacterDetailView._populate_bloodline() 一致;固定只留約 3~4 條的高度,超過用
 # ScrollContainer 內部捲動,不撐高卡片)。沒有配偶時卡片只有一欄、不留空欄——所以
 # 卡片寬度依 unit 是否有 partner 分兩種(CARD_WIDTH_SINGLE/CARD_WIDTH_COUPLE),但
@@ -25,19 +26,27 @@ extends Control
 # 範圍內也能按住拖曳平移(_input() 而非 _gui_input(),見下方拖曳段落)。
 # =========================================================
 
-const CARD_HEIGHT := 250.0
-const CARD_WIDTH_SINGLE := 240.0
-const CARD_WIDTH_COUPLE := 480.0
+## CARD_HEIGHT/CARD_WIDTH_*/COLUMN_WIDTH 比原本各拉高/拉寬一截,多留給新增的
+## 「血統評級」列(見 _build_person_column())——連接線的置中邏輯(_draw()/
+## render() 的 slot_center_x)完全是從這幾個常數即時算出來的,不是寫死座標,
+## 這裡調整不需要另外校正祖譜線。
+const CARD_HEIGHT := 272.0
+const CARD_WIDTH_SINGLE := 260.0
+const CARD_WIDTH_COUPLE := 520.0
 const SLOT_GAP := 70.0
 const ROW_GAP := 90.0
 const CANVAS_MARGIN := 40.0
-const COLUMN_WIDTH := 210.0
+const COLUMN_WIDTH := 230.0
 const PORTRAIT_SIZE := Vector2(56, 56)
 
 const PANEL_BG := Color(0.13, 0.15, 0.21, 0.95)
 const PANEL_BORDER := Color(0.36, 0.4, 0.56, 1)
 const LINE_COLOR := Color(0.95, 0.9, 0.72, 1)
 const LINE_WIDTH := 3.0
+
+## 血統評級文字色,跟 CharacterDetailView.BLOODLINE_RANK_COLOR 同一套金色,
+## 兩處都是「評級」語意,視覺語言統一。
+const BLOODLINE_RANK_COLOR := Color(1.0, 0.85, 0.3)
 
 const BLOODLINE_BAR_HEIGHT := 8.0
 const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
@@ -197,6 +206,11 @@ func _build_person_column(character: Character) -> Control:
 	portrait.custom_minimum_size = PORTRAIT_SIZE
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_SCALE
+	# Control 預設 size_flags_vertical 是 SIZE_FILL,HBoxContainer 會把它撐到跟
+	# info_column 一樣高——新增血統評級那列之後 info_column 變得比 PORTRAIT_SIZE 高,
+	# 沒有這行頭像就會被垂直拉伸變形。SHRINK_CENTER 讓它固定維持 PORTRAIT_SIZE 正方形,
+	# 高度不夠的部分置中,不跟著 info_column 撐高。
+	portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if not character.face_path.is_empty():
 		portrait.texture = load(character.face_path) as Texture2D
 	top_row.add_child(portrait)
@@ -209,6 +223,10 @@ func _build_person_column(character: Character) -> Control:
 	info_column.add_child(_build_stat_row("姓名", character.full_name, 14))
 	info_column.add_child(_build_stat_row("年齡", "%d歲" % character.age, 12))
 	info_column.add_child(_build_stat_row("性別", GameEnums.gender_symbol(character.gender), 12))
+
+	var rank_row := _build_stat_row("血統評級", GameEnums.rank_label(character.noble_bloodline_rank), 12)
+	rank_row.get_child(1).add_theme_color_override("font_color", BLOODLINE_RANK_COLOR)
+	info_column.add_child(rank_row)
 
 	content.add_child(HSeparator.new())
 

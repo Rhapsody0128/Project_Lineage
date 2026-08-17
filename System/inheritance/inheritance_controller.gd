@@ -26,7 +26,8 @@ static func create_child(father: Character, mother: Character) -> Character:
 	var traits := TraitController.get_random_traits(2)
 	var weapon: int = Util.get_random_from_array(CharacterController.RANDOM_WEAPON_POOL)
 	var skill_list := SkillController.get_skill_list_by_weapon(weapon)
-	var battle_cost := BattleCostController.get_random_battle_cost()
+	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
+	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))
 
 	return Character.new(character_name, last_name, age, gender, face_path, traits,
 		potential, bloodline, weapon, skill_list, LevelSystem.new(), battle_cost)

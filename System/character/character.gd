@@ -20,6 +20,10 @@ var face_path: String
 var traits: Array[CharacterTrait]
 var potential: Potential
 var bloodline: Bloodline
+## 高階血統(NOBLE)評分,GameEnums.RankType,見 _compute_noble_bloodline_rank()——
+## 跟 Potential 的 xxx_rank 欄位同一套慣例:建立角色當下算好存欄位,不隨後續變動,
+## UI 顯示端(CharacterDetailView 等)直接讀這個欄位,不自己再算一次。
+var noble_bloodline_rank: int
 ## 目前手持的武器,決定哪些 bind_weapon 技能能施放
 var weapon: GameEnums.WeaponType
 var skill_list: Array[Skill]
@@ -61,11 +65,23 @@ func _init(
 	traits = p_traits
 	potential = p_potential
 	bloodline = p_bloodline
+	noble_bloodline_rank = compute_noble_bloodline_rank(p_bloodline)
 	weapon = p_weapon
 	skill_list = p_skill_list
 	level_system = p_level_system
 	battle_cost = p_battle_cost
 	hp = hp_max
+
+## 高階血統評分:Bloodline.get_total_noble_percentage() 每 STEP(12.5)一階換算成
+## GameEnums.RankType(E~SSS 共 8 階,STEP*8 剛好等於 Bloodline.TOTAL 上限),對照表見
+## 遊戲企劃設定總整理.md:0~<12.5=E、12.5~<25=D、25~<37.5=C、37.5~<50=B、
+## 50~<62.5=A、62.5~<75=S、75~<87.5=SS、87.5~100=SSS。公開(非底線開頭)是因為
+## CharacterController/InheritanceController 建立角色時,battle_cost 格數要看
+## 這個評分先算(見 BattleCostController.cells_for_noble_rank()),
+## 必須在 Character 物件實際建立「之前」就拿得到,不能等 _init() 內部才算。
+static func compute_noble_bloodline_rank(p_bloodline: Bloodline) -> int:
+	var total := p_bloodline.get_total_noble_percentage()
+	return mini(floori(total / Bloodline.STEP), GameEnums.RankType.SSS)
 
 ## 該技能目前是否能施放:未綁定特定武器(NO_WEAPON_BINDING)一律可用,綁了武器則要手持相符武器
 func can_use_skill(skill: Skill) -> bool:

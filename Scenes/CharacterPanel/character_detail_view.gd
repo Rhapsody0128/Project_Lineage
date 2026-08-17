@@ -41,6 +41,9 @@ const RADAR_MIN_SIZE := Vector2(280, 220)
 const BLOODLINE_BAR_HEIGHT := 10.0
 const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
 const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
+## 高階血統評分(Character.noble_bloodline_rank)標籤色,比照 roaming_enemy_visual.gd
+## 評分標籤的金色,兩處都是「評級」語意,視覺語言統一。
+const BLOODLINE_RANK_COLOR := Color(1.0, 0.85, 0.3)
 
 ## 家族分頁每個成員列的小頭像,比 header 的 PORTRAIT_SIZE 小一號——一行只需要
 ## 辨識用,不需要跟主要立繪搶視覺。
@@ -89,6 +92,7 @@ var battle_cost_view: BattleCostView
 var potential_value_labels: Array[Label] = []
 var radar: CharacterPotentialRadar
 var bloodline_list: VBoxContainer
+var bloodline_rank_value_label: Label
 var skill_row: GridContainer
 var trait_list: HFlowContainer
 var parent_list: VBoxContainer
@@ -125,6 +129,7 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 		name_label.text = ""
 		age_label.text = ""
 		gender_label.text = ""
+		bloodline_rank_value_label.text = ""
 		radar.set_character(null)
 		return
 
@@ -132,6 +137,7 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 	name_label.text = character.full_name
 	age_label.text = "%d" % character.age
 	gender_label.text = GameEnums.gender_symbol(character.gender)
+	bloodline_rank_value_label.text = GameEnums.rank_label(character.noble_bloodline_rank)
 
 	level_value_label.text = "%d" % character.level_system.level
 	_update_exp_bar(character.level_system)
@@ -175,11 +181,12 @@ func _build_stat_row(caption: String) -> Dictionary:
 
 
 ## 立繪(沿用放大的 Character.face_path 大頭貼,紙娃娃/全身立繪系統尚未製作,
-## 見遊戲企劃設定總整理.md 十一 紙娃娃系統)左半 + 姓名/年齡/性別右半,兩邊各佔
-## header 一半寬度(立繪置中不被撐大,比照 _build_attribute_tab() 的
-## battle_cost_frame+CenterContainer 寫法);右半三行都是 _build_stat_row() 的
+## 見遊戲企劃設定總整理.md 十一 紙娃娃系統)左半 + 姓名/年齡/性別/血統評級右半,
+## 兩邊各佔 header 一半寬度(立繪置中不被撐大,比照 _build_attribute_tab() 的
+## battle_cost_frame+CenterContainer 寫法);右半四行都是 _build_stat_row() 的
 ## 「標題靠左、數值靠右」列(justify-content: space-between),跟下面素質分頁同一套
-## 排版語彙,不再是單純堆疊的姓名/年齡/性別純文字。
+## 排版語彙,不再是單純堆疊的純文字。血統評級(Character.noble_bloodline_rank)排在
+## 性別下面一列,是使用者指定的位置——緊貼頭像,不用切到血統分頁才看得到評級。
 func _build_identity_header() -> Control:
 	var header := HBoxContainer.new()
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -216,6 +223,11 @@ func _build_identity_header() -> Control:
 	var gender_row := _build_stat_row("性別")
 	gender_label = gender_row["value_label"]
 	info_column.add_child(gender_row["row"])
+
+	var rank_row := _build_stat_row("評級")
+	bloodline_rank_value_label = rank_row["value_label"]
+	bloodline_rank_value_label.add_theme_color_override("font_color", BLOODLINE_RANK_COLOR)
+	info_column.add_child(rank_row["row"])
 
 	return header
 

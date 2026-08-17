@@ -14,6 +14,9 @@ const PICK_RADIUS := 120.0
 const DASH_LENGTH_PX := 16
 const DASH_GAP_PX := 12
 const LINE_WIDTH := 8.0
+## 玩家與遊蕩敵人距離小於這個值視為「撞上」,觸發 RoamingEnemyEvent(見
+## System/event/map/roaming_enemy_event.gd)。
+const ENCOUNTER_RADIUS := 30.0
 
 ## 拖曳靈敏度隨目前縮放比率內插:zoom 在 ZOOM_MIN(放到最大/看得最細)時用
 ## MIN 倍率(貼著游標的自然手感,不額外加速);zoom 在 ZOOM_MAX(縮到最小/看
@@ -27,6 +30,7 @@ const WASD_PAN_SPEED := 5000.0
 
 @onready var camera: Camera2D = $Camera
 @onready var map_objects_layer: Node2D = $MapObjectsLayer
+@onready var roaming_enemy_layer: Node2D = $RoamingEnemiesLayer
 @onready var destination_line: Line2D = $DestinationLine
 @onready var player_avatar: AnimatedSprite2D = $PlayerAvatar
 @onready var ui_layer: CanvasLayer = $UI
@@ -39,12 +43,22 @@ var _dragging := false
 var _mouse_down_pos := Vector2.ZERO
 var _last_dir_name := "Down"
 
+## RoamingEnemy.id -> RoamingEnemyVisual。敵人資料本身活在 RoamingEnemyStore(autoload,
+## 跨場景不釋放),這個節點字典只是「目前這次進地圖畫面上掛了哪些對應的顯示節點」,
+## 每次重新進 map.tscn 都要重建(見 _ready() 收尾呼叫的 _sync_enemy_visuals())。
+var _enemy_visuals: Dictionary = {}
+
 ## 角色目前「所在」的 MapObject(非 null 代表就站在那個地點上,不是路過);
 ## 出發後清空,抵達目的地後才會指向新的地點。用來判斷「已經在王城,再點王城」
 ## 這種不該觸發任何事的情況,以及地圖是否有多個地點正確之外的其他判斷。
 var _current_map_object: MapObject = null
 ## 目前正前往的 MapObject,抵達時用來把它寫進 _current_map_object。
 var _traveling_to: MapObject = null
+## 玩家直接點選遊蕩敵人移動時,追蹤中的目標——敵人本身會自己遊蕩,每幀都要把
+## map_system.target_position 重新指向牠目前的位置,不能只在出發當下瞄一次死點,
+## 否則敵人走開後玩家會撲空(見 _process() 的追蹤同步)。跟 _traveling_to(MapObject)
+## 互斥,同一時間只會有一個非 null。
+var _traveling_to_enemy: RoamingEnemy = null
 
 
 func _ready() -> void:
@@ -104,6 +118,10 @@ func _ready() -> void:
 	if map_system.is_moving:
 		_update_destination_line()
 
+	# 遊蕩敵人資料活在 RoamingEnemyStore,離開/返回地圖不會被清空,但顯示節點
+	# (RoamingEnemyVisual)每次都要重新掛——這裡先同步一次,不用等下一個 _process()。
+	_sync_enemy_visuals()
+
 
 func _find_object_by_id(id: String) -> MapObject:
 	for obj in _objects:
@@ -136,8 +154,18 @@ func _process(delta: float) -> void:
 	# HeaderBar 按鈕切換,4 是 DEMO 用的 100 倍速)套用在這裡的 delta 上,移動速度跟
 	# 時間流逝維持同一套加速比例。
 	if WorldTimeStore.controller.is_playing:
+		var move_delta := delta * WorldTimeStore.play_speed_multiplier
+
 		if map_system.is_moving:
-			var move_delta := delta * WorldTimeStore.play_speed_multiplier
+			# 追蹤中的敵人每幀都在自己遊蕩,目的地要跟著重新瞄準牠目前的位置,不能只在
+			# 出發當下鎖死一個點——敵人走開後才不會撲空。敵人消失(戰鬥觸發/逃出可視
+			# 範圍太遠被 despawn)就停止追蹤,維持在最後已知的位置前進。
+			if _traveling_to_enemy != null:
+				if RoamingEnemyStore.spawner.enemies.has(_traveling_to_enemy):
+					map_system.target_position = _traveling_to_enemy.position
+				else:
+					_traveling_to_enemy = null
+
 			var prev_pos := map_system.position
 			map_system.advance(move_delta)
 			_update_player_visual(map_system.position - prev_pos, map_system.is_moving)
@@ -150,13 +178,86 @@ func _process(delta: float) -> void:
 				# 地點」並觸發進入流程——點空白處單純是移動過去,沒有對應地點可進。
 				_current_map_object = _traveling_to
 				_traveling_to = null
+				_traveling_to_enemy = null
 				WorldTimeStore.controller.is_playing = false
 				if _current_map_object != null:
 					_enter_map_object(_current_map_object)
 					return
 
+		# 遊蕩敵人的生成/遊蕩/消失獨立於玩家是否正在走路(敵人可能自己晃進站著不動的
+		# 玩家),所以放在 is_moving 判斷之外,只要世界時間在流動就推進。
+		_update_roaming_enemies(move_delta)
+		if _check_roaming_encounters():
+			return
+
 	_update_wasd_pan(delta)
 	_update_hover_cursor()
+
+
+## 推進 RoamingEnemyStore 的生成/遊蕩/消失規則,再把畫面節點同步成目前的敵人清單。
+func _update_roaming_enemies(move_delta: float) -> void:
+	RoamingEnemyStore.spawner.update(map_system.position, move_delta)
+	_sync_enemy_visuals()
+
+
+## 比對 RoamingEnemyStore.spawner.enemies 與目前掛著的 RoamingEnemyVisual 節點:
+## 新出現的敵人生一個 visual,消失的敵人(超出 DESPAWN_RADIUS 或被戰鬥事件消耗掉)
+## 釋放對應 visual,其餘的同步位置/動畫,並依 VISION_RADIUS(隱藏可視範圍)決定
+## 是否顯示——敵人資料本身在可視範圍外一樣存在/持續遊蕩,只是不畫出來,避免整張
+## 地圖同時塞滿敵人。
+func _sync_enemy_visuals() -> void:
+	var live_ids: Dictionary = {}
+	for enemy in RoamingEnemyStore.spawner.enemies:
+		live_ids[enemy.id] = true
+		var visual: RoamingEnemyVisual = _enemy_visuals.get(enemy.id)
+		if visual == null:
+			visual = RoamingEnemyVisual.new()
+			roaming_enemy_layer.add_child(visual)
+			visual.setup(enemy)
+			_enemy_visuals[enemy.id] = visual
+		visual.update_visual()
+		visual.visible = RoamingEnemyStore.spawner.is_visible_to_player(enemy, map_system.position)
+
+	for id in _enemy_visuals.keys():
+		if not live_ids.has(id):
+			_enemy_visuals[id].queue_free()
+			_enemy_visuals.erase(id)
+
+
+## 玩家(或遊蕩敵人自己晃過來)與看得見的敵人距離小於 ENCOUNTER_RADIUS 時觸發
+## RoamingEnemyEvent,回傳是否有觸發(有的話呼叫端要 return,跟抵達 MapObject 的既有
+## 收尾動作一樣不要在同一幀繼續處理移動)。只檢查看得見的敵人——可視範圍外的不算撞上。
+## 剛被玩家選「離開」放過的敵人靠 should_skip_encounter() 暫時跳過,避免同一幀/下一幀
+## 立刻又重新觸發同一場對話。
+func _check_roaming_encounters() -> bool:
+	for enemy in RoamingEnemyStore.spawner.enemies:
+		if not RoamingEnemyStore.spawner.is_visible_to_player(enemy, map_system.position):
+			continue
+		if RoamingEnemyStore.spawner.should_skip_encounter(enemy, map_system.position):
+			continue
+		if map_system.position.distance_to(enemy.position) <= ENCOUNTER_RADIUS:
+			_trigger_roaming_encounter(enemy)
+			return true
+	return false
+
+
+## 撞上敵人的收尾:停止移動/時間(比照抵達 MapObject 的既有作法),交給
+## RoamingEnemyEvent 接管對話/戰鬥流程。這隻敵人要不要真的從 RoamingEnemyStore 消失
+## 由那邊依玩家選「戰鬥」還是「離開」決定(見 RoamingEnemyEvent._build_challenge()),
+## 這裡只負責先把顯示節點收掉,不代表資料本身也沒了。
+func _trigger_roaming_encounter(enemy: RoamingEnemy) -> void:
+	map_system.is_moving = false
+	destination_line.visible = false
+	_traveling_to = null
+	_traveling_to_enemy = null
+	WorldTimeStore.controller.is_playing = false
+
+	var visual: RoamingEnemyVisual = _enemy_visuals.get(enemy.id)
+	if visual != null:
+		visual.queue_free()
+		_enemy_visuals.erase(enemy.id)
+
+	RoamingEnemyEvent.trigger(enemy)
 
 
 ## 抵達地圖物件後的進入流程:切去泛用的地點選單場景——顯示哪個地點、有哪些子選項
@@ -326,6 +427,24 @@ func _update_wasd_pan(delta: float) -> void:
 
 func _handle_click_to_move() -> void:
 	var world_pos := camera.get_global_mouse_position()
+
+	# 遊蕩敵人優先判定:直接點在敵人身上要瞄準牠、追過去,不是走去玩家點下滑鼠當下
+	# 敵人所在的那個死點——敵人會自己遊蕩,見 _process() 每幀重新瞄準 _traveling_to_enemy
+	# 目前位置那段。只挑玩家看得見的敵人,跟 _sync_enemy_visuals() 的可視判定一致。
+	var picked_enemy := _pick_visible_enemy(world_pos)
+	if picked_enemy != null:
+		# 玩家主動點這隻敵人,視為明確想再次交手——就算是剛選過「離開」的同一隻、
+		# 玩家根本沒走遠,也要立刻解除重觸發保護,不然會變成一直追著牠移動卻永遠碰不到
+		# 對話(見 RoamingEnemySpawner.clear_declined() 註解)。
+		RoamingEnemyStore.spawner.clear_declined(picked_enemy)
+		map_system.set_destination(picked_enemy.position)
+		destination_line.visible = true
+		_traveling_to_enemy = picked_enemy
+		_traveling_to = null
+		_current_map_object = null
+		WorldTimeStore.controller.is_playing = true
+		return
+
 	var picked := map_system.pick_object(world_pos, _objects, PICK_RADIUS)
 	if picked != null and picked == _current_map_object:
 		# 已經站在這個地點,再點同一個 MapObject 不能走 set_destination()/is_playing=true
@@ -341,8 +460,25 @@ func _handle_click_to_move() -> void:
 	map_system.set_destination(destination)
 	destination_line.visible = true
 	_traveling_to = picked
+	_traveling_to_enemy = null
 	_current_map_object = null
 	WorldTimeStore.controller.is_playing = true
+
+
+## 找出滑鼠點在哪隻看得見的遊蕩敵人身上,取範圍內離滑鼠最近的一隻;沒點中回傳 null。
+## 比照 MapSystem.pick_object() 對 MapObject 的做法,但敵人是動態清單、沒有多邊形領土,
+## 純粹用 PICK_RADIUS 內最近點判定。
+func _pick_visible_enemy(world_pos: Vector2) -> RoamingEnemy:
+	var closest: RoamingEnemy = null
+	var closest_dist := PICK_RADIUS
+	for enemy in RoamingEnemyStore.spawner.enemies:
+		if not RoamingEnemyStore.spawner.is_visible_to_player(enemy, map_system.position):
+			continue
+		var d := enemy.position.distance_to(world_pos)
+		if d <= closest_dist:
+			closest_dist = d
+			closest = enemy
+	return closest
 
 
 ## 點空白處移動時,目的地夾在地圖範圍內——縮到很小時可以點到地圖外的灰色

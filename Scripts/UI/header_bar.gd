@@ -198,6 +198,11 @@ func add_menu_button(button_text: String) -> MenuButton:
 func add_resource_menu_button() -> void:
 	var button := add_menu_button("資源")
 	button.get_popup().about_to_popup.connect(_refresh_resource_menu.bind(button))
+	## 存量在背景變動時(例如根據地建築每日產出,見
+	## Scripts/Autoload/base_dispatch_store.gd 的 _on_day_passed()),若使用者當下正開著
+	## 這個下拉選單,也要跟著即時更新數字,不能只在「重新展開」時才刷新——否則存量早就
+	## 變了,畫面卻停在打開當下那一刻的舊值。
+	BaseResourceStore.changed.connect(_on_resource_amounts_changed.bind(button))
 
 
 func _refresh_resource_menu(button: MenuButton) -> void:
@@ -212,6 +217,13 @@ func _refresh_resource_menu(button: MenuButton) -> void:
 	if popup.item_count == 0:
 		popup.add_item("（尚無資源）")
 		popup.set_item_disabled(0, true)
+
+
+## 只在選單目前正打開時才重建內容——沒開的時候讓 about_to_popup 那條路徑處理就好,
+## 不用每次存量變動都重建一次沒人在看的 popup。
+func _on_resource_amounts_changed(button: MenuButton) -> void:
+	if button.get_popup().visible:
+		_refresh_resource_menu(button)
 
 
 func _on_speed_button_toggled(enabled: bool, level: int) -> void:

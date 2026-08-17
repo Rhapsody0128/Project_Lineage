@@ -23,6 +23,8 @@ texture = ExtResource("3_background")
 
 [node name="MapObjectsLayer" type="Node2D" parent="." unique_id=596360902]
 
+[node name="RoamingEnemiesLayer" type="Node2D" parent="."]
+
 [node name="DestinationLine" type="Line2D" parent="." unique_id=1109073231]
 visible = false
 default_color = Color(1, 1, 1, 0.85)

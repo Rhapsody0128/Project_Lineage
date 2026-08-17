@@ -31,6 +31,7 @@ SceneHandoffStore="*res://Scripts/Autoload/scene_handoff_store.gd"
 NewsStore="*res://Scripts/Autoload/news_store.gd"
 BaseResourceStore="*res://Scripts/Autoload/base_resource_store.gd"
 BaseDispatchStore="*res://Scripts/Autoload/base_dispatch_store.gd"
+RoamingEnemyStore="*res://Scripts/Autoload/roaming_enemy_store.gd"
 
 [display]
 

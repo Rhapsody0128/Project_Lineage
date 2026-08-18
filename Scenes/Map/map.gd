@@ -78,7 +78,7 @@ func _ready() -> void:
 	# 為避免大地圖直接崩潰/卡死,fallback 用一組隨機小隊頂替(MVP 穩健性假設)。
 	party = PartyStore.party
 	if party == null:
-		party = PartyController.get_random_party()
+		party = PartyController.get_random_party(GameEnums.RankType.F)
 
 	var avg_agi := MapSystem.compute_average_agi(party)
 	var speed := MapSystem.compute_speed(avg_agi)

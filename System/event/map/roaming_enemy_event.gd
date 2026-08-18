@@ -53,7 +53,7 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 ## 隨機小隊頂替,直接不給「戰鬥」選項,只能「離開」,比照 TownGateEvent._build_challenge。
 func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
 	var has_party := self_party != null
-	var player := self_party.leader if has_party else CharacterController.get_random_character()
+	var player := self_party.leader if has_party else CharacterController.get_random_character(GameEnums.RankType.F)
 	var bandit := _enemy.party.leader
 
 	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)

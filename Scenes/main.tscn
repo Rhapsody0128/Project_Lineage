@@ -1,42 +1,6 @@
 [gd_scene format=3 uid="uid://bksb6osavtmgu"]
 
 [ext_resource type="Script" uid="uid://dgit81v3kmeak" path="res://Scenes/main.gd" id="1_2qijk"]
-[ext_resource type="Texture2D" path="res://Images/UI/button_metal_normal.svg" id="2_stonebtn_n"]
-[ext_resource type="Texture2D" path="res://Images/UI/button_metal_hover.svg" id="3_stonebtn_h"]
-[ext_resource type="Texture2D" path="res://Images/UI/button_metal_pressed.svg" id="4_stonebtn_p"]
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_start_normal"]
-texture = ExtResource("2_stonebtn_n")
-texture_margin_left = 40.0
-texture_margin_top = 40.0
-texture_margin_right = 40.0
-texture_margin_bottom = 40.0
-content_margin_left = 48.0
-content_margin_top = 20.0
-content_margin_right = 48.0
-content_margin_bottom = 20.0
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_start_hover"]
-texture = ExtResource("3_stonebtn_h")
-texture_margin_left = 40.0
-texture_margin_top = 40.0
-texture_margin_right = 40.0
-texture_margin_bottom = 40.0
-content_margin_left = 48.0
-content_margin_top = 20.0
-content_margin_right = 48.0
-content_margin_bottom = 20.0
-
-[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_start_pressed"]
-texture = ExtResource("4_stonebtn_p")
-texture_margin_left = 40.0
-texture_margin_top = 40.0
-texture_margin_right = 40.0
-texture_margin_bottom = 40.0
-content_margin_left = 48.0
-content_margin_top = 22.0
-content_margin_right = 48.0
-content_margin_bottom = 18.0
 
 [node name="Main" type="Control" unique_id=937743142]
 layout_mode = 3
@@ -57,26 +21,15 @@ anchor_bottom = 1.0
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Map" type="Button" parent="CenterContainer/VBoxContainer"]
-custom_minimum_size = Vector2(260, 76)
+[node name="Map" type="Button" parent="CenterContainer/VBoxContainer" unique_id=157801364]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.949, 0.878, 0.741, 1)
-theme_override_colors/font_hover_color = Color(1, 0.96, 0.82, 1)
-theme_override_colors/font_pressed_color = Color(0.85, 0.78, 0.63, 1)
-theme_override_colors/font_outline_color = Color(0.106, 0.086, 0.055, 1)
-theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 28
-theme_override_styles/normal = SubResource("StyleBoxTexture_start_normal")
-theme_override_styles/hover = SubResource("StyleBoxTexture_start_hover")
-theme_override_styles/pressed = SubResource("StyleBoxTexture_start_pressed")
-theme_override_styles/focus = SubResource("StyleBoxTexture_start_hover")
+size_flags_stretch_ratio = 1.65
+offset_transform_enabled = true
 text = "Start"
 
 [node name="Quit" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1528908134]
 layout_mode = 2
 text = "Quit"
 
-[connection signal="pressed" from="CenterContainer/VBoxContainer/PartyEdit" to="." method="_on_party_edit_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/Map" to="." method="_on_map_pressed"]
-[connection signal="pressed" from="CenterContainer/VBoxContainer/Reports" to="." method="_on_reports_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/Quit" to="." method="_on_quit_pressed"]

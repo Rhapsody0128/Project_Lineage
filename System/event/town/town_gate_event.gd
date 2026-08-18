@@ -15,7 +15,7 @@ var _return_scene_path: String
 
 func _init(p_return_scene_path: String = "") -> void:
 	_return_scene_path = p_return_scene_path
-	guard = CharacterController.get_random_character()
+	guard = CharacterController.get_random_character(GameEnums.RankType.B)
 
 
 ## 呼叫端(map_location.gd)按下「城門」按鈕時呼叫這裡啟動整段事件。return_scene_path
@@ -28,7 +28,7 @@ static func trigger(return_scene_path: String) -> void:
 
 func _start() -> void:
 	var self_party := PartyStore.party
-	var guard_party := PartyController.get_random_party()
+	var guard_party := PartyController.get_random_party(GameEnums.RankType.F)
 
 	# 這趟會先繞去 Dialogue 場景,不是直接切去 Battle,所以「回上一頁」不能靠
 	# NavigationStore.go_to() 在切場景當下自動抓 current_scene(那樣抓到的會是
@@ -61,7 +61,7 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 ## 守衛台詞也換成請玩家先去整隊。
 func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
 	var has_party := self_party != null
-	var player := self_party.leader if has_party else CharacterController.get_random_character()
+	var player := self_party.leader if has_party else CharacterController.get_random_character(GameEnums.RankType.F)
 
 	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
 	var guard_speaker := DialogueSpeaker.new(guard.id, guard.full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)

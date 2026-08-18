@@ -1,7 +1,12 @@
 extends Control
 
+@onready var _map_button: Button = $CenterContainer/VBoxContainer/Map
+@onready var _quit_button: Button = $CenterContainer/VBoxContainer/Quit
+
 func _ready() -> void:
 	_ensure_starting_party()
+	UiStyle.apply_wood_plaque_button(_map_button)
+	UiStyle.apply_wood_plaque_button(_quit_button)
 
 
 ## 遊戲一開始(PartyStore.party 還是 null,代表玩家沒去過 PartyEdit 編過隊)就

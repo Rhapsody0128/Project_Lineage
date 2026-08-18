@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cj3ih4ujhvfmk"
-path="res://.godot/imported/button_metal_normal.svg-5455889f90912e1408273ecd354d7438.ctex"
+uid="uid://dle1jnv6fncoi"
+path="res://.godot/imported/wood_button_pressed.png-e4a1be65b6b52e109999197522573bbd.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/UI/button_metal_normal.svg"
-dest_files=["res://.godot/imported/button_metal_normal.svg-5455889f90912e1408273ecd354d7438.ctex"]
+source_file="res://Images/UI/wood_button_pressed.png"
+dest_files=["res://.godot/imported/wood_button_pressed.png-e4a1be65b6b52e109999197522573bbd.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

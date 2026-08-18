@@ -20,7 +20,8 @@ var position: Vector2
 var anchor: Vector2
 ## 生成當下就 roll 好一支完整隊伍,固定到敵人消失為止,不會每次戰鬥重骰。
 var party: Party
-## GameEnums.RankType,目前一律固定 E,見 CLAUDE.md 待辦。
+## GameEnums.RankType,顯示用標籤,直接沿用生成當下的 party.rank_type
+## (見 RoamingEnemySpawner._try_spawn_in_cell())。
 var rank: int
 ## 遊蕩移動速度:比照玩家(MapSystem.compute_average_agi()/compute_speed()),用
 ## 這支敵人隊伍的平均 AGI 換算,不是寫死的常數——隊伍骰出來就固定,跟 party 一樣

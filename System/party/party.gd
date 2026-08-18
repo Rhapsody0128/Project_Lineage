@@ -21,6 +21,13 @@ var leader: Character
 ## 互不影響。
 var battle_cost_positions: Dictionary = {}  # Character -> Vector2i
 
+## 這個小隊的整體評級,PartyController.get_random_party() 建立時一定會賦值(呼叫端有
+## 指定就用指定值,沒指定就額外隨機骰一個)——純粹用來決定戰鬥勝利 EXP(見
+## System/battle/battle_reward.gd),不影響隊內角色 Bloodline/Potential 各自的隨機生成。
+## 非 PartyController 生成的 Party(例如玩家自編小隊)預設 -1,不參與 EXP 判定
+## (EXP 只看被擊敗的敵方 Party)。
+var rank_type: int = -1
+
 ## 這個小隊在戰鬥中可施放的奧義(見 System/ultimate/),即時戰鬥模式
 ## (Battle.start_realtime())才會用到,由 PartyController 建立小隊時指派預設值
 ## (UltimateLibrary.default_ultimates())。

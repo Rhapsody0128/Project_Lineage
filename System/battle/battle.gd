@@ -14,6 +14,11 @@ const TOTAL_ROUND := 10
 var self_characteres: Array[BattleCharacter]
 var enemy_characteres: Array[BattleCharacter]
 
+## 敵方 Party 的評級(GameEnums.RankType),戰鬥勝利後 BattleReward.grant_victory_exp()
+## 查表發 EXP 用。敵方 Party 一律經 PartyController.get_random_party() 生成、一定有
+## Party.rank_type,這裡的 F 只是防呆 fallback。
+var enemy_rank_type: int = GameEnums.RankType.F
+
 ## 雙方可施放的奧義(見 System/ultimate/),即時戰鬥模式(start_realtime())才會用到,
 ## 從 Party.ultimates 複製一份——奧義本身是無狀態資料,施放次數限制另外用
 ## _ultimate_use_counts(依 Ultimate.id 計數)追蹤,不會共用/污染到 Party 上的原始清單。
@@ -32,6 +37,8 @@ func _init(self_party: Party, enemy_party: Party) -> void:
 	_deploy_side(enemy_characteres, enemy_party, true)
 	self_ultimates = self_party.ultimates.duplicate()
 	enemy_ultimates = enemy_party.ultimates.duplicate()
+	if enemy_party.rank_type != -1:
+		enemy_rank_type = enemy_party.rank_type
 	_capture_start_state()
 
 ## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。不再開戰前強制回滿血——Character.hp 是

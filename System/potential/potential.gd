@@ -1,6 +1,11 @@
 class_name Potential
 extends RefCounted
 
+## rank_from_ratio() 的換算基準,PotentialController 指定目標 RankType 生成 ratio 時
+## 也要反推同一組數字,提升成 class 常數避免兩邊各自硬編一次。
+const BASE_RATIO := 0.5
+const RANK_GAP := 0.2
+
 var strength: float
 var vitality: float
 var agility: float
@@ -73,9 +78,6 @@ func _init(
 ## 基準值為 0.5，每增加 0.2 提升一個排名。
 ## 最低為 F，最高限制為 SSS。
 static func rank_from_ratio(ratio: float) -> int:
-	const BASE_RATIO := 0.5
-	const RANK_GAP := 0.2
-
 	var rank := floori((ratio - BASE_RATIO) / RANK_GAP) + GameEnums.RankType.F
 
 	return clampi(

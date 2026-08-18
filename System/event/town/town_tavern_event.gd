@@ -35,7 +35,7 @@ static func trigger(return_scene_path: String) -> void:
 
 func _start(return_scene_path: String) -> void:
 	_return_scene_path = return_scene_path
-	stranger = CharacterController.get_random_character()
+	stranger = CharacterController.get_random_character(GameEnums.RankType.F)
 
 	var eligible: Array[Character] = []
 	for character in CharacterRosterStore.all_characteres:

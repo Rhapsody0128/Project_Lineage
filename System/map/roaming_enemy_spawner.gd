@@ -121,8 +121,8 @@ func _try_spawn_in_cell(cell: Vector2i) -> void:
 	if _is_too_close_to_map_object(spawn_pos):
 		return
 
-	var party := PartyController.get_random_party()
-	var enemy := RoamingEnemy.new(Util.generate_uuid(), spawn_pos, party, GameEnums.RankType.E)
+	var party := PartyController.get_random_party(GameEnums.RankType.F)
+	var enemy := RoamingEnemy.new(Util.generate_uuid(), spawn_pos, party, party.rank_type)
 	enemies.append(enemy)
 
 

@@ -47,7 +47,7 @@ func _on_leader_change_requested(character: Character) -> void:
 
 
 func _on_add_character_pressed() -> void:
-	var character := CharacterController.get_random_character()
+	var character := CharacterController.get_random_character(GameEnums.RankType.F)
 	AllCharacterStore.register(character)
 	CharacterRosterStore.all_characteres.append(character)
 	_refresh_roster()

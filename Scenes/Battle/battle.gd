@@ -329,6 +329,7 @@ func _run_battle_playback(should_simulate: bool) -> void:
 	pause_button.text = "暫停"
 	_announce_result()
 	if should_simulate:
+		BattleReward.grant_victory_exp(battle)
 		_record_battle_report()
 
 
@@ -394,6 +395,7 @@ func _run_battle_realtime() -> void:
 	pause_button.text = "暫停"
 	skip_button.visible = false
 	_announce_result()
+	BattleReward.grant_victory_exp(battle)
 	_record_battle_report()
 	_stop_realtime()
 
@@ -457,6 +459,7 @@ func _on_skip_pressed() -> void:
 	pause_button.text = "暫停"
 	skip_button.visible = false
 	_announce_result()
+	BattleReward.grant_victory_exp(battle)
 	_record_battle_report()
 
 

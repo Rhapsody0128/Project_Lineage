@@ -2,13 +2,13 @@ class_name BattleController
 extends RefCounted
 
 static func get_random_battle() -> Battle:
-	var self_party := PartyController.get_random_party()
-	var enemy_party := PartyController.get_random_party()
+	var self_party := PartyController.get_random_party(GameEnums.RankType.F)
+	var enemy_party := PartyController.get_random_party(GameEnums.RankType.F)
 	return Battle.new(self_party, enemy_party)
 
 ## PartyEdit「以現在編成開始戰鬥」用:玩家自己編好的小隊對上一個隨機敵方小隊。
 static func get_battle_with_self_party(self_party: Party) -> Battle:
-	var enemy_party := PartyController.get_random_party()
+	var enemy_party := PartyController.get_random_party(GameEnums.RankType.F)
 	return Battle.new(self_party, enemy_party)
 
 ## AskBattle(見 Scenes/BattleUtil/ask_battle.gd)用:雙方小隊都由呼叫端明確指定

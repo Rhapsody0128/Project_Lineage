@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cly8a4v5yopw0"
-path="res://.godot/imported/button_metal_hover.svg-523fbaf60ab8a8a9c5ed1bdd99aedd07.ctex"
+uid="uid://bxxnl0r6hgf5a"
+path="res://.godot/imported/wood_button_hover.png-2a13e4ad995af1cb8a423825c8ec509c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/UI/button_metal_hover.svg"
-dest_files=["res://.godot/imported/button_metal_hover.svg-523fbaf60ab8a8a9c5ed1bdd99aedd07.ctex"]
+source_file="res://Images/UI/wood_button_hover.png"
+dest_files=["res://.godot/imported/wood_button_hover.png-2a13e4ad995af1cb8a423825c8ec509c.ctex"]
 
 [params]
 
@@ -38,6 +38,3 @@ process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
-svg/scale=1.0
-editor/scale_with_editor_scale=false
-editor/convert_colors_with_editor_theme=false

@@ -14,7 +14,10 @@ const RANDOM_WEAPON_POOL: Array[int] = [
 	GameEnums.WeaponType.DREAMCATCHER,
 ]
 
-static func get_random_character() -> Character:
+## rank_type/nation 不填(-1)= 維持原本隨機生成(Bloodline Rank/Potential Rank/國家各自
+## 獨立隨機);指定時整份 Bloodline/Potential 都依指定條件產生,見
+## PotentialController.get_random_potential()/BloodlineController.get_random_bloodline()。
+static func get_random_character(rank_type: int = -1, nation: int = -1) -> Character:
 	var gender = Util.get_random_from_array([GameEnums.Gender.MALE, GameEnums.Gender.FEMALE])
 	var character_name: String
 	if gender == GameEnums.Gender.MALE:
@@ -26,8 +29,8 @@ static func get_random_character() -> Character:
 	var last_name: String = Util.get_random_from_array(GameEnums.CHARACTER_LAST_NAMES)
 	var age := Util.get_random_int(MIN_AGE, MAX_AGE + 1)
 	var traits := TraitController.get_random_traits(2)
-	var potential := PotentialController.get_random_potential()
-	var bloodline := BloodlineController.get_random_bloodline()
+	var potential := PotentialController.get_random_potential(rank_type)
+	var bloodline := BloodlineController.get_random_bloodline(rank_type, nation)
 	var weapon: int = Util.get_random_from_array(RANDOM_WEAPON_POOL)
 	var skill_list := SkillController.get_skill_list_by_weapon(weapon)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
@@ -48,8 +51,8 @@ const PROTAGONIST_WEAPON := GameEnums.WeaponType.SWORD
 static func get_fixed_protagonist() -> Character:
 	var face_path := FaceController.get_random_face_path(PROTAGONIST_GENDER)
 	var traits := TraitController.get_random_traits(2)
-	var potential := PotentialController.get_random_potential()
-	var bloodline := BloodlineController.get_random_bloodline()
+	var potential := PotentialController.get_random_potential(GameEnums.RankType.F)
+	var bloodline := BloodlineController.get_random_bloodline(GameEnums.RankType.F)
 	var skill_list := SkillController.get_skill_list_by_weapon(PROTAGONIST_WEAPON)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))

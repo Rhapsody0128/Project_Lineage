@@ -10,7 +10,7 @@ extends RefCounted
 
 static func get_all() -> Array[Building]:
 	return [
-		Building.new("MainCity", "城鎮中心", GameEnums.BuildingType.TOWN_CENTER, -1, -1, 0, {}, PackedVector2Array([
+		Building.new("MainCity", "大本營", GameEnums.BuildingType.STRONGHOLD, -1, -1, 0, {}, PackedVector2Array([
 			Vector2(471.03998, 73.6), Vector2(460.8, 94.079996), Vector2(458.88, 135.679994), Vector2(548.48, 188.16),
 			Vector2(648.95996, 132.48), Vector2(647.04, 85.12), Vector2(637.44, 70.4), Vector2(622.07996, 90.24),
 			Vector2(581.12, 71.04), Vector2(572.16, 46.719999), Vector2(560, 30.08), Vector2(547.2, 50.56),

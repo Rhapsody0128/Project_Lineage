@@ -17,7 +17,7 @@ enum MapObjectType {TOWN, BASE}
 ## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
 ## 實作;後十二種是生產類建築,兩兩一組對應六大素質的基礎/高階內政。
 enum BuildingType {
-	TOWN_CENTER, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS,
+	STRONGHOLD, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS,
 	LUMBER_MILL, QUARRY, FARM, MINE, CARAVAN, BLACK_MARKET,
 	HUNTING_GROUND, WORKSHOP, SCRIPTORIUM, RESEARCH_INSTITUTE,
 	ALTAR, FORBIDDEN_ALTAR,
@@ -64,6 +64,8 @@ enum DialogueSide {LEFT, RIGHT, NARRATOR}
 ## 血統六大國家,對應血統代表色紅/白/黃/綠/藍/青,見 System/bloodline/
 enum BloodlineNation {LION, EAGLE, LEOPARD, BEAR, DRAGON, DEER}
 ## 血統階級:平民血統/高階血統,同一國家內兩者是分開計量的獨立欄位
+enum TerrainType {PLAINS, MOUNTAINS, PLATEAU, FOREST, DESERT, ISLANDS}
+# 對應六種國家所處的六種地理環境,見 Spec.md 一、血統國家與地理環境對照表。
 enum BloodlineRank {COMMON, NOBLE}
 ## 角色性別。目前 CharacterController 隨機產生的角色池只有男性姓名庫(MALE_CHARACTER_NAMES),
 ## 一律指派 MALE,先開這個欄位是為了女性角色(玩家間聯姻等企劃內容)日後擴充鋪路。

@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="96" viewBox="0 0 320 96">
+  <defs>
+    <linearGradient id="metalFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5c5f63"/>
+      <stop offset="0.5" stop-color="#4a4d50"/>
+      <stop offset="1" stop-color="#333537"/>
+    </linearGradient>
+    <radialGradient id="rivet" cx="0.35" cy="0.3" r="0.85">
+      <stop offset="0" stop-color="#b9bdc1"/>
+      <stop offset="0.5" stop-color="#65686b"/>
+      <stop offset="1" stop-color="#202123"/>
+    </radialGradient>
+    <linearGradient id="pressShadow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.45"/>
+      <stop offset="0.3" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="plateClip">
+      <rect x="8" y="8" width="304" height="82" rx="15" ry="15"/>
+    </clipPath>
+  </defs>
+
+  <!-- base steel plate, sitting slightly recessed -->
+  <rect x="8" y="8" width="304" height="82" rx="15" ry="15" fill="url(#metalFill)"/>
+
+  <g clip-path="url(#plateClip)">
+    <!-- top inset shadow -->
+    <rect x="8" y="8" width="304" height="40" fill="url(#pressShadow)"/>
+    <!-- dulled scuffs -->
+    <ellipse cx="150" cy="60" rx="34" ry="8" fill="#000000" opacity="0.15"/>
+  </g>
+
+  <!-- outer dark rim -->
+  <rect x="8" y="8" width="304" height="82" rx="15" ry="15" fill="none" stroke="#131416" stroke-width="4"/>
+  <!-- inner shadow bevel (recessed look, dark on top-left is implied by pressShadow) -->
+  <rect x="13" y="13" width="294" height="72" rx="11" ry="11" fill="none" stroke="#101112" stroke-width="2" opacity="0.5"/>
+  <rect x="15.5" y="15.5" width="289" height="67" rx="9" ry="9" fill="none" stroke="#7d8185" stroke-width="1" opacity="0.25"/>
+
+  <!-- rivets, dimmer and pushed in -->
+  <g stroke="#0c0d0e" stroke-width="1.2">
+    <circle cx="28" cy="26" r="6.5" fill="url(#rivet)"/>
+    <circle cx="292" cy="26" r="6.5" fill="url(#rivet)"/>
+    <circle cx="28" cy="74" r="6.5" fill="url(#rivet)"/>
+    <circle cx="292" cy="74" r="6.5" fill="url(#rivet)"/>
+  </g>
+</svg>

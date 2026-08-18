@@ -2,7 +2,7 @@ class_name BattleCostController
 extends RefCounted
 
 const MIN_CELLS := 3
-const MAX_CELLS := 6
+const MAX_CELLS := 7
 const DIRECTIONS: Array[Vector2i] = [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]
 
 ## 高階血統評分(GameEnums.RankType)換算戰場佔位格數:兩階一組,格數從 MIN_CELLS

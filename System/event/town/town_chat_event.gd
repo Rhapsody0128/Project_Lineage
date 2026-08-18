@@ -1,10 +1,12 @@
 class_name TownChatEvent
 extends LocationEvent
 
-## 大地圖地點選單「聊天」按鈕用,見 Scenes/MapLocation/map_location.gd:隨機生一位
-## Character 當作聊天對象,先只給一句招呼詞佔位——之後要接真的劇情對話,再另外寫新的事件
-## 類別去對應地點/角色,不要回頭改這個類別的用途。跟 TownGateEvent 一樣,呼叫端只
-## 呼叫一次 trigger(return_scene_path) 就把整段流程交出去。
+## 大地圖地點選單「聊天」按鈕用,見 Scenes/MapLocation/map_location.gd:隨機生兩位
+## Character 當聊天對象,先只給一句招呼詞佔位——之後要接真的劇情對話,再另外寫新的事件
+## 類別去對應地點/角色,不要回頭改這個類別的用途。背景圖固定用
+## GameEnums.TOWN_RESIDENTIAL_BACKGROUND_PATH,不分地形(聊天發生在城裡隨處可見的
+## 住宅區)。跟 TownGateEvent 一樣,呼叫端只呼叫一次 trigger(return_scene_path) 就把
+## 整段流程交出去。
 
 
 static func trigger(return_scene_path: String) -> void:
@@ -29,4 +31,4 @@ func _build_chat() -> Dialogue:
 		DialogueLine.new(npc_speaker.id, "你好,異鄉人。這裡最近沒什麼特別的事。"),
 		DialogueLine.new(npc2_speaker.id, "別多嘴,現在說甚麼都有可能出事。"),
 	]
-	return Dialogue.new([npc_speaker, npc2_speaker, player_speaker], lines)
+	return Dialogue.new([npc_speaker, npc2_speaker, player_speaker], lines, GameEnums.TOWN_RESIDENTIAL_BACKGROUND_PATH)

@@ -18,6 +18,11 @@ extends Node
 # 世界時間(曆法/是否播放中)不在這裡——那是 WorldTimeStore autoload 全程持有的
 # 狀態(見 Scripts/Autoload/world_time_store.gd),離開/返回地圖不會重置,不需要
 # 手動存讀。
+#
+# rest_requested 是 Scenes/MapLocation/map_location.gd 的「休息」按鈕切回 map.tscn 前
+# 設的一次性旗標,map.gd._ready() 讀到後轉成場景內部的 _is_resting 狀態(把玩家頭像
+# 藏起來、暫停撞遊蕩敵人判定),讀完立刻清成 false——跟 has_saved_state 不同,這個
+# 旗標不需要「有沒有存過」的概念,預設 false 本身就是合法的「沒有要休息」狀態。
 # =========================================================
 
 var has_saved_state: bool = false
@@ -28,6 +33,7 @@ var camera_position: Vector2
 var camera_zoom: Vector2
 var entered_map_object_id: String
 var traveling_to_map_object_id: String
+var rest_requested: bool = false
 
 
 func save_map_state(

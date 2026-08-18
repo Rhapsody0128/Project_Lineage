@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxxm2k6l03lsr"
-path="res://.godot/imported/forest.png-61317f574cbc074912d86c892c8ee5fa.ctex"
+uid="uid://s31ygrhgu2xu"
+path="res://.godot/imported/ISLANDS.png-ad1bb0daca4a10fe8947c7570a80db9f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Map/forest.png"
-dest_files=["res://.godot/imported/forest.png-61317f574cbc074912d86c892c8ee5fa.ctex"]
+source_file="res://Images/Dialogue/Map/Landform/ISLANDS.png"
+dest_files=["res://.godot/imported/ISLANDS.png-ad1bb0daca4a10fe8947c7570a80db9f.ctex"]
 
 [params]
 

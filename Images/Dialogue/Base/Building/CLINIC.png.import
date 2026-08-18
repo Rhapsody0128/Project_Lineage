@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cd5evnuybu4ur"
-path="res://.godot/imported/CLINIC.png-729fba55e7156cae85ba76aae04d788a.ctex"
+path="res://.godot/imported/CLINIC.png-d94c3788cc411a59dab40e09e033c62c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Base/CLINIC.png"
-dest_files=["res://.godot/imported/CLINIC.png-729fba55e7156cae85ba76aae04d788a.ctex"]
+source_file="res://Images/Dialogue/Base/Building/CLINIC.png"
+dest_files=["res://.godot/imported/CLINIC.png-d94c3788cc411a59dab40e09e033c62c.ctex"]
 
 [params]
 

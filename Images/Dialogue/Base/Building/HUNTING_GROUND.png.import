@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ctdqeknkhrxe8"
-path="res://.godot/imported/town_FOREST.png-478f6f8609d73468b2dc1f5ee2d5656a.ctex"
+uid="uid://j720wt7l56xu"
+path="res://.godot/imported/HUNTING_GROUND.png-66358b1df7b84b5f38f6fcd68e1727e8.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Town/town_FOREST.png"
-dest_files=["res://.godot/imported/town_FOREST.png-478f6f8609d73468b2dc1f5ee2d5656a.ctex"]
+source_file="res://Images/Dialogue/Base/Building/HUNTING_GROUND.png"
+dest_files=["res://.godot/imported/HUNTING_GROUND.png-66358b1df7b84b5f38f6fcd68e1727e8.ctex"]
 
 [params]
 

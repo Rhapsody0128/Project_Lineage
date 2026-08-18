@@ -57,22 +57,29 @@ func _init(
 	intelligence_rank = rank_from_ratio(intelligence_ratio)
 	mentality_rank = rank_from_ratio(mentality_ratio)
 
+## 根據比例計算血統排名
+##
+## 排名規則：
+## F   : ratio <= 0.5
+## E   : 0.5 < ratio <= 0.7
+## D   : 0.7 < ratio <= 0.9
+## C   : 0.9 < ratio <= 1.1
+## B   : 1.1 < ratio <= 1.3
+## A   : 1.3 < ratio <= 1.5
+## S   : 1.5 < ratio <= 1.7
+## SS  : 1.7 < ratio <= 1.9
+## SSS : ratio > 1.9
+##
+## 基準值為 0.5，每增加 0.2 提升一個排名。
+## 最低為 F，最高限制為 SSS。
 static func rank_from_ratio(ratio: float) -> int:
-	var default_gap := 0.5
-	var gap := 0.2
-	if ratio <= default_gap:
-		return GameEnums.RankType.E
-	elif ratio <= default_gap + gap:
-		return GameEnums.RankType.D
-	elif ratio <= default_gap + gap * 2:
-		return GameEnums.RankType.C
-	elif ratio <= default_gap + gap * 3:
-		return GameEnums.RankType.B
-	elif ratio <= default_gap + gap * 4:
-		return GameEnums.RankType.A
-	elif ratio <= default_gap + gap * 5:
-		return GameEnums.RankType.S
-	elif ratio <= default_gap + gap * 6:
-		return GameEnums.RankType.SS
-	else:
-		return GameEnums.RankType.SSS
+	const BASE_RATIO := 0.5
+	const RANK_GAP := 0.2
+
+	var rank := floori((ratio - BASE_RATIO) / RANK_GAP) + GameEnums.RankType.F
+
+	return clampi(
+		rank,
+		GameEnums.RankType.F,
+		GameEnums.RankType.SSS
+	)

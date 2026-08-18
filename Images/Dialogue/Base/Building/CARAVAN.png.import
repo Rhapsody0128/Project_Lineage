@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d4amqyuaghqg6"
-path="res://.godot/imported/RESIDENTIAL.png-598715bf91b032aa34237221f2ab8c4d.ctex"
+uid="uid://04lsnphe66dv"
+path="res://.godot/imported/CARAVAN.png-1825ee0a94d58c739a82623efd161ef6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Base/RESIDENTIAL.png"
-dest_files=["res://.godot/imported/RESIDENTIAL.png-598715bf91b032aa34237221f2ab8c4d.ctex"]
+source_file="res://Images/Dialogue/Base/Building/CARAVAN.png"
+dest_files=["res://.godot/imported/CARAVAN.png-1825ee0a94d58c739a82623efd161ef6.ctex"]
 
 [params]
 

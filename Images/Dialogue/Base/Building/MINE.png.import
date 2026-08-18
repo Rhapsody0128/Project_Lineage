@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1vfl014c04va"
-path="res://.godot/imported/island.png-d6b8f9ceb0325dbb0d23aade956c5493.ctex"
+uid="uid://vmopxufebg2h"
+path="res://.godot/imported/MINE.png-d580c1b94de993c6a3f5e5e95312bfb5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Map/island.png"
-dest_files=["res://.godot/imported/island.png-d6b8f9ceb0325dbb0d23aade956c5493.ctex"]
+source_file="res://Images/Dialogue/Base/Building/MINE.png"
+dest_files=["res://.godot/imported/MINE.png-d580c1b94de993c6a3f5e5e95312bfb5.ctex"]
 
 [params]
 

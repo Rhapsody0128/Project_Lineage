@@ -81,7 +81,14 @@ func _init(
 ## 必須在 Character 物件實際建立「之前」就拿得到,不能等 _init() 內部才算。
 static func compute_noble_bloodline_rank(p_bloodline: Bloodline) -> int:
 	var total := p_bloodline.get_total_noble_percentage()
-	return mini(floori(total / Bloodline.STEP), GameEnums.RankType.SSS)
+
+	if total >= 100.0:
+		return GameEnums.RankType.SSS
+
+	return mini(
+		floori(total / Bloodline.STEP),
+		GameEnums.RankType.SS
+	)
 
 ## 該技能目前是否能施放:未綁定特定武器(NO_WEAPON_BINDING)一律可用,綁了武器則要手持相符武器
 func can_use_skill(skill: Skill) -> bool:

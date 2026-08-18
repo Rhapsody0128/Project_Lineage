@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bhfaiufxukj7k"
-path="res://.godot/imported/castle_ISLANDS.png-c3d0d31fb76daccfca675474609f69e6.ctex"
+uid="uid://bynp84xltim0r"
+path="res://.godot/imported/castle_DESERT.png-716188d35bec31130b3a1b799ff12679.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Castle/castle_ISLANDS.png"
-dest_files=["res://.godot/imported/castle_ISLANDS.png-c3d0d31fb76daccfca675474609f69e6.ctex"]
+source_file="res://Images/Dialogue/Map/Castle/castle_DESERT.png"
+dest_files=["res://.godot/imported/castle_DESERT.png-716188d35bec31130b3a1b799ff12679.ctex"]
 
 [params]
 

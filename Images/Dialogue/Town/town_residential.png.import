@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://um1me3k2d6l4"
-path="res://.godot/imported/town_civilian.png-4876160fe7cd35e208c140cba44f3e0d.ctex"
+uid="uid://bmxkg8b46n74p"
+path="res://.godot/imported/town_residential.png-3c8a772387423ee129e039d1b02c47f7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Town/town_civilian.png"
-dest_files=["res://.godot/imported/town_civilian.png-4876160fe7cd35e208c140cba44f3e0d.ctex"]
+source_file="res://Images/Dialogue/Town/town_residential.png"
+dest_files=["res://.godot/imported/town_residential.png-3c8a772387423ee129e039d1b02c47f7.ctex"]
 
 [params]
 

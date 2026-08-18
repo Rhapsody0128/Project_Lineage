@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddm2fy8haya8d"
-path="res://.godot/imported/town_PLATEAU.png-da5b88133e0e386bc1958ca9d2d73391.ctex"
+uid="uid://dmjiprx7sjudb"
+path="res://.godot/imported/BARRACKS.png-3e31246dbdae044b18d67fa9c3e7bed0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Town/town_PLATEAU.png"
-dest_files=["res://.godot/imported/town_PLATEAU.png-da5b88133e0e386bc1958ca9d2d73391.ctex"]
+source_file="res://Images/Dialogue/Base/Building/BARRACKS.png"
+dest_files=["res://.godot/imported/BARRACKS.png-3e31246dbdae044b18d67fa9c3e7bed0.ctex"]
 
 [params]
 

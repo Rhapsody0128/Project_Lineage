@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://drd0nfmelwvc0"
-path="res://.godot/imported/plains.png-256ab4caf1bb71bf813bfbc52498be86.ctex"
+uid="uid://ct7f53go4jul8"
+path="res://.godot/imported/QUARRY.png-df07ee17027764281174d0f2ea241475.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Map/plains.png"
-dest_files=["res://.godot/imported/plains.png-256ab4caf1bb71bf813bfbc52498be86.ctex"]
+source_file="res://Images/Dialogue/Base/Building/QUARRY.png"
+dest_files=["res://.godot/imported/QUARRY.png-df07ee17027764281174d0f2ea241475.ctex"]
 
 [params]
 

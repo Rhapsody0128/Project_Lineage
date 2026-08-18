@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://rb32ct0q86mt"
-path="res://.godot/imported/town_DESERT.png-2928293ecf63d9a97152ca487fb28086.ctex"
+uid="uid://ctrdpgxpdwjhs"
+path="res://.godot/imported/WORKSHOP.png-e2eb62c43cdfea07938d10a8e6b0c5ef.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Town/town_DESERT.png"
-dest_files=["res://.godot/imported/town_DESERT.png-2928293ecf63d9a97152ca487fb28086.ctex"]
+source_file="res://Images/Dialogue/Base/Building/WORKSHOP.png"
+dest_files=["res://.godot/imported/WORKSHOP.png-e2eb62c43cdfea07938d10a8e6b0c5ef.ctex"]
 
 [params]
 

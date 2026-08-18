@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://borjdtl7l7h3m"
-path="res://.godot/imported/town_MOUNTAINS.png-b1c5959968ccaa93573e68e9791e0dfa.ctex"
+uid="uid://bqcod4f7wdd7k"
+path="res://.godot/imported/town_MOUNTAINS.png-7ac0a89d288deddb9c45e1cdc05404c6.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Town/town_MOUNTAINS.png"
-dest_files=["res://.godot/imported/town_MOUNTAINS.png-b1c5959968ccaa93573e68e9791e0dfa.ctex"]
+source_file="res://Images/Dialogue/Map/Town/town_MOUNTAINS.png"
+dest_files=["res://.godot/imported/town_MOUNTAINS.png-7ac0a89d288deddb9c45e1cdc05404c6.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b6lwe755q5s23"
-path="res://.godot/imported/town_PLAINS.png-6a8d532c914d8b85ce62c5ecd7c7a788.ctex"
+uid="uid://dtdyju6pljpk5"
+path="res://.godot/imported/DESERT.png-0452422b7a00dd57d8f67d9b887d9693.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Town/town_PLAINS.png"
-dest_files=["res://.godot/imported/town_PLAINS.png-6a8d532c914d8b85ce62c5ecd7c7a788.ctex"]
+source_file="res://Images/Dialogue/Map/Landform/DESERT.png"
+dest_files=["res://.godot/imported/DESERT.png-0452422b7a00dd57d8f67d9b887d9693.ctex"]
 
 [params]
 

@@ -9,7 +9,6 @@ extends Node2D
 ## Images/Base/base.jpg 的美術已經畫好建築長相,BuildingLibrary 的 territory_polygon
 ## 只用來做點擊命中判定(見 BaseSystem.pick_building()),純資料、不需要對應的畫面節點。
 
-@onready var action_panel: BaseActionPanel = $UI/ActionPanel
 @onready var ui_layer: CanvasLayer = $UI
 
 var _base_system := BaseSystem.new()
@@ -33,7 +32,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		var picked := _base_system.pick_building(get_local_mouse_position(), _buildings)
 		if picked != null:
-			action_panel.open_for_building(picked)
+			BaseBuildingEvent.trigger(picked)
 
 
 ## 滑鼠懸停在可點擊的建築上時換成手指游標,跟 Scenes/Map/map.gd 的
@@ -48,9 +47,8 @@ func _exit_tree() -> void:
 	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
-## 回到根據地的 MapLocation 選單頁(不是直接回大地圖),MapSessionStore.entered_map_object_id
-## 還留著,map_location.gd._find_entered_map_object() 能正確還原成「根據地」那一頁。
+## 回到根據地的 MapLocation 選單頁(不是直接回大地圖),交給 BaseLeaveEvent 先播一句
+## castle_interior.png 收尾過場——MapSessionStore.entered_map_object_id 還留著,
+## map_location.gd._find_entered_map_object() 能正確還原成「根據地」那一頁。
 func _on_leave_button_pressed() -> void:
-	var error := get_tree().change_scene_to_file("res://Scenes/MapLocation/map_location.tscn")
-	if error != OK:
-		printerr("Error changing scene to map location: ", error)
+	get_tree().change_scene_to_file("res://Scenes/MapLocation/map_location.tscn")

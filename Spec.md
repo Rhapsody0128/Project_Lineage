@@ -142,3 +142,64 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 - 血統/學院/婚姻/城鎮/英靈殿等企劃概念尚無對應 System 模組
 - CONFUSE(叛變攻擊己方)機制已寫好但抽選池暫時關閉,等魅惑狀態系統接上再開放
 - `Character.age` 目前只是產生時隨機指定的靜態數值,尚無老化/死亡/婚姻等生命週期機制
+
+## 六、血統國家與地理環境對照表
+
+`GameEnums.BloodlineNation` 六國各自對應一種 `GameEnums.TerrainType`(遊戲企劃設定總整理.md
+三、六國設定),`GameEnums.bloodline_nation_terrain()` 查表換算:
+
+| 國家 | 地形 |
+|---|---|
+| 獅(LION) | 平原(PLAINS) |
+| 鷹(EAGLE) | 森林(FOREST) |
+| 豹(LEOPARD) | 沙漠(DESERT) |
+| 熊(BEAR) | 山岳(MOUNTAINS) |
+| 龍(DRAGON) | 孤島(ISLANDS) |
+| 鹿(DEER) | 高原(PLATEAU) |
+
+`System/map/map_object.gd` 的 `MapObject.nation` 記錄每個地點所屬國家,`terrain_type()`
+包一層 `bloodline_nation_terrain()`。目前三座城鎮(獅城/雄城/鷹城)分別對應 LION/BEAR/
+EAGLE;`PlayerBase`(玩家根據地)暫時借用 LION 當預設外觀,玩家還沒有可選的自身國家
+血統,等那個功能接上再改成真正的選擇結果。
+
+對話背景圖(`Images/Dialogue/`)一律靠 `GameEnums` 的路徑組字函式取檔案路徑,檔名直接對應
+enum 成員名稱,不另外維護路徑陣列(降低新增/調整 enum 順序時悄悄對不上的風險):
+
+- `town_background_path(terrain_type)` → `Images/Dialogue/Map/Town/town_<TERRAIN>.png`:
+  `Scenes/MapLocation/map_location.gd` 進到 TOWN 地點選單時的整頁背景圖
+  (`_update_background()`)
+- `BASE_LOCATION_BACKGROUND_PATH` → `Images/Dialogue/Map/Base.png`:
+  `map_location.gd` 進到 BASE 地點選單時的整頁背景圖,不分地形(玩家還沒有可選的
+  自身國家血統)
+- `TOWN_RESIDENTIAL_BACKGROUND_PATH` → `Images/Dialogue/Town/town_residential.png`:
+  `System/event/town/town_chat_event.gd`(TownChatEvent)固定用的 Dialogue 背景,
+  不分地形(聊天發生在城裡隨處可見的住宅區)
+- `CASTLE_INTERIOR_BACKGROUND_PATH` → `Images/Dialogue/Castle/castle_interior.png`,見
+  `System/event/base/base_leave_event.gd`,`map_location.gd` 的
+  `_on_enter_base_button_pressed()` 直接切去 `base.tscn`
+- `base_building_background_path(building_type)` →
+  `Images/Dialogue/Base/Building/<BUILDING_TYPE>.png`,見 `System/event/base/
+  base_building_event.gd`(BaseBuildingEvent):根據點的建築跳這句 Dialogue,玩家按
+  「離開」選項才回 `base.tscn`——建築內部真正的內政操作介面尚未設計,目前只提供
+  這個出口,不會自動彈開 `BaseActionPanel`
+
+`Images/Dialogue/Map/Castle/castle_<TERRAIN>.png`、`Images/Dialogue/Map/Landform/
+<TERRAIN>.png` 是預留的美術資源,目前尚未接上任何程式碼。
+
+`TownGateEvent`/`TownTavernEvent` 各自已有專屬情境插畫(`town_gate.png`/
+`town_tavern.png`,不分地形),不套用這套地形對照表。
+
+## 七、休息安全性(_is_resting)
+
+`Scenes/MapLocation/map_location.gd` 的「休息」按鈕(TOWN/BASE 共用)退回 `map.tscn` 並
+直接開始播放世界時間,方便玩家停在原地等 `WorldTimeEventLibrary` 的每日回血——但玩家
+角色實際上會原地站在城鎮/根據地座標上,若不處理,路過的遊蕩敵人一樣會撞上觸發
+`RoamingEnemyEvent`,變成「休息」反而被打。
+
+修法靠 `MapSessionStore.rest_requested`(一次性旗標,休息按鈕按下時設 true)+
+`Scenes/Map/map.gd` 的 `_is_resting`:`map.gd._ready()` 讀到旗標後把玩家頭像
+(`player_avatar.visible = false`)藏起來、`_process()` 整段跳過
+`_check_roaming_encounters()`(遊蕩敵人資料照常模擬/遊蕩,只是不會撞上玩家)。玩家
+主動點地圖移動(`_handle_click_to_move()` 的移動分支)視為醒來,呼叫 `_end_resting()`
+恢復頭像顯示與撞敵判定;原地再點一次目前所在的 `MapObject`(重開地點選單)不算移動,
+不會結束休息狀態。

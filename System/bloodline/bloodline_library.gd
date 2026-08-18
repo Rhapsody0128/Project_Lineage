@@ -22,11 +22,11 @@ static func _ratio_bonus_table() -> Array[Array]:
 	table[Bloodline.index_of(GameEnums.BloodlineNation.LION, GameEnums.BloodlineRank.COMMON)] = \
 		[0.3, 0.2, 0.0, 0.1, 0.0, 0.0]
 
-	# 鷹 EAGLE:靈巧系(高血 DEX1.0 STR0.6 AGI0.4 / 平血 DEX0.3 STR0.2 AGI0.1)
+	# 鷹 EAGLE:靈巧系(高血 DEX1.0 AGI0.6 MEN0.4 / 平血 DEX0.3 AGI0.2 MEN0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.EAGLE, GameEnums.BloodlineRank.NOBLE)] = \
-		[0.6, 0.0, 0.4, 1.0, 0.0, 0.0]
+		[0, 0.0, 0.6, 1.0, 0.0, 0.4]
 	table[Bloodline.index_of(GameEnums.BloodlineNation.EAGLE, GameEnums.BloodlineRank.COMMON)] = \
-		[0.2, 0.0, 0.1, 0.3, 0.0, 0.0]
+		[0, 0.0, 0.2, 0.3, 0.0, 0.1]
 
 	# 豹 LEOPARD:敏捷系(高血 AGI1.0 DEX0.6 STR0.4 / 平血 AGI0.3 DEX0.2 STR0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.LEOPARD, GameEnums.BloodlineRank.NOBLE)] = \

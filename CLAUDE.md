@@ -175,8 +175,10 @@ frame 觸發,是每跨過一天才觸發一次,快轉一次跳好幾天一樣會
 ## 事件與跨場景資料交接(LocationEvent + SceneHandoffStore)
 
 大地圖地點事件(`System/event/town/*Event.gd`,例如 `TownTavernEvent`/`TownGateEvent`/
-`TownChatEvent`)共用基底 `LocationEvent`(`RefCounted`,不是 Node):呼叫端(Scenes 層,
-例如 `map_location.gd` 的按鈕)只呼叫一次子類別的 `trigger(return_scene_path)`,接下來對話/
+`TownChatEvent`;`System/event/base/*Event.gd`,例如 `/`BaseBuildingEvent`——
+「進入根據地」沒有對應事件,`map_location.gd` 直接切場景)共用基底 `LocationEvent`
+(`RefCounted`,不是 Node):呼叫端(Scenes 層,
+例如 `map_location.gd`/`base.gd` 的按鈕)只呼叫一次子類別的 `trigger(...)`,接下來對話/
 戰鬥怎麼串、播完要回哪裡,全部交給事件物件自己接管,文案常數跟流程方法集中寫在同一個
 class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好幾次場景切換(例如
 `MapLocation → Dialogue → Battle → Dialogue → MapLocation`),中途發起事件的場景節點早就

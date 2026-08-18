@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dhn7j2ml2n4cj"
-path="res://.godot/imported/castle_MOUNTAINS.png-30f3df86c49c3ce05930408aebf34261.ctex"
+uid="uid://dqu11pmge25j8"
+path="res://.godot/imported/FARM.png-36282b9213e10b04903a89752e0eb587.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Castle/castle_MOUNTAINS.png"
-dest_files=["res://.godot/imported/castle_MOUNTAINS.png-30f3df86c49c3ce05930408aebf34261.ctex"]
+source_file="res://Images/Dialogue/Base/Building/FARM.png"
+dest_files=["res://.godot/imported/FARM.png-36282b9213e10b04903a89752e0eb587.ctex"]
 
 [params]
 

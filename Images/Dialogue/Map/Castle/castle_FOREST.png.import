@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cn28vhp5gdces"
-path="res://.godot/imported/plateau.png-aa9ac42f2d16ccf229a539de9c01ed4d.ctex"
+uid="uid://dr23c0wny1nka"
+path="res://.godot/imported/castle_FOREST.png-8742347092ad00fe633778ed50bab35c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Map/plateau.png"
-dest_files=["res://.godot/imported/plateau.png-aa9ac42f2d16ccf229a539de9c01ed4d.ctex"]
+source_file="res://Images/Dialogue/Map/Castle/castle_FOREST.png"
+dest_files=["res://.godot/imported/castle_FOREST.png-8742347092ad00fe633778ed50bab35c.ctex"]
 
 [params]
 

@@ -57,5 +57,7 @@ offset_right = 140.0
 offset_bottom = 880.0
 text = "離開"
 
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1241627064]
+
 [connection signal="pressed" from="UI/ActionPanel/MarginContainer/VBoxContainer/CloseButton" to="UI/ActionPanel" method="_on_close_button_pressed"]
 [connection signal="pressed" from="UI/LeaveButton" to="." method="_on_leave_button_pressed"]

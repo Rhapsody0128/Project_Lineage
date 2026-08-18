@@ -1,7 +1,7 @@
 class_name GameEnums
 extends RefCounted
 
-enum RankType {E, D, C, B, A, S, SS, SSS}
+enum RankType {F, E, D, C, B, A, S, SS, SSS}
 enum PotentialType {STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 enum WeaponType {SWORD, BOW, SHIELD, DAGGER, STAFF, DREAMCATCHER}
 ## Skill.bind_weapon 專用的「未綁定特定武器」標記(被動/隊長技能等任何武器都能用),
@@ -65,7 +65,8 @@ enum DialogueSide {LEFT, RIGHT, NARRATOR}
 enum BloodlineNation {LION, EAGLE, LEOPARD, BEAR, DRAGON, DEER}
 ## 血統階級:平民血統/高階血統,同一國家內兩者是分開計量的獨立欄位
 enum TerrainType {PLAINS, MOUNTAINS, PLATEAU, FOREST, DESERT, ISLANDS}
-# 對應六種國家所處的六種地理環境,見 Spec.md 一、血統國家與地理環境對照表。
+# 對應六種國家所處的六種地理環境,見 Spec.md 六、血統國家與地理環境對照表,以及
+# bloodline_nation_terrain() 的換算。
 enum BloodlineRank {COMMON, NOBLE}
 ## 角色性別。目前 CharacterController 隨機產生的角色池只有男性姓名庫(MALE_CHARACTER_NAMES),
 ## 一律指派 MALE,先開這個欄位是為了女性角色(玩家間聯姻等企劃內容)日後擴充鋪路。
@@ -79,7 +80,7 @@ enum ProposalMode {INCOMING, OUTGOING}
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 ## 評級 UI 顯示用標籤,順序對應 RankType enum
-const RANK_TYPE_LABELS: Array[String] = ["E", "D", "C", "B", "A", "S", "SS", "SSS"]
+const RANK_TYPE_LABELS: Array[String] = ["F", "E", "D", "C", "B", "A", "S", "SS", "SSS"]
 
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
 const WEAPON_TYPE_LABELS: Array[String] = ["劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
@@ -214,6 +215,40 @@ const BLOODLINE_NATION_COLORS: Array[Color] = [
 
 static func bloodline_nation_color(nation: int) -> Color:
 	return BLOODLINE_NATION_COLORS[nation]
+
+## 血統國家所屬地形,順序對應 BloodlineNation enum:獅→平原/鷹→森林/豹→沙漠/熊→山岳/
+## 龍→孤島/鹿→高原,對照表見 Spec.md 六、血統國家與地理環境對照表。
+const BLOODLINE_NATION_TERRAINS: Array[TerrainType] = [
+	TerrainType.PLAINS, TerrainType.FOREST, TerrainType.DESERT,
+	TerrainType.MOUNTAINS, TerrainType.ISLANDS, TerrainType.PLATEAU,
+]
+
+static func bloodline_nation_terrain(nation: int) -> int:
+	return BLOODLINE_NATION_TERRAINS[nation]
+
+## 城鎮外觀對話背景圖(Images/Dialogue/Map/Town/town_<TERRAIN>.png)——檔名直接對應
+## TerrainType enum 成員名稱,不另外維護一份路徑陣列(下面 base_building_background_path()
+## 同理),見 System/map/map_object.gd 的 MapObject.terrain_type()。同時也是
+## Scenes/MapLocation/map_location.gd 進到 TOWN 地點選單時的整頁背景圖。
+static func town_background_path(terrain_type: int) -> String:
+	return "res://Images/Dialogue/Map/Town/town_%s.png" % TerrainType.keys()[terrain_type]
+
+## 根據地內部共用對話背景圖(不分地形),見 System/event/base/base_leave_event.gd
+## 的離開過場。
+const CASTLE_INTERIOR_BACKGROUND_PATH := "res://Images/Dialogue/Castle/castle_interior.png"
+
+## 根據地建築對話背景圖(Images/Dialogue/Base/Building/<BUILDING_TYPE>.png)——檔名對應
+## BuildingType enum 成員名稱,見 System/event/base/base_building_event.gd。
+static func base_building_background_path(building_type: int) -> String:
+	return "res://Images/Dialogue/Base/Building/%s.png" % BuildingType.keys()[building_type]
+
+## Scenes/MapLocation/map_location.gd 進到 BASE 地點選單時的整頁背景圖,玩家還沒有
+## 可選的自身國家血統,不像 TOWN 分地形,先固定這一張。
+const BASE_LOCATION_BACKGROUND_PATH := "res://Images/Dialogue/Map/Base.png"
+
+## 大地圖城鎮村民聊天(TownChatEvent)固定用的對話背景圖,不分地形(聊天發生在城裡
+## 隨處可見的住宅區,跟 TOWN_LABEL/城門/酒館等特定場景無關)。
+const TOWN_RESIDENTIAL_BACKGROUND_PATH := "res://Images/Dialogue/Town/town_residential.png"
 
 ## 隊長標記圖示:疊在頭像/小人物右上角的小旗子,取代舊版變色遮罩。
 ## BattleUnitVisual(戰場角色)、BattlePartyRoster(頭像列)與 BattleCostView

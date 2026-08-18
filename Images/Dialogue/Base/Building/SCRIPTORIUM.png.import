@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://lvm0llr7cv6w"
-path="res://.godot/imported/castle_PLAINS.png-f6ab20f6ef991cbd9b0287a79a1346e2.ctex"
+uid="uid://cjyxq1rnjda5q"
+path="res://.godot/imported/SCRIPTORIUM.png-2b6d8d5836310e3afaacc0599bcd164c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Castle/castle_PLAINS.png"
-dest_files=["res://.godot/imported/castle_PLAINS.png-f6ab20f6ef991cbd9b0287a79a1346e2.ctex"]
+source_file="res://Images/Dialogue/Base/Building/SCRIPTORIUM.png"
+dest_files=["res://.godot/imported/SCRIPTORIUM.png-2b6d8d5836310e3afaacc0599bcd164c.ctex"]
 
 [params]
 

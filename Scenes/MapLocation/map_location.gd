@@ -12,6 +12,7 @@ const TAVERN_LABEL := "酒館"
 const REST_LABEL := "休息"
 const ENTER_BASE_LABEL := "進入根據地"
 
+@onready var background: TextureRect = $Background
 @onready var title_label: Label = $CenterContainer/VBoxContainer/TitleLabel
 @onready var sub_locations_container: VBoxContainer = $CenterContainer/VBoxContainer/SubLocationsContainer
 
@@ -26,6 +27,7 @@ func _ready() -> void:
 		return
 
 	title_label.text = _map_object.name
+	_update_background()
 	for sub_location_label in MapObject.get_sub_locations(_map_object.type):
 		var button := Button.new()
 		button.text = sub_location_label
@@ -40,6 +42,21 @@ func _ready() -> void:
 		elif sub_location_label == ENTER_BASE_LABEL:
 			button.pressed.connect(_on_enter_base_button_pressed)
 		sub_locations_container.add_child(button)
+
+
+## 整頁背景圖:TOWN 依 _map_object.terrain_type() 挑對應地形的城鎮圖(每座城鎮代表
+## 各自文明的地形特色),BASE 固定用同一張(玩家還沒有可選的自身國家血統)。跟
+## TownChatEvent 的 Dialogue 背景是同一張圖、不同用途,共用 GameEnums 的路徑組字函式。
+func _update_background() -> void:
+	var path: String
+	match _map_object.type:
+		GameEnums.MapObjectType.TOWN:
+			path = GameEnums.town_background_path(_map_object.terrain_type())
+		GameEnums.MapObjectType.BASE:
+			path = GameEnums.BASE_LOCATION_BACKGROUND_PATH
+		_:
+			return
+	background.texture = load(path) as Texture2D
 
 
 func _find_entered_map_object() -> MapObject:
@@ -57,7 +74,7 @@ func _on_town_button_pressed() -> void:
 
 
 ## 隨機村民聊天,同樣整段交給 System/event/town/town_chat_event.gd 的
-## TownChatEvent 接管,聊完回到這個地點選單本身。
+## TownChatEvent 接管,聊完回到這個地點選單本身。背景圖固定用住宅區場景,不分地形。
 func _on_chat_button_pressed() -> void:
 	TownChatEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
@@ -68,9 +85,10 @@ func _on_tavern_button_pressed() -> void:
 	TownTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
-## 進入根據地:切去 Scenes/Base/base.tscn,建築內政的實際邏輯/畫面都在那個場景,
-## 這裡只負責入口。MapSessionStore.entered_map_object_id 不需要清掉——base.gd 的
-## 「離開」按鈕會直接回到這個地點選單頁,還原時一樣讀得到「根據地」。
+## 進入根據地:直接切去 Scenes/Base/base.tscn,不經過任何過場對話(建築內政的實際
+## 邏輯/畫面都在那個場景,這裡只負責入口)。MapSessionStore.entered_map_object_id
+## 不需要清掉——base.gd 的「離開」按鈕會直接回到這個地點選單頁,還原時一樣讀得到
+## 「根據地」。
 func _on_enter_base_button_pressed() -> void:
 	var error := get_tree().change_scene_to_file("res://Scenes/Base/base.tscn")
 	if error != OK:
@@ -89,11 +107,15 @@ func _on_leave_button_pressed() -> void:
 
 
 ## 休息:退回大地圖並直接開始播放時間(不用玩家手動按空白鍵),讓世界時間流逝
-## 帶動 WorldTimeEventLibrary 的每日角色回血(見 Scenes/Map/map.gd 的 _process())。
-## WorldTimeStore 是應用程式全程存活的 autoload,切場景不會重置,直接改
-## controller.is_playing 就會帶到下一個場景,不需要經過 MapSessionStore 交接。
+## 帶動 WorldTimeEventLibrary 的每日角色回血。WorldTimeStore 是應用程式全程存活的
+## autoload,切場景不會重置,直接改 controller.is_playing 就會帶到下一個場景,不需要
+## 經過 MapSessionStore 交接。額外設 MapSessionStore.rest_requested,map.gd._ready()
+## 讀到後會把玩家頭像藏起來、暫停撞遊蕩敵人判定(見該檔案的 _is_resting)——不這樣做
+## 的話,玩家角色會原地站在城鎮/根據地座標上被路過的遊蕩敵人撞上觸發戰鬥,「休息」
+## 卻反而挨打。
 func _on_rest_button_pressed() -> void:
 	WorldTimeStore.controller.is_playing = true
+	MapSessionStore.rest_requested = true
 	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)

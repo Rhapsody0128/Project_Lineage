@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dt6vnwg5lid4k"
-path="res://.godot/imported/STRONGHOLD.png-f5f84bb28f86c76d608e7ebb374fa070.ctex"
+uid="uid://hpbmlu36qd41"
+path="res://.godot/imported/FORBIDDEN_ALTAR.png-ab19984ba858065c206c09a0a68f018d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Dialogue/Base/STRONGHOLD.png"
-dest_files=["res://.godot/imported/STRONGHOLD.png-f5f84bb28f86c76d608e7ebb374fa070.ctex"]
+source_file="res://Images/Dialogue/Base/Building/FORBIDDEN_ALTAR.png"
+dest_files=["res://.godot/imported/FORBIDDEN_ALTAR.png-ab19984ba858065c206c09a0a68f018d.ctex"]
 
 [params]
 

@@ -118,7 +118,7 @@ func heal(amount: int) -> void:
 	hp = mini(hp + amount, hp_max)
 
 ## 世界時間每跨過一天,所有角色固定回復的血量(見 WorldTimeEventLibrary)
-const DAILY_HP_REGEN := 50
+const DAILY_HP_REGEN := 3
 
 func regen_daily_hp() -> void:
 	heal(DAILY_HP_REGEN)

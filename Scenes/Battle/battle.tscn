@@ -251,10 +251,6 @@ alignment = 2
 process_mode = 3
 custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 disabled = true
 text = "暫停"
 
@@ -262,30 +258,18 @@ text = "暫停"
 process_mode = 3
 custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "快速跳過"
 
 [node name="BackButton" type="Button" parent="UI/TopBar" unique_id=1745447488]
 process_mode = 3
 custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "返回主選單"
 
 [node name="LogToggleButton" type="Button" parent="UI/TopBar" unique_id=660765458]
 process_mode = 3
 custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "戰報詳細"
 
 [node name="LogDialog" type="Control" parent="." unique_id=314981703]
@@ -425,19 +409,11 @@ alignment = 1
 [node name="ReplayButton" type="Button" parent="ResultDialog/Panel/VBox/ButtonRow" unique_id=517701771]
 custom_minimum_size = Vector2(150, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "重播"
 
 [node name="DialogBackButton" type="Button" parent="ResultDialog/Panel/VBox/ButtonRow" unique_id=703780184]
 custom_minimum_size = Vector2(150, 46)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 text = "返回上一頁"
 
 [connection signal="pressed" from="UI/TopBar/PauseButton" to="." method="_on_pause_pressed"]

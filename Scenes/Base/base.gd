@@ -10,6 +10,7 @@ extends Node2D
 ## 只用來做點擊命中判定(見 BaseSystem.pick_building()),純資料、不需要對應的畫面節點。
 
 @onready var ui_layer: CanvasLayer = $UI
+@onready var leave_button: Button = $UI/LeaveButton
 
 var _base_system := BaseSystem.new()
 var _buildings: Array[Building] = []
@@ -22,6 +23,9 @@ func _ready() -> void:
 	header_bar = HeaderBar.new()
 	ui_layer.add_child(header_bar)
 	header_bar.add_status_button()
+
+	UiStyle.apply_wood_plaque_button(leave_button, 24.0, 12.0)
+	leave_button.add_theme_font_size_override("font_size", 22)
 
 
 func _process(_delta: float) -> void:

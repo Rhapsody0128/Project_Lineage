@@ -90,8 +90,18 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 ## DRAW(平手)沒有另外的台詞,一律當作沒能擊退盜賊,跟戰敗共用同一句,比照 TownGateEvent。
 func _build_result(result: GameEnums.BattleResultType) -> Dialogue:
 	var bandit_speaker := DialogueSpeaker.new(_enemy.party.leader.id, _enemy.party.leader.full_name, _enemy.party.leader.face_path, GameEnums.DialogueSide.RIGHT)
-	var won := result == GameEnums.BattleResultType.SELF_WIN
-	var lines: Array[DialogueLine] = [
-		DialogueLine.new(bandit_speaker.id, "可惡,撤退！" if won else "戰利品,通通留下！"),
-	]
+	var lines: Array[DialogueLine] = []
+	if result == GameEnums.BattleResultType.SELF_WIN:
+		lines = [
+			DialogueLine.new(bandit_speaker.id, "可惡！你們贏了！我投降！"),
+		]
+	elif result == GameEnums.BattleResultType.ENEMY_WIN:
+		lines = [
+			DialogueLine.new(bandit_speaker.id, "哈哈！乖乖把值錢的東西留下吧！"),
+		]
+	else: # DRAW
+		lines = [
+			DialogueLine.new(bandit_speaker.id, "這次不分勝負！暫時性撤退!"),
+		]
+	
 	return Dialogue.new([bandit_speaker], lines)

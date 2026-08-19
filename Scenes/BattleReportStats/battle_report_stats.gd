@@ -26,6 +26,9 @@ var _fallback_portrait: Texture2D
 
 
 func _ready() -> void:
+	UiStyle.apply_wood_plaque_button(back_button, 30.0, 10.0)
+	back_button.add_theme_font_size_override("font_size", 16)
+
 	var report := BattleReportStore.pending_stats_report
 	if report == null:
 		NavigationStore.go_back()

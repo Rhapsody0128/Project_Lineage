@@ -13,12 +13,16 @@ extends Control
 @onready var detail_margin: MarginContainer = $MainRow/DetailPanel/DetailMargin
 @onready var sort_filter_bar: CharacterSortFilterBar = $MainRow/RosterPanel/RosterMargin/RosterVBox/SortFilterBar
 @onready var roster_grid: HFlowContainer = $MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer/RosterGrid
+@onready var back_button: Button = $TopBar/BackButton
 
 var _detail_view: CharacterDetailView
 var _selected_card: CharacterAvatarCard
 
 
 func _ready() -> void:
+	UiStyle.apply_wood_plaque_button(back_button, 16.0, 8.0)
+	back_button.add_theme_font_size_override("font_size", 18)
+
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL

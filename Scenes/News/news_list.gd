@@ -13,6 +13,9 @@ const ROW_STYLE_BORDER := Color(0.36, 0.4, 0.56, 1)
 
 
 func _ready() -> void:
+	for button in [generate_button, back_button]:
+		UiStyle.apply_wood_plaque_button(button, 30.0, 10.0)
+		button.add_theme_font_size_override("font_size", 16)
 	_refresh_list()
 
 

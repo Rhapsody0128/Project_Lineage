@@ -78,13 +78,11 @@ theme_override_constants/separation = 24
 [node name="SkipButton" type="Button" parent="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "坐鎮指揮"
 
 [node name="FightButton" type="Button" parent="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "親臨戰場"
 
 [node name="ReportPromptBox" type="PanelContainer" parent="Root/CenterContainer"]
@@ -125,13 +123,11 @@ theme_override_constants/separation = 24
 [node name="ViewReportButton" type="Button" parent="Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "觀看戰報"
 
 [node name="SkipReportButton" type="Button" parent="Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow"]
 custom_minimum_size = Vector2(120, 44)
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
 text = "略過"
 
 [connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/SkipButton" to="." method="_on_skip_button_pressed"]

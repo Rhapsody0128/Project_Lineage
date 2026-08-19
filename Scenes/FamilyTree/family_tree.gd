@@ -10,9 +10,13 @@ extends Control
 # =========================================================
 
 @onready var canvas: FamilyTreeCanvas = $ScrollContainer/Canvas
+@onready var back_button: Button = $TopBar/BackButton
 
 
 func _ready() -> void:
+	UiStyle.apply_wood_plaque_button(back_button, 16.0, 8.0)
+	back_button.add_theme_font_size_override("font_size", 18)
+
 	var handoff := SceneHandoffStore.take("family_tree_focus")
 	var focus_character: Character = handoff.payload as Character if handoff != null else null
 	if focus_character != null:

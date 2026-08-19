@@ -26,6 +26,9 @@ const DRAW_COLOR := Color(0.85, 0.8, 0.6)
 
 
 func _ready() -> void:
+	for button in [generate_button, back_button]:
+		UiStyle.apply_wood_plaque_button(button, 30.0, 10.0)
+		button.add_theme_font_size_override("font_size", 16)
 	_refresh_list()
 
 

@@ -40,6 +40,10 @@ var _pending_report: BattleReport
 
 
 func _ready() -> void:
+	for button in [skip_button, fight_button, view_report_button, skip_report_button]:
+		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
+		button.add_theme_font_size_override("font_size", 18)
+
 	root.visible = false
 	report_prompt_box.visible = false
 

@@ -51,10 +51,10 @@ layout_mode = 2
 text = "關閉"
 
 [node name="LeaveButton" type="Button" parent="UI" unique_id=1448660459]
-offset_left = 20.0
-offset_top = 840.0
-offset_right = 140.0
-offset_bottom = 880.0
+offset_left = 1436.0
+offset_top = 816.0
+offset_right = 1576.0
+offset_bottom = 876.0
 text = "離開"
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1241627064]

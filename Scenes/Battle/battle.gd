@@ -110,6 +110,8 @@ var portrait_texture: AtlasTexture
 @onready var result_dialog: Control = $ResultDialog
 @onready var result_label: Label = $ResultDialog/Panel/VBox/ResultLabel
 @onready var result_detail_label: Label = $ResultDialog/Panel/VBox/DetailLabel
+@onready var replay_button: Button = $ResultDialog/Panel/VBox/ButtonRow/ReplayButton
+@onready var dialog_back_button: Button = $ResultDialog/Panel/VBox/ButtonRow/DialogBackButton
 @onready var ultimate_panel: BattleUltimatePanel = $BattlefieldPanel/UltimatePanel
 
 
@@ -120,6 +122,10 @@ func _ready() -> void:
 	# 場上角色本人(BattleUnitVisual)靠 Area2D 判定點擊(見 _setup_click_area()),
 	# 預設關閉的 2D 物理揀選要開啟這個事件才會送到 Area2D.input_event。
 	get_viewport().physics_object_picking = true
+
+	for button in [pause_button, skip_button, back_button, log_toggle_button, replay_button, dialog_back_button]:
+		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
+		button.add_theme_font_size_override("font_size", 18)
 
 	log_toggle_button.pressed.connect(_on_log_toggle_button_pressed)
 	log_dialog_close_button.pressed.connect(_on_log_dialog_close_pressed)

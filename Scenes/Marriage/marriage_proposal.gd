@@ -47,6 +47,10 @@ var _self_card: CharacterAvatarCard
 
 
 func _ready() -> void:
+	for button in [accept_button, second_button]:
+		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
+		button.add_theme_font_size_override("font_size", 18)
+
 	# take() 讀完立刻清空,跟原本 ProposalStore 在這裡手動清 pending 欄位的行為一致。
 	var handoff := SceneHandoffStore.take(MarriageProposalRequest.MAILBOX_KEY)
 	var request := handoff.payload as MarriageProposalRequest if handoff != null else null

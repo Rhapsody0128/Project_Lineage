@@ -72,7 +72,7 @@ static func _deliver_child(mother: Character) -> void:
 	NewsController.post("%s 誕下了孩子 %s。" % [mother.full_name, child.full_name])
 
 
-## 每天:玩家擁有的所有角色 HP +50(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、
+## 每天:玩家擁有的所有角色 HP +3(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、
 ## 大地圖移動時逐幀累積回 30/天」機制)
 static func _regen_hp() -> void:
 	for character in CharacterRosterStore.all_characteres:

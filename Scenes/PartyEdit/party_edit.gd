@@ -21,7 +21,11 @@ extends Control
 @onready var placed_layer: Control = $PlacedLayer
 @onready var roster_list: VBoxContainer = $UI/RightPanel/Margin/VBox/ScrollContainer/RosterList
 @onready var sort_filter_bar: CharacterSortFilterBar = $UI/RightPanel/Margin/VBox/SortFilterBar
+@onready var add_character_button: Button = $UI/TopBar/AddCharacterButton
+@onready var grow_grid_button: Button = $UI/TopBar/GrowGridButton
+@onready var start_battle_button: Button = $UI/TopBar/StartBattleButton
 @onready var finish_edit_button: Button = $UI/TopBar/FinishEditButton
+@onready var back_button: Button = $UI/TopBar/BackButton
 
 ## 編輯中的草稿,從 PartyStore 上次「完成編輯」的快照 clone() 出一份獨立
 ## 副本(沒有就新建一份空的);編輯過程只改這份草稿,按下「完成編輯」才會
@@ -30,6 +34,10 @@ var grid: PartyEditGrid
 
 
 func _ready() -> void:
+	for button in [add_character_button, grow_grid_button, start_battle_button, finish_edit_button, back_button]:
+		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
+		button.add_theme_font_size_override("font_size", 18)
+
 	grid = PartyStore.grid.clone() if PartyStore.grid != null else PartyEditGrid.new()
 	availability_layer.grid = grid
 	availability_layer.placement_changed.connect(_refresh_all)

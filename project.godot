@@ -32,6 +32,8 @@ NewsStore="*res://Scripts/Autoload/news_store.gd"
 BaseResourceStore="*res://Scripts/Autoload/base_resource_store.gd"
 BaseDispatchStore="*res://Scripts/Autoload/base_dispatch_store.gd"
 RoamingEnemyStore="*res://Scripts/Autoload/roaming_enemy_store.gd"
+NationFavorStore="*res://Scripts/Autoload/nation_favor_store.gd"
+ActionPanel="*res://Scenes/ActionPanel/action_panel.tscn"
 
 [display]
 

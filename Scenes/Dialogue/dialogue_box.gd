@@ -12,14 +12,16 @@ extends Control
 ## (如果先前露過臉)會一起蓋上遮罩變暗,不用額外分支處理。
 ##
 ## 操作方式:畫面上點一下(ClickCatcher 蓋住全螢幕)就推進下一句,播完最後一句(或
-## 呼叫端根本沒塞資料)自動切去 next_scene_path。遇到選擇題(DialogueLine.has_choices)
-## 改成顯示選項按鈕、讓 ClickCatcher 讓開,玩家只能靠選按鈕離開這句,見 _refresh_choices()。
+## 呼叫端根本沒塞資料)先執行呼叫端選填的 on_finished、再自動切去 next_scene_path(留空
+## 就不轉場,見 _leave())。遇到選擇題(DialogueLine.has_choices)改成顯示選項按鈕、讓
+## ClickCatcher 讓開,玩家只能靠選按鈕離開這句,見 _refresh_choices()。
 
 @onready var background: TextureRect = $Background
 @onready var left_portrait: TextureRect = $LeftPortraitFrame
 @onready var left_mask: ColorRect = $LeftPortraitFrame/LeftGrayMask
 @onready var right_portrait: TextureRect = $RightPortraitFrame
 @onready var right_mask: ColorRect = $RightPortraitFrame/RightGrayMask
+@onready var text_box: PanelContainer = $TextBox
 @onready var speaker_name_label: Label = $TextBox/Margin/Content/SpeakerNameLabel
 @onready var dialogue_label: Label = $TextBox/Margin/Content/DialogueLabel
 @onready var choices_container: VBoxContainer = $TextBox/Margin/Content/ChoicesContainer
@@ -27,9 +29,13 @@ extends Control
 
 var dialogue: Dialogue = null
 var _next_scene_path: String = ""
+## 對話播完時執行一次的選填 callback,見 LocationEvent.goto_dialogue() 的 on_finished
+## 參數——不是每段對話都會用到,大多數留空(Callable() 無效,_leave() 直接跳過)。
+var _on_finished: Callable = Callable()
 
 
 func _ready() -> void:
+	UiStyle.apply_parchment_panel(text_box, 1520.0, 180.0, 40.0, 22.0, 40.0, 22.0)
 	click_catcher.gui_input.connect(_on_click_catcher_gui_input)
 
 	# peek() 不清空——DialogueLine.choices 裡可能嵌著捕捉呼叫端 self 的 lambda,提早
@@ -37,6 +43,7 @@ func _ready() -> void:
 	var handoff := SceneHandoffStore.peek(LocationEvent.DIALOGUE_MAILBOX_KEY)
 	dialogue = handoff.payload as Dialogue if handoff != null else null
 	_next_scene_path = handoff.next_scene_path if handoff != null else ""
+	_on_finished = handoff.result_callback if handoff != null else Callable()
 
 	if dialogue == null or dialogue.lines.is_empty():
 		# 防呆:不是從 LocationEvent.goto_dialogue() 的正常流程進來(例如直接開這個場景測試)。
@@ -63,8 +70,16 @@ func _advance() -> void:
 	_refresh()
 
 
-## 播完(或沒資料可播)後切去呼叫端事先指定好的下一個場景。
+## 播完(或沒資料可播)後先執行呼叫端的 on_finished(見 LocationEvent.goto_dialogue()),
+## 再切去事先指定好的下一個場景;next_scene_path 留空時只執行 on_finished、留在目前這個
+## 對話畫面上不轉場(例如 TownTavernEvent 的酒館老闆招呼詞播完直接疊加彈出 ActionPanel)。
+## 清空後才呼叫,避免 callback 內又觸發一次 _leave() 時重複執行。
 func _leave() -> void:
+	var callback := _on_finished
+	_on_finished = Callable()
+	if callback.is_valid():
+		callback.call()
+
 	if _next_scene_path.is_empty():
 		return
 	var error := get_tree().change_scene_to_file(_next_scene_path)

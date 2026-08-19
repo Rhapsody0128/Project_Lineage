@@ -25,6 +25,9 @@ extends Control
 
 @onready var title_label: Label = $Title
 @onready var detail_margin: MarginContainer = $MainRow/DetailPanel/DetailMargin
+@onready var face_off_panel: PanelContainer = $MainRow/RightPanel/FaceOffPanel
+@onready var picker_panel: PanelContainer = $MainRow/RightPanel/PickerPanel
+@onready var picker_scroll_container: ScrollContainer = $MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox/ScrollContainer
 @onready var self_row: HBoxContainer = $MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/SelfSlot/SelfRow
 @onready var self_info_label: Label = $MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/SelfSlot/SelfRow/SelfInfo
 @onready var target_row: HBoxContainer = $MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/TargetSlot/TargetRow
@@ -50,6 +53,9 @@ func _ready() -> void:
 	for button in [accept_button, second_button]:
 		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
 		button.add_theme_font_size_override("font_size", 18)
+	UiStyle.apply_parchment_panel(face_off_panel, 1120.0, 220.0)
+	UiStyle.apply_parchment_panel(picker_panel, 1120.0, 556.0)
+	UiStyle.apply_parchment_scrollbar(picker_scroll_container)
 
 	# take() 讀完立刻清空,跟原本 ProposalStore 在這裡手動清 pending 欄位的行為一致。
 	var handoff := SceneHandoffStore.take(MarriageProposalRequest.MAILBOX_KEY)

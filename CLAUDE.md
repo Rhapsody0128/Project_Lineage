@@ -48,6 +48,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | `marriage/` | 聯姻規則(`MarriageRule`:告白資格/成功率判定)與告白 payload(`MarriageProposalRequest`) |
 | `time/` | 世界時間曆法(`WorldTime`)與推進/固定事件派發規則(`WorldTimeController`),見下方「世界時間」 |
 | `family_tree/` | 從任一角色出發,沿 `Character.parent`/`mate`/`children` 邊做世代分組,產出祖譜樹狀結構(`FamilyTreeBuilder`/`FamilyTreeUnit`),見下方「祖譜」 |
+| `nation/` | 六大國家(對應 `GameEnums.BloodlineNation`)的靜態身分資料:國家名稱、低血/高血稱呼(`Nation`/`NationLibrary`),見下方「國家好感度」 |
 
 `battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleCharacter`:`Battle`(回合迴圈/
 佈陣/勝負判定)、`BattleCharacter`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
@@ -127,6 +128,19 @@ get_nonzero_entries()` + `GameEnums.bloodline_full_label`/`bloodline_nation_colo
 (不只小頭像)都能點擊開 `CharacterPanel`,且 `ScrollContainer` 範圍內按住可拖曳平移
 (`FamilyTreeCanvas._input()`,不受卡片 `mouse_filter=STOP` 影響;拖曳距離超過門檻才算
 「有拖曳」,放開時才不會被誤判成點擊開錯面板)。
+
+## 國家好感度(System/nation + NationFavorStore)
+
+`Nation`/`NationLibrary`(`System/nation/`)是六大國家(`GameEnums.BloodlineNation`)的靜態
+身分資料:國家名稱、低血/高血稱呼,全部直接呼叫 `GameEnums.bloodline_nation_label()`/
+`bloodline_full_label()` 組出來,不重複維護一份標籤表——`NationLibrary.get_all()`/
+`get_by_id()` 是唯一取用入口,呼叫端不要自己 `Nation.new(id)`。
+
+玩家對每個國家的好感度是會變動的玩家資料,不是靜態規則,所以不放在 `System/nation/`,
+比照 `BaseResourceStore` 的慣例存在 `NationFavorStore`(autoload,
+`Scripts/Autoload/nation_favor_store.gd`):`Dictionary` 存 `國家 id → 好感度`,
+`get_favor(nation_id)`/`add_favor(nation_id, amount)`,`changed` 訊號供 UI 即時刷新。目前
+只記錄數值本身,「依好感度升級城鎮功能」是之後的事,這裡先不做任何等級/門檻換算。
 
 ## 世界時間(System/time + WorldTimeStore)
 

@@ -19,7 +19,7 @@ func _start(return_scene_path: String) -> void:
 
 
 func _build_chat() -> Dialogue:
-	var player := CharacterController.get_random_character()
+	var player :=  PartyStore.party.leader
 	var npc := CharacterController.get_random_character()
 	var npc2 := CharacterController.get_random_character()
 

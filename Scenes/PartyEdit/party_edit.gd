@@ -19,6 +19,8 @@ extends Control
 @onready var board: PartyEditBoard = $GridBoard
 @onready var availability_layer: PartyEditAvailabilityLayer = $AvailabilityLayer
 @onready var placed_layer: Control = $PlacedLayer
+@onready var right_panel: PanelContainer = $UI/RightPanel
+@onready var roster_scroll_container: ScrollContainer = $UI/RightPanel/Margin/VBox/ScrollContainer
 @onready var roster_list: VBoxContainer = $UI/RightPanel/Margin/VBox/ScrollContainer/RosterList
 @onready var sort_filter_bar: CharacterSortFilterBar = $UI/RightPanel/Margin/VBox/SortFilterBar
 @onready var add_character_button: Button = $UI/TopBar/AddCharacterButton
@@ -37,6 +39,8 @@ func _ready() -> void:
 	for button in [add_character_button, grow_grid_button, start_battle_button, finish_edit_button, back_button]:
 		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
 		button.add_theme_font_size_override("font_size", 18)
+	UiStyle.apply_parchment_panel(right_panel, 480.0, 780.0)
+	UiStyle.apply_parchment_scrollbar(roster_scroll_container)
 
 	grid = PartyStore.grid.clone() if PartyStore.grid != null else PartyEditGrid.new()
 	availability_layer.grid = grid

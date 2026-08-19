@@ -42,9 +42,9 @@ static func get_random_character(rank_type: int = -1, nation: int = -1) -> Chara
 ## main.gd 的 _ensure_starting_party())。姓名/年齡/性別/武器先用佔位資料寫死,
 ## 之後企劃資料確定再整段換掉;素質/血統/個性/技能/佔位格暫時仍沿用既有隨機池,
 ## 不影響「這個角色一開始就固定存在」這件事。
-const PROTAGONIST_NAME := "主角"
-const PROTAGONIST_LAST_NAME := "佔位姓氏"
-const PROTAGONIST_AGE := 20
+const PROTAGONIST_NAME := "威廉"
+const PROTAGONIST_LAST_NAME := "華勒斯"
+const PROTAGONIST_AGE := 17
 const PROTAGONIST_GENDER := GameEnums.Gender.MALE
 const PROTAGONIST_WEAPON := GameEnums.WeaponType.SWORD
 

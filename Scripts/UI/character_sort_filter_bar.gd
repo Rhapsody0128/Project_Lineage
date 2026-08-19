@@ -16,7 +16,7 @@ signal changed
 var filter := CharacterSortFilter.new()
 
 const _FONT_SIZE := 14
-const _FONT_COLOR := Color(0.9, 0.9, 0.95, 1)
+const _FONT_COLOR := UiStyle.PARCHMENT_TEXT_COLOR
 
 ## OptionButton 索引 0 固定是「不排序」,索引 1 起依序對應 GameEnums.CharacterSortKey
 

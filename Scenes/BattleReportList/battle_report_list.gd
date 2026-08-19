@@ -14,12 +14,12 @@ const ROW_MIN_HEIGHT := 56.0
 const TIME_COLUMN_STRETCH_RATIO := 3.0
 const ACTION_COLUMN_WIDTH := 90.0
 
-const ROW_STYLE_BG := Color(0.13, 0.15, 0.21, 0.95)
-const ROW_STYLE_BORDER := Color(0.36, 0.4, 0.56, 1)
 const WIN_COLOR := Color(0.55, 0.85, 0.55)
 const LOSE_COLOR := Color(0.9, 0.5, 0.5)
 const DRAW_COLOR := Color(0.85, 0.8, 0.6)
 
+@onready var main_panel: PanelContainer = $MainPanel
+@onready var scroll_container: ScrollContainer = $MainPanel/Margin/VBox/ScrollContainer
 @onready var report_list: VBoxContainer = $MainPanel/Margin/VBox/ScrollContainer/ReportList
 @onready var generate_button: Button = $TopBar/GenerateButton
 @onready var back_button: Button = $TopBar/BackButton
@@ -29,6 +29,8 @@ func _ready() -> void:
 	for button in [generate_button, back_button]:
 		UiStyle.apply_wood_plaque_button(button, 30.0, 10.0)
 		button.add_theme_font_size_override("font_size", 16)
+	UiStyle.apply_parchment_panel(main_panel, 1320.0, 740.0)
+	UiStyle.apply_parchment_scrollbar(scroll_container)
 	_refresh_list()
 
 
@@ -45,8 +47,8 @@ func _spawn_report_row(report: BattleReport) -> void:
 	var row := PanelContainer.new()
 	row.custom_minimum_size = Vector2(0, ROW_MIN_HEIGHT)
 
-	row.add_theme_stylebox_override("panel", UiStyle.bordered_panel(
-		ROW_STYLE_BG, ROW_STYLE_BORDER, 2, 8, 16.0, 6.0
+	row.add_theme_stylebox_override("panel", UiStyle.parchment_row_style(
+		UiStyle.PARCHMENT_ROW_BORDER, 2, 8, 16.0, 6.0
 	))
 
 	var content := HBoxContainer.new()
@@ -58,6 +60,7 @@ func _spawn_report_row(report: BattleReport) -> void:
 	game_time_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	game_time_label.size_flags_stretch_ratio = TIME_COLUMN_STRETCH_RATIO
 	game_time_label.add_theme_font_size_override("font_size", 16)
+	game_time_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	content.add_child(game_time_label)
 
 	var system_time_label := Label.new()
@@ -65,7 +68,7 @@ func _spawn_report_row(report: BattleReport) -> void:
 	system_time_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	system_time_label.size_flags_stretch_ratio = TIME_COLUMN_STRETCH_RATIO
 	system_time_label.add_theme_font_size_override("font_size", 16)
-	system_time_label.add_theme_color_override("font_color", Color(0.75, 0.78, 0.88))
+	system_time_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
 	content.add_child(system_time_label)
 
 	var result_label := Label.new()
@@ -80,12 +83,16 @@ func _spawn_report_row(report: BattleReport) -> void:
 	watch_button.text = "觀戰"
 	watch_button.custom_minimum_size = Vector2(ACTION_COLUMN_WIDTH, 0)
 	watch_button.pressed.connect(_on_watch_pressed.bind(report))
+	UiStyle.apply_wood_plaque_button(watch_button, 14.0, 8.0)
+	watch_button.add_theme_font_size_override("font_size", 15)
 	content.add_child(watch_button)
 
 	var stats_button := Button.new()
 	stats_button.text = "戰報"
 	stats_button.custom_minimum_size = Vector2(ACTION_COLUMN_WIDTH, 0)
 	stats_button.pressed.connect(_on_stats_pressed.bind(report))
+	UiStyle.apply_wood_plaque_button(stats_button, 14.0, 8.0)
+	stats_button.add_theme_font_size_override("font_size", 15)
 	content.add_child(stats_button)
 
 	report_list.add_child(row)

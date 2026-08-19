@@ -2,9 +2,7 @@
 
 [ext_resource type="Script" path="res://Scenes/Marriage/marriage_proposal.gd" id="1"]
 [ext_resource type="Script" path="res://Scripts/UI/character_sort_filter_bar.gd" id="2"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.086, 0.098, 0.145, 1)
+[ext_resource type="Texture2D" path="res://Images/UI/system_background.png" id="3_bg"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
 bg_color = Color(0.13, 0.15, 0.21, 0.95)
@@ -27,7 +25,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Background" type="Panel" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -36,7 +34,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 z_index = -3
-theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+texture = ExtResource("3_bg")
+expand_mode = 1
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 0
@@ -101,7 +100,6 @@ theme_override_constants/separation = 16
 [node name="FaceOffPanel" type="PanelContainer" parent="MainRow/RightPanel"]
 custom_minimum_size = Vector2(0, 220)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="FaceOffMargin" type="MarginContainer" parent="MainRow/RightPanel/FaceOffPanel"]
 layout_mode = 2
@@ -129,7 +127,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.88, 0.88, 0.92, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 
 [node name="VsLabel" type="Label" parent="MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow"]
 layout_mode = 2
@@ -152,12 +150,11 @@ theme_override_constants/separation = 12
 layout_mode = 2
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.88, 0.88, 0.92, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 
 [node name="PickerPanel" type="PanelContainer" parent="MainRow/RightPanel"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="PickerMargin" type="MarginContainer" parent="MainRow/RightPanel/PickerPanel"]
 layout_mode = 2
@@ -173,13 +170,13 @@ theme_override_constants/separation = 10
 [node name="PickerTitle" type="Label" parent="MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 text = "選擇告白人選"
 
 [node name="PickerHint" type="Label" parent="MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 13
-theme_override_colors/font_color = Color(0.68, 0.7, 0.78, 1)
+theme_override_colors/font_color = Color(0.4, 0.29, 0.18, 1)
 autowrap_mode = 3
 text = "可以選擇其他人選推薦，但是有高機率會被回絕。"
 
@@ -190,7 +187,7 @@ theme_override_constants/separation = 16
 [node name="GenderFilterCheck" type="CheckBox" parent="MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox/EligibilityRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.9, 0.9, 0.95, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 button_pressed = true
 disabled = true
 text = "性別相反"
@@ -198,7 +195,7 @@ text = "性別相反"
 [node name="MarriedFilterCheck" type="CheckBox" parent="MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox/EligibilityRow"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 14
-theme_override_colors/font_color = Color(0.9, 0.9, 0.95, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 button_pressed = true
 disabled = true
 text = "排除已婚"

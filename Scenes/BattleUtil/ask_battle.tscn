@@ -1,18 +1,6 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=1 format=3]
 
 [ext_resource type="Script" path="res://Scenes/BattleUtil/ask_battle.gd" id="1"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.13, 0.15, 0.21, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.36, 0.4, 0.56, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
 
 [node name="AskBattle" type="CanvasLayer"]
 process_mode = 3
@@ -50,7 +38,6 @@ mouse_filter = 2
 [node name="PanelBox" type="PanelContainer" parent="Root/CenterContainer"]
 custom_minimum_size = Vector2(420, 180)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Margin" type="MarginContainer" parent="Root/CenterContainer/PanelBox"]
 layout_mode = 2
@@ -66,7 +53,7 @@ theme_override_constants/separation = 20
 [node name="QuestionLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 horizontal_alignment = 1
 text = "戰鬥無可避免，你的選擇是？"
 
@@ -89,7 +76,6 @@ text = "親臨戰場"
 visible = false
 custom_minimum_size = Vector2(420, 180)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Margin" type="MarginContainer" parent="Root/CenterContainer/ReportPromptBox"]
 layout_mode = 2
@@ -111,7 +97,7 @@ text = "勝利"
 [node name="QuestionLabel" type="Label" parent="Root/CenterContainer/ReportPromptBox/Margin/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 horizontal_alignment = 1
 text = "是否觀看戰報？"
 

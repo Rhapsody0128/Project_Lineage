@@ -41,9 +41,6 @@ const RADAR_MIN_SIZE := Vector2(280, 220)
 const BLOODLINE_BAR_HEIGHT := 10.0
 const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
 const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
-## 高階血統評分(Character.noble_bloodline_rank)標籤色,比照 roaming_enemy_visual.gd
-## 評分標籤的金色,兩處都是「評級」語意,視覺語言統一。
-const BLOODLINE_RANK_COLOR := Color(1.0, 0.85, 0.3)
 
 ## 家族分頁每個成員列的小頭像,比 header 的 PORTRAIT_SIZE 小一號——一行只需要
 ## 辨識用,不需要跟主要立繪搶視覺。
@@ -102,6 +99,15 @@ var children_list: VBoxContainer
 ## 「觀看祖譜」按鈕的入口需要知道目前分頁顯示的是誰,set_character() 開頭記錄。
 var current_character: Character
 
+## 這顆元件預設假設放在深色底面板上(標題/內文字色都是淺色)。CharacterPanel 彈出面板
+## 換成羊皮紙淺色底之後,靠這個旗標切換成深色系文字——CharacterRoster/MarriageProposal
+## 內嵌的這顆元件目前還是深色底,不能直接把預設顏色也改掉,會讓那兩處變成淺字配淺底。
+## 在 character_panel.tscn 的 DetailView 節點上以 `use_parchment_theme = true` 設定
+## (exported 屬性,場景實例化時就會生效,早於 _ready() 建立所有子節點),不是程式化
+## CharacterDetailView.new() 那兩處呼叫端要記得手動呼叫方法設定——場景檔宣告的屬性一定
+## 早於 _ready(),比程式碼裡「先設值再 add_child」更不容易漏設。
+@export var use_parchment_theme: bool = false
+
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 10)
@@ -112,6 +118,23 @@ func _ready() -> void:
 	var tabs := TabContainer.new()
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# 分頁內容區塊不需要引擎預設那塊body底色——面板本身(彈出式 CharacterPanel 的
+	# 羊皮紙底,或 CharacterRoster/MarriageProposal 的深色底)已經是背景了,疊一層
+	# TabContainer 自己的底色只會多一塊不必要的色塊。
+	tabs.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	if use_parchment_theme:
+		tabs.add_theme_stylebox_override("tab_selected", UiStyle.bordered_panel(
+			Color(0.85, 0.72, 0.5, 0.6), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
+		))
+		tabs.add_theme_stylebox_override("tab_unselected", UiStyle.bordered_panel(
+			Color(0.55, 0.42, 0.26, 0.12), Color(0, 0, 0, 0), 0, 8, 10.0, 6.0
+		))
+		tabs.add_theme_stylebox_override("tab_hovered", UiStyle.bordered_panel(
+			Color(0.7, 0.55, 0.35, 0.35), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
+		))
+		tabs.add_theme_color_override("font_selected_color", UiStyle.PARCHMENT_TEXT_COLOR)
+		tabs.add_theme_color_override("font_unselected_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
+		tabs.add_theme_color_override("font_hovered_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	add_child(tabs)
 
 	tabs.add_child(_build_attribute_tab())
@@ -159,6 +182,19 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 	_populate_family(character)
 
 
+## 區塊標題顏色:深色底用原本的淺金色 TITLE_COLOR,羊皮紙淺色底改用 UiStyle 的深咖啡
+## 系 PARCHMENT_SUBTITLE_COLOR,避免淺字配淺底看不清楚。
+func _title_color() -> Color:
+	return UiStyle.PARCHMENT_SUBTITLE_COLOR if use_parchment_theme else TITLE_COLOR
+
+
+## 一般內文字色(標題以外的說明/數值文字)只在羊皮紙主題時才需要蓋掉引擎預設的淺色,
+## 深色底沿用預設淺色文字即可,不用額外呼叫。
+func _apply_body_text_color(label: Label) -> void:
+	if use_parchment_theme:
+		label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+
+
 ## 「標題靠左、數值靠右」的兩端對齊列(對照 CSS 的 justify-content: space-between),
 ## 面板內所有單行數值(等級/EXP/六大素質/血統百分比)統一用這個排版,不要有的置中
 ## 有的靠左。回傳列本身跟數值 Label,呼叫端保留數值 Label 的參照供之後更新內容。
@@ -170,11 +206,13 @@ func _build_stat_row(caption: String) -> Dictionary:
 	caption_label.text = caption
 	caption_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	caption_label.add_theme_font_size_override("font_size", 15)
+	_apply_body_text_color(caption_label)
 	row.add_child(caption_label)
 
 	var value_label := Label.new()
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.add_theme_font_size_override("font_size", 15)
+	_apply_body_text_color(value_label)
 	row.add_child(value_label)
 
 	return {"row": row, "caption_label": caption_label, "value_label": value_label}
@@ -226,7 +264,6 @@ func _build_identity_header() -> Control:
 
 	var rank_row := _build_stat_row("評級")
 	bloodline_rank_value_label = rank_row["value_label"]
-	bloodline_rank_value_label.add_theme_color_override("font_color", BLOODLINE_RANK_COLOR)
 	info_column.add_child(rank_row["row"])
 
 	return header
@@ -247,6 +284,11 @@ func _wrap_tab_content(tab_name: String, content: Control) -> ScrollContainer:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# 引擎原生捲軸在羊皮紙底上太粗、顏色也不搭,換成 UiStyle 共用的淡色細版——沿用
+	# CharacterRoster/MarriageProposal 那組深色底時保留原生樣式,避免棕色細條疊在
+	# 深藍底上顯得突兀。
+	if use_parchment_theme:
+		UiStyle.apply_parchment_scrollbar(scroll)
 
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -272,7 +314,7 @@ func _build_attribute_tab() -> Control:
 	var basic_title := Label.new()
 	basic_title.text = "基本"
 	basic_title.add_theme_font_size_override("font_size", 15)
-	basic_title.add_theme_color_override("font_color", TITLE_COLOR)
+	basic_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(basic_title)
 
 	var info_row := HBoxContainer.new()
@@ -332,6 +374,7 @@ func _build_attribute_tab() -> Control:
 	weapon_caption.text = "武器"
 	weapon_caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	weapon_caption.add_theme_font_size_override("font_size", 15)
+	_apply_body_text_color(weapon_caption)
 	weapon_row.add_child(weapon_caption)
 
 	weapon_icon = TextureRect.new()
@@ -345,7 +388,7 @@ func _build_attribute_tab() -> Control:
 	var potential_title := Label.new()
 	potential_title.text = "素質"
 	potential_title.add_theme_font_size_override("font_size", 15)
-	potential_title.add_theme_color_override("font_color", TITLE_COLOR)
+	potential_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(potential_title)
 
 	var potential_grid := GridContainer.new()
@@ -367,7 +410,7 @@ func _build_attribute_tab() -> Control:
 	var skill_title := Label.new()
 	skill_title.text = "技能"
 	skill_title.add_theme_font_size_override("font_size", 15)
-	skill_title.add_theme_color_override("font_color", TITLE_COLOR)
+	skill_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(skill_title)
 
 	skill_row = GridContainer.new()
@@ -389,10 +432,11 @@ func _build_bloodline_tab() -> Control:
 	var potential_title := Label.new()
 	potential_title.text = "潛力"
 	potential_title.add_theme_font_size_override("font_size", 15)
-	potential_title.add_theme_color_override("font_color", TITLE_COLOR)
+	potential_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(potential_title)
 
 	radar = CharacterPotentialRadar.new()
+	radar.use_parchment_theme = use_parchment_theme
 	radar.custom_minimum_size = RADAR_MIN_SIZE
 	radar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(radar)
@@ -402,7 +446,7 @@ func _build_bloodline_tab() -> Control:
 	var bloodline_title := Label.new()
 	bloodline_title.text = "血統"
 	bloodline_title.add_theme_font_size_override("font_size", 15)
-	bloodline_title.add_theme_color_override("font_color", TITLE_COLOR)
+	bloodline_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(bloodline_title)
 
 	bloodline_list = VBoxContainer.new()
@@ -415,7 +459,7 @@ func _build_bloodline_tab() -> Control:
 	var trait_title := Label.new()
 	trait_title.text = "特性"
 	trait_title.add_theme_font_size_override("font_size", 15)
-	trait_title.add_theme_color_override("font_color", TITLE_COLOR)
+	trait_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(trait_title)
 
 	trait_list = HFlowContainer.new()
@@ -435,27 +479,31 @@ func _build_family_tab() -> Control:
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 6)
 
-	var view_family_tree_button := Button.new()
-	view_family_tree_button.text = "觀看祖譜"
-	view_family_tree_button.add_theme_font_size_override("font_size", 16)
-	view_family_tree_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(
-		FAMILY_TREE_BUTTON_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
-	))
-	view_family_tree_button.add_theme_stylebox_override("hover", UiStyle.bordered_panel(
-		FAMILY_TREE_BUTTON_HOVER_BG, FAMILY_TREE_BUTTON_HOVER_BORDER, 2, 8
-	))
-	view_family_tree_button.add_theme_stylebox_override("pressed", UiStyle.bordered_panel(
-		FAMILY_TREE_BUTTON_PRESSED_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
-	))
-	view_family_tree_button.pressed.connect(_on_view_family_tree_pressed)
-	column.add_child(view_family_tree_button)
+	# CharacterPanel 是全域彈出面板,任何場景都能開(包含戰鬥中點頭像),按下去切場景去
+	# 祖譜會直接丟掉目前情境,不適合出現;CharacterRoster/MarriageProposal 是專門瀏覽
+	# 角色的整頁場景,離開去看祖譜沒有這個問題,保留原本行為。
+	if not use_parchment_theme:
+		var view_family_tree_button := Button.new()
+		view_family_tree_button.text = "觀看祖譜"
+		view_family_tree_button.add_theme_font_size_override("font_size", 16)
+		view_family_tree_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(
+			FAMILY_TREE_BUTTON_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
+		))
+		view_family_tree_button.add_theme_stylebox_override("hover", UiStyle.bordered_panel(
+			FAMILY_TREE_BUTTON_HOVER_BG, FAMILY_TREE_BUTTON_HOVER_BORDER, 2, 8
+		))
+		view_family_tree_button.add_theme_stylebox_override("pressed", UiStyle.bordered_panel(
+			FAMILY_TREE_BUTTON_PRESSED_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
+		))
+		view_family_tree_button.pressed.connect(_on_view_family_tree_pressed)
+		column.add_child(view_family_tree_button)
 
-	column.add_child(HSeparator.new())
+		column.add_child(HSeparator.new())
 
 	var parent_title := Label.new()
 	parent_title.text = "父母"
 	parent_title.add_theme_font_size_override("font_size", 15)
-	parent_title.add_theme_color_override("font_color", TITLE_COLOR)
+	parent_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(parent_title)
 
 	parent_list = VBoxContainer.new()
@@ -468,7 +516,7 @@ func _build_family_tab() -> Control:
 	var mate_title := Label.new()
 	mate_title.text = "配偶"
 	mate_title.add_theme_font_size_override("font_size", 15)
-	mate_title.add_theme_color_override("font_color", TITLE_COLOR)
+	mate_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(mate_title)
 
 	mate_list = VBoxContainer.new()
@@ -481,7 +529,7 @@ func _build_family_tab() -> Control:
 	var children_title := Label.new()
 	children_title.text = "孩子"
 	children_title.add_theme_font_size_override("font_size", 15)
-	children_title.add_theme_color_override("font_color", TITLE_COLOR)
+	children_title.add_theme_color_override("font_color", _title_color())
 	column.add_child(children_title)
 
 	children_list = VBoxContainer.new()
@@ -616,6 +664,7 @@ func _populate_traits(traits: Array[CharacterTrait]) -> void:
 
 	if traits.is_empty():
 		var empty_label := Label.new()
+		_apply_body_text_color(empty_label)
 		trait_list.add_child(empty_label)
 		return
 
@@ -652,6 +701,7 @@ func _populate_family_section(list: VBoxContainer, members: Array) -> void:
 
 	if members.is_empty():
 		var empty_label := Label.new()
+		_apply_body_text_color(empty_label)
 		list.add_child(empty_label)
 		return
 

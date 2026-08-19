@@ -34,8 +34,8 @@ func _init(p_character: Character = null) -> void:
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, CARD_MIN_HEIGHT)
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	add_theme_stylebox_override("panel", UiStyle.bordered_panel(
-		Color(0.13, 0.15, 0.21, 0.95), Color(0.36, 0.4, 0.56, 1), 2, 8, 10.0, 4.0
+	add_theme_stylebox_override("panel", UiStyle.parchment_row_style(
+		UiStyle.PARCHMENT_ROW_BORDER, 2, 8, 10.0, 4.0
 	))
 
 	var content := HBoxContainer.new()
@@ -63,6 +63,7 @@ func _ready() -> void:
 	var name_label := Label.new()
 	name_label.text = character.full_name
 	name_label.add_theme_font_size_override("font_size", NAME_FONT_SIZE)
+	name_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	info_column.add_child(name_label)
 
 	## 「等級/武器」跟下面六大素質共用同一個 GridContainer(而不是各自獨立的
@@ -78,6 +79,7 @@ func _ready() -> void:
 	var level_label := Label.new()
 	level_label.text = "等級 %d" % character.level_system.level
 	level_label.add_theme_font_size_override("font_size", STAT_FONT_SIZE)
+	level_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
 	potential_grid.add_child(level_label)
 
 	var weapon_row := HBoxContainer.new()
@@ -87,6 +89,7 @@ func _ready() -> void:
 	var weapon_label := Label.new()
 	weapon_label.text = "武器"
 	weapon_label.add_theme_font_size_override("font_size", STAT_FONT_SIZE)
+	weapon_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
 	weapon_row.add_child(weapon_label)
 
 	var weapon_icon := TextureRect.new()
@@ -103,6 +106,7 @@ func _ready() -> void:
 		var stat_label := Label.new()
 		stat_label.text = "%s %d" % [GameEnums.potential_label(potential_type), roundi(character.get_potential(potential_type))]
 		stat_label.add_theme_font_size_override("font_size", STAT_FONT_SIZE)
+		stat_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
 		potential_grid.add_child(stat_label)
 
 	var cost_center := CenterContainer.new()

@@ -12,9 +12,9 @@ signal character_selected(character: Character)
 
 const CARD_SIZE := Vector2(112, 112)
 
-const _BG_COLOR := Color(0.13, 0.15, 0.21, 0.95)
-const _BORDER_COLOR := Color(0.36, 0.4, 0.56, 1)
-const _SELECTED_BORDER_COLOR := Color(0.95, 0.75, 0.4, 1)
+const _BG_COLOR := UiStyle.PARCHMENT_ROW_BG
+const _BORDER_COLOR := UiStyle.PARCHMENT_ROW_BORDER
+const _SELECTED_BORDER_COLOR := UiStyle.PARCHMENT_SELECTED_BORDER
 
 var character: Character
 

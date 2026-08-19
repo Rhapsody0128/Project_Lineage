@@ -34,8 +34,14 @@ const DIALOGUE_MAILBOX_KEY := "dialogue"
 ## 把 Dialogue 塞進 SceneHandoffStore、切去對話場景播放,播完由 next_scene_path 自動接手
 ## 轉場(見 Scripts/Autoload/scene_handoff_store.gd)。子類別要顯示任何一段對話都呼叫這裡,
 ## 不要自己重複寫一份「Engine.get_main_loop() 取代 get_tree()」。
-func goto_dialogue(dialogue: Dialogue, next_scene_path: String) -> void:
-	SceneHandoffStore.queue(DIALOGUE_MAILBOX_KEY, dialogue, next_scene_path)
+##
+## on_finished 選填:最後一句播完(玩家點過去)時執行一次,不管 next_scene_path 是否
+## 留空都會呼叫,轉場(如果有)之前先呼叫——例如 TownTavernEvent 的酒館老闆招呼詞播完
+## 要直接彈出 ActionPanel(疊加視窗,不用真的切場景),next_scene_path 留空、on_finished
+## 接手開面板,見 dialogue_box.gd 的 _leave()。跟 DialogueChoice.on_selected 不同,這裡
+## 不需要玩家額外點選項按鈕,純粹是「這段對話播完了」的通知。
+func goto_dialogue(dialogue: Dialogue, next_scene_path: String, on_finished: Callable = Callable()) -> void:
+	SceneHandoffStore.queue(DIALOGUE_MAILBOX_KEY, dialogue, next_scene_path, on_finished)
 	var tree := Engine.get_main_loop() as SceneTree
 	var error := tree.change_scene_to_file(DIALOGUE_SCENE_PATH)
 	if error != OK:

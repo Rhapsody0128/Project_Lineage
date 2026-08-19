@@ -3,18 +3,6 @@
 [ext_resource type="Script" uid="uid://dlnfdxcyghv2e" path="res://Scenes/CharacterPanel/character_panel.gd" id="1"]
 [ext_resource type="Script" uid="uid://bv7l1acci6bne" path="res://Scenes/CharacterPanel/character_detail_view.gd" id="2"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.13, 0.15, 0.21, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.36, 0.4, 0.56, 1)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
-
 [node name="CharacterPanel" type="CanvasLayer" unique_id=619453394]
 process_mode = 3
 layer = 10
@@ -51,7 +39,6 @@ mouse_filter = 2
 [node name="PanelBox" type="PanelContainer" parent="Root/CenterContainer" unique_id=150913479]
 custom_minimum_size = Vector2(400, 700)
 layout_mode = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Margin" type="MarginContainer" parent="Root/CenterContainer/PanelBox" unique_id=1963797733]
 layout_mode = 2
@@ -70,7 +57,7 @@ layout_mode = 2
 [node name="TitleLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/TopBar" unique_id=1453385879]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 theme_override_font_sizes/font_size = 22
 text = "角色資料"
 
@@ -85,5 +72,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("2")
+use_parchment_theme = true
 
 [connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/TopBar/CloseButton" to="." method="close"]

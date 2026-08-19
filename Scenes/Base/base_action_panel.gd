@@ -14,6 +14,14 @@ var _building: Building
 var _picking_character: bool = false
 
 
+func _ready() -> void:
+	# MarginContainer 自己已經有 16px 留白,這裡的 content_margin 只是再多留一點空間
+	# 讓文字不要貼在羊皮紙毛邊上,不能沿用大面板(例如 action_panel)的 30/50/30/50——
+	# 疊上去會把角色派遣清單(可能好幾顆按鈕,沒有 ScrollContainer)擠到放不下。
+	UiStyle.apply_parchment_panel(self, 460.0, 620.0, 16.0, 20.0, 16.0, 20.0)
+	title_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+
+
 func open_for_building(building: Building) -> void:
 	_building = building
 	_picking_character = false
@@ -94,6 +102,7 @@ func _get_eligible_characters() -> Array[Character]:
 func _add_label(text: String) -> void:
 	var label := Label.new()
 	label.text = text
+	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	body_container.add_child(label)
 
 

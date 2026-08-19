@@ -5,9 +5,7 @@
 [ext_resource type="Script" uid="uid://bokra78urdjw5" path="res://Scenes/Battle/battle_party_roster.gd" id="3"]
 [ext_resource type="Script" uid="uid://cqn5f0npngwlv" path="res://Scenes/Battle/battle_board.gd" id="4"]
 [ext_resource type="Script" uid="uid://dog2lx5nwwxty" path="res://Scenes/Battle/battle_ultimate_panel.gd" id="5"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.086, 0.098, 0.145, 1)
+[ext_resource type="Texture2D" path="res://Images/UI/system_background.png" id="6_bg"]
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_none"]
 
@@ -89,7 +87,7 @@ grow_vertical = 2
 mouse_filter = 2
 script = ExtResource("1")
 
-[node name="Background" type="Panel" parent="." unique_id=483737409]
+[node name="Background" type="TextureRect" parent="." unique_id=483737409]
 z_index = -3
 layout_mode = 1
 anchors_preset = 15
@@ -98,7 +96,8 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+texture = ExtResource("6_bg")
+expand_mode = 1
 
 [node name="Title" type="Label" parent="." unique_id=1438164892]
 layout_mode = 0

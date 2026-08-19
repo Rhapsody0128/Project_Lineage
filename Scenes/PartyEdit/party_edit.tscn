@@ -1,28 +1,10 @@
-[gd_scene load_steps=6 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit.gd" id="1"]
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit_board.gd" id="2"]
 [ext_resource type="Script" path="res://Scenes/PartyEdit/party_edit_availability_layer.gd" id="3"]
 [ext_resource type="Script" path="res://Scripts/UI/character_sort_filter_bar.gd" id="4"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
-bg_color = Color(0.086, 0.098, 0.145, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_panel"]
-bg_color = Color(0.13, 0.15, 0.21, 0.95)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.36, 0.4, 0.56, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-content_margin_left = 14.0
-content_margin_top = 10.0
-content_margin_right = 14.0
-content_margin_bottom = 10.0
+[ext_resource type="Texture2D" path="res://Images/UI/system_background.png" id="5_bg"]
 
 [node name="PartyEdit" type="Control"]
 layout_mode = 3
@@ -33,7 +15,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
 
-[node name="Background" type="Panel" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -42,7 +24,8 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 z_index = -3
-theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+texture = ExtResource("5_bg")
+expand_mode = 1
 
 [node name="Title" type="Label" parent="."]
 layout_mode = 0
@@ -135,21 +118,15 @@ custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
 text = "返回"
 
-[node name="RightPanel" type="Panel" parent="UI"]
+[node name="RightPanel" type="PanelContainer" parent="UI"]
 layout_mode = 0
 offset_left = 1096.0
 offset_top = 88.0
 offset_right = 1576.0
 offset_bottom = 868.0
-theme_override_styles/panel = SubResource("StyleBoxFlat_panel")
 
 [node name="Margin" type="MarginContainer" parent="UI/RightPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
 theme_override_constants/margin_left = 16
 theme_override_constants/margin_top = 12
 theme_override_constants/margin_right = 16
@@ -162,7 +139,7 @@ theme_override_constants/separation = 10
 [node name="RosterTitle" type="Label" parent="UI/RightPanel/Margin/VBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 text = "候補角色"
 
 [node name="SortFilterBar" type="VBoxContainer" parent="UI/RightPanel/Margin/VBox"]

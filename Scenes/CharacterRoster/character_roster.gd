@@ -11,6 +11,8 @@ extends Control
 # =========================================================
 
 @onready var detail_margin: MarginContainer = $MainRow/DetailPanel/DetailMargin
+@onready var roster_panel: PanelContainer = $MainRow/RosterPanel
+@onready var roster_scroll_container: ScrollContainer = $MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer
 @onready var sort_filter_bar: CharacterSortFilterBar = $MainRow/RosterPanel/RosterMargin/RosterVBox/SortFilterBar
 @onready var roster_grid: HFlowContainer = $MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer/RosterGrid
 @onready var back_button: Button = $TopBar/BackButton
@@ -22,6 +24,8 @@ var _selected_card: CharacterAvatarCard
 func _ready() -> void:
 	UiStyle.apply_wood_plaque_button(back_button, 16.0, 8.0)
 	back_button.add_theme_font_size_override("font_size", 18)
+	UiStyle.apply_parchment_panel(roster_panel, 1120.0, 792.0)
+	UiStyle.apply_parchment_scrollbar(roster_scroll_container)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -46,18 +46,9 @@ const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
 ## 辨識用,不需要跟主要立繪搶視覺。
 const FAMILY_PORTRAIT_SIZE := Vector2(60, 60)
 
-## 「觀看祖譜」按鈕三態配色,沿用 character_roster.tscn/family_tree.tscn 的
-## BackButton 同一套深藍配色,程式化建構元件沒有 .tscn 可以放子資源,直接寫成常數。
-const FAMILY_TREE_BUTTON_BG := Color(0.2, 0.24, 0.36, 1)
-const FAMILY_TREE_BUTTON_BORDER := Color(0.4, 0.46, 0.66, 1)
-const FAMILY_TREE_BUTTON_HOVER_BG := Color(0.27, 0.32, 0.46, 1)
-const FAMILY_TREE_BUTTON_HOVER_BORDER := Color(0.55, 0.62, 0.85, 1)
-const FAMILY_TREE_BUTTON_PRESSED_BG := Color(0.16, 0.19, 0.28, 1)
-
 ## 分頁內容跟 TabContainer 邊緣的內距,避免捲動內容貼邊
 const TAB_CONTENT_PADDING := 14
 
-const TITLE_COLOR := Color(0.95, 0.9, 0.72, 1)
 const SKILL_SLOT_BG := Color(0.1, 0.1, 0.14, 0.6)
 const SKILL_SLOT_BORDER := Color(0.4, 0.46, 0.66, 1)
 
@@ -99,14 +90,12 @@ var children_list: VBoxContainer
 ## 「觀看祖譜」按鈕的入口需要知道目前分頁顯示的是誰,set_character() 開頭記錄。
 var current_character: Character
 
-## 這顆元件預設假設放在深色底面板上(標題/內文字色都是淺色)。CharacterPanel 彈出面板
-## 換成羊皮紙淺色底之後,靠這個旗標切換成深色系文字——CharacterRoster/MarriageProposal
-## 內嵌的這顆元件目前還是深色底,不能直接把預設顏色也改掉,會讓那兩處變成淺字配淺底。
-## 在 character_panel.tscn 的 DetailView 節點上以 `use_parchment_theme = true` 設定
-## (exported 屬性,場景實例化時就會生效,早於 _ready() 建立所有子節點),不是程式化
-## CharacterDetailView.new() 那兩處呼叫端要記得手動呼叫方法設定——場景檔宣告的屬性一定
-## 早於 _ready(),比程式碼裡「先設值再 add_child」更不容易漏設。
-@export var use_parchment_theme: bool = false
+## 「觀看祖譜」按鈕會直接切場景離開目前畫面——CharacterPanel 是全域彈出面板,任何場景都
+## 能開(包含戰鬥中點頭像),這樣做會直接丟掉目前情境,所以那裡關掉;CharacterRoster/
+## MarriageProposal 是專門瀏覽角色的整頁場景,離開去看祖譜沒有這個問題,維持顯示。這是
+## 唯一還需要呼叫端指定的差異點——文字/雷達圖/分頁按鈕配色三處呼叫端現在都一樣,已經
+## 收斂成這顆元件自己的固定配色,不用旗標。
+@export var show_family_tree_button: bool = true
 
 
 func _ready() -> void:
@@ -118,23 +107,22 @@ func _ready() -> void:
 	var tabs := TabContainer.new()
 	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# 分頁內容區塊不需要引擎預設那塊body底色——面板本身(彈出式 CharacterPanel 的
-	# 羊皮紙底,或 CharacterRoster/MarriageProposal 的深色底)已經是背景了,疊一層
+	# 分頁內容區塊不需要引擎預設那塊body底色——面板本身(彈出式 CharacterPanel 或
+	# CharacterRoster/MarriageProposal 內嵌的羊皮紙底)已經是背景了,疊一層
 	# TabContainer 自己的底色只會多一塊不必要的色塊。
 	tabs.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	if use_parchment_theme:
-		tabs.add_theme_stylebox_override("tab_selected", UiStyle.bordered_panel(
-			Color(0.85, 0.72, 0.5, 0.6), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
-		))
-		tabs.add_theme_stylebox_override("tab_unselected", UiStyle.bordered_panel(
-			Color(0.55, 0.42, 0.26, 0.12), Color(0, 0, 0, 0), 0, 8, 10.0, 6.0
-		))
-		tabs.add_theme_stylebox_override("tab_hovered", UiStyle.bordered_panel(
-			Color(0.7, 0.55, 0.35, 0.35), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
-		))
-		tabs.add_theme_color_override("font_selected_color", UiStyle.PARCHMENT_TEXT_COLOR)
-		tabs.add_theme_color_override("font_unselected_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
-		tabs.add_theme_color_override("font_hovered_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	tabs.add_theme_stylebox_override("tab_selected", UiStyle.bordered_panel(
+		Color(0.85, 0.72, 0.5, 0.6), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
+	))
+	tabs.add_theme_stylebox_override("tab_unselected", UiStyle.bordered_panel(
+		Color(0.55, 0.42, 0.26, 0.12), Color(0, 0, 0, 0), 0, 8, 10.0, 6.0
+	))
+	tabs.add_theme_stylebox_override("tab_hovered", UiStyle.bordered_panel(
+		Color(0.7, 0.55, 0.35, 0.35), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
+	))
+	tabs.add_theme_color_override("font_selected_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	tabs.add_theme_color_override("font_unselected_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
+	tabs.add_theme_color_override("font_hovered_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	add_child(tabs)
 
 	tabs.add_child(_build_attribute_tab())
@@ -182,17 +170,15 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 	_populate_family(character)
 
 
-## 區塊標題顏色:深色底用原本的淺金色 TITLE_COLOR,羊皮紙淺色底改用 UiStyle 的深咖啡
-## 系 PARCHMENT_SUBTITLE_COLOR,避免淺字配淺底看不清楚。
+## 區塊標題顏色,統一用 UiStyle 的深咖啡系 PARCHMENT_SUBTITLE_COLOR。
 func _title_color() -> Color:
-	return UiStyle.PARCHMENT_SUBTITLE_COLOR if use_parchment_theme else TITLE_COLOR
+	return UiStyle.PARCHMENT_SUBTITLE_COLOR
 
 
-## 一般內文字色(標題以外的說明/數值文字)只在羊皮紙主題時才需要蓋掉引擎預設的淺色,
-## 深色底沿用預設淺色文字即可,不用額外呼叫。
+## 一般內文字色(標題以外的說明/數值文字),統一用 UiStyle 的 PARCHMENT_TEXT_COLOR
+## 蓋掉引擎預設的淺色文字。
 func _apply_body_text_color(label: Label) -> void:
-	if use_parchment_theme:
-		label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 
 
 ## 「標題靠左、數值靠右」的兩端對齊列(對照 CSS 的 justify-content: space-between),
@@ -284,11 +270,8 @@ func _wrap_tab_content(tab_name: String, content: Control) -> ScrollContainer:
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# 引擎原生捲軸在羊皮紙底上太粗、顏色也不搭,換成 UiStyle 共用的淡色細版——沿用
-	# CharacterRoster/MarriageProposal 那組深色底時保留原生樣式,避免棕色細條疊在
-	# 深藍底上顯得突兀。
-	if use_parchment_theme:
-		UiStyle.apply_parchment_scrollbar(scroll)
+	# 引擎原生捲軸太粗、顏色也不搭羊皮紙底,換成 UiStyle 共用的淡色細版。
+	UiStyle.apply_parchment_scrollbar(scroll)
 
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -436,7 +419,6 @@ func _build_bloodline_tab() -> Control:
 	column.add_child(potential_title)
 
 	radar = CharacterPotentialRadar.new()
-	radar.use_parchment_theme = use_parchment_theme
 	radar.custom_minimum_size = RADAR_MIN_SIZE
 	radar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_child(radar)
@@ -479,22 +461,11 @@ func _build_family_tab() -> Control:
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 6)
 
-	# CharacterPanel 是全域彈出面板,任何場景都能開(包含戰鬥中點頭像),按下去切場景去
-	# 祖譜會直接丟掉目前情境,不適合出現;CharacterRoster/MarriageProposal 是專門瀏覽
-	# 角色的整頁場景,離開去看祖譜沒有這個問題,保留原本行為。
-	if not use_parchment_theme:
+	if show_family_tree_button:
 		var view_family_tree_button := Button.new()
 		view_family_tree_button.text = "觀看祖譜"
+		UiStyle.apply_wood_plaque_button(view_family_tree_button, 16.0, 8.0)
 		view_family_tree_button.add_theme_font_size_override("font_size", 16)
-		view_family_tree_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(
-			FAMILY_TREE_BUTTON_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
-		))
-		view_family_tree_button.add_theme_stylebox_override("hover", UiStyle.bordered_panel(
-			FAMILY_TREE_BUTTON_HOVER_BG, FAMILY_TREE_BUTTON_HOVER_BORDER, 2, 8
-		))
-		view_family_tree_button.add_theme_stylebox_override("pressed", UiStyle.bordered_panel(
-			FAMILY_TREE_BUTTON_PRESSED_BG, FAMILY_TREE_BUTTON_BORDER, 2, 8
-		))
 		view_family_tree_button.pressed.connect(_on_view_family_tree_pressed)
 		column.add_child(view_family_tree_button)
 

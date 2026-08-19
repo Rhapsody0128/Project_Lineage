@@ -35,7 +35,7 @@ const MARRIAGE_PROPOSAL_SCENE_PATH := "res://Scenes/Marriage/marriage_proposal.t
 const BACKGROUND_PATH := "res://Images/Dialogue/Town/town_tavern.png"
 
 ## 進酒館遇到異鄉人搭訕的機率(百分比),沒骰中直接跳去酒館老闆招呼詞。
-const ENCOUNTER_CHANCE_PERCENT := 10.0
+const ENCOUNTER_CHANCE_PERCENT := 100
 
 const BARTENDER_ID := "tavern_bartender"
 const BARTENDER_NAME := "酒館老闆"

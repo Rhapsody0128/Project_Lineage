@@ -19,22 +19,14 @@ const MAX_VALUE := 200.0
 const LABEL_MARGIN := 26.0
 const FONT_SIZE := 14
 
-const GRID_COLOR := Color(1, 1, 1, 0.25)
-const AXIS_LABEL_COLOR := Color(0.85, 0.85, 0.9)
-const FILL_COLOR := Color(0.4, 0.7, 1.0, 0.35)
-const OUTLINE_COLOR := Color(0.55, 0.8, 1.0, 0.9)
-
-## 淡藍/白色系是為深色底面板調的,套在羊皮紙淺色底上對比太低(格線幾乎看不見、
-## 標籤字幾乎融進底色)——CharacterPanel 彈出面板改羊皮紙底之後改用這組深色系,比照
-## CharacterDetailView.use_parchment_theme 同一套「呼叫端在建立節點後設定旗標」的作法
-## (見 character_detail_view.gd 建立 radar 之後那一行)。CharacterRoster/MarriageProposal
-## 內嵌的雷達圖還是深色底,不能直接把預設色也換掉。
-const PARCHMENT_GRID_COLOR := Color(0.35, 0.22, 0.1, 0.35)
-const PARCHMENT_AXIS_LABEL_COLOR := Color(0.28, 0.16, 0.06, 1)
-const PARCHMENT_FILL_COLOR := Color(0.15, 0.35, 0.65, 0.4)
-const PARCHMENT_OUTLINE_COLOR := Color(0.1, 0.3, 0.55, 0.95)
-
-@export var use_parchment_theme: bool = false
+## 羊皮紙淺色底配色(CharacterPanel/CharacterRoster/MarriageProposal 三處呼叫端目前
+## 都是羊皮紙底,見 character_detail_view.gd)——原本另有一組淡藍/白色系是為深色底
+## 調的,但三個呼叫端全部改成羊皮紙底之後就沒有消費者要用它了,直接拿掉,不留一個
+## 沒人選的旗標。
+const GRID_COLOR := Color(0.35, 0.22, 0.1, 0.35)
+const AXIS_LABEL_COLOR := Color(0.28, 0.16, 0.06, 1)
+const FILL_COLOR := Color(0.15, 0.35, 0.65, 0.4)
+const OUTLINE_COLOR := Color(0.1, 0.3, 0.55, 0.95)
 
 const POTENTIAL_TYPES := [
 	GameEnums.PotentialType.STRENGTH,
@@ -47,22 +39,6 @@ const POTENTIAL_TYPES := [
 
 var _character: Character
 var _battle_character: BattleCharacter
-
-
-func _grid_color() -> Color:
-	return PARCHMENT_GRID_COLOR if use_parchment_theme else GRID_COLOR
-
-
-func _axis_label_color() -> Color:
-	return PARCHMENT_AXIS_LABEL_COLOR if use_parchment_theme else AXIS_LABEL_COLOR
-
-
-func _fill_color() -> Color:
-	return PARCHMENT_FILL_COLOR if use_parchment_theme else FILL_COLOR
-
-
-func _outline_color() -> Color:
-	return PARCHMENT_OUTLINE_COLOR if use_parchment_theme else OUTLINE_COLOR
 
 
 ## battle_character 留空(null)代表沒有戰場情境(創角面板等),只顯示基礎潛力數字;
@@ -101,16 +77,15 @@ func _axis_point(center: Vector2, radius: float, index: int) -> Vector2:
 
 
 func _draw_grid(center: Vector2, radius: float) -> void:
-	var grid_color := _grid_color()
 	for ring in range(1, RING_COUNT + 1):
 		var ring_radius := radius * ring / float(RING_COUNT)
 		var points := PackedVector2Array()
 		for i in range(AXIS_COUNT + 1):
 			points.append(_axis_point(center, ring_radius, i % AXIS_COUNT))
-		draw_polyline(points, grid_color, 1.0)
+		draw_polyline(points, GRID_COLOR, 1.0)
 
 	for i in range(AXIS_COUNT):
-		draw_line(center, _axis_point(center, radius, i), grid_color, 1.0)
+		draw_line(center, _axis_point(center, radius, i), GRID_COLOR, 1.0)
 
 
 ## 有 BattleCharacter 時,雷達圖的形狀本身也改畫即時數值(不然形狀跟旁邊標出來的即時數字對不上)。
@@ -130,11 +105,11 @@ func _draw_values(center: Vector2, radius: float) -> void:
 	if points.size() < 3:
 		return
 
-	draw_colored_polygon(points, _fill_color())
+	draw_colored_polygon(points, FILL_COLOR)
 
 	var outline := points.duplicate()
 	outline.append(points[0])
-	draw_polyline(outline, _outline_color(), 2.0)
+	draw_polyline(outline, OUTLINE_COLOR, 2.0)
 
 
 func _draw_labels(center: Vector2, radius: float) -> void:
@@ -155,5 +130,5 @@ func _draw_labels(center: Vector2, radius: float) -> void:
 			HORIZONTAL_ALIGNMENT_CENTER,
 			-1,
 			font_size,
-			_axis_label_color()
+			AXIS_LABEL_COLOR
 		)

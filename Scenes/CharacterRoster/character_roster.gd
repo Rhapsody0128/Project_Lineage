@@ -10,6 +10,7 @@ extends Control
 # CharacterSortFilterBar + System 層的 CharacterSortFilter。點卡片切換左側顯示。
 # =========================================================
 
+@onready var detail_panel: PanelContainer = $MainRow/DetailPanel
 @onready var detail_margin: MarginContainer = $MainRow/DetailPanel/DetailMargin
 @onready var roster_panel: PanelContainer = $MainRow/RosterPanel
 @onready var roster_scroll_container: ScrollContainer = $MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer
@@ -26,6 +27,9 @@ func _ready() -> void:
 	back_button.add_theme_font_size_override("font_size", 18)
 	UiStyle.apply_parchment_panel(roster_panel, 1120.0, 792.0)
 	UiStyle.apply_parchment_scrollbar(roster_scroll_container)
+	# DetailPanel 自己的 DetailMargin 已經有 20/14/20/14 留白,這裡用比大面板預設值
+	# (30/50/30/50)小一點的 content_margin,理由跟 character_panel.gd 的 PanelBox 一樣。
+	UiStyle.apply_parchment_panel(detail_panel, 400.0, 792.0, 16.0, 18.0, 16.0, 18.0)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL

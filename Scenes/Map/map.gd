@@ -28,6 +28,10 @@ const DRAG_SENSITIVITY_MAX := 6.0
 ## 越大,平移也要等比加快,手感才會跟拖曳一致)。
 const WASD_PAN_SPEED := 5000.0
 
+## 角色移動時鏡頭跟隨的追趕速度(每秒趕上剩餘距離的比例,越大跟得越緊、
+## 越小越有「緩慢滑動」的滯後感)。
+const CAMERA_FOLLOW_LERP_SPEED := 3.0
+
 @onready var camera: Camera2D = $Camera
 @onready var map_objects_layer: Node2D = $MapObjectsLayer
 @onready var roaming_enemy_layer: Node2D = $RoamingEnemiesLayer
@@ -42,6 +46,10 @@ var _objects: Array[MapObject] = []
 var _dragging := false
 var _mouse_down_pos := Vector2.ZERO
 var _last_dir_name := "Down"
+## 角色移動時鏡頭是否自動跟隨置中——玩家拖曳畫面或按 WASD 平移鏡頭後關閉,
+## 直到下一次點地圖發出新的移動指令(_handle_click_to_move())才重新開啟
+## (見 _process() 的跟隨邏輯與 _drag_camera()/_update_wasd_pan() 的關閉時機)。
+var _camera_following := true
 
 ## RoamingEnemy.id -> RoamingEnemyVisual。敵人資料本身活在 RoamingEnemyStore(autoload,
 ## 跨場景不釋放),這個節點字典只是「目前這次進地圖畫面上掛了哪些對應的顯示節點」,
@@ -182,6 +190,9 @@ func _process(delta: float) -> void:
 			_update_player_visual(map_system.position - prev_pos, map_system.is_moving)
 			player_avatar.position = map_system.position
 			_update_destination_line()
+			if _camera_following:
+				camera.position = camera.position.lerp(map_system.position, clamp(CAMERA_FOLLOW_LERP_SPEED * delta, 0.0, 1.0))
+				_clamp_camera_position()
 			if not map_system.is_moving:
 				destination_line.visible = false
 				# 抵達目的地後一律自動觸發時間暫停,不論走去的是 MapObject 還是地圖
@@ -411,6 +422,7 @@ func _current_drag_sensitivity() -> float:
 ## 硬夾回地圖範圍內,邊界行為單純是「碰到邊界就停」,不會有中間的減速地帶,
 ## 也就不會有阻力計算跟實際畫面邊緣對不上、導致還是看得到地圖外灰色的問題。
 func _drag_camera(relative_px: Vector2) -> void:
+	_camera_following = false
 	var raw_delta := -relative_px * camera.zoom * _current_drag_sensitivity()
 	camera.position += raw_delta
 	_clamp_camera_position()
@@ -433,6 +445,7 @@ func _update_wasd_pan(delta: float) -> void:
 		dir.x += 1.0
 	if dir == Vector2.ZERO:
 		return
+	_camera_following = false
 	camera.position += dir.normalized() * WASD_PAN_SPEED * camera.zoom * delta
 	_clamp_camera_position()
 
@@ -455,6 +468,7 @@ func _handle_click_to_move() -> void:
 		_traveling_to_enemy = picked_enemy
 		_traveling_to = null
 		_current_map_object = null
+		_camera_following = true
 		WorldTimeStore.controller.is_playing = true
 		return
 
@@ -476,6 +490,7 @@ func _handle_click_to_move() -> void:
 	_traveling_to = picked
 	_traveling_to_enemy = null
 	_current_map_object = null
+	_camera_following = true
 	WorldTimeStore.controller.is_playing = true
 
 

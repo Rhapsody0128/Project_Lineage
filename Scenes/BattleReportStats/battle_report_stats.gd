@@ -9,15 +9,15 @@ extends Control
 # =========================================================
 
 const AVATAR_SIZE := Vector2(44, 44)
-const WIN_COLOR := Color(0.55, 0.85, 0.55)
-const LOSE_COLOR := Color(0.9, 0.5, 0.5)
-const DRAW_COLOR := Color(0.85, 0.8, 0.6)
+const WIN_COLOR := Color(0.1, 0.9, 0.1)
+const LOSE_COLOR := Color(0.9, 0.1, 0.1)
+const DRAW_COLOR := Color(0.0, 0.0, 0.0)
 const NEUTRAL_COLOR := UiStyle.PARCHMENT_TEXT_COLOR
 
 const FALLBACK_PORTRAIT_ATLAS_PATH := "res://Images/Warrier/character_walk.png"
 const FALLBACK_PORTRAIT_REGION := Rect2(0, 0, 32, 46)
 
-@onready var main_panel: Panel = $MainPanel
+@onready var main_panel: PanelContainer = $MainPanel
 @onready var self_hp_list: VBoxContainer = $MainPanel/Margin/VBox/ScrollContainer/Content/HpSection/SelfColumn/SelfHpList
 @onready var enemy_hp_list: VBoxContainer = $MainPanel/Margin/VBox/ScrollContainer/Content/HpSection/EnemyColumn/EnemyHpList
 @onready var stats_table: VBoxContainer = $MainPanel/Margin/VBox/ScrollContainer/Content/StatsTable
@@ -29,9 +29,10 @@ var _fallback_portrait: Texture2D
 func _ready() -> void:
 	UiStyle.apply_wood_plaque_button(back_button, 30.0, 10.0)
 	back_button.add_theme_font_size_override("font_size", 16)
-	# Margin 節點自己已經有 24/20/24/16 的留白,這裡用比大面板預設值(30/50/30/50)小一點
-	# 的 content_margin,避免跟內層留白疊加太多、把可捲動內容區擠得過窄。
-	UiStyle.apply_parchment_panel(main_panel, 1320.0, 740.0, 16.0, 20.0, 16.0, 20.0)
+	# MainPanel 是 PanelContainer,這裡的 content_margin 會跟 Margin 節點自己的 24/20/24/16
+	# 疊加。木框貼圖的 texture_margin 是 30/50/30/80(見 UiStyle.apply_parchment_panel),
+	# 疊加後的總留白必須大於這組數字,內容才不會被上下較厚的木框皺褶壓到。
+	UiStyle.apply_parchment_panel(main_panel, 1320.0, 740.0, 20.0, 44.0, 20.0, 80.0)
 
 	var report := BattleReportStore.pending_stats_report
 	if report == null:

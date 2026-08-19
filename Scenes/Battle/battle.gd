@@ -57,6 +57,13 @@ const ULTIMATE_BANNER_OUTLINE_SIZE := 8
 const ULTIMATE_BANNER_FADE_TIME := 0.3
 const ULTIMATE_BANNER_HOLD_TIME := 1.1
 
+# 結果 Dialog 的勝/敗/平文字顏色,跟 battle_report_list.gd/battle_report_stats.gd
+# 同一組配色,讀在羊皮紙底上都還夠亮——不要沿用舊版「yellow/red/white」字串,
+# 白色在淺色羊皮紙底上幾乎看不見。
+const WIN_COLOR := Color(0.1, 0.9, 0.1)
+const LOSE_COLOR := Color(0.9, 0.1, 0.1)
+const DRAW_COLOR := Color(0.0, 0.0, 0.0)
+
 
 var battle: Battle
 var visuals: Dictionary = {} # BattleCharacter -> BattleUnitVisual
@@ -123,9 +130,16 @@ func _ready() -> void:
 	# 預設關閉的 2D 物理揀選要開啟這個事件才會送到 Area2D.input_event。
 	get_viewport().physics_object_picking = true
 
-	for button in [pause_button, skip_button, back_button, log_toggle_button, replay_button, dialog_back_button]:
+	for button in [pause_button, skip_button, back_button, log_toggle_button, replay_button, dialog_back_button, log_dialog_close_button]:
 		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
 		button.add_theme_font_size_override("font_size", 18)
+
+	# LogDialog/ResultDialog 兩個浮出的彈窗比照 CharacterPanel/AskBattle,換成羊皮紙木框
+	# 面板(取代原本的深藍色系 StyleBoxFlat),文字顏色跟著 UiStyle.PARCHMENT_TEXT_COLOR
+	# 那一套(見 .tscn 內 TitleLabel/LogLabel/DetailLabel 的 font_color),跟其他彈出式
+	# 對話框保持一致。
+	UiStyle.apply_parchment_panel($LogDialog/Panel, 800.0, 700.0, 20.0, 40.0, 20.0, 50.0)
+	UiStyle.apply_parchment_panel($ResultDialog/Panel, 440.0, 300.0, 20.0, 16.0, 20.0, 16.0)
 
 	log_toggle_button.pressed.connect(_on_log_toggle_button_pressed)
 	log_dialog_close_button.pressed.connect(_on_log_dialog_close_pressed)
@@ -206,8 +220,10 @@ func _new_simulation_with_self_party(self_party: Party) -> void:
 		_run_battle_playback(true)
 
 
-## AskBattle「選否」用:雙方小隊都是呼叫端指定的特定隊伍(不是隨機敵方),
-## 其餘流程(佈陣/播放)跟一般隨機戰鬥共用同一套。
+## 雙方小隊都是呼叫端指定的特定隊伍(不是隨機敵方),其餘流程(佈陣/播放)跟一般隨機
+## 戰鬥共用同一套。兩處呼叫端會走到這裡:AskBattle「選否」(見 Scenes/BattleUtil/
+## ask_battle.gd)、PartyEdit「加強DEMO戰鬥角色」開關按下時(敵方換成呼叫端自己先用
+## 較高 RankType 生好的小隊,見 Scenes/PartyEdit/party_edit.gd 的 _on_start_battle_pressed())。
 func _new_simulation_with_parties(self_party: Party, enemy_party: Party) -> void:
 	battle_mode = BattleReportStore.pending_battle_mode
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.AUTO
@@ -495,24 +511,24 @@ func _announce_result() -> void:
 	var self_total := end_event.self_total
 	var enemy_total := end_event.enemy_total
 	var result_text: String
-	var result_color: String
+	var result_color: Color
 
 	match end_event.result:
 		GameEnums.BattleResultType.SELF_WIN:
 			result_text = "勝利！"
-			result_color = "yellow"
+			result_color = WIN_COLOR
 			_log("[color=yellow][b]我方擊敗敵方總大將，我方勝利！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
 		GameEnums.BattleResultType.ENEMY_WIN:
 			result_text = "戰敗！"
-			result_color = "red"
+			result_color = LOSE_COLOR
 			_log("[color=red][b]我方總大將陣亡，我方戰敗！(剩餘 HP %d : %d)[/b][/color]" % [self_total, enemy_total])
 		_:
 			result_text = "平手"
-			result_color = "white"
+			result_color = DRAW_COLOR
 			_log("雙方總大將皆存活至第 10 回合，平手。(剩餘 HP %d : %d)" % [self_total, enemy_total])
 
 	result_label.text = result_text
-	result_label.add_theme_color_override("font_color", Color(result_color))
+	result_label.add_theme_color_override("font_color", result_color)
 	result_detail_label.text = "我方剩餘 HP %d　　敵方剩餘 HP %d" % [self_total, enemy_total]
 	result_dialog.visible = true
 

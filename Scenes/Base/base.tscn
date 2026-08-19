@@ -48,7 +48,7 @@ theme_override_constants/separation = 6
 
 [node name="CloseButton" type="Button" parent="UI/ActionPanel/MarginContainer/VBoxContainer" unique_id=855080456]
 layout_mode = 2
-text = "關閉"
+text = "×"
 
 [node name="LeaveButton" type="Button" parent="UI" unique_id=1448660459]
 offset_left = 1436.0

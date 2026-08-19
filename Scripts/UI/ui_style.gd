@@ -35,19 +35,28 @@ static func bordered_panel(
 ## (見 action_panel.tscn 的 panel_1980x1080.png)的暖色調不搭。呼叫端在 _ready() 對面板
 ## 內的 ScrollContainer 呼叫一次即可套用做舊木紋配色的捲軸——軌道用半透明羊皮紙色,
 ## 握把用木紋深棕色,圓角柔化邊緣,不是系統預設那種生硬的直角灰條。
+##
+## _SCROLLBAR_THICKNESS 對應的是 content_margin_h,不是隨便選的裝飾參數——
+## ScrollContainer 內部用 v_scroll.get_combined_minimum_size().x 決定捲軸實際保留的
+## 寬度(見 Godot scroll_container.cpp),而 StyleBoxFlat 的 minimum_size 就是
+## content_margin 本身。四顆 bordered_panel() 呼叫原本沒傳 content_margin_h(預設
+## 0.0),等於捲軸寬度算出來是 0——顏色/圓角都有設定但寬度收縮成 0px,畫面上直接
+## 看不到,不是顏色不夠深的問題。這裡固定給一個非零寬度撐開它。
+const _SCROLLBAR_THICKNESS := 4.0
+
 static func apply_parchment_scrollbar(scroll_container: ScrollContainer) -> void:
 	var v_scroll := scroll_container.get_v_scroll_bar()
 	v_scroll.add_theme_stylebox_override("scroll", bordered_panel(
-		Color(0.55, 0.42, 0.26, 0.16), Color(0.35, 0.22, 0.1, 0.3), 1, 6
+		Color(0.55, 0.42, 0.26, 0.16), Color(0.35, 0.22, 0.1, 0.3), 1, 6, _SCROLLBAR_THICKNESS
 	))
 	v_scroll.add_theme_stylebox_override("grabber", bordered_panel(
-		Color(0.42, 0.28, 0.14, 0.85), Color(0.24, 0.14, 0.06, 0.9), 1, 6
+		Color(0.42, 0.28, 0.14, 0.85), Color(0.24, 0.14, 0.06, 0.9), 1, 6, _SCROLLBAR_THICKNESS
 	))
 	v_scroll.add_theme_stylebox_override("grabber_highlight", bordered_panel(
-		Color(0.52, 0.36, 0.18, 0.95), Color(0.28, 0.16, 0.08, 1), 1, 6
+		Color(0.52, 0.36, 0.18, 0.95), Color(0.28, 0.16, 0.08, 1), 1, 6, _SCROLLBAR_THICKNESS
 	))
 	v_scroll.add_theme_stylebox_override("grabber_pressed", bordered_panel(
-		Color(0.32, 0.21, 0.1, 1), Color(0.2, 0.12, 0.05, 1), 1, 6
+		Color(0.32, 0.21, 0.1, 1), Color(0.2, 0.12, 0.05, 1), 1, 6, _SCROLLBAR_THICKNESS
 	))
 
 
@@ -139,6 +148,8 @@ static func parchment_row_style(
 ## 共用的邊框厚度量出來的固定值,不開放呼叫端調整(改了九宮格切片會跑掉);content_margin
 ## (面板內容跟邊框的留白)每個用途大小差很多(彈出清單面板 vs 對話框窄長條 vs 小型詢問
 ## 彈窗),留給呼叫端依面板尺寸傳入。
+##
+
 static func apply_parchment_panel(
 	panel: Control,
 	panel_width: float,

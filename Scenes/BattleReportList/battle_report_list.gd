@@ -14,9 +14,9 @@ const ROW_MIN_HEIGHT := 56.0
 const TIME_COLUMN_STRETCH_RATIO := 3.0
 const ACTION_COLUMN_WIDTH := 90.0
 
-const WIN_COLOR := Color(0.55, 0.85, 0.55)
-const LOSE_COLOR := Color(0.9, 0.5, 0.5)
-const DRAW_COLOR := Color(0.85, 0.8, 0.6)
+const WIN_COLOR := Color(0.1, 0.9, 0.1)
+const LOSE_COLOR := Color(0.9, 0.1, 0.1)
+const DRAW_COLOR := Color(0.0, 0.0, 0.0)
 
 @onready var main_panel: PanelContainer = $MainPanel
 @onready var scroll_container: ScrollContainer = $MainPanel/Margin/VBox/ScrollContainer

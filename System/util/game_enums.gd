@@ -22,11 +22,7 @@ enum BuildingType {
 	HUNTING_GROUND, WORKSHOP, SCRIPTORIUM, RESEARCH_INSTITUTE,
 	ALTAR, FORBIDDEN_ALTAR,
 }
-## 根據地資源類型,見 System/base/base_production.gd / Scripts/Autoload/base_resource_store.gd
-enum ResourceType {
-	WOOD, STONE, FOOD, ORE, GOLD, CONTRABAND, FUR, CRAFT,
-	BOOK, RESEARCH, FAITH, CURSE,
-}
+
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
 ## caster.allies 挑,見 Spec.md。
@@ -98,6 +94,13 @@ const BUILDING_TYPE_LABELS: Array[String] = [
 	"狩獵場", "工匠坊", "抄書院", "科學研究所",
 	"祭壇", "禁忌祭壇",
 ]
+
+
+## 根據地資源類型,見 System/base/base_production.gd / Scripts/Autoload/base_resource_store.gd
+enum ResourceType {
+	WOOD, STONE, FOOD, ORE, GOLD, CONTRABAND, FUR, CRAFT,
+	BOOK, RESEARCH, FAITH, CURSE,
+}
 
 ## 根據地資源 UI 顯示用中文標籤,順序對應 ResourceType enum
 const RESOURCE_STRING_LABELS: Array[String] = [

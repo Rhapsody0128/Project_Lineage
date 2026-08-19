@@ -7,12 +7,12 @@ extends RefCounted
 ## 等於 rank_type,見 _random_ratio()。
 static func get_random_potential(rank_type: int = -1) -> Potential:
 	return Potential.new(
-		Util.get_random_int(0, 25),
-		Util.get_random_int(0, 25),
-		Util.get_random_int(0, 25),
-		Util.get_random_int(0, 25),
-		Util.get_random_int(0, 25),
-		Util.get_random_int(0, 25),
+		Util.get_random_int(0, 40),
+		Util.get_random_int(0, 40),
+		Util.get_random_int(0, 40),
+		Util.get_random_int(0, 40),
+		Util.get_random_int(0, 40),
+		Util.get_random_int(0, 40),
 		_random_ratio(rank_type),
 		_random_ratio(rank_type),
 		_random_ratio(rank_type),

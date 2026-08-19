@@ -10,7 +10,7 @@ extends RefCounted
 static func _build_action_type_chance_map(actor: BattleCharacter) -> Dictionary:
 	var map := {
 		"ATTACK": 25.0,
-		"DAZE": 25.0,
+		"DAZE": 10.0,
 		"SKILL": 25.0,
 	}
 	if actor.hp_ratio < 0.5:

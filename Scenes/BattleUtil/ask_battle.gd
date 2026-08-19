@@ -15,9 +15,9 @@ extends CanvasLayer
 
 const BATTLE_REPORT_STATS_SCENE_PATH := "res://Scenes/BattleReportStats/battle_report_stats.tscn"
 
-const WIN_COLOR := Color(0.55, 0.85, 0.55)
-const LOSE_COLOR := Color(0.9, 0.5, 0.5)
-const DRAW_COLOR := Color(0.85, 0.8, 0.6)
+const WIN_COLOR := Color(0.1, 0.9, 0.1)
+const LOSE_COLOR := Color(0.9, 0.1, 0.1)
+const DRAW_COLOR := Color(0.0, 0.0, 0.0)
 
 @onready var root: Control = $Root
 @onready var panel_box: PanelContainer = $Root/CenterContainer/PanelBox
@@ -47,8 +47,8 @@ func _ready() -> void:
 	# PanelBox/ReportPromptBox 內的 Margin 節點自己已經有 24/20/24/20 的留白,這裡的
 	# content_margin 只是額外留一點空間讓文字不要貼在羊皮紙毛邊上,不能沿用大面板(例如
 	# action_panel)的 30/50/30/50——420x180 這麼小的彈窗會把文字擠到快放不下按鈕。
-	UiStyle.apply_parchment_panel(panel_box, 420.0, 180.0, 16.0, 12.0, 16.0, 12.0)
-	UiStyle.apply_parchment_panel(report_prompt_box, 420.0, 180.0, 16.0, 12.0, 16.0, 12.0)
+	UiStyle.apply_parchment_panel(panel_box, 420.0, 180.0, 160.0, 120.0, 160.0, 120.0)
+	UiStyle.apply_parchment_panel(report_prompt_box, 420.0, 180.0, 160.0, 120.0, 160.0, 120.0)
 
 	root.visible = false
 	report_prompt_box.visible = false

@@ -24,7 +24,7 @@ static func create_child(father: Character, mother: Character) -> Character:
 	potential = BloodlineLibrary.apply_to_potential(potential, bloodline)
 
 	var traits := TraitController.get_random_traits(2)
-	var weapon: int = Util.get_random_from_array(CharacterController.RANDOM_WEAPON_POOL)
+	var weapon: int = CharacterController.get_weapon_for_potential(potential)
 	var skill_list := SkillController.get_skill_list_by_weapon(weapon)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))

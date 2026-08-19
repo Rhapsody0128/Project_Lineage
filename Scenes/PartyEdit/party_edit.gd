@@ -25,6 +25,7 @@ extends Control
 @onready var sort_filter_bar: CharacterSortFilterBar = $UI/RightPanel/Margin/VBox/SortFilterBar
 @onready var add_character_button: Button = $UI/TopBar/AddCharacterButton
 @onready var grow_grid_button: Button = $UI/TopBar/GrowGridButton
+@onready var demo_enhance_button: Button = $UI/TopBar/DemoEnhanceButton
 @onready var start_battle_button: Button = $UI/TopBar/StartBattleButton
 @onready var finish_edit_button: Button = $UI/TopBar/FinishEditButton
 @onready var back_button: Button = $UI/TopBar/BackButton
@@ -34,9 +35,16 @@ extends Control
 ## 把草稿寫回 PartyStore,見 PartyStore 開頭註解。
 var grid: PartyEditGrid
 
+## 「加強DEMO戰鬥角色」按鈕目前指到的敵方 RankType——不是開關(on/off 兩態),而是每按
+## 一次照 GameEnums.RankType 順序往上升一階,升到頂(SSS)再按一次繞回 F,見
+## _on_demo_enhance_pressed()。用一般 Button(非 toggle_mode)是刻意的:toggle_mode
+## 按下去會停在「按下」的樣式,玩家會誤以為按鈕壞掉/卡住;一般按鈕每次點擊都彈回原樣,
+## 純粹靠按鈕文字顯示目前指到哪個 RankType,不需要、也不會有 disabled 狀態。
+var _demo_enemy_rank: int = GameEnums.RankType.F
+
 
 func _ready() -> void:
-	for button in [add_character_button, grow_grid_button, start_battle_button, finish_edit_button, back_button]:
+	for button in [add_character_button, grow_grid_button, demo_enhance_button, start_battle_button, finish_edit_button, back_button]:
 		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
 		button.add_theme_font_size_override("font_size", 18)
 	UiStyle.apply_parchment_panel(right_panel, 480.0, 780.0)
@@ -47,7 +55,19 @@ func _ready() -> void:
 	availability_layer.placement_changed.connect(_refresh_all)
 	availability_layer.leader_change_requested.connect(_on_leader_change_requested)
 	sort_filter_bar.changed.connect(_refresh_roster)
+	_update_demo_enhance_button_text()
 	_refresh_all()
+
+
+## 每按一次往上升一階 RankType,升到頂(SSS)再按一次繞回 F——按鈕文字直接顯示「按下
+## 開始戰鬥」會拿到的敵方 RankType,不用另外開一行提示文字或懸停 tooltip 才看得到。
+func _on_demo_enhance_pressed() -> void:
+	_demo_enemy_rank = (_demo_enemy_rank + 1) % GameEnums.RankType.size()
+	_update_demo_enhance_button_text()
+
+
+func _update_demo_enhance_button_text() -> void:
+	demo_enhance_button.text = "加強DEMO(敵方 %s)" % GameEnums.rank_label(_demo_enemy_rank)
 
 
 ## 右鍵點擊已放置角色 = 設為隊長(見 PartyEditAvailabilityLayer.leader_change_requested);
@@ -81,12 +101,20 @@ func _on_back_pressed() -> void:
 ## 的 _deploy_side())會直接照這些站位站,不是預設的靠邊縱隊。沒放任何角色時不給按。
 ## 固定走即時戰鬥模式(逐回合跑,回合間可以手動施放奧義,見 Scenes/Battle/battle.gd 的
 ## _run_battle_realtime())——玩家自己編成上場,理所當然要能操作,不用另外分兩顆按鈕。
+##
+## 「加強DEMO戰鬥角色」按鈕指到 F 以外的 RankType 時,敵方不再讓 Battle 場景自己隨機生
+## F 級小隊,改在這裡直接呼叫 PartyController.get_random_party() 生一支 _demo_enemy_rank
+## 小隊,透過 BattleReportStore.pending_enemy_party 帶過去(跟 AskBattle 共用同一個
+## 「雙方都指定」交接欄位,見 BattleReportStore 開頭註解),不用另外開欄位存一個「加階數」
+## 再讓 Battle 場景換算。指到 F(預設值/繞一圈回起點)時維持原本「敵方由 Battle 場景
+## 隨機生 F 級小隊」的路徑。
 func _on_start_battle_pressed() -> void:
 	var party := _build_party_from_grid()
 	if party == null:
 		return
 
 	BattleReportStore.pending_self_party = party
+	BattleReportStore.pending_enemy_party = PartyController.get_random_party(_demo_enemy_rank) if _demo_enemy_rank != GameEnums.RankType.F else null
 	BattleReportStore.pending_battle_mode = GameEnums.BattleMode.REALTIME
 	NavigationStore.go_to("res://Scenes/Battle/battle.tscn")
 
@@ -129,15 +157,16 @@ func _refresh_all() -> void:
 	_update_finish_button_state()
 
 
+## 候補清單列出全部角色,包含已上陣的——已上陣的那幾張卡片反灰、不能再拖去網格
+## (只能點開看素質),讓玩家能在同一份清單裡確認「誰已經在場上」,不用切去網格上
+## 對照。實際「能不能放置」規則仍在 PartyEditGrid,這裡只轉發 is_placed() 結果給
+## CharacterCard 決定要不要反灰/擋拖曳。
 func _refresh_roster() -> void:
 	for child in roster_list.get_children():
 		child.queue_free()
-	var candidates: Array[Character] = []
-	for character in CharacterRosterStore.all_characteres:
-		if not grid.is_placed(character):
-			candidates.append(character)
+	var candidates: Array[Character] = CharacterRosterStore.all_characteres.duplicate()
 	for character in sort_filter_bar.filter.apply(candidates):
-		roster_list.add_child(CharacterCard.new(character))
+		roster_list.add_child(CharacterCard.new(character, grid.is_placed(character)))
 
 
 func _refresh_placed_layer() -> void:

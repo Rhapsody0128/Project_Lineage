@@ -87,34 +87,39 @@ mouse_filter = 2
 
 [node name="TopBar" type="HBoxContainer" parent="UI"]
 layout_mode = 0
-offset_left = 787.0
+offset_left = 630.0
 offset_top = 20.0
-offset_right = 1576.0
+offset_right = 1590.0
 offset_bottom = 68.0
 theme_override_constants/separation = 16
 
 [node name="AddCharacterButton" type="Button" parent="UI/TopBar"]
-custom_minimum_size = Vector2(145, 46)
+custom_minimum_size = Vector2(134, 46)
 layout_mode = 2
 text = "新增角色(D)"
 
 [node name="GrowGridButton" type="Button" parent="UI/TopBar"]
-custom_minimum_size = Vector2(145, 46)
+custom_minimum_size = Vector2(134, 46)
 layout_mode = 2
 text = "加大格子(D)"
 
+[node name="DemoEnhanceButton" type="Button" parent="UI/TopBar"]
+custom_minimum_size = Vector2(210, 46)
+layout_mode = 2
+text = "加強DEMO(敵方 F)"
+
 [node name="StartBattleButton" type="Button" parent="UI/TopBar"]
-custom_minimum_size = Vector2(145, 46)
+custom_minimum_size = Vector2(134, 46)
 layout_mode = 2
 text = "開始戰鬥(D)"
 
 [node name="FinishEditButton" type="Button" parent="UI/TopBar"]
-custom_minimum_size = Vector2(145, 46)
+custom_minimum_size = Vector2(134, 46)
 layout_mode = 2
 text = "完成編輯"
 
 [node name="BackButton" type="Button" parent="UI/TopBar"]
-custom_minimum_size = Vector2(145, 46)
+custom_minimum_size = Vector2(134, 46)
 layout_mode = 2
 text = "返回"
 
@@ -160,6 +165,7 @@ theme_override_constants/separation = 8
 
 [connection signal="pressed" from="UI/TopBar/AddCharacterButton" to="." method="_on_add_character_pressed"]
 [connection signal="pressed" from="UI/TopBar/GrowGridButton" to="." method="_on_grow_grid_pressed"]
+[connection signal="pressed" from="UI/TopBar/DemoEnhanceButton" to="." method="_on_demo_enhance_pressed"]
 [connection signal="pressed" from="UI/TopBar/StartBattleButton" to="." method="_on_start_battle_pressed"]
 [connection signal="pressed" from="UI/TopBar/FinishEditButton" to="." method="_on_finish_edit_pressed"]
 [connection signal="pressed" from="UI/TopBar/BackButton" to="." method="_on_back_pressed"]

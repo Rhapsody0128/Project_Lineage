@@ -13,9 +13,11 @@ extends Node
 # 把玩家編好的 Party 存進來,再切去 Battle 場景,Battle 場景 _ready() 抓到
 # 就用這個小隊對上一個隨機敵方小隊,而不是雙方都隨機生。
 #
-# pending_enemy_party 是 AskBattle(見 Scenes/BattleUtil/ask_battle.gd)專用的加碼交接
-# 欄位:敵方也是呼叫端指定的特定小隊(例如城門守衛),不是隨機生的——跟 pending_self_party
-# 一起設定時,Battle 場景改用兩邊都指定的對戰,不會再幫敵方另外隨機生一支。
+# pending_enemy_party 是加碼交接欄位:敵方也是呼叫端指定的特定小隊,不是隨機生
+# 的——跟 pending_self_party 一起設定時,Battle 場景改用兩邊都指定的對戰,不會再幫
+# 敵方另外隨機生一支。兩個呼叫端會用到:AskBattle(見 Scenes/BattleUtil/ask_battle.gd,
+# 例如城門守衛戰鬥)、PartyEdit「加強DEMO戰鬥角色」開關按下時(敵方換成呼叫端自己先
+# 用較高 RankType 生好的小隊,見 Scenes/PartyEdit/party_edit.gd)。
 # =========================================================
 
 var reports: Array[BattleReport] = []

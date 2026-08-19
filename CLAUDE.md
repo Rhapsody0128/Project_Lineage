@@ -62,8 +62,11 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 作為角色的基本攻擊距離/技能綁定標籤,不是可拾取裝備的武器系統。編制階層是
 `Character`(角色)⊂ `Party`(小隊),`BattleController.get_random_battle()` 直接拿
 `Party` 對戰,每個角色各自佔一格獨立作戰(見 `System/battle/battle_character.gd` 的
-`BattleCharacter`,直接包一個 `Character`)。小隊人數之後會開放玩家配置與科技研發提升,
-目前寫死:1 小隊 = 6 名隨機角色(對應戰場 6 路縱隊)。
+`BattleCharacter`,直接包一個 `Character`)。玩家小隊人數之後會開放玩家配置與科技研發
+提升,目前上限固定 6 人(對應戰場 6 路縱隊)。`PartyController.get_random_party()` 生成
+的隨機小隊(遊蕩敵人/城門守衛/測試戰鬥共用同一入口)人數與整隊等級改依 `RankType`
+(F~SSS)查表決定,不再固定 6 人——難度曲線調參全部集中在 `party_controller.gd` 的
+`RANK_LEVEL_RANGE`/`RANK_PARTY_SIZE_RANGE` 兩個常數,之後要調難度曲線只改這裡。
 
 ## 戰鬥系統(System/battle + Scenes/Battle)
 

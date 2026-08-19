@@ -4,7 +4,8 @@ extends RefCounted
 const MIN_AGE := 16
 const MAX_AGE := 60
 
-## 隨機發放的武器池:角色一定會持有武器,涵蓋所有 WeaponType
+## 隨機發放的武器池:角色一定會持有武器,涵蓋所有 WeaponType。並列最高素質時
+## get_weapon_for_potential() 從這個池子篩出的並列項目裡抽一個。
 const RANDOM_WEAPON_POOL: Array[int] = [
 	GameEnums.WeaponType.SWORD,
 	GameEnums.WeaponType.BOW,
@@ -13,6 +14,31 @@ const RANDOM_WEAPON_POOL: Array[int] = [
 	GameEnums.WeaponType.STAFF,
 	GameEnums.WeaponType.DREAMCATCHER,
 ]
+
+## 武器→攻擊素質配對,對照 SkillEffectLibrary._attack_value():力量→劍、體質→盾、
+## 敏捷→匕首、靈巧→弓、智慧→法杖、信仰→捕夢網(盾/匕首/捕夢網雖然是混合素質,但取
+## 權重較高的那項當代表)。
+const WEAPON_BY_PRIMARY_STAT := {
+	GameEnums.WeaponType.SWORD: "strength",
+	GameEnums.WeaponType.SHIELD: "vitality",
+	GameEnums.WeaponType.DAGGER: "agility",
+	GameEnums.WeaponType.BOW: "dexterity",
+	GameEnums.WeaponType.STAFF: "intelligence",
+	GameEnums.WeaponType.DREAMCATCHER: "mentality",
+}
+
+## 依角色六大素質中最高者發放對應武器,取代純隨機抽武器——武器決定攻擊素質輸出
+## (見 SkillEffectLibrary._attack_value()),發武器前先看角色最擅長哪項素質,才能讓
+## 戰鬥數值跟裝備直覺對應。並列最高時從並列項目裡隨機抽一個,避免固定偏向某一項。
+static func get_weapon_for_potential(potential: Potential) -> int:
+	var max_value := -1.0
+	for weapon in WEAPON_BY_PRIMARY_STAT:
+		max_value = max(max_value, potential.get(WEAPON_BY_PRIMARY_STAT[weapon]))
+	var best_weapons: Array[int] = []
+	for weapon in WEAPON_BY_PRIMARY_STAT:
+		if potential.get(WEAPON_BY_PRIMARY_STAT[weapon]) == max_value:
+			best_weapons.append(weapon)
+	return Util.get_random_from_array(best_weapons)
 
 ## rank_type/nation 不填(-1)= 維持原本隨機生成(Bloodline Rank/Potential Rank/國家各自
 ## 獨立隨機);指定時整份 Bloodline/Potential 都依指定條件產生,見
@@ -31,7 +57,7 @@ static func get_random_character(rank_type: int = -1, nation: int = -1) -> Chara
 	var traits := TraitController.get_random_traits(2)
 	var potential := PotentialController.get_random_potential(rank_type)
 	var bloodline := BloodlineController.get_random_bloodline(rank_type, nation)
-	var weapon: int = Util.get_random_from_array(RANDOM_WEAPON_POOL)
+	var weapon: int = get_weapon_for_potential(potential)
 	var skill_list := SkillController.get_skill_list_by_weapon(weapon)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))

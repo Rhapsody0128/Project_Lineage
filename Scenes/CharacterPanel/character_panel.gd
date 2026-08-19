@@ -19,7 +19,7 @@ func _ready() -> void:
 	root.visible = false
 	# PanelBox 自己的 Margin 已經有 20/16/20/20 留白,這裡用比大面板預設值(30/50/30/50)
 	# 小一點的 content_margin,避免跟內層留白疊加太多、把角色資料分頁擠得過窄。
-	UiStyle.apply_parchment_panel(panel_box, 400.0, 700.0, 16.0, 20.0, 16.0, 20.0)
+	UiStyle.apply_parchment_panel(panel_box,400.0, 700.0, 16.0, 20.0, 16.0, 20.0)
 	UiStyle.apply_wood_plaque_button(close_button, 10.0, 4.0)
 	close_button.add_theme_font_size_override("font_size", 18)
 

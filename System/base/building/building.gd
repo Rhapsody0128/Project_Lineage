@@ -24,6 +24,11 @@ var consumes: Dictionary
 ## 繪製使用(見 BaseSystem.pick_building()、Scenes/Base/building_visual.gd),同
 ## MapObject.territory_polygon 的設計。
 var territory_polygon: PackedVector2Array
+## 升級耗材表:index i = 從第 i 級升到第 i+1 級所需資源(GameEnums.ResourceType -> int)。
+## 陣列長度就是這棟建築的最高等級,目前全部建築統一 9 級對應 GameEnums.RankType 的
+## F~SSS。實際升級/目前等級是會變動的玩家進度,不存在這裡——見
+## Scripts/Autoload/base_building_progress_store.gd。
+var upgrade_costs: Array[Dictionary]
 
 
 func _init(
@@ -34,7 +39,8 @@ func _init(
 	p_produces: int = -1,
 	p_base_yield: int = 0,
 	p_consumes: Dictionary = {},
-	p_territory_polygon: PackedVector2Array = PackedVector2Array()
+	p_territory_polygon: PackedVector2Array = PackedVector2Array(),
+	p_upgrade_costs: Array[Dictionary] = []
 ) -> void:
 	id = p_id
 	name = p_name
@@ -44,6 +50,11 @@ func _init(
 	base_yield = p_base_yield
 	consumes = p_consumes
 	territory_polygon = p_territory_polygon
+	upgrade_costs = p_upgrade_costs
+
+
+func max_level() -> int:
+	return upgrade_costs.size()
 
 
 func is_production_building() -> bool:

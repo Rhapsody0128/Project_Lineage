@@ -41,6 +41,11 @@ var is_pregnant: bool = false
 var pregnancy_months: int = 0
 ## 戰場佔位形狀(俄羅斯方塊式多格圖形),用於 PartyEdit 編成畫面的格子佔用判斷
 var battle_cost: BattleCost
+## 是否為玩家固定主角(CharacterController.get_fixed_protagonist() 建立時設為 true,
+## 其餘隨機/遺傳角色一律 false)。目前唯一用途是角色列表畫面擋掉解雇
+## (見 character_roster.gd _is_protected_from_dismissal()),避免玩家把主角解雇掉
+## 導致遊戲流程卡死。
+var is_protagonist: bool = false
 
 func _init(
 	p_name: String,
@@ -117,11 +122,12 @@ func take_damage(damage_points: int) -> void:
 func heal(amount: int) -> void:
 	hp = mini(hp + amount, hp_max)
 
-## 世界時間每跨過一天,所有角色固定回復的血量(見 WorldTimeEventLibrary)
+## 世界時間每跨過一天,角色回復的血量基準值(未建醫療所時的量,見 WorldTimeEventLibrary
+## ._regen_hp()——實際回復量是這個基準值 + 醫療所目前等級,呼叫端算好了才傳進來)。
 const DAILY_HP_REGEN := 3
 
-func regen_daily_hp() -> void:
-	heal(DAILY_HP_REGEN)
+func regen_daily_hp(amount: int = DAILY_HP_REGEN) -> void:
+	heal(amount)
 
 ## 結為配偶,雙向寫入 mate(資格判定見 MarriageRule.can_propose())
 func marry(target_character: Character) -> void:

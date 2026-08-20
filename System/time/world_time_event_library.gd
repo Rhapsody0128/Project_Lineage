@@ -26,8 +26,7 @@ static func register_all(controller: WorldTimeController) -> void:
 static func _age_up() -> void:
 	for character in AllCharacterStore.all_characteres:
 		character.age_up()
-		if character.age == CharacterController.MIN_AGE and not CharacterRosterStore.all_characteres.has(character):
-			CharacterRosterStore.all_characteres.append(character)
+		if character.age == CharacterController.MIN_AGE and CharacterRosterStore.try_add(character):
 			NewsController.post("%s 成年了。" % character.full_name)
 
 
@@ -52,6 +51,10 @@ static func _roll_new_pregnancies() -> void:
 ## 剛懷孕當月與 _roll_new_pregnancies() 同一個月邊界觸發,即計入第 1 個月,是刻意的簡化行為。
 ## 判定對象一樣要用 PregnancyRule.resolve_pregnancy_candidate() 從配偶雙方解出(理由同
 ## _roll_new_pregnancies()),否則懷孕的配偶不在 roster 時,懷孕月數永遠不會推進。
+##
+## 角色總容量(見 BaseBuildingProgressStore.get_character_capacity())已滿時,月數繼續
+## 累積但不產下孩子——advance_pregnancy() 已經回傳 true(滿月數),不呼叫 _deliver_child()
+## 就不會重置 is_pregnant/pregnancy_months,下個月會再檢查一次容量,直到住宅騰出空間為止。
 static func _advance_pregnancies() -> void:
 	var processed_ids: Dictionary = {}
 	for character in CharacterRosterStore.all_characteres:
@@ -59,21 +62,26 @@ static func _advance_pregnancies() -> void:
 		if wife == null or processed_ids.has(wife.id):
 			continue
 		processed_ids[wife.id] = true
-		if wife.is_pregnant and wife.advance_pregnancy():
+		if not wife.is_pregnant or not wife.advance_pregnancy():
+			continue
+		if AllCharacterStore.all_characteres.size() < BaseBuildingProgressStore.get_character_capacity():
 			_deliver_child(wife)
 
 
 ## 產下孩子(見 Character.give_birth()),只註冊進 AllCharacterStore(讓孩子開始
 ## 隨世界時間長大),不直接進 CharacterRosterStore——小孩未滿 MIN_AGE 前不能操控/
-## 上場,要等 _age_up() 偵測到年紀跨過 MIN_AGE 才會補進 roster。並寫入 NEWS。
+## 上場,要等 _age_up() 偵測到年紀跨過 MIN_AGE 才會補進 roster。並寫入 NEWS。呼叫端已經
+## 確認過角色總容量還有空位(見 _advance_pregnancies()),這裡的 register() 必定成功。
 static func _deliver_child(mother: Character) -> void:
 	var child := mother.give_birth()
 	AllCharacterStore.register(child)
 	NewsController.post("%s 誕下了孩子 %s。" % [mother.full_name, child.full_name])
 
 
-## 每天:玩家擁有的所有角色 HP +3(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、
-## 大地圖移動時逐幀累積回 30/天」機制)
+## 每天:玩家擁有的所有角色 HP 回復(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、
+## 大地圖移動時逐幀累積回 30/天」機制)。回復量 = 基準值 3 + 醫療所目前等級(未建醫療所
+## 時等同 Lv0,回復量維持原本的 3,不會讓沒蓋醫療所的玩家倒退)。
 static func _regen_hp() -> void:
+	var amount := Character.DAILY_HP_REGEN + BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
 	for character in CharacterRosterStore.all_characteres:
-		character.regen_daily_hp()
+		character.regen_daily_hp(amount)

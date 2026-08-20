@@ -10,16 +10,26 @@ extends VBoxContainer
 ## 倒數天數;已建成顯示等級/升級(升級中不影響下面的產出/派遣顯示,建築正常運作);
 ## 生產類建築額外顯示目前月產量與工作角色頭像格(容量=等級,點空格開角色清單指派、
 ## 點已填格子直接召回);非生產類建築維持「尚未實作」。角色清單顯示全部未禁用角色,
-## 已在此工作/在別處工作的人反灰純顯示,整卡點擊指派只對可選的人生效,卡片上的小頭像
+## 已在此工作/在別處工作的人反灰純顯示,整卡點擊指派只對可選的人生效,卡片上的頭像
 ## 另外接一個獨立點擊區開 CharacterPanel(靠子節點 MOUSE_FILTER_STOP 先吃掉事件擋掉
-## 冒泡,同 Scenes/Battle/battle_party_roster.gd 頭像框的寫法)。
+## 冒泡,同 Scenes/Battle/battle_party_roster.gd 頭像框的寫法)。角色清單排成
+## PICKER_GRID_COLUMNS 欄的卡片網格,見 _build_character_picker()/_build_character_row()。
 
-const AVATAR_SLOT_SIZE := Vector2(56, 56)
-const PICKER_FACE_SIZE := Vector2(64, 64)
+const AVATAR_SLOT_SIZE := Vector2(64, 64)
+const PICKER_FACE_SIZE := Vector2(128, 128)
+## 選人清單改成多欄卡片網格(每張卡:大頭像 + 姓名/等級/年紀/適應性素質/潛力評分的
+## 兩欄 label:value 小表),不是單一長長一列,充分利用 ActionPanel 的寬度。
+const PICKER_GRID_COLUMNS := 3
+
+## 角色清單排序依據——依建築的適應性素質數值/該素質潛力評分/角色等級,
+## 由高到低排序(見 _build_sort_dropdown()),方便挑最適合派遣的人。
+enum SortMode {STAT, POTENTIAL_RANK, LEVEL}
 
 var _building: Building
 ## 是否正在展開「選一位角色派遣」清單,指派/取消後歸零。
 var _picking_character: bool = false
+## 選人清單目前的排序依據,挑人途中(未取消/未指派)維持選擇,重新排序不用重選。
+var _sort_mode: SortMode = SortMode.STAT
 ## 升級/建造失敗(資材不足)後單次顯示一行提示,顯示完就消耗掉,不跨 rebuild 保留。
 var _upgrade_error: bool = false
 var _build_error: bool = false
@@ -63,6 +73,10 @@ func _rebuild_body() -> void:
 
 
 func _build_build_section() -> void:
+	if BaseBuildingProgressStore.effective_max_level(_building) < 1:
+		_add_label("市鎮中心等級不足")
+		return
+
 	var button := Button.new()
 	button.text = "建造（耗材：%s，天數：%d 天）" % [_format_cost(_building.build_cost), _building.build_days]
 	button.pressed.connect(func() -> void:
@@ -94,14 +108,16 @@ func _build_level_section() -> void:
 		if _upgrade_error:
 			_add_label("資材不足")
 			_upgrade_error = false
-	else:
+	elif level >= _building.max_level():
 		_add_label("已達最高等級")
+	else:
+		_add_label("市鎮中心等級不足")
 
 
 func _build_efficiency_label() -> void:
 	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
-	var rank := BaseBuildingProgressStore.get_rank(_building.type)
-	var monthly_yield := BaseProduction.compute_monthly_yield(_building, characters, rank)
+	var level := BaseBuildingProgressStore.get_level(_building.type)
+	var monthly_yield := BaseProduction.compute_monthly_yield(_building, characters, level)
 	_add_label("目前效率：%d %s/月" % [monthly_yield, GameEnums.resource_type_label(_building.produces)])
 
 
@@ -150,18 +166,30 @@ func _build_worker_slot(character: Character) -> Control:
 
 
 ## 顯示全部未禁用角色(不只是可指派的人)——已在此工作/在別處工作的人一樣列出來,
-## 靠反灰純視覺區分,召回改到 _build_worker_slot() 那邊點頭像格處理。
+## 靠反灰純視覺區分,召回改到 _build_worker_slot() 那邊點頭像格處理。上面先放排序下拉選單
+## (依建築適應性素質/該素質潛力評分/等級,見 _build_sort_dropdown()),一人一列改成
+## 表格式緊湊排版(_build_character_list_header() 對齊 _build_character_row() 的欄位)。
 func _build_character_picker() -> void:
 	var characters: Array[Character] = []
 	for character in CharacterRosterStore.all_characteres:
 		if not character.is_disabled:
 			characters.append(character)
 
+	_build_sort_dropdown()
+
 	if characters.is_empty():
 		_add_label("沒有角色")
-
-	for character in characters:
-		add_child(_build_character_row(character))
+	else:
+		characters.sort_custom(func(a: Character, b: Character) -> bool:
+			return _sort_value(a) > _sort_value(b)
+		)
+		var grid := GridContainer.new()
+		grid.columns = PICKER_GRID_COLUMNS
+		grid.add_theme_constant_override("h_separation", 10)
+		grid.add_theme_constant_override("v_separation", 10)
+		add_child(grid)
+		for character in characters:
+			grid.add_child(_build_character_row(character))
 
 	var cancel_button := Button.new()
 	cancel_button.text = "取消"
@@ -172,10 +200,40 @@ func _build_character_picker() -> void:
 	add_child(cancel_button)
 
 
-## 整卡點擊 = 指派(只對可選的人接線,反灰的人點了沒反應);卡片上的小頭像另外包一層
+## 排序下拉選單,選項固定 3 種(對應建築的適應性素質),item id 直接用 SortMode 數值,
+## 跟 index 剛好一一對應,select()/get_item_id() 不用額外轉換。
+func _build_sort_dropdown() -> void:
+	var stat_name := GameEnums.potential_label(_building.potential_type)
+	var dropdown := OptionButton.new()
+	dropdown.add_item("依 %s 排序" % stat_name, SortMode.STAT)
+	dropdown.add_item("依 %s 潛力排序" % stat_name, SortMode.POTENTIAL_RANK)
+	dropdown.add_item("依等級排序", SortMode.LEVEL)
+	dropdown.select(_sort_mode)
+	dropdown.item_selected.connect(func(index: int) -> void:
+		_sort_mode = dropdown.get_item_id(index) as SortMode
+		_rebuild_body()
+	)
+	add_child(dropdown)
+
+
+func _sort_value(character: Character) -> float:
+	match _sort_mode:
+		SortMode.STAT:
+			return character.get_potential(_building.potential_type)
+		SortMode.POTENTIAL_RANK:
+			return character.get_potential_rank(_building.potential_type)
+		SortMode.LEVEL:
+			return character.level_system.level
+		_:
+			return 0.0
+
+
+## 整卡點擊 = 指派(只對可選的人接線,反灰的人點了沒反應);卡片上的頭像另外包一層
 ## MOUSE_FILTER_STOP + 自己的 gui_input,靠子節點優先吃到輸入事件擋掉往外層卡片冒泡,
 ## 所有人(含反灰)都能點頭像開 CharacterPanel 看詳情,跟 battle_party_roster.gd 頭像框
-## 同一套技巧。
+## 同一套技巧。卡片右側是姓名/等級/年紀/建築適應性素質/該素質潛力評分的兩欄
+## label:value 小表,不再列出全部六維素質——別的素質細節開 CharacterPanel 看,這裡的卡片
+## 進 PICKER_GRID_COLUMNS 欄的網格,一次能看到更多角色。
 func _build_character_row(character: Character) -> Control:
 	var is_here := BaseDispatchStore.get_dispatched_character_ids(_building.type).has(character.id)
 	var is_elsewhere := not is_here and BaseDispatchStore.is_character_dispatched(character.id)
@@ -186,6 +244,7 @@ func _build_character_row(character: Character) -> Control:
 	card.mouse_filter = Control.MOUSE_FILTER_STOP
 	if not assignable:
 		card.modulate.a = 0.45
+		card.tooltip_text = "在此工作" if is_here else "在其他地方工作"
 	else:
 		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		card.gui_input.connect(func(event: InputEvent) -> void:
@@ -202,6 +261,7 @@ func _build_character_row(character: Character) -> Control:
 	card.add_child(content)
 
 	var face_wrapper := CenterContainer.new()
+	face_wrapper.custom_minimum_size = PICKER_FACE_SIZE
 	face_wrapper.mouse_filter = Control.MOUSE_FILTER_STOP
 	face_wrapper.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	face_wrapper.gui_input.connect(func(event: InputEvent) -> void:
@@ -220,36 +280,32 @@ func _build_character_row(character: Character) -> Control:
 		face.texture = load(character.face_path) as Texture2D
 	face_wrapper.add_child(face)
 
-	var info_column := VBoxContainer.new()
-	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_child(info_column)
+	var stat_grid := GridContainer.new()
+	stat_grid.columns = 2
+	stat_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stat_grid.add_theme_constant_override("h_separation", 12)
+	stat_grid.add_theme_constant_override("v_separation", 2)
+	content.add_child(stat_grid)
 
-	var name_label := Label.new()
-	name_label.text = character.full_name
-	name_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	info_column.add_child(name_label)
-
-	if is_here or is_elsewhere:
-		var status_label := Label.new()
-		status_label.text = "在此工作" if is_here else "在其他地方工作"
-		status_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
-		info_column.add_child(status_label)
-
-	var potential_grid := GridContainer.new()
-	potential_grid.columns = 2
-	potential_grid.add_theme_constant_override("h_separation", 16)
-	potential_grid.add_theme_constant_override("v_separation", 2)
-	info_column.add_child(potential_grid)
-
-	# 排列順序跟 CharacterDetailView.POTENTIAL_GRID_ORDER 共用,同一套「力量/敏捷、
-	# 體質/靈巧、智慧/信仰」慣例。
-	for potential_type in CharacterDetailView.POTENTIAL_GRID_ORDER:
-		var stat_label := Label.new()
-		stat_label.text = "%s %d" % [GameEnums.potential_label(potential_type), roundi(character.get_potential(potential_type))]
-		stat_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
-		potential_grid.add_child(stat_label)
+	_add_stat_grid_row(stat_grid, "名字", character.full_name)
+	_add_stat_grid_row(stat_grid, "等級", str(character.level_system.level))
+	_add_stat_grid_row(stat_grid, "年紀", str(character.age))
+	_add_stat_grid_row(stat_grid, GameEnums.potential_label(_building.potential_type), str(roundi(character.get_potential(_building.potential_type))))
+	_add_stat_grid_row(stat_grid, "潛力", GameEnums.rank_label(character.get_potential_rank(_building.potential_type)))
 
 	return card
+
+
+func _add_stat_grid_row(stat_grid: GridContainer, label_text: String, value_text: String) -> void:
+	var label := Label.new()
+	label.text = label_text
+	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
+	stat_grid.add_child(label)
+
+	var value_label := Label.new()
+	value_label.text = value_text
+	value_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	stat_grid.add_child(value_label)
 
 
 func _format_cost(cost: Dictionary) -> String:

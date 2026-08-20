@@ -16,3 +16,8 @@ static func grant_victory_exp(battle: Battle) -> void:
 	var exp_amount := exp_for_rank(battle.enemy_rank_type)
 	for battle_character in battle.self_characteres:
 		battle_character.character.gain_exp(exp_amount)
+
+## 根據地生產建築每月派駐結算用,只給戰鬥全額經驗的 10%——派駐是零風險、零操作的被動
+## 養成,不能跟主動打仗的獎勵同量級。沿用 RANK_EXP 表,不重新設計曲線。
+static func exp_for_dispatch(rank_type: int) -> int:
+	return int(exp_for_rank(rank_type) * 0.1)

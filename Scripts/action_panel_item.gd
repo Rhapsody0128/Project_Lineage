@@ -8,7 +8,11 @@ extends RefCounted
 ## System/event/town/town_tavern_event.gd 的招募清單)自己決定要不要在 callback 裡順便
 ## 呼叫 ActionPanel.close()。disable_after_select 選填:按下後這一列的按鈕要不要直接
 ## 變 disabled(例如招募過的英雄不能重複招募,但面板本身留著讓玩家繼續招募清單裡其他
-## 幾位)——預設 false,維持「按下去不影響按鈕本身狀態」的一般行為。
+## 幾位)——預設 false,維持「按下去不影響按鈕本身狀態」的一般行為。disable_after_select
+## 為 true 時,on_selected 的回傳值(bool)決定要不要真的 disable——沒有回傳值(void)
+## 視同成功,維持舊行為;明確回傳 false 代表這次動作沒有成功(例如
+## CharacterRosterStore.try_add() 角色列已滿而失敗),按鈕維持可按,讓玩家補救
+## (騰出空位)後可以直接再按一次,不用整個面板關掉重開才能重試。
 var icon_path: String
 var title: String
 var subtitle: String

@@ -67,7 +67,7 @@ func _on_demo_enhance_pressed() -> void:
 
 
 func _update_demo_enhance_button_text() -> void:
-	demo_enhance_button.text = "加強DEMO(敵方 %s)" % GameEnums.rank_label(_demo_enemy_rank)
+	demo_enhance_button.text = "加強產出腳色(%s)" % GameEnums.rank_label(_demo_enemy_rank)
 
 
 ## 右鍵點擊已放置角色 = 設為隊長(見 PartyEditAvailabilityLayer.leader_change_requested);
@@ -78,10 +78,16 @@ func _on_leader_change_requested(character: Character) -> void:
 	_update_finish_button_state()
 
 
+## 新增角色的潛力/血統/等級都跟著「加強DEMO」按鈕指到的 _demo_enemy_rank 走,套用
+## PartyController.get_random_party() 同一套 RANK_LEVEL_RANGE 骰等級——這樣調高 DEMO
+## 敵方階級測試時,新增角色也會同步生成對應階級的強度,不會出現等級高但潛力/血統
+## 仍停在 F 級的不一致。
 func _on_add_character_pressed() -> void:
-	var character := CharacterController.get_random_character(GameEnums.RankType.F)
-	AllCharacterStore.register(character)
-	CharacterRosterStore.all_characteres.append(character)
+	var character := CharacterController.get_random_character(_demo_enemy_rank)
+	var level_range := PartyController.RANK_LEVEL_RANGE[_demo_enemy_rank]
+	character.level_system = LevelSystem.new(Util.get_random_int(level_range.x, level_range.y + 1))
+	if not CharacterRosterStore.try_add(character):
+		return
 	_refresh_roster()
 
 

@@ -226,16 +226,16 @@ func _open_recruit_panel() -> void:
 
 func _build_recruit_item(hero: Character) -> ActionPanelItem:
 	var subtitle := "%d 歲" % [hero.age]
-	return ActionPanelItem.new(hero.full_name, RECRUIT_BUTTON_LABEL, func(): _on_recruit_hero_selected(hero), hero.face_path, subtitle, true)
+	return ActionPanelItem.new(hero.full_name, RECRUIT_BUTTON_LABEL, func() -> bool: return _on_recruit_hero_selected(hero), hero.face_path, subtitle, true)
 
 
-## 招募比照 Scenes/PartyEdit/party_edit.gd 的 _on_add_character_pressed() 寫法:
-## AllCharacterStore.register() + CharacterRosterStore.all_characteres.append()。不呼叫
-## ActionPanel.close()——面板留著讓玩家繼續招募其他人,這一列的按鈕會被 ActionPanel
-## 自己 disabled(見 ActionPanelItem.disable_after_select),不需要在這裡另外處理。
-func _on_recruit_hero_selected(hero: Character) -> void:
-	AllCharacterStore.register(hero)
-	CharacterRosterStore.all_characteres.append(hero)
+## 招募改叫共用入口 CharacterRosterStore.try_add()(跟 PartyEdit「新增角色」、小孩
+## 成年共用同一份「是否已滿」判斷跟提示,見該檔案註解)——角色列已滿時 try_add()
+## 自己會跳 MessageBar 提示玩家去角色列表解雇,不在這裡另外處理。回傳值直接轉給
+## ActionPanelItem.disable_after_select:只有真的招募成功才把這一列的按鈕變
+## disabled,滿了的話按鈕維持可按,玩家騰出空位後可以直接再按一次,不用關掉面板重開。
+func _on_recruit_hero_selected(hero: Character) -> bool:
+	return CharacterRosterStore.try_add(hero)
 
 
 func _return_to_map_location() -> void:

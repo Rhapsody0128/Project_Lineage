@@ -12,8 +12,8 @@ signal changed
 
 ## 玩家預設起始資源,根據地剛開局就有這些可用來建造第一批建築。
 var amounts: Dictionary = {
-	GameEnums.ResourceType.WOOD: 100,
-	GameEnums.ResourceType.GOLD: 100,
+	GameEnums.ResourceType.WOOD: 300,
+	GameEnums.ResourceType.GOLD: 500,
 }
 
 
@@ -21,8 +21,12 @@ func get_amount(resource_type: int) -> int:
 	return amounts.get(resource_type, 0)
 
 
+## 超過倉庫儲存上限的部分直接捨棄(見 System/base/base_warehouse.gd),逼玩家在資源
+## 快滿時去升級倉庫或花掉,而不是無腦囤積。
 func add(resource_type: int, quantity: int) -> void:
-	amounts[resource_type] = get_amount(resource_type) + quantity
+	var warehouse_level := BaseBuildingProgressStore.get_level(GameEnums.BuildingType.WAREHOUSE)
+	var capacity := BaseWarehouse.get_capacity(resource_type, warehouse_level)
+	amounts[resource_type] = mini(get_amount(resource_type) + quantity, capacity)
 	changed.emit()
 
 

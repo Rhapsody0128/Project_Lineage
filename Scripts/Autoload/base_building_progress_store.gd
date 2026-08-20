@@ -50,6 +50,21 @@ func get_max_workers(building_type: GameEnums.BuildingType) -> int:
 	return get_level(building_type)
 
 
+## 城鎮中心等級決定其他 16 棟建築的等級上限(見「根據地內政系統設計」文件二節):城鎮中心
+## Lv0 時其他建築 effective_max_level = 0,連 0→1 建造都不能開始;城鎮中心本身不受這條
+## 限制,直接回傳自己的 max_level()。
+func effective_max_level(building: Building) -> int:
+	if building.type == GameEnums.BuildingType.STRONGHOLD:
+		return building.max_level()
+	return mini(building.max_level(), get_level(GameEnums.BuildingType.STRONGHOLD))
+
+
+## 角色總容量(招募/婚生子女的總數上限,跟戰場出戰人數上限是不同概念,見
+## AllCharacterStore)= 20 + 20×住宅等級,頂到 Lv9 的 200。
+func get_character_capacity() -> int:
+	return 20 + 20 * get_level(GameEnums.BuildingType.RESIDENTIAL)
+
+
 ## 回傳 GameEnums.RankType,0 級(尚未建成)回傳 -1,呼叫端要先用 is_unlocked() 判斷。
 func get_rank(building_type: GameEnums.BuildingType) -> int:
 	return get_level(building_type) - 1
@@ -64,7 +79,11 @@ func get_construction_days_remaining(building_type: GameEnums.BuildingType) -> i
 
 
 func can_build(building: Building) -> bool:
-	return get_level(building.type) == 0 and not is_constructing(building.type)
+	return (
+		get_level(building.type) == 0
+		and not is_constructing(building.type)
+		and effective_max_level(building) >= 1
+	)
 
 
 ## 資材不足或無法建造(已建成/建造中)都回傳 false 且不扣款,呼叫端(Scenes/Base/base_action_panel.gd)
@@ -90,7 +109,7 @@ func get_upgrade_days_remaining(building_type: GameEnums.BuildingType) -> int:
 
 func can_upgrade(building: Building) -> bool:
 	var level := get_level(building.type)
-	return level > 0 and level < building.max_level() and not is_upgrading(building.type)
+	return level > 0 and level < effective_max_level(building) and not is_upgrading(building.type)
 
 
 ## can_upgrade() 為 false 回傳空字典/0。

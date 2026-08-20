@@ -741,7 +741,7 @@ func _on_family_portrait_gui_input(input_event: InputEvent, member: Character) -
 func _on_view_family_tree_pressed() -> void:
 	if current_character == null:
 		return
-	SceneHandoffStore.queue("family_tree_focus", current_character)
+	SceneHandoffStore.queue(FamilyTree.FOCUS_MAILBOX_KEY, current_character)
 	CharacterPanel.close()
 	NavigationStore.go_to("res://Scenes/FamilyTree/family_tree.tscn")
 

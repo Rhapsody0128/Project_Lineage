@@ -74,11 +74,16 @@ func open_custom(title: String, content: Control, on_close: Callable = Callable(
 	root.visible = true
 
 
-func close() -> void:
+## trigger_callback 預設 true(維持原本行為:呼叫 open()/open_custom() 時傳入的
+## on_close 接續動作,例如 TownTavernEvent 招募面板關閉後回地點選單)。呼叫端如果
+## 已經自己決定好接下來要切去哪個場景(例如 TownTavernEvent 角色列表已滿,選「是」
+## 改去 CharacterRoster 解雇角色,見該檔案),要傳 false 蓋掉原本的預設接續,
+## 避免兩邊搶著切場景。
+func close(trigger_callback: bool = true) -> void:
 	root.visible = false
 	var callback := _on_close
 	_on_close = Callable()
-	if callback.is_valid():
+	if trigger_callback and callback.is_valid():
 		callback.call()
 
 
@@ -134,9 +139,12 @@ func _build_row(item: ActionPanelItem) -> Control:
 	UiStyle.apply_wood_plaque_button(action_button, 16.0, 6.0)
 	action_button.add_theme_font_size_override("font_size", 16)
 	action_button.pressed.connect(func() -> void:
+		var succeeded: Variant = true
 		if item.on_selected.is_valid():
-			item.on_selected.call()
-		if item.disable_after_select:
+			succeeded = item.on_selected.call()
+		# on_selected 沒有回傳值(void)時 succeeded 會是 null——視同成功,維持舊行為;
+		# 只有明確回傳 false 才擋下 disable(見 ActionPanelItem.disable_after_select 註解)。
+		if item.disable_after_select and succeeded != false:
 			action_button.disabled = true
 	)
 	row.add_child(action_button)

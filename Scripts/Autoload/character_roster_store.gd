@@ -14,3 +14,27 @@ extends Node
 # =========================================================
 
 var all_characteres: Array[Character] = []
+
+## 角色列已滿時提示玩家的訊息(見 try_add())——文案集中寫在這個共用層,不要讓每個
+## 呼叫端各自維護一份相同的字串,比照 AskBattle 把固定文案內建在彈窗本身的寫法。
+const ROSTER_FULL_MESSAGE := "角色已達上限，請前往角色列表解雇角色騰出空位。"
+
+
+## 玩家角色列的唯一新增入口:先確保寫進 AllCharacterStore(角色總容量的唯一把關點,
+## 見該檔案 register()),成功才真的加進這裡的 all_characteres,回傳是否加入成功。
+## 任何要把角色加進玩家角色列的地方(招募/PartyEdit「新增角色」/小孩成年,見
+## TownTavernEvent._on_recruit_hero_selected()、party_edit.gd
+## _on_add_character_pressed()、WorldTimeEventLibrary._age_up())都要走這裡,不要
+## 自己各自呼叫 AllCharacterStore.register() + all_characteres.append()——是否已滿的
+## 判斷跟提示集中在這一個入口,不用每個呼叫端各自處理「滿了要幹嘛」。容量已滿時不
+## 靜默失敗,直接用 MessageBar 提示玩家去角色列表解雇角色騰位置,不彈跳頁面/彈窗,
+## 呼叫端只要看回傳值決定自己那邊的 UI 要不要跟著反應(例如按鈕維持可按,讓玩家騰出
+## 空位後可以直接再按一次)。
+func try_add(character: Character) -> bool:
+	if all_characteres.has(character):
+		return true
+	if not AllCharacterStore.register(character):
+		MessageBar.show_message(ROSTER_FULL_MESSAGE)
+		return false
+	all_characteres.append(character)
+	return true

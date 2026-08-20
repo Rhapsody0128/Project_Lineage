@@ -21,8 +21,7 @@ func _ensure_starting_party() -> void:
 		return
 
 	var protagonist := CharacterController.get_fixed_protagonist()
-	AllCharacterStore.register(protagonist)
-	CharacterRosterStore.all_characteres.append(protagonist)
+	CharacterRosterStore.try_add(protagonist)
 
 	var grid := PartyEditGrid.new()
 	var anchor := grid.find_leaning_left_anchor(protagonist.battle_cost.cells)

@@ -89,10 +89,10 @@ func _on_month_passed() -> void:
 		)
 		if characters.is_empty():
 			continue
-		if not building.consumes.is_empty():
-			if not BaseResourceStore.can_afford(building.consumes):
-				continue
-			BaseResourceStore.spend(building.consumes)
-		var rank := BaseBuildingProgressStore.get_rank(building.type)
-		var monthly_yield := BaseProduction.compute_monthly_yield(building, characters, rank)
+		var level := BaseBuildingProgressStore.get_level(building.type)
+		var monthly_yield := BaseProduction.compute_monthly_yield(building, characters, level)
 		BaseResourceStore.add(building.produces, monthly_yield)
+		var rank := BaseBuildingProgressStore.get_rank(building.type)
+		var exp_amount := BattleReward.exp_for_dispatch(rank)
+		for character in characters:
+			character.gain_exp(exp_amount)

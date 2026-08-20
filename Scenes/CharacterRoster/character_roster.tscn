@@ -60,17 +60,40 @@ grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 16
 
-[node name="DetailPanel" type="PanelContainer" parent="MainRow"]
+[node name="DetailColumn" type="VBoxContainer" parent="MainRow"]
 custom_minimum_size = Vector2(400, 0)
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 10
 
-[node name="DetailMargin" type="MarginContainer" parent="MainRow/DetailPanel"]
+[node name="ActionButtonRow" type="HBoxContainer" parent="MainRow/DetailColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="DismissButton" type="Button" parent="MainRow/DetailColumn/ActionButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "解雇"
+
+[node name="ViewFamilyTreeButton" type="Button" parent="MainRow/DetailColumn/ActionButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "觀看祖譜"
+
+[node name="DetailPanel" type="PanelContainer" parent="MainRow/DetailColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DetailMargin" type="MarginContainer" parent="MainRow/DetailColumn/DetailPanel"]
 layout_mode = 2
 theme_override_constants/margin_left = 20
 theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 20
 theme_override_constants/margin_bottom = 14
+
+[node name="DetailVBox" type="VBoxContainer" parent="MainRow/DetailColumn/DetailPanel/DetailMargin"]
+layout_mode = 2
+theme_override_constants/separation = 10
 
 [node name="RosterPanel" type="PanelContainer" parent="MainRow"]
 layout_mode = 2
@@ -111,3 +134,5 @@ theme_override_constants/h_separation = 12
 theme_override_constants/v_separation = 12
 
 [connection signal="pressed" from="TopBar/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="MainRow/DetailColumn/ActionButtonRow/DismissButton" to="." method="_on_dismiss_pressed"]
+[connection signal="pressed" from="MainRow/DetailColumn/ActionButtonRow/ViewFamilyTreeButton" to="." method="_on_view_family_tree_pressed"]

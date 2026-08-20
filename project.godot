@@ -35,6 +35,8 @@ BaseDispatchStore="*res://Scripts/Autoload/base_dispatch_store.gd"
 RoamingEnemyStore="*res://Scripts/Autoload/roaming_enemy_store.gd"
 NationFavorStore="*res://Scripts/Autoload/nation_favor_store.gd"
 ActionPanel="*res://Scenes/ActionPanel/action_panel.tscn"
+ConfirmDialog="*res://Scenes/ConfirmDialog/confirm_dialog.tscn"
+MessageBar="*res://Scenes/MessageBar/message_bar.tscn"
 
 [display]
 

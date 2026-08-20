@@ -16,11 +16,27 @@ extends Node
 # CharacterController.get_random_character() 也被拿來生成戰鬥用的一次性雜兵
 # (PartyController.get_random_party()、TownChatEvent/TownGateEvent 的场景 NPC),
 # 那些不是玩家的角色,不應該進這個池子。
+#
+# register() 是角色總容量(見 BaseBuildingProgressStore.get_character_capacity(),
+# 住宅區等級決定)唯一的把關點——招募/告白成親/生小孩全部經過這裡,容量滿了就不再收,
+# 不用在每個呼叫端各自檢查一次。回傳值供呼叫端之後想顯示「已達上限」提示時使用,
+# 目前呼叫端大多不看回傳值,只是先擋住數量超載。
 # =========================================================
 
 var all_characteres: Array[Character] = []
 
 
-func register(character: Character) -> void:
-	if not all_characteres.has(character):
-		all_characteres.append(character)
+## 角色總容量是否已滿(見 BaseBuildingProgressStore.get_character_capacity())——
+## register() 跟呼叫端(例如 CharacterRosterStore.is_full())共用同一個判斷式,
+## 不用各自重算一次。
+func is_full() -> bool:
+	return all_characteres.size() >= BaseBuildingProgressStore.get_character_capacity()
+
+
+func register(character: Character) -> bool:
+	if all_characteres.has(character):
+		return true
+	if is_full():
+		return false
+	all_characteres.append(character)
+	return true

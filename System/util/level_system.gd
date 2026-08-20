@@ -25,7 +25,7 @@ var level_required_exp: Array[int] = [
     1550,   # Lv19
     1730    # Lv20
 ]
-var potential_level_ratio: float = 5.0
+var potential_level_ratio: float = 3
 
 func _init(p_level: int = 1) -> void:
 	level = p_level
@@ -41,7 +41,7 @@ func _judge_can_upgrade() -> void:
 	if level >= level_required_exp.size():
 		return
 	var need_exp: int = level_required_exp[level]
-	if need_exp < exp:
+	if need_exp <= exp:
 		exp -= need_exp
 		level += 1
 		_judge_can_upgrade()

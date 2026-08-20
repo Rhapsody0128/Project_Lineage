@@ -57,6 +57,23 @@ func open(title: String, items: Array[ActionPanelItem], on_close: Callable = Cal
 	root.visible = true
 
 
+## 跟 open() 共用同一個外框(背景遮罩/PanelBox/Margin/TopBar/關閉鍵位置全部一樣),差別
+## 是內容區塊不是靠 ActionPanelItem 清單自動排版列出來,而是呼叫端自己組好一整個 Control
+## 直接塞進來——例如 System/event/base/base_building_event.gd 的根據地建築面板,內容
+## (等級/升級/派遣角色等)因事件而異,但外殼(離開鈕位置、Margin、面板大小)要保持
+## 跟這裡列清單的用途一致,不要另外開一個長相不同的面板。content 的生命週期跟著這次
+## 顯示走,下次 open()/open_custom() 呼叫或整包場景關閉都會被清掉,呼叫端不用自己管理。
+func open_custom(title: String, content: Control, on_close: Callable = Callable(), min_size: Vector2 = DEFAULT_MIN_SIZE) -> void:
+	_on_close = on_close
+	title_label.text = title
+	panel_box.custom_minimum_size = min_size
+	for child in items_list.get_children():
+		child.queue_free()
+	empty_label.visible = false
+	items_list.add_child(content)
+	root.visible = true
+
+
 func close() -> void:
 	root.visible = false
 	var callback := _on_close

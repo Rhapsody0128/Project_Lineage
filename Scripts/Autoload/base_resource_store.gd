@@ -10,7 +10,11 @@ extends Node
 ## HeaderBar 的資源下拉選單)能即時反映最新數字,不用等使用者關掉重開才刷新。
 signal changed
 
-var amounts: Dictionary = {}
+## 玩家預設起始資源,根據地剛開局就有這些可用來建造第一批建築。
+var amounts: Dictionary = {
+	GameEnums.ResourceType.WOOD: 100,
+	GameEnums.ResourceType.GOLD: 100,
+}
 
 
 func get_amount(resource_type: int) -> int:

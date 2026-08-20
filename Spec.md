@@ -179,9 +179,11 @@ enum 成員名稱,不另外維護路徑陣列(降低新增/調整 enum 順序時
   `_on_enter_base_button_pressed()` 直接切去 `base.tscn`
 - `base_building_background_path(building_type)` →
   `Images/Dialogue/Base/Building/<BUILDING_TYPE>.png`,見 `System/event/base/
-  base_building_event.gd`(BaseBuildingEvent):根據點的建築跳這句 Dialogue,玩家按
-  「離開」選項才回 `base.tscn`——建築內部真正的內政操作介面尚未設計,目前只提供
-  這個出口,不會自動彈開 `BaseActionPanel`
+  base_building_event.gd`(BaseBuildingEvent):根據點的建築跳這句 Dialogue,播完
+  (不需要玩家額外點選項)由 `on_finished` 直接彈出共用 `Scenes/ActionPanel/
+  action_panel.gd`(跟酒館招募清單同一張臉,見 `open_custom()`),內容區塊換成
+  `Scenes/Base/base_action_panel.gd`(`BaseBuildingPanelContent`)——建造/升級/派遣
+  角色等根據地內政操作介面
 
 `Images/Dialogue/Map/Castle/castle_<TERRAIN>.png`、`Images/Dialogue/Map/Landform/
 <TERRAIN>.png` 是預留的美術資源,目前尚未接上任何程式碼。

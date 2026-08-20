@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://cfttrlgdhuqbf"]
 
 [ext_resource type="Script" uid="uid://cayuoa57r3nyb" path="res://Scenes/Base/base.gd" id="1_base"]
-[ext_resource type="Script" uid="uid://cg31si3864u74" path="res://Scenes/Base/base_action_panel.gd" id="2_panel"]
 [ext_resource type="Texture2D" uid="uid://brshvytyolmhu" path="res://Images/Base/base.jpg" id="3_background"]
 
 [node name="Base" type="Node2D" unique_id=1967325294]
@@ -17,39 +16,6 @@ texture = ExtResource("3_background")
 
 [node name="UI" type="CanvasLayer" parent="." unique_id=1151972042]
 
-[node name="ActionPanel" type="PanelContainer" parent="UI" unique_id=2114967952]
-visible = false
-offset_left = 1120.0
-offset_top = 140.0
-offset_right = 1580.0
-offset_bottom = 760.0
-script = ExtResource("2_panel")
-
-[node name="MarginContainer" type="MarginContainer" parent="UI/ActionPanel" unique_id=297855356]
-layout_mode = 2
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
-
-[node name="VBoxContainer" type="VBoxContainer" parent="UI/ActionPanel/MarginContainer" unique_id=111591435]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="TitleLabel" type="Label" parent="UI/ActionPanel/MarginContainer/VBoxContainer" unique_id=1685362348]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "建築"
-horizontal_alignment = 1
-
-[node name="BodyContainer" type="VBoxContainer" parent="UI/ActionPanel/MarginContainer/VBoxContainer" unique_id=825325369]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="CloseButton" type="Button" parent="UI/ActionPanel/MarginContainer/VBoxContainer" unique_id=855080456]
-layout_mode = 2
-text = "×"
-
 [node name="LeaveButton" type="Button" parent="UI" unique_id=1448660459]
 offset_left = 1436.0
 offset_top = 816.0
@@ -59,5 +25,4 @@ text = "離開"
 
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1241627064]
 
-[connection signal="pressed" from="UI/ActionPanel/MarginContainer/VBoxContainer/CloseButton" to="UI/ActionPanel" method="_on_close_button_pressed"]
 [connection signal="pressed" from="UI/LeaveButton" to="." method="_on_leave_button_pressed"]

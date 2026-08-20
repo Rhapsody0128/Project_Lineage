@@ -130,6 +130,12 @@ func _ready() -> void:
 		speed_button.text = _SPEED_LEVEL_LABELS[level]
 		speed_button.toggle_mode = true
 		speed_button.button_group = speed_button_group
+		## 不搶鍵盤焦點——按鈕搶到焦點的話,之後按 Space 會先被這顆按鈕內建的
+		## ui_accept 處理(重新觸發 toggled,可能把已經展開的「詳細」面板關掉),
+		## 搶在 _unhandled_input() 的 WorldTimeStore.toggle_playing() 之前,兩套
+		## 邏輯打架。整條 HeaderBar 的按鈕都只吃滑鼠點擊,鍵盤快捷鍵統一交給
+		## _unhandled_input() 處理。
+		speed_button.focus_mode = Control.FOCUS_NONE
 		speed_button.custom_minimum_size = Vector2(76, 36)
 		speed_button.add_theme_font_size_override("font_size", 16)
 		speed_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(_SPEED_BUTTON_BG, _BUTTON_BORDER, 2, 8))
@@ -142,6 +148,7 @@ func _ready() -> void:
 
 	var menu_button := MenuButton.new()
 	menu_button.text = "☰"
+	menu_button.focus_mode = Control.FOCUS_NONE
 	menu_button.custom_minimum_size = Vector2(48, 36)
 	menu_button.add_theme_font_size_override("font_size", 20)
 	menu_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(_BUTTON_BG, _BUTTON_BORDER, 2, 8))
@@ -217,6 +224,9 @@ func add_menu_button(button_text: String) -> MenuButton:
 ## add_menu_button()/_add_status_toggle() 共用的按鈕外觀(邊框樣式/字級/最小尺寸),
 ## 避免兩處各自複製貼上同一段 stylebox override。
 func _style_header_button(button: BaseButton, min_width: float = 64.0) -> void:
+	## 同上方 speed_button 的理由:不讓按鈕搶鍵盤焦點,避免 Space 被focus住的按鈕
+	## 內建 ui_accept 處理掉,誤觸「詳細」等展開面板按鈕的 toggled、把面板關掉。
+	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(min_width, 36)
 	button.add_theme_font_size_override("font_size", 16)
 	button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(_BUTTON_BG, _BUTTON_BORDER, 2, 8))
@@ -422,15 +432,18 @@ func _on_party_avatar_gui_input(input_event: InputEvent, character: Character) -
 ## 只顯示 icon(GameEnums.resource_type_label,emoji)+ 數量,不顯示中文品項名稱
 ## (resource_string_label)——資源種類多,面板寬度有限,icon 已經夠辨識。用
 ## HFlowContainer 排版:預設由左往右排,單項寬度超出容器剩餘空間就自動換到下一行,
-## 不用像過去那樣手動兩兩配對成列。
+## 不用像過去那樣手動兩兩配對成列。數量後面用括號附上「下月預估增減量」
+## (BaseDispatchStore/BaseExchangeStore 的月結算預覽,見 _compute_projected_delta()),
+## 正值綠色、負值紅色,方便玩家不用真的跨月就能看出目前派遣/兌換設定的淨效果。
 func _build_resource_entries(flow: HFlowContainer) -> void:
 	var has_any := false
+	var delta := _compute_projected_delta()
 	for resource_type in GameEnums.ResourceType.values():
 		var amount := BaseResourceStore.get_amount(resource_type)
 		if amount == 0:
 			continue
 		has_any = true
-		flow.add_child(_build_resource_icon_label(resource_type, amount))
+		flow.add_child(_build_resource_icon_label(resource_type, amount, delta.get(resource_type, 0)))
 
 	if not has_any:
 		var label := Label.new()
@@ -439,10 +452,36 @@ func _build_resource_entries(flow: HFlowContainer) -> void:
 		flow.add_child(label)
 
 
-func _build_resource_icon_label(resource_type: int, amount: int) -> Label:
-	var label := Label.new()
-	label.text = "%s %d" % [GameEnums.resource_type_label(resource_type), amount]
-	label.add_theme_font_size_override("font_size", 16)
+## 合併「派駐生產(含工匠坊配方消耗)」跟「商隊站/黑市每月自動兌換」兩份月結算預覽,
+## 給資源清單顯示用。兩份預覽算法各自跟真正的 _on_month_passed() 一致,見
+## Scripts/Autoload/base_dispatch_store.gd / base_exchange_store.gd 的
+## get_projected_monthly_delta()。
+func _compute_projected_delta() -> Dictionary:
+	var delta := BaseDispatchStore.get_projected_monthly_delta()
+	var exchange_delta := BaseExchangeStore.get_projected_monthly_delta()
+	for resource_type in exchange_delta:
+		delta[resource_type] = delta.get(resource_type, 0) + exchange_delta[resource_type]
+	return delta
+
+
+func _build_resource_icon_label(resource_type: int, amount: int, delta: int) -> Control:
+	var label := RichTextLabel.new()
+	label.bbcode_enabled = true
+	label.fit_content = true
+	## fit_content 算最小尺寸時如果 autowrap 沒關掉,寬度要先知道容器給多少空間才能算
+	## wrap 結果,在 HFlowContainer 這種先問子節點 minimum size 再排版的容器裡會卡雞生蛋
+	## 蛋生雞,量出來的 minimum size 直接變 0——整排資源看起來像「憑空消失」,不是資料
+	## 沒抓到,是這顆 Label 量出來的尺寸是 0x0。關掉 autowrap 讓它用單行內容量真實尺寸。
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.scroll_active = false
+	label.add_theme_font_size_override("normal_font_size", 16)
+	var base_text := "%s %d" % [GameEnums.resource_type_label(resource_type), amount]
+	if delta == 0:
+		label.text = base_text
+	else:
+		var color_hex := "5FE05F" if delta > 0 else "F05C5C"
+		var sign_text := "+%d" % delta if delta > 0 else str(delta)
+		label.text = "%s[color=#%s](%s)[/color]" % [base_text, color_hex, sign_text]
 	return label
 
 

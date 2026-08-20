@@ -87,15 +87,7 @@ var parent_list: VBoxContainer
 var mate_list: VBoxContainer
 var children_list: VBoxContainer
 
-## 「觀看祖譜」按鈕的入口需要知道目前分頁顯示的是誰,set_character() 開頭記錄。
 var current_character: Character
-
-## 「觀看祖譜」按鈕會直接切場景離開目前畫面——CharacterPanel 是全域彈出面板,任何場景都
-## 能開(包含戰鬥中點頭像),這樣做會直接丟掉目前情境,所以那裡關掉;CharacterRoster/
-## MarriageProposal 是專門瀏覽角色的整頁場景,離開去看祖譜沒有這個問題,維持顯示。這是
-## 唯一還需要呼叫端指定的差異點——文字/雷達圖/分頁按鈕配色三處呼叫端現在都一樣,已經
-## 收斂成這顆元件自己的固定配色,不用旗標。
-@export var show_family_tree_button: bool = true
 
 
 func _ready() -> void:
@@ -461,16 +453,6 @@ func _build_family_tab() -> Control:
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 6)
 
-	if show_family_tree_button:
-		var view_family_tree_button := Button.new()
-		view_family_tree_button.text = "觀看祖譜"
-		UiStyle.apply_wood_plaque_button(view_family_tree_button, 16.0, 8.0)
-		view_family_tree_button.add_theme_font_size_override("font_size", 16)
-		view_family_tree_button.pressed.connect(_on_view_family_tree_pressed)
-		column.add_child(view_family_tree_button)
-
-		column.add_child(HSeparator.new())
-
 	var parent_title := Label.new()
 	parent_title.text = "父母"
 	parent_title.add_theme_font_size_override("font_size", 15)
@@ -732,18 +714,6 @@ func _build_family_member_row(member: Character) -> Control:
 func _on_family_portrait_gui_input(input_event: InputEvent, member: Character) -> void:
 	if input_event is InputEventMouseButton and input_event.pressed and input_event.button_index == MOUSE_BUTTON_LEFT:
 		CharacterPanel.open_for_character(member)
-
-
-## 「觀看祖譜」按鈕:把目前顯示的角色透過 SceneHandoffStore 交給 FamilyTree 場景當
-## 起點(見 Scenes/FamilyTree/family_tree.gd),再切場景過去。CharacterPanel.close()
-## 在 CharacterDetailView 嵌在 CharacterRoster(非彈出式)裡呼叫也安全——只是把
-## autoload 的隱藏彈窗關掉,本來就是關的狀態,等同 no-op。
-func _on_view_family_tree_pressed() -> void:
-	if current_character == null:
-		return
-	SceneHandoffStore.queue(FamilyTree.FOCUS_MAILBOX_KEY, current_character)
-	CharacterPanel.close()
-	NavigationStore.go_to("res://Scenes/FamilyTree/family_tree.tscn")
 
 
 func _trait_color(polarity: int) -> Color:

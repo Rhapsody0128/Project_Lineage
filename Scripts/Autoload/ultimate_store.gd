@@ -26,3 +26,9 @@ func can_use(ultimate: Ultimate) -> bool:
 ## 施放成功後呼叫,該奧義用一次少一次,歸零後不會變負數。
 func consume(ultimate: Ultimate) -> void:
 	_uses_remaining[ultimate.id] = maxi(uses_remaining(ultimate) - 1, 0)
+
+
+## 祭壇/禁忌祭壇購買奧義用(見 System/base/base_altar.gd),花信仰/詛咒替該奧義的剩餘
+## 次數加值——沒有購買次數限制,用完隨時可以再買。
+func add_uses(ultimate: Ultimate, amount: int) -> void:
+	_uses_remaining[ultimate.id] = uses_remaining(ultimate) + amount

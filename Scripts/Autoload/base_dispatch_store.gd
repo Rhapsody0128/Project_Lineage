@@ -78,6 +78,49 @@ func find_character(character_id: String) -> Character:
 	return null
 
 
+## 工匠坊依目前選定配方(WorkshopRecipeStore)把理論產出換算成實際產出:原料不足時
+## 按比例打折(見 System/base/workshop_production.gd),不會讓整棟工匠坊那個月直接停產。
+func _resolve_workshop_yield(theoretical_output: int) -> int:
+	var recipe := WorkshopRecipeStore.get_selected()
+	var available: Dictionary = {}
+	for resource_type in recipe.inputs:
+		available[resource_type] = BaseResourceStore.get_amount(resource_type)
+	var result := WorkshopProduction.resolve(recipe, theoretical_output, available)
+	BaseResourceStore.spend(result["consumed"])
+	return result["output"]
+
+
+## 預覽「如果現在跨過月結算」每種資源的淨變動量(工匠坊已套用配方消耗/all-or-nothing
+## 判定),供 Scripts/UI/header_bar.gd 的「詳細」面板顯示下月預估增減量用——算法跟
+## _on_month_passed() 一致,但不真的扣款/加值,純預覽。
+func get_projected_monthly_delta() -> Dictionary:
+	var delta: Dictionary = {}
+	for building in BuildingLibrary.get_all():
+		if not building.is_production_building():
+			continue
+		if not BaseBuildingProgressStore.is_unlocked(building.type):
+			continue
+		var characters: Array[Character] = get_dispatched_characters(building.type).filter(
+			func(character: Character) -> bool: return not character.is_disabled
+		)
+		if characters.is_empty():
+			continue
+		var level := BaseBuildingProgressStore.get_level(building.type)
+		var theoretical_output := BaseProduction.compute_monthly_yield(building, characters, level)
+		if building.type == GameEnums.BuildingType.WORKSHOP:
+			var recipe := WorkshopRecipeStore.get_selected()
+			var available: Dictionary = {}
+			for resource_type in recipe.inputs:
+				available[resource_type] = BaseResourceStore.get_amount(resource_type)
+			var result := WorkshopProduction.resolve(recipe, theoretical_output, available)
+			delta[building.produces] = delta.get(building.produces, 0) + result.output
+			for resource_type in result.consumed:
+				delta[resource_type] = delta.get(resource_type, 0) - result.consumed[resource_type]
+		else:
+			delta[building.produces] = delta.get(building.produces, 0) + theoretical_output
+	return delta
+
+
 func _on_month_passed() -> void:
 	for building in BuildingLibrary.get_all():
 		if not building.is_production_building():
@@ -91,6 +134,8 @@ func _on_month_passed() -> void:
 			continue
 		var level := BaseBuildingProgressStore.get_level(building.type)
 		var monthly_yield := BaseProduction.compute_monthly_yield(building, characters, level)
+		if building.type == GameEnums.BuildingType.WORKSHOP:
+			monthly_yield = _resolve_workshop_yield(monthly_yield)
 		BaseResourceStore.add(building.produces, monthly_yield)
 		var rank := BaseBuildingProgressStore.get_rank(building.type)
 		var exp_amount := BattleReward.exp_for_dispatch(rank)

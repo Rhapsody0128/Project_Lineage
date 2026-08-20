@@ -21,6 +21,13 @@ func get_amount(resource_type: int) -> int:
 	return amounts.get(resource_type, 0)
 
 
+## 存量是否已達倉庫上限——月結算的自動兌換(見 Scripts/Autoload/base_exchange_store.gd)
+## 拿這個判斷目標資源倉庫滿了就整筆跳過,不白白花掉來源資源換到會被 add() 直接捨棄的量。
+func is_full(resource_type: int) -> bool:
+	var warehouse_level := BaseBuildingProgressStore.get_level(GameEnums.BuildingType.WAREHOUSE)
+	return get_amount(resource_type) >= BaseWarehouse.get_capacity(resource_type, warehouse_level)
+
+
 ## 超過倉庫儲存上限的部分直接捨棄(見 System/base/base_warehouse.gd),逼玩家在資源
 ## 快滿時去升級倉庫或花掉,而不是無腦囤積。
 func add(resource_type: int, quantity: int) -> void:

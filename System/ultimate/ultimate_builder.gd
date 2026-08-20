@@ -14,6 +14,10 @@ func description(value: String) -> UltimateBuilder:
 	_ultimate.description = value
 	return self
 
+func rank(value: GameEnums.RankType) -> UltimateBuilder:
+	_ultimate.rank = value
+	return self
+
 func resolve_line(value: String) -> UltimateBuilder:
 	_ultimate.resolve_line = value
 	return self

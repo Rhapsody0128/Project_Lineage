@@ -37,6 +37,10 @@ NationFavorStore="*res://Scripts/Autoload/nation_favor_store.gd"
 ActionPanel="*res://Scenes/ActionPanel/action_panel.tscn"
 ConfirmDialog="*res://Scenes/ConfirmDialog/confirm_dialog.tscn"
 MessageBar="*res://Scenes/MessageBar/message_bar.tscn"
+WorkshopRecipeStore="*res://Scripts/Autoload/workshop_recipe_store.gd"
+BaseExchangeStore="*res://Scripts/Autoload/base_exchange_store.gd"
+TechStore="*res://Scripts/Autoload/tech_store.gd"
+BarracksTrainingStore="*res://Scripts/Autoload/barracks_training_store.gd"
 
 [display]
 

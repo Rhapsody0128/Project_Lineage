@@ -13,6 +13,9 @@ extends RefCounted
 var id: String
 var name: String
 var description: String
+## 祭壇/禁忌祭壇購買門檻(GameEnums.RankType),見 System/base/base_altar.gd——
+## 建築等級 N 對應可購買到 Rank N-1(0-indexed)以下的奧義。
+var rank: GameEnums.RankType
 ## 生效當下顯示的天象/特效描述(戰場中央浮字,見 Scenes/Battle/battle.gd 的
 ## _apply_ultimate_resolve()),例如「詭異龍捲風攻擊敵人」——這時候數值效果才真的套用,
 ## 施放的當下不會顯示任何東西。

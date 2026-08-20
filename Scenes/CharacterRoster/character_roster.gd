@@ -13,7 +13,6 @@ extends Control
 # 疊在 DetailPanel 面板「外面」(同一欄的上一列,不是塞進面板內的 DetailVBox)——
 # 「觀看祖譜」原本是 CharacterDetailView 家族分頁裡的按鈕,這個場景改成把它跟「解雇」
 # 並排移到最上方,不用先切到家族分頁才看得到,所以嵌入的 _detail_view 要關掉
-# show_family_tree_button,避免家族分頁裡重複出現第二顆。
 # =========================================================
 
 @onready var detail_panel: PanelContainer = $MainRow/DetailColumn/DetailPanel
@@ -45,7 +44,6 @@ func _ready() -> void:
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_detail_view.show_family_tree_button = false
 	detail_vbox.add_child(_detail_view)
 
 	sort_filter_bar.changed.connect(_refresh_grid)
@@ -89,7 +87,6 @@ func _dismiss_character(character: Character) -> void:
 
 ## 觀看祖譜:比照 CharacterDetailView._on_view_family_tree_pressed() 的寫法,以目前
 ## 選取角色為起點交給 FamilyTree 場景(見該檔案 FOCUS_MAILBOX_KEY)。這個按鈕移到
-## 左側面板最上方跟「解雇」並排(見 _ready() 的 show_family_tree_button = false),
 ## 不用再靠 CharacterDetailView 家族分頁裡那顆。
 func _on_view_family_tree_pressed() -> void:
 	if _selected_card == null:

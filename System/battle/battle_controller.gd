@@ -27,10 +27,13 @@ static func generate_random_report(title: String) -> BattleReport:
 
 ## AskBattle「選是跳過戰鬥」用:雙方小隊都由呼叫端指定,直接把整場戰鬥模擬完
 ## 包成戰報,不進 Battle 場景播放動畫。這條路徑不會經過 Scenes/Battle/battle.gd 的
-## _run_battle_playback()/_run_battle_realtime(),所以勝利 EXP 要在這裡自己補發一次,
-## 否則玩家選「跳過戰鬥」打贏也不會有 EXP(戰報照樣顯示勝利,容易誤以為是 bug)。
+## _run_battle_playback()/_run_battle_realtime(),所以勝利 EXP/金錢獎懲要在這裡自己
+## 補發一次,否則玩家選「跳過戰鬥」打贏也不會有 EXP/金錢(戰報照樣顯示勝利,容易
+## 誤以為是 bug)。
 static func generate_report_for_parties(title: String, self_party: Party, enemy_party: Party) -> BattleReport:
 	var battle := get_battle(self_party, enemy_party)
 	battle.start()
 	BattleReward.grant_victory_exp(battle)
+	BattleReward.settle_money(battle)
+	BattleReward.grant_victory_favor(battle)
 	return BattleReport.new(title, battle)

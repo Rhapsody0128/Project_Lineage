@@ -61,4 +61,5 @@ static func get_random_party(rank_type: int = -1, nation: int = -1, level: int =
 	var party := Party.new("隨機小隊", characteres, leader)
 	party.ultimates = UltimateLibrary.default_ultimates()
 	party.rank_type = resolved_rank
+	party.nation_type = nation
 	return party

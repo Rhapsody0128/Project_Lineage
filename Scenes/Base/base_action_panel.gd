@@ -283,7 +283,8 @@ func _build_warehouse_section() -> void:
 		row.add_theme_constant_override("separation", 4)
 		row.add_child(_build_resource_icon(resource_type))
 		var label := Label.new()
-		label.text = "%s：%d / %d" % [GameEnums.resource_string_label(resource_type), amount, capacity]
+		var capacity_text := "∞" if capacity < 0 else str(capacity)
+		label.text = "%s：%d / %s" % [GameEnums.resource_string_label(resource_type), amount, capacity_text]
 		label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 		row.add_child(label)
 		grid.add_child(row)

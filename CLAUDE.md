@@ -148,8 +148,21 @@ get_nonzero_entries()` + `GameEnums.bloodline_full_label`/`bloodline_nation_colo
 玩家對每個國家的好感度是會變動的玩家資料,不是靜態規則,所以不放在 `System/nation/`,
 比照 `BaseResourceStore` 的慣例存在 `NationFavorStore`(autoload,
 `Scripts/Autoload/nation_favor_store.gd`):`Dictionary` 存 `國家 id → 好感度`,
-`get_favor(nation_id)`/`add_favor(nation_id, amount)`,`changed` 訊號供 UI 即時刷新。目前
-只記錄數值本身,「依好感度升級城鎮功能」是之後的事,這裡先不做任何等級/門檻換算。
+`get_favor(nation_id)`/`add_favor(nation_id, amount)`,`changed` 訊號供 UI 即時刷新。累積
+好感度數值→`GameEnums.RankType`(F~SSS)等級的門檻表是靜態規則,放在
+`System/nation/nation_favor_rank.gd`(`NationFavorRank.rank_for_favor()`/
+`label_for_favor()`),不放進 `NationFavorStore`。「依好感度升級城鎮功能」仍是之後的事,
+目前只有等級查詢,沒有任何解鎖效果。
+
+遊蕩者(`RoamingEnemy`)打贏會替一個國家加好感度:生成時
+`RoamingEnemySpawner._nearest_town_nation()` 依生成座標找離它最近的城鎮
+(`MapObject.get_all()` 篩 `MapObjectType.TOWN`),把該城鎮的 `nation` 一併帶進
+`PartyController.get_random_party(rank_type, nation)`,讓「這附近的盜賊」統一是那個國家的
+血統(`Party.nation_type`,比照 `Party.rank_type` 只在明確指定 nation 時才有值)。戰鬥
+結算時 `Battle.enemy_nation_type` 沿用 `enemy_party.nation_type`,`System/battle/
+battle_reward.gd` 的 `grant_victory_favor(battle)` 依 `enemy_rank_type` 查
+`RANK_NATION_FAVOR` 表發好感度給該國家——只有贏才加,戰敗/平手不倒扣,呼叫點跟
+`grant_victory_exp`/`settle_money` 是同一組(見「戰鬥系統」節)。
 
 ## 世界時間(System/time + WorldTimeStore)
 

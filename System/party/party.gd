@@ -28,6 +28,12 @@ var battle_cost_positions: Dictionary = {}  # Character -> Vector2i
 ## (EXP 只看被擊敗的敵方 Party)。
 var rank_type: int = -1
 
+## 這個小隊統一所屬的 GameEnums.BloodlineNation,只有 PartyController.get_random_party()
+## 呼叫端明確指定 nation 參數時才會有值(見該函式),用來決定戰鬥勝利後
+## System/battle/battle_reward.gd 的好感度要加給哪個國家。沒指定 nation 時(-1,各角色
+## 各自獨立隨機血統國家)維持預設 -1,代表這支小隊沒有單一所屬國家,不參與好感度判定。
+var nation_type: int = -1
+
 ## 這個小隊在戰鬥中可施放的奧義(見 System/ultimate/),即時戰鬥模式
 ## (Battle.start_realtime())才會用到,由 PartyController 建立小隊時指派預設值
 ## (UltimateLibrary.default_ultimates())。

@@ -18,6 +18,9 @@ const SPEED_AT_AGI_200 := MAP_SIZE.y / 90.0
 ## 左上→右下(對角線距離 MAP_DIAGONAL),平均 AGI 0 時需 360 秒
 const SPEED_AT_AGI_0 := MAP_DIAGONAL / 360.0
 
+## 玩家速度調整值 讓玩家比地圖上敵人快 20% 後面可以被科技升級 
+const PLAYER_SPEED_MULTIPLIER = 1.2
+
 var position: Vector2
 var target_position: Vector2
 var is_moving: bool = false
@@ -44,7 +47,7 @@ static func compute_average_agi(party: Party) -> float:
 ## AGI 0~200 之間線性內插移動速度。
 static func compute_speed(avg_agi: float) -> float:
 	var clamped: float = clamp(avg_agi, 0.0, 200.0)
-	return lerp(SPEED_AT_AGI_0, SPEED_AT_AGI_200, clamped / 200.0)
+	return lerp(SPEED_AT_AGI_0, SPEED_AT_AGI_200, clamped / 200.0) * PLAYER_SPEED_MULTIPLIER
 
 
 func set_destination(p_target: Vector2) -> void:

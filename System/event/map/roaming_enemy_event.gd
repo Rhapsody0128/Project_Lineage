@@ -66,13 +66,14 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 	var lines: Array[DialogueLine] = []
 
 	if has_party:
+		var stakes_text := _build_stakes_text()
 		var choices: Array[DialogueChoice] = [
 			DialogueChoice.new("戰鬥", "", on_challenge_accepted),
 			DialogueChoice.new("離開", RETURN_SCENE_PATH, on_declined),
 		]
 		lines = [
 			DialogueLine.new(bandit_speaker.id, "一群盜賊擋住了去路！"),
-			DialogueLine.new(player_speaker.id, "", choices),
+			DialogueLine.new(player_speaker.id, stakes_text, choices),
 		]
 	else:
 		var choices: Array[DialogueChoice] = [
@@ -83,25 +84,60 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 			DialogueLine.new(player_speaker.id, "（我還沒整頓好隊伍,先撤退吧。）", choices),
 		]
 
-	return Dialogue.new([bandit_speaker, player_speaker], lines)
+	return Dialogue.new([bandit_speaker, player_speaker], lines, _background_path())
+
+
+## 遭遇對話背景圖沿用最近城鎮的地形對話背景(Images/Dialogue/Map/Town/
+## town_<TERRAIN>.png,見 GameEnums.town_background_path()/bloodline_nation_terrain()),
+## 讓「這附近的盜賊」連畫面地形都跟著在地化,不是全部共用同一張。nation_type == -1
+## (理論上不會發生,見 _build_stakes_text() 同樣的防呆)時退回 PLAINS 當中性預設值。
+func _background_path() -> String:
+	var nation_type := _enemy.party.nation_type
+	var terrain_type := GameEnums.bloodline_nation_terrain(nation_type) if nation_type != -1 else GameEnums.TerrainType.PLAINS
+	return GameEnums.town_background_path(terrain_type)
+
+
+## 開戰前先告知玩家這場遭遇的評級/金錢與好感度利害關係(見 System/battle/battle_reward.gd
+## 的三張 RankType 查表)。_enemy.party.nation_type 一律由 RoamingEnemySpawner
+## ._nearest_town_nation() 依生成座標指派,理論上不會是 -1,但仍防呆處理。
+func _build_stakes_text() -> String:
+	var rank_label := GameEnums.rank_label(_enemy.rank)
+	var reward := BattleReward.money_reward_for_rank(_enemy.rank)
+	var penalty := BattleReward.money_penalty_for_rank(_enemy.rank)
+	var nation_type := _enemy.party.nation_type
+	if nation_type == -1:
+		return "（看起來是 %s 級的對手,打贏能拿到 %d 金錢,打輸會被搶走 %d 金錢。）" % [rank_label, reward, penalty]
+	var nation_label := GameEnums.bloodline_nation_label(nation_type)
+	var favor := BattleReward.favor_for_rank(_enemy.rank)
+	return "（看起來是 %s 國附近、%s 級的對手,打贏能拿到 %d 金錢與 %s 好感度 +%d,打輸會被搶走 %d 金錢。）" % [nation_label, rank_label, reward, nation_label, favor, penalty]
 
 
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 RETURN_SCENE_PATH 自動接手轉場。
 ## DRAW(平手)沒有另外的台詞,一律當作沒能擊退盜賊,跟戰敗共用同一句,比照 TownGateEvent。
 func _build_result(result: GameEnums.BattleResultType) -> Dialogue:
 	var bandit_speaker := DialogueSpeaker.new(_enemy.party.leader.id, _enemy.party.leader.full_name, _enemy.party.leader.face_path, GameEnums.DialogueSide.RIGHT)
+	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var lines: Array[DialogueLine] = []
 	if result == GameEnums.BattleResultType.SELF_WIN:
+		var reward := BattleReward.money_reward_for_rank(_enemy.rank)
+		var nation_type := _enemy.party.nation_type
+		var loot_text := "（搜刮到 %d 金錢。）" % reward
+		if nation_type != -1:
+			var favor := BattleReward.favor_for_rank(_enemy.rank)
+			loot_text = "（搜刮到 %d 金錢,%s 對你的好感度 +%d。）" % [reward, GameEnums.bloodline_nation_label(nation_type), favor]
 		lines = [
 			DialogueLine.new(bandit_speaker.id, "可惡！你們贏了！我投降！"),
+			DialogueLine.new(narrator.id, loot_text),
 		]
 	elif result == GameEnums.BattleResultType.ENEMY_WIN:
+		var penalty := BattleReward.money_penalty_for_rank(_enemy.rank)
 		lines = [
 			DialogueLine.new(bandit_speaker.id, "哈哈！乖乖把值錢的東西留下吧！"),
+			DialogueLine.new(narrator.id, "（被搶走了 %d 金錢……）" % penalty),
 		]
 	else: # DRAW
 		lines = [
 			DialogueLine.new(bandit_speaker.id, "這次不分勝負！暫時性撤退!"),
 		]
-	
-	return Dialogue.new([bandit_speaker], lines)
+
+	return Dialogue.new([bandit_speaker, narrator], lines, _background_path())

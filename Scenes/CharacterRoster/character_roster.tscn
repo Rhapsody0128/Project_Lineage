@@ -78,7 +78,7 @@ text = "解雇"
 [node name="ViewFamilyTreeButton" type="Button" parent="MainRow/DetailColumn/ActionButtonRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "觀看祖譜"
+text = "祖譜"
 
 [node name="DetailPanel" type="PanelContainer" parent="MainRow/DetailColumn"]
 layout_mode = 2

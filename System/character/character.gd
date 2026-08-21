@@ -46,6 +46,9 @@ var battle_cost: BattleCost
 ## (見 character_roster.gd _is_protected_from_dismissal()),避免玩家把主角解雇掉
 ## 導致遊戲流程卡死。
 var is_protagonist: bool = false
+## 是否已死亡(見 CharacterDeathController.kill())。死亡角色仍留在 AllCharacterStore
+## (祖譜要沿用)但已從 CharacterRosterStore 移除，且不再隨世界時間增齡（見 age_up()）。
+var is_dead: bool = false
 
 func _init(
 	p_name: String,
@@ -140,6 +143,8 @@ func marry(target_character: Character) -> void:
 ## 剛好跨過 MIN_AGE 那一年額外從成人隨機池抽一張換上(僅此一次——已成年角色之後
 ## age 只會越來越大,不會再落回未成年區間,也不會每年重抽頭像)。
 func age_up() -> void:
+	if is_dead:
+		return
 	age += 1
 	if age < CharacterController.MIN_AGE:
 		face_path = FaceController.get_child_face_path(age, gender)
@@ -176,7 +181,16 @@ func gain_exp(exp_amount: int) -> void:
 	level_system.gain_exp(exp_amount)
 
 func _get_real_potential(initial_potential: float, ratio: float) -> float:
-	return initial_potential + ratio * level_system.potential_level_constant
+	return (initial_potential + ratio * level_system.potential_level_constant) * _trait_stat_multiplier()
+
+## 全部特性 stat_multiplier 的連乘(見 CharacterTrait.stat_multiplier),目前只有
+## AgingRule 建立的衰老特性會偏離 1.0——素質全面下降透過既有的 strength/agility/...
+## getter 自動套用到戰鬥/生產/UI 全部讀取點，不用另外修改 CombatResolver/BaseProduction。
+func _trait_stat_multiplier() -> float:
+	var multiplier := 1.0
+	for character_trait in traits:
+		multiplier *= character_trait.stat_multiplier
+	return multiplier
 
 var strength: float:
 	get: return _get_real_potential(potential.strength, potential.strength_ratio)

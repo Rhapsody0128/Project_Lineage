@@ -19,8 +19,9 @@ extends Control
 # 幾何中心(_rect_by_unit 存的 Rect2)永遠等於「本人跟配偶之間的中線」(單人卡就是
 # 那一欄本身的中線),連接線直接讀這個中心點,不用另外校正。
 #
-# FamilyTreeBuilder.build() 只往下追 children/mate 邊,focus 永遠是世代 1(樹頂),
-# 祖譜線一律往下長,不會往上長出 focus 的祖先。
+# FamilyTreeBuilder.build() 會沿 children/parent/mate 三種邊走完 focus 所在的整個連通
+# 親族圖(父母、祖父母、配偶、子女、孫子女……都算),往上追出來的最上層那一代才是世代 1
+# (樹頂),focus 不一定是世代 1。
 #
 # 點卡片任一欄(整欄都能點,不是只有小頭像)開 CharacterPanel;整個 ScrollContainer
 # 範圍內也能按住拖曳平移(_input() 而非 _gui_input(),見下方拖曳段落)。
@@ -221,7 +222,8 @@ func _build_person_column(character: Character) -> Control:
 	top_row.add_child(info_column)
 
 	info_column.add_child(_build_stat_row("姓名", character.full_name, 14))
-	info_column.add_child(_build_stat_row("年齡", "%d歲" % character.age, 12))
+	var age_text := "%d歲(已故)" % character.age if character.is_dead else "%d歲" % character.age
+	info_column.add_child(_build_stat_row("年齡", age_text, 12))
 	info_column.add_child(_build_stat_row("性別", GameEnums.gender_symbol(character.gender), 12))
 
 	var rank_row := _build_stat_row("血統評級", GameEnums.rank_label(character.noble_bloodline_rank), 12)

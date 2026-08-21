@@ -13,15 +13,7 @@ const NO_WEAPON_BINDING := -1
 enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 ## 大地圖上的地點類型,見 System/map/map_object.gd
 enum MapObjectType {TOWN, BASE}
-## 根據地建築類型,見 System/base/building/building_library.gd 與
-## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
-## 實作;後十二種是生產類建築,兩兩一組對應六大素質的基礎/高階內政。
-enum BuildingType {
-	STRONGHOLD, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS,
-	LUMBER_MILL, QUARRY, FARM, MINE, CARAVAN, BLACK_MARKET,
-	HUNTING_GROUND, WORKSHOP, SCRIPTORIUM, RESEARCH_INSTITUTE,
-	ALTAR, FORBIDDEN_ALTAR,
-}
+
 
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
@@ -87,6 +79,16 @@ const CHARACTER_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子
 ## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
 const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城鎮", "根據地"]
 
+## 根據地建築類型,見 System/base/building/building_library.gd 與
+## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
+## 實作;後十二種是生產類建築,兩兩一組對應六大素質的基礎/高階內政。
+enum BuildingType {
+	STRONGHOLD, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS,
+	LUMBER_MILL, QUARRY, FARM, MINE, CARAVAN, BLACK_MARKET,
+	HUNTING_GROUND, WORKSHOP, SCRIPTORIUM, RESEARCH_INSTITUTE,
+	ALTAR, FORBIDDEN_ALTAR,
+}
+
 ## 根據地建築 UI 顯示用中文標籤,順序對應 BuildingType enum
 const BUILDING_TYPE_LABELS: Array[String] = [
 	"城鎮中心", "住宅區", "醫療所", "倉庫", "兵營",
@@ -94,7 +96,6 @@ const BUILDING_TYPE_LABELS: Array[String] = [
 	"狩獵場", "工匠坊", "抄書院", "科學研究所",
 	"祭壇", "禁忌祭壇",
 ]
-
 
 ## 根據地資源類型,見 System/base/base_production.gd / Scripts/Autoload/base_resource_store.gd
 enum ResourceType {

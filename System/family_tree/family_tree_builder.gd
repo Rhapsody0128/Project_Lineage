@@ -1,13 +1,12 @@
 class_name FamilyTreeBuilder
 extends RefCounted
 
-## 唯一入口 build(focus):focus 角色永遠是世代 1(樹的頂端),只沿 children/mate 兩種
-## 邊往下擴散做世代 BFS(走 children 邊世代 +1、走 mate 邊世代不變)——不追 parent
-## 邊,祖譜線一律只往下長,不會往上長出 focus 的祖先,才不會因為雙親兩側血緣深淺不一
-## (例如一邊是初始角色沒有記錄祖先、另一邊往上還有好幾代)讓樹在中途冒出斷頭的
-## 孤立節點,看起來像同時往上又往下分裂。走完 focus 所在的整個連通「子孫圖」後,
-## 整理成 FamilyTreeUnit 陣列——配偶配對成同一個 Unit,並接好 parent_unit/
-## child_units 供 Scenes/FamilyTree 畫連接線。
+## 唯一入口 build(focus):不再限定 focus 是樹的頂端——沿 children(世代 +1)、parent
+## (世代 -1)、mate(世代不變)三種邊做 BFS,把 focus 所在的整個連通「親族圖」全部走
+## 過一輪(父母、祖父母、配偶、子女、孫子女……只要沿血緣/婚姻邊連得到都算),BFS 完
+## 才把最上層那一代整體平移成世代 1(樹頂),focus 自己則落在它在整個親族圖裡實際的
+## 世代——可能不是世代 1。整理成 FamilyTreeUnit 陣列——配偶配對成同一個 Unit,並接好
+## parent_unit/child_units 供 Scenes/FamilyTree 畫連接線。
 ##
 ## 已知限制:若某個子孫的配偶本身也是樹內已出現的血親(表親聯姻),理論上會有兩條
 ## 血親線可以連到上一代——這裡只認 _find_parent_unit() 第一個找到的,不畫第二條線,
@@ -32,6 +31,17 @@ static func build(focus: Character) -> Array[FamilyTreeUnit]:
 				generation_by_character[child_character] = current_generation + 1
 				queue.push_back(child_character)
 
+		for parent_character in current.parent:
+			if not generation_by_character.has(parent_character):
+				generation_by_character[parent_character] = current_generation - 1
+				queue.push_back(parent_character)
+
+	## BFS 算出來的世代是「相對 focus(=0)」的值,可能是負數(祖先);往上追出來的
+	## 最上層那一代要變成世代 1(樹頂),所以整體減去最小值再 +1 平移。
+	var min_generation := 0
+	for character: Character in generation_by_character:
+		min_generation = mini(min_generation, int(generation_by_character[character]))
+
 	var unit_by_character: Dictionary = {}
 	var units: Array[FamilyTreeUnit] = []
 
@@ -41,7 +51,7 @@ static func build(focus: Character) -> Array[FamilyTreeUnit]:
 
 		var unit := FamilyTreeUnit.new()
 		unit.primary = character
-		unit.generation = int(generation_by_character[character]) + 1
+		unit.generation = int(generation_by_character[character]) - min_generation + 1
 		unit_by_character[character] = unit
 
 		var mate := character.mate

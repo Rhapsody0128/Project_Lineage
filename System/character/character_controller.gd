@@ -70,7 +70,7 @@ static func get_random_character(rank_type: int = -1, nation: int = -1) -> Chara
 ## 不影響「這個角色一開始就固定存在」這件事。
 const PROTAGONIST_NAME := "威廉"
 const PROTAGONIST_LAST_NAME := "華勒斯"
-const PROTAGONIST_AGE := 17
+const PROTAGONIST_AGE := 49
 const PROTAGONIST_GENDER := GameEnums.Gender.MALE
 const PROTAGONIST_WEAPON := GameEnums.WeaponType.SWORD
 

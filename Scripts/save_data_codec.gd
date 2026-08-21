@@ -30,6 +30,8 @@ static func encode_character(character: Character) -> Dictionary:
 			"name": character_trait.name,
 			"description": character_trait.description,
 			"polarity": character_trait.polarity,
+			"stat_multiplier": character_trait.stat_multiplier,
+			"is_aging": character_trait.is_aging,
 		})
 
 	var cells: Array = []
@@ -67,6 +69,7 @@ static func encode_character(character: Character) -> Dictionary:
 		"is_protagonist": character.is_protagonist,
 		"is_pregnant": character.is_pregnant,
 		"pregnancy_months": character.pregnancy_months,
+		"is_dead": character.is_dead,
 		"parent_ids": parent_ids,
 		"mate_id": character.mate.id if character.mate != null else "",
 		"children_ids": children_ids,
@@ -95,7 +98,10 @@ static func _encode_potential(potential: Potential) -> Dictionary:
 static func decode_character_base(data: Dictionary) -> Character:
 	var traits: Array[CharacterTrait] = []
 	for trait_data in data.get("traits", []):
-		traits.append(CharacterTrait.new(trait_data["name"], trait_data["description"], int(trait_data["polarity"])))
+		var character_trait := CharacterTrait.new(trait_data["name"], trait_data["description"], int(trait_data["polarity"]))
+		character_trait.stat_multiplier = float(trait_data.get("stat_multiplier", 1.0))
+		character_trait.is_aging = trait_data.get("is_aging", false)
+		traits.append(character_trait)
 
 	var p: Dictionary = data["potential"]
 	var potential := Potential.new(
@@ -130,6 +136,7 @@ static func decode_character_base(data: Dictionary) -> Character:
 	character.is_protagonist = data.get("is_protagonist", false)
 	character.is_pregnant = data.get("is_pregnant", false)
 	character.pregnancy_months = int(data.get("pregnancy_months", 0))
+	character.is_dead = data.get("is_dead", false)
 	return character
 
 

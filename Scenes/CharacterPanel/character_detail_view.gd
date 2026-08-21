@@ -138,7 +138,7 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 
 	portrait_texture.texture = _load_face_texture(character.face_path)
 	name_label.text = character.full_name
-	age_label.text = "%d" % character.age
+	age_label.text = "%d(已故)" % character.age if character.is_dead else "%d" % character.age
 	gender_label.text = GameEnums.gender_symbol(character.gender)
 	bloodline_rank_value_label.text = GameEnums.rank_label(character.noble_bloodline_rank)
 
@@ -697,7 +697,7 @@ func _build_family_member_row(member: Character) -> Control:
 	info_column.add_child(name_row["row"])
 
 	var age_row := _build_stat_row("年齡")
-	age_row["value_label"].text = "%d" % member.age
+	age_row["value_label"].text = "%d(已故)" % member.age if member.is_dead else "%d" % member.age
 	info_column.add_child(age_row["row"])
 
 	var gender_row := _build_stat_row("性別")

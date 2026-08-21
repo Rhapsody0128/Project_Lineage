@@ -37,7 +37,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 | 資料夾 | 內容 |
 |---|---|
-| `character/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600) |
+| `character/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600);`aging_rule.gd`/`character_death_controller.gd` 是老年/死亡規則,見下方「老年與死亡」 |
 | `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/DEXTERITY/INTELLIGENCE/MENTALITY) |
 | `skill/` | 技能池與效果,依主動/被動/LEADER 分類(`SkillLibrary` 的 `_active_skills()`/`_passive_skills()`/`_leader_skills()`,用 `SkillBuilder` 鏈式組裝);數值計算/戰鬥表現在 `SkillEffectLibrary`,一律呼叫 `System/battle/combat_resolver.gd` |
 | `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
@@ -102,21 +102,27 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
-入口只有一處:`CharacterDetailView`(`Scenes/CharacterPanel/character_detail_view.gd`)的
-「家族」分頁最上面「觀看祖譜」按鈕,對目前分頁顯示的角色開啟。走
-`SceneHandoffStore.queue("family_tree_focus", character)` 交接起點角色,再
+入口只有一處:`Scenes/CharacterRoster/character_roster.gd` 最上方「觀看祖譜」按鈕,對
+目前在角色列表選取的那一張卡片開啟(不是隊伍角色、也不是全部角色的清單)。走
+`SceneHandoffStore.queue(FamilyTree.FOCUS_MAILBOX_KEY, character)` 交接起點角色,再
 `NavigationStore.go_to("res://Scenes/FamilyTree/family_tree.tscn")` 切場景,`family_tree.gd`
 的 `_ready()` 用 `take()` 一次性讀出(不是 Dialogue 那種需要撐住 lambda 生命週期的用途)。
 
-`FamilyTreeBuilder.build(focus)`(`System/family_tree/family_tree_builder.gd`)裡 `focus`
-角色永遠是世代 1(樹的頂端),只沿 `children`/`mate` 兩種邊往下做世代 BFS(走 `children`
-邊世代 +1、走 `mate` 邊世代不變)——不追 `parent` 邊,祖譜線一律只往下長,不會往上長出
-`focus` 的祖先,才不會因為雙親兩側血緣記錄深淺不一(例如一邊是初始角色沒有記錄祖先、
-另一邊往上還有好幾代)讓樹在中途冒出斷頭的孤立節點,看起來像同時往上又往下分裂。走完
-`focus` 所在的整個連通「子孫圖」後,分組成 `FamilyTreeUnit`(一對夫妻或一個單身角色)。
-已知限制:若某個子孫的配偶本身也是樹內已出現的血親(表親聯姻),理論上會有兩條血親線
-可以連到上一代,`_find_parent_unit()` 只認第一個找到的,不畫第二條線,避免變成非樹狀的
-蜘蛛網(遊戲企劃設定總整理.md 二十三節已列為已知的未來問題,`family_tree` 這版不處理)。
+`FamilyTreeBuilder.build(focus)`(`System/family_tree/family_tree_builder.gd`)沿
+`children`(世代 +1)/`parent`(世代 -1)/`mate`(世代不變)三種邊做 BFS,把 `focus` 所在的
+整個連通「親族圖」全部走過一輪——父母、祖父母、配偶、子女、孫子女……只要沿血緣/婚姻邊
+連得到都會出現在樹上,不是只往下長。BFS 算出來的世代是相對 `focus`(=0)的值,可能是
+負數(祖先),走完後整體平移(減去最小值、+1)讓最上層那一代變成世代 1(樹頂)——`focus`
+不一定落在世代 1,要看它在整個親族圖裡的實際位置。走完後分組成 `FamilyTreeUnit`(一對
+夫妻或一個單身角色)。已知限制:若某個子孫的配偶本身也是樹內已出現的血親(表親聯姻),
+理論上會有兩條血親線可以連到上一代,`_find_parent_unit()` 只認第一個找到的,不畫第二條線,
+避免變成非樹狀的蜘蛛網(遊戲企劃設定總整理.md 二十三節已列為已知的未來問題,
+`family_tree` 這版不處理)。
+
+死亡角色(`Character.is_dead`,見「老年與死亡」)一樣會出現在樹上(死亡不影響
+`parent`/`mate`/`children` 參照),卡片不特別反灰,只在「年齡」那一列數值後綴
+「(已故)」(`FamilyTreeCanvas._build_person_column()`),跟 `CharacterDetailView`
+彈出面板的年齡欄呈現方式統一。
 
 `Scenes/FamilyTree/family_tree_canvas.gd` 的 `FamilyTreeCanvas` 拿到 `FamilyTreeUnit` 陣列後
 自己算版面座標(後序遞迴分配 x slot、`generation` 決定 y)手動 `position`/`size` 每張卡片、
@@ -188,6 +194,53 @@ frame 觸發,是每跨過一天才觸發一次,快轉一次跳好幾天一樣會
 地圖移動速度上(`HeaderBar` 不知道地圖移動這件事,只管世界時間本身),讓走路跟時間流逝
 維持同一套加速比例。`HeaderBar` 是全新節點(每次進場景都重新 `HeaderBar.new()`),
 `_ready()` 建立按鈕時直接讀 `WorldTimeStore.speed_level` 同步外觀,不需要呼叫端額外同步。
+
+## 老年與死亡(System/character + WorldTimeEventLibrary)
+
+`AgingRule`(`System/character/aging_rule.gd`,`RefCounted`)集中管理兩條隨年齡變化的門檻,
+全部是可調常數,方便之後調整/角色差異化(見檔案內註解):`BASE_AGING_LINE`(衰老線,預設
+50 歲)、`BASE_DEATH_LINE`(死亡線,預設 80 歲)、`CLINIC_LINE_BONUS_PER_LEVEL`(醫療所
+每升一級兩條線各自 +5,不是漸增)。實際門檻 `get_aging_line()`/`get_death_line()` = 基礎值
++ `BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC) * 5`——CLINIC 最高
+9 級時是 95 歲/125 歲,沒有刻意湊整數到 100/130,維持「每級 +5」這個規則本身最單純。死亡
+機率 `get_death_chance_percent()` 是加速型曲線(`DEATH_CHANCE_CURVE_EXPONENT`,預設
+2 次方):未達衰老線 0%,死亡線以上 100%,中間依比例的平方內插,前期低、接近死亡線才
+陡升。
+
+`WorldTimeEventLibrary._age_up()`(每年觸發,見「世界時間」)在幫每個角色 `age_up()` 之後
+呼叫 `_process_aging(character)`:年齡跨過衰老線第一次會掛上 `AgingRule.create_aging_trait()`
+建立的衰老特性(全素質固定打七折,見下段),之後每年只要還在衰老線以上就
+`AgingRule.roll_death()` 骰一次是否過世。玩家固定主角(`Character.is_protagonist`)**不**
+豁免——跟角色列表解雇功能特別擋掉主角/隊長是兩回事(解雇是怕玩家手滑卡死流程,老死是
+機率自動觸發)。衰老特性一旦掛上不會因為 CLINIC 之後升級、衰老線後退而被摘除,是刻意的
+簡化行為(不做「回春」),之後如果要改可以在 `_process_aging()` 加對稱的移除邏輯。
+
+衰老特性透過 `CharacterTrait.stat_multiplier`(預設 1.0,`is_aging` 旗標標記——不比對
+`name` 字串,比照 `Character.knows_guard_skill()` 用旗標而非顯示名稱字串比對的既有慣例)
+套用:`Character._get_real_potential()` 乘上全部特性 `stat_multiplier` 的連乘
+(`_trait_stat_multiplier()`),`strength`/`agility`/...等既有 getter 全部自動套用,不用
+另外修改 `CombatResolver`/`BaseProduction`。這個欄位是通用機制,之後其他特性要做類似的
+素質加成/減益效果可以直接重用,不必只綁死給衰老特性。
+
+角色死亡的唯一入口是 `CharacterDeathController.kill()`(`System/character/`):依序清掉
+`BaseDispatchStore` 的根據地派遣、`PartyStore.grid`/`PartyStore.party`(小隊編成/戰場站位,
+含隊長 fallback),確認清乾淨「需要角色實際在場」的地方後才把角色從
+`CharacterRosterStore`(可操控池)移除。跟解雇不同的是**不**從 `AllCharacterStore` 移除,
+只標記 `Character.is_dead = true`——祖譜(`FamilyTreeBuilder`)是沿 `AllCharacterStore`
+裡還存在的 Character 物件走 `children`/`parent`/`mate` 邊,拔掉物件會讓親族圖斷線;死亡
+角色仍會出現在祖譜裡與 `CharacterDetailView`(`CharacterPanel`/`CharacterRoster` 共用)的
+家族分頁,兩處都不反灰、不改姓名,統一只在「年齡」數值後面加「(已故)」(例如
+「64(已故)」),點擊一樣能開 `CharacterPanel` 查看完整資料。`is_dead` 的角色
+`Character.age_up()` 直接跳過,不再隨世界時間增齡。
+
+死亡把角色從 `PartyStore.party.characteres` 清掉之後,如果整隊死到淨空(玩家固定主角
+不豁免老死,見上方決策),`kill()` 直接 `NavigationStore.go_to("res://Scenes/GameOver/
+game_over.tscn")` 切去 GAME OVER 畫面——跟 `System/event/` 底下的 `LocationEvent` 一樣,
+RefCounted 規則物件本來就會在需要時直接驅動場景轉換,不是只有 Scenes 層按鈕處理常式才
+能切場景。`game_over.gd` 只有兩個出口:「讀取存檔」共用 `SaveSlotPicker.open_load_menu()`
+(跟 `HeaderBar`/`Scenes/Base/base.gd` 的讀檔入口同一份邏輯,讀檔成功會自動切去大地圖)、
+「回到主選單」`NavigationStore.go_to("res://Scenes/main.tscn")`。GAME OVER 畫面沒有
+`HeaderBar`,世界時間本來就不會在這裡繼續推進,不需要額外暫停。
 
 ## 事件與跨場景資料交接(LocationEvent + SceneHandoffStore)
 

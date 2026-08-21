@@ -22,12 +22,31 @@ static func register_all(controller: WorldTimeController) -> void:
 ## 都不在 roster 裡,年紀卻一樣要正常增長。角色剛好跨過 MIN_AGE 那一年順便從
 ## AllCharacterStore 補進 CharacterRosterStore,讓小孩成年後才能被操控/上場
 ## (has() 防呆:CharacterController.get_random_character() 生成的角色一律
-## >= MIN_AGE,PartyEdit 新增時已經同時進了兩邊,這裡不會重複加)。
+## >= MIN_AGE,PartyEdit 新增時已經同時進了兩邊,這裡不會重複加)。已死亡的角色
+## (Character.is_dead)直接跳過整段——不增齡、不重複判定衰老/死亡(見 CLAUDE.md
+## 「老年與死亡」)。
 static func _age_up() -> void:
 	for character in AllCharacterStore.all_characteres:
+		if character.is_dead:
+			continue
 		character.age_up()
 		if character.age == CharacterController.MIN_AGE and CharacterRosterStore.try_add(character):
 			NewsController.post("%s 成年了。" % character.full_name)
+		_process_aging(character)
+
+
+## 年紀跨過衰老線(AgingRule.get_aging_line(),受 CLINIC 等級影響)第一次掛上衰老特性
+## (全素質 -30%,見 AgingRule.create_aging_trait());之後每年只要還在衰老線以上,
+## 都依 AgingRule.get_death_chance_percent() 骰一次是否過世
+## (CharacterDeathController.kill() 負責清乾淨小隊/根據地派遣再移出角色列)。
+static func _process_aging(character: Character) -> void:
+	if not AgingRule.is_aged(character):
+		return
+	if not AgingRule.has_aging_trait(character):
+		character.traits.append(AgingRule.create_aging_trait())
+		NewsController.post("%s 已進入衰老期，各項素質開始衰退。" % character.full_name)
+	if AgingRule.roll_death(character):
+		CharacterDeathController.kill(character)
 
 
 

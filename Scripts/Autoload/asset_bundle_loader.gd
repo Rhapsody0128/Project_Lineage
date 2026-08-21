@@ -50,6 +50,11 @@ func _load_bundle_web(package_name: String) -> void:
 	print(LOG_PREFIX, " requesting ", package_name, " from ", remote_url)
 
 	var request : HTTPRequest = HTTPRequest.new()
+	# GitHub Pages(Fastly)回應會帶 gzip 壓縮,瀏覽器本身就會自動解壓縮——但 Godot
+	# 的 HTTPRequest 預設 accept_gzip=true 還會再對(已經解壓縮過的)body 嘗試解一次
+	# gzip,導致失敗回傳 RESULT_BODY_DECOMPRESS_FAILED(8)、body 變成 0 bytes。關掉讓
+	# 它直接吃瀏覽器給的原始 bytes。
+	request.accept_gzip = false
 	add_child(request)
 
 	var error : int = request.request(remote_url)

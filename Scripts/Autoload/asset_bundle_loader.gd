@@ -11,7 +11,11 @@ const BUNDLE_NAMES : PackedStringArray = [
 	"Base", "Castle", "MapCastle", "MapLandform", "MapTown", "Town",
 ]
 
+## 所有追蹤 log 都加這個前綴,方便在瀏覽器 Console 用關鍵字篩選排查。
+const LOG_PREFIX := "[AssetBundleLoader]"
+
 func _ready() -> void:
+	print(LOG_PREFIX, " _ready, editor=", OS.has_feature("editor"), " web=", OS.has_feature("web"))
 	if OS.has_feature("editor"):
 		return
 
@@ -39,12 +43,14 @@ func _load_bundle_native(package_name: String) -> void:
 ## 再掛載——這段路徑假設頁面部署時 subpackages/ 資料夾有跟著一起發佈。
 func _load_bundle_web(package_name: String) -> void:
 	var remote_url : String = _resolve_web_bundle_url(package_name)
+	print(LOG_PREFIX, " requesting ", package_name, " from ", remote_url)
 
 	var request : HTTPRequest = HTTPRequest.new()
 	add_child(request)
 
 	var error : int = request.request(remote_url)
 	if error != OK:
+		print(LOG_PREFIX, " request() rejected for ", remote_url, " error=", error)
 		push_warning("Failed to request asset bundle: %s" % remote_url)
 		request.queue_free()
 		return
@@ -55,6 +61,7 @@ func _load_bundle_web(package_name: String) -> void:
 	var result : int = response[0]
 	var response_code : int = response[1]
 	var body : PackedByteArray = response[3]
+	print(LOG_PREFIX, " response for ", package_name, " result=", result, " http_code=", response_code, " bytes=", body.size())
 	if result != HTTPRequest.RESULT_SUCCESS || response_code != 200:
 		push_warning("Failed to download asset bundle: %s" % remote_url)
 		return
@@ -62,12 +69,15 @@ func _load_bundle_web(package_name: String) -> void:
 	var local_path : String = "user://%s" % package_name
 	var file : FileAccess = FileAccess.open(local_path, FileAccess.WRITE)
 	if file == null:
+		print(LOG_PREFIX, " FileAccess.open failed for ", local_path, " error=", FileAccess.get_open_error())
 		push_warning("Failed to write asset bundle: %s" % local_path)
 		return
 	file.store_buffer(body)
 	file.close()
 
-	if !ProjectSettings.load_resource_pack(local_path):
+	var loaded : bool = ProjectSettings.load_resource_pack(local_path)
+	print(LOG_PREFIX, " load_resource_pack(", local_path, ") = ", loaded)
+	if !loaded:
 		push_warning("Failed to load asset bundle: %s" % local_path)
 
 ## HTTPRequest.request() 要求絕對 URL(必須是 http(s):// 開頭),傳純相對路徑
@@ -77,4 +87,5 @@ func _load_bundle_web(package_name: String) -> void:
 ## (例如 GitHub Pages 的子路徑)下都正確解析。
 func _resolve_web_bundle_url(package_name: String) -> String:
 	var page_url : String = String(JavaScriptBridge.eval("window.location.href", true))
+	print(LOG_PREFIX, " window.location.href = '", page_url, "'")
 	return page_url.get_base_dir().path_join("subpackages").path_join(package_name)

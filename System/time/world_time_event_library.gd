@@ -44,16 +44,19 @@ static func _process_aging(character: Character) -> void:
 		return
 	if not AgingRule.has_aging_trait(character):
 		character.traits.append(AgingRule.create_aging_trait())
-		NewsController.post("%s 已進入衰老期，各項素質開始衰退。" % character.full_name)
+		var aging_text := "%s 已進入衰老期，各項素質開始衰退。" % character.full_name
+		NewsController.post(aging_text)
+		MessageBar.show_message(aging_text)
 	if AgingRule.roll_death(character):
 		CharacterDeathController.kill(character)
 
 
 
-## 每月:符合資格(女性/已婚/未懷孕)的角色機率懷孕(目前 100%),寫入 NEWS。判定對象
-## 用 PregnancyRule.resolve_pregnancy_candidate() 從配偶雙方解出,不能只看 character 本人
-## ——配偶可能不在 CharacterRosterStore 裡(見該函式註解)。processed_ids 避免雙方剛好都
-## 在 roster 時,同一對配偶被兩個迴圈疊代各骰一次。
+## 每月:符合資格(女性/已婚/未懷孕)的角色依 PregnancyRule.get_pregnancy_chance_percent()
+## 機率骰懷孕——基準值 + 依子女數量指數衰減 + 父母任一方衰老直接歸零(見該函式註解),
+## 不是每個月必中。判定對象用 PregnancyRule.resolve_pregnancy_candidate() 從配偶雙方解出,
+## 不能只看 character 本人——配偶可能不在 CharacterRosterStore 裡(見該函式註解)。
+## processed_ids 避免雙方剛好都在 roster 時,同一對配偶被兩個迴圈疊代各骰一次。
 static func _roll_new_pregnancies() -> void:
 	var processed_ids: Dictionary = {}
 	for character in CharacterRosterStore.all_characteres:
@@ -61,9 +64,11 @@ static func _roll_new_pregnancies() -> void:
 		if wife == null or processed_ids.has(wife.id):
 			continue
 		processed_ids[wife.id] = true
-		if PregnancyRule.is_eligible(wife) and PregnancyRule.roll_pregnancy():
+		if PregnancyRule.is_eligible(wife) and PregnancyRule.roll_pregnancy(wife):
 			wife.start_pregnancy()
-			NewsController.post("%s 懷孕了。" % wife.full_name)
+			var pregnancy_text := "%s 懷孕了。" % wife.full_name
+			NewsController.post(pregnancy_text)
+			MessageBar.show_message(pregnancy_text)
 
 
 ## 每月:懷孕中的角色累積月數(見 Character.advance_pregnancy()),滿了就產下孩子。

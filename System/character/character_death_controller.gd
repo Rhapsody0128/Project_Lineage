@@ -34,4 +34,6 @@ static func kill(character: Character) -> void:
 
 	CharacterRosterStore.all_characteres.erase(character)
 
-	NewsController.post("%s 因年邁過世了。" % character.full_name)
+	var death_text := "%s 因年邁過世了。" % character.full_name
+	NewsController.post(death_text)
+	MessageBar.show_message(death_text)

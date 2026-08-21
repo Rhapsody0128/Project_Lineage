@@ -133,6 +133,9 @@ func _resolve_acceptance(picked: Character, stranger_character: Character) -> vo
 		# (見 WorldTimeEventLibrary._age_up()),但配偶依設計不進 CharacterRosterStore
 		# (不可操控/上場),所以只註冊進 AllCharacterStore。
 		AllCharacterStore.register(stranger_character)
+		var marriage_text := "%s 與 %s 結婚了。" % [picked.full_name, stranger_character.full_name]
+		NewsController.post(marriage_text)
+		MessageBar.show_message(marriage_text)
 		if picked == courted:
 			_goto_bartender_after(_build_accepted_reaction(picked, stranger_character))
 		else:

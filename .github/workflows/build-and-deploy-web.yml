@@ -38,7 +38,9 @@ jobs:
           find ../page-branch -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
 
       - name: Export Web build directly into page branch worktree
-        run: godot --headless --export-release "Web" "../page-branch/index.html"
+        run: |
+          godot --headless --export-release "Web" "../page-branch/Project L.html"
+          mv "../page-branch/Project L.html" "../page-branch/index.html"
 
       - name: Commit and push
         run: |

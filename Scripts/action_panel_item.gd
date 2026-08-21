@@ -12,19 +12,24 @@ extends RefCounted
 ## 為 true 時,on_selected 的回傳值(bool)決定要不要真的 disable——沒有回傳值(void)
 ## 視同成功,維持舊行為;明確回傳 false 代表這次動作沒有成功(例如
 ## CharacterRosterStore.try_add() 角色列已滿而失敗),按鈕維持可按,讓玩家補救
-## (騰出空位)後可以直接再按一次,不用整個面板關掉重開才能重試。
+## (騰出空位)後可以直接再按一次,不用整個面板關掉重開才能重試。initial_disabled 選填:
+## 這一列一開始就要是 disabled(例如 TownTavernEvent 重新開面板時,清單裡上次已經招募過
+## 的英雄不該又能按一次)——跟 disable_after_select 是兩件事,前者是「開面板當下就已經
+## 是這個狀態」,後者是「這次操作完才變成這個狀態」。
 var icon_path: String
 var title: String
 var subtitle: String
 var button_label: String
 var on_selected: Callable
 var disable_after_select: bool
+var initial_disabled: bool
 
 
-func _init(p_title: String, p_button_label: String, p_on_selected: Callable, p_icon_path: String = "", p_subtitle: String = "", p_disable_after_select: bool = false) -> void:
+func _init(p_title: String, p_button_label: String, p_on_selected: Callable, p_icon_path: String = "", p_subtitle: String = "", p_disable_after_select: bool = false, p_initial_disabled: bool = false) -> void:
 	title = p_title
 	button_label = p_button_label
 	on_selected = p_on_selected
 	icon_path = p_icon_path
 	subtitle = p_subtitle
 	disable_after_select = p_disable_after_select
+	initial_disabled = p_initial_disabled

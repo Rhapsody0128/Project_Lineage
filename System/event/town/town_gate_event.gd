@@ -9,13 +9,15 @@ extends LocationEvent
 
 const BACKGROUND_PATH := "res://Images/Dialogue/Town/town_gate.png"
 
-var guard: Character
-var _return_scene_path: String
 
+var _return_scene_path: String
+var guard_party
+var guard: Character
 
 func _init(p_return_scene_path: String = "") -> void:
 	_return_scene_path = p_return_scene_path
-	guard = CharacterController.get_random_character(GameEnums.RankType.B)
+	guard_party = PartyController.get_random_party(GameEnums.RankType.B)
+	guard = guard_party.leader
 
 
 ## 呼叫端(map_location.gd)按下「城門」按鈕時呼叫這裡啟動整段事件。return_scene_path
@@ -28,7 +30,6 @@ static func trigger(return_scene_path: String) -> void:
 
 func _start() -> void:
 	var self_party := PartyStore.party
-	var guard_party := PartyController.get_random_party(GameEnums.RankType.F)
 
 	# 這趟會先繞去 Dialogue 場景,不是直接切去 Battle,所以「回上一頁」不能靠
 	# NavigationStore.go_to() 在切場景當下自動抓 current_scene(那樣抓到的會是

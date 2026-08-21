@@ -164,6 +164,7 @@ func _build_row(item: ActionPanelItem) -> Control:
 	action_button.text = item.button_label
 	UiStyle.apply_wood_plaque_button(action_button, 16.0, 6.0)
 	action_button.add_theme_font_size_override("font_size", 16)
+	action_button.disabled = item.initial_disabled
 	action_button.pressed.connect(func() -> void:
 		var succeeded: Variant = true
 		if item.on_selected.is_valid():

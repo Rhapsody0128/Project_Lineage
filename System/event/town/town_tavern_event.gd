@@ -1,11 +1,11 @@
 class_name TownTavernEvent
 extends LocationEvent
 
-## 酒館事件,見 Scenes/MapLocation/map_location.gd「酒館」按鈕:進門後只有
-## ENCOUNTER_CHANCE_PERCENT(10%)機率遇到異鄉人(stranger)向玩家角色池裡符合資格
-## (見 MarriageRule.can_propose())的其中一位角色搭訕,直接進入告白流程的「被告白」
-## 情境(MarriageProposal 的 INCOMING 模式)。角色池裡沒有任何符合資格的角色時,只播
-## 一句佔位反應句,不進告白畫面。
+## 酒館事件,見 Scenes/MapLocation/map_location.gd「酒館」按鈕:進門後由 TavernStore
+## 決定這個月是不是有異鄉人(stranger)搭訕——是否搭訕/搭訕誰整個月只骰一次(見
+## TavernStore.should_show_encounter()),同一個月不管進出酒館幾次都是同一個結果,直到
+## 走完告白流程才會被標記 resolved、之後這個月不會再重複觸發。骰中但角色池裡沒有任何
+## 符合資格(見 MarriageRule.can_propose())的角色時,只播一句佔位反應句,不進告白畫面。
 ##
 ## 不管有沒有遇到搭訕(沒骰中/骰中但沒人符合資格/告白流程跑完任何一種結局),最後
 ## 都會接到酒館老闆(bartender,見 _goto_bartender_after())的招呼台詞,播完不用玩家
@@ -34,17 +34,13 @@ extends LocationEvent
 const MARRIAGE_PROPOSAL_SCENE_PATH := "res://Scenes/Marriage/marriage_proposal.tscn"
 const BACKGROUND_PATH := "res://Images/Dialogue/Town/town_tavern.png"
 
-## 進酒館遇到異鄉人搭訕的機率(百分比),沒骰中直接跳去酒館老闆招呼詞。
-const ENCOUNTER_CHANCE_PERCENT := 100
-
 const BARTENDER_ID := "tavern_bartender"
 const BARTENDER_NAME := "酒館老闆"
 const BARTENDER_GREETING := "你好,有甚麼需要的嗎?"
 
-## ActionPanel 一次列出幾位隨機英雄供招募,見 _open_recruit_panel()。
-const RECRUIT_HERO_COUNT := 10
 const RECRUIT_PANEL_TITLE := "酒館老闆介紹的旅人"
 const RECRUIT_BUTTON_LABEL := "招募"
+const RECRUITED_BUTTON_LABEL := "已招募"
 
 var stranger: Character
 var courted: Character
@@ -62,22 +58,18 @@ func _start(return_scene_path: String) -> void:
 	var bartender_gender = Util.get_random_from_array([GameEnums.Gender.MALE, GameEnums.Gender.FEMALE])
 	_bartender_face_path = FaceController.get_random_face_path(bartender_gender)
 
-	if Util.get_random_float(0.0, 100.0) >= ENCOUNTER_CHANCE_PERCENT:
+	if not TavernStore.should_show_encounter():
 		_goto_bartender_after(Dialogue.new([], [], BACKGROUND_PATH))
 		return
 
-	stranger = CharacterController.get_random_character(GameEnums.RankType.F)
+	stranger = TavernStore.encounter_stranger
+	courted = TavernStore.encounter_courted
 
-	var eligible: Array[Character] = []
-	for character in CharacterRosterStore.all_characteres:
-		if MarriageRule.can_propose(character, stranger):
-			eligible.append(character)
-
-	if eligible.is_empty():
+	if courted == null:
+		TavernStore.mark_encounter_resolved()
 		_goto_bartender_after(_build_no_one_available())
 		return
 
-	courted = Util.get_random_from_array(eligible)
 	var request := MarriageProposalRequest.new(courted, stranger, GameEnums.ProposalMode.INCOMING)
 	# 不能直接傳裸方法參照 _on_proposal_result——event 是 RefCounted,裸方法參照
 	# 底層只存 ObjectID,不會讓引用計數增加,_start() 一返回、trigger() 的區域變數
@@ -122,6 +114,7 @@ func _build_no_one_available() -> Dialogue:
 ## self_character(玩家在清單裡當下選的人)——選了別人只是玩家瀏覽/預覽,沒有
 ## 真的接受求婚,開口回絕的人選不會因為玩家點了誰而改變。
 func _on_proposal_result(accepted: bool, self_character: Character, target_character: Character) -> void:
+	TavernStore.mark_encounter_resolved()
 	if accepted:
 		_resolve_acceptance(self_character, target_character)
 	else:
@@ -211,22 +204,30 @@ func _goto_bartender_after(dialogue: Dialogue) -> void:
 	goto_dialogue(dialogue, "", func(): _open_recruit_panel())
 
 
-## 酒館老闆招呼詞播完自動呼叫:隨機生 RECRUIT_HERO_COUNT 位英雄,彈出 ActionPanel 列出
-## 來給玩家選。招募不關面板(_on_recruit_hero_selected() 只註冊角色,不呼叫
-## ActionPanel.close()),那一列的按鈕靠 ActionPanelItem.disable_after_select 自己變灰,
-## 玩家可以在同一次彈窗裡連續招募清單裡好幾位;按 × 才會呼叫 _return_to_map_location(),
-## 回到觸發這個事件時記下的地點選單場景——ActionPanel 本身不知道也不需要知道關閉之後
-## 該去哪,由這裡傳的 on_close callback 決定。
+## 酒館老闆招呼詞播完自動呼叫:彈出 ActionPanel 列出 TavernStore 目前這批候補英雄供
+## 玩家選。清單是整個遊戲共用的同一份(見 TavernStore),同一個月內不管進出酒館幾次都
+## 看到同一批人,只有跨月才會整批換新——不再每次開面板都重骰。招募不關面板
+## (_on_recruit_hero_selected() 只註冊角色,不呼叫 ActionPanel.close()),那一列的按鈕靠
+## ActionPanelItem.disable_after_select 自己變灰,玩家可以在同一次彈窗裡連續招募清單裡
+## 好幾位;按 × 才會呼叫 _return_to_map_location(),回到觸發這個事件時記下的地點選單
+## 場景——ActionPanel 本身不知道也不需要知道關閉之後該去哪,由這裡傳的 on_close
+## callback 決定。
 func _open_recruit_panel() -> void:
 	var items: Array[ActionPanelItem] = []
-	for i in range(RECRUIT_HERO_COUNT):
-		items.append(_build_recruit_item(CharacterController.get_random_character(GameEnums.RankType.F)))
+	for hero in TavernStore.get_recruits():
+		items.append(_build_recruit_item(hero))
 	ActionPanel.open(RECRUIT_PANEL_TITLE, items, func(): _return_to_map_location())
 
 
+## already_recruited:這位候補英雄是不是已經在玩家角色列裡——TavernStore 的清單同一個
+## 月內重複進出酒館都是同一批人,上次已經招募過的要開面板就顯示成 disabled 的「已招募」,
+## 不能讓玩家看起來還能再按一次(即使真的按了 try_add() 也只是無害地回傳 true,不會重複
+## 入隊,但 UI 不該讓玩家以為那是一個有效動作)。
 func _build_recruit_item(hero: Character) -> ActionPanelItem:
 	var subtitle := "%d 歲" % [hero.age]
-	return ActionPanelItem.new(hero.full_name, RECRUIT_BUTTON_LABEL, func() -> bool: return _on_recruit_hero_selected(hero), hero.face_path, subtitle, true)
+	var already_recruited := CharacterRosterStore.all_characteres.has(hero)
+	var label := RECRUITED_BUTTON_LABEL if already_recruited else RECRUIT_BUTTON_LABEL
+	return ActionPanelItem.new(hero.full_name, label, func() -> bool: return _on_recruit_hero_selected(hero), hero.face_path, subtitle, true, already_recruited)
 
 
 ## 招募改叫共用入口 CharacterRosterStore.try_add()(跟 PartyEdit「新增角色」、小孩

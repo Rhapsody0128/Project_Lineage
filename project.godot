@@ -42,6 +42,7 @@ BaseExchangeStore="*res://Scripts/Autoload/base_exchange_store.gd"
 TechStore="*res://Scripts/Autoload/tech_store.gd"
 BarracksTrainingStore="*res://Scripts/Autoload/barracks_training_store.gd"
 SaveLoadStore="*res://Scripts/Autoload/save_load_store.gd"
+TavernStore="*res://Scripts/Autoload/tavern_store.gd"
 
 [display]
 

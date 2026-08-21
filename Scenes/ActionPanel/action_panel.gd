@@ -36,6 +36,11 @@ const _SUBTITLE_COLOR := UiStyle.PARCHMENT_SUBTITLE_COLOR
 ## 地點選單)——比照 AskBattle.ask() 的 on_result 選填加碼寫法。
 var _on_close: Callable = Callable()
 
+## 標題列上除了 CloseButton 以外的額外按鈕(見 set_title_action_button()),目前只有
+## Scenes/Base/base_action_panel.gd 的建造/升級鈕會用到——open()/open_custom() 一律先
+## 清空,不會讓上一個呼叫端塞的按鈕殘留到下一次開的完全不同的清單/內容(例如酒館招募)。
+var _title_action_button: Button = null
+
 
 func _ready() -> void:
 	root.visible = false
@@ -52,6 +57,7 @@ func _ready() -> void:
 func open(title: String, items: Array[ActionPanelItem], on_close: Callable = Callable(), min_size: Vector2 = DEFAULT_MIN_SIZE) -> void:
 	_on_close = on_close
 	title_label.text = title
+	set_title_action_button(null)
 	panel_box.custom_minimum_size = min_size
 	_rebuild_items(items)
 	root.visible = true
@@ -66,12 +72,32 @@ func open(title: String, items: Array[ActionPanelItem], on_close: Callable = Cal
 func open_custom(title: String, content: Control, on_close: Callable = Callable(), min_size: Vector2 = DEFAULT_MIN_SIZE) -> void:
 	_on_close = on_close
 	title_label.text = title
+	set_title_action_button(null)
 	panel_box.custom_minimum_size = min_size
 	for child in items_list.get_children():
 		child.queue_free()
 	empty_label.visible = false
 	items_list.add_child(content)
 	root.visible = true
+
+
+## 標題列(TitleLabel 右邊、CloseButton 左邊)塞一顆額外按鈕,例如
+## Scenes/Base/base_action_panel.gd 的「建造」「升級」鈕——名稱/等級跟操作鈕同一行,
+## 不用在內容區塊多開一行重複顯示名稱。傳 null 清掉目前這顆(不論是不是同一顆),
+## open()/open_custom() 開新面板時也會呼叫一次,確保不會把上一個呼叫端塞的按鈕殘留到
+## 下一次開的完全不同的清單/內容。按鈕本身的樣式/disabled/tooltip/訊號一律由呼叫端
+## 決定,這裡只負責擺放位置。
+func set_title_action_button(button: Button) -> void:
+	if _title_action_button != null:
+		_title_action_button.get_parent().remove_child(_title_action_button)
+		_title_action_button.queue_free()
+		_title_action_button = null
+	if button == null:
+		return
+	_title_action_button = button
+	var top_bar := close_button.get_parent()
+	top_bar.add_child(button)
+	top_bar.move_child(button, close_button.get_index())
 
 
 ## trigger_callback 預設 true(維持原本行為:呼叫 open()/open_custom() 時傳入的

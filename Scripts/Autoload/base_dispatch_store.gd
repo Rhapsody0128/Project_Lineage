@@ -71,6 +71,14 @@ func is_character_dispatched(character_id: String) -> bool:
 	return false
 
 
+func to_save_data() -> Dictionary:
+	return SaveDataCodec.int_keyed_to_str(_assignments)
+
+
+func load_save_data(data: Dictionary) -> void:
+	_assignments = SaveDataCodec.str_keyed_to_int(data)
+
+
 func find_character(character_id: String) -> Character:
 	for character in AllCharacterStore.all_characteres:
 		if character.id == character_id:

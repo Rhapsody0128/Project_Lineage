@@ -53,3 +53,41 @@ func save_map_state(
 	entered_map_object_id = p_map_object_id
 	traveling_to_map_object_id = p_traveling_to_map_object_id
 	has_saved_state = true
+
+
+## 存檔用:玩家在地圖上的座標一併存進存檔,讀檔後才不會被丟回出生點(見
+## Scenes/Map/map.gd 的 _sync_session_state(),每幀都同步這裡,不用等離開地圖場景
+## 才存一次)。has_saved_state 還是 false(這次執行期玩家從沒進過地圖,或存檔當下
+## 是還沒編過隊的全新遊戲)時不存任何座標,讀檔後維持 map.gd _ready() 原本的預設出生點
+## 邏輯。
+func to_save_data() -> Dictionary:
+	if not has_saved_state:
+		return {}
+	return {
+		"player_position": [player_position.x, player_position.y],
+		"target_position": [target_position.x, target_position.y],
+		"is_moving": is_moving,
+		"camera_position": [camera_position.x, camera_position.y],
+		"camera_zoom": [camera_zoom.x, camera_zoom.y],
+		"entered_map_object_id": entered_map_object_id,
+		"traveling_to_map_object_id": traveling_to_map_object_id,
+	}
+
+
+func load_save_data(data: Dictionary) -> void:
+	if data.is_empty():
+		has_saved_state = false
+		return
+	var pp: Array = data["player_position"]
+	var tp: Array = data["target_position"]
+	var cp: Array = data["camera_position"]
+	var cz: Array = data["camera_zoom"]
+	save_map_state(
+		Vector2(pp[0], pp[1]),
+		Vector2(tp[0], tp[1]),
+		data.get("is_moving", false),
+		Vector2(cp[0], cp[1]),
+		Vector2(cz[0], cz[1]),
+		data.get("entered_map_object_id", ""),
+		data.get("traveling_to_map_object_id", "")
+	)

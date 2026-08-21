@@ -40,3 +40,27 @@ func register(character: Character) -> bool:
 		return false
 	all_characteres.append(character)
 	return true
+
+
+## 存檔用:整份角色池(含小孩/配偶)攤平成字典陣列,見 Scripts/save_data_codec.gd。
+func to_save_data() -> Array:
+	var result: Array = []
+	for character in all_characteres:
+		result.append(SaveDataCodec.encode_character(character))
+	return result
+
+
+## 讀檔用:兩階段還原(先建好全部角色本身,再逐一補上 parent/mate/children——關係
+## 另一端的角色要等全部角色都建好才能連,見 SaveDataCodec 開頭註解)。回傳
+## id → Character 對照表,供 CharacterRosterStore/PartyStore 等其他 store 接著讀檔用,
+## 不用各自重新掃描一次 all_characteres。
+func load_save_data(data: Array) -> Dictionary:
+	all_characteres.clear()
+	var by_id: Dictionary = {}
+	for entry in data:
+		var character := SaveDataCodec.decode_character_base(entry)
+		by_id[character.id] = character
+		all_characteres.append(character)
+	for entry in data:
+		SaveDataCodec.link_character_relations(by_id[entry["id"]], entry, by_id)
+	return by_id

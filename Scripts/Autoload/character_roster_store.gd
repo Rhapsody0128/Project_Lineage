@@ -38,3 +38,21 @@ func try_add(character: Character) -> bool:
 		return false
 	all_characteres.append(character)
 	return true
+
+
+## 存檔用:只存 id——完整角色資料已經在 AllCharacterStore 那份存過一次,這裡只需要
+## 記錄「這批 id 是玩家可操控子集合」。
+func to_save_data() -> Array:
+	var ids: Array = []
+	for character in all_characteres:
+		ids.append(character.id)
+	return ids
+
+
+## 讀檔用:by_id 是 AllCharacterStore.load_save_data() 回傳的 id → Character 對照表,
+## 必須先讀完 AllCharacterStore 才能呼叫這裡。
+func load_save_data(ids: Array, by_id: Dictionary) -> void:
+	all_characteres.clear()
+	for character_id in ids:
+		if by_id.has(character_id):
+			all_characteres.append(by_id[character_id])

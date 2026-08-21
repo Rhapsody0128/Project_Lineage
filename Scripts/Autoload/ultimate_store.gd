@@ -32,3 +32,21 @@ func consume(ultimate: Ultimate) -> void:
 ## 次數加值——沒有購買次數限制,用完隨時可以再買。
 func add_uses(ultimate: Ultimate, amount: int) -> void:
 	_uses_remaining[ultimate.id] = uses_remaining(ultimate) + amount
+
+
+## 存檔用:Ultimate.id 是執行期隨機 UUID(見 ultimate.gd _init()),重開遊戲會變,改用
+## 名稱當 key(奧義名稱在 UltimateLibrary 裡本來就唯一,見該檔案 get_by_name())。
+func to_save_data() -> Dictionary:
+	var result: Dictionary = {}
+	for ultimate in UltimateLibrary.build():
+		if _uses_remaining.has(ultimate.id):
+			result[ultimate.name] = _uses_remaining[ultimate.id]
+	return result
+
+
+func load_save_data(data: Dictionary) -> void:
+	_uses_remaining.clear()
+	for ultimate_name in data:
+		var ultimate := UltimateLibrary.get_by_name(ultimate_name)
+		if ultimate != null:
+			_uses_remaining[ultimate.id] = int(data[ultimate_name])

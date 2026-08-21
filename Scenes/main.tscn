@@ -27,9 +27,14 @@ size_flags_stretch_ratio = 1.65
 offset_transform_enabled = true
 text = "Start"
 
+[node name="LoadGame" type="Button" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Load"
+
 [node name="Quit" type="Button" parent="CenterContainer/VBoxContainer" unique_id=1528908134]
 layout_mode = 2
 text = "Quit"
 
 [connection signal="pressed" from="CenterContainer/VBoxContainer/Map" to="." method="_on_map_pressed"]
+[connection signal="pressed" from="CenterContainer/VBoxContainer/LoadGame" to="." method="_on_load_game_pressed"]
 [connection signal="pressed" from="CenterContainer/VBoxContainer/Quit" to="." method="_on_quit_pressed"]

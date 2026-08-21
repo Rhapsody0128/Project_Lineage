@@ -39,6 +39,8 @@ const _ID_PARTY := 1
 const _ID_CHARACTERS := 2
 const _ID_NEWS := 3
 const _ID_MAIN_MENU := 4
+const _ID_SAVE := 5
+const _ID_LOAD := 6
 
 ## 倍速按鈕的等級 → 顯示文字,4 是 DEMO 用的 100 倍速(見
 ## Scripts/Autoload/world_time_store.gd 的 set_speed_level())。▶️ 代表一般倍速、
@@ -161,6 +163,8 @@ func _ready() -> void:
 	popup.add_item("隊伍", _ID_PARTY)
 	popup.add_item("角色", _ID_CHARACTERS)
 	popup.add_item("消息", _ID_NEWS)
+	popup.add_item("存檔", _ID_SAVE)
+	popup.add_item("讀檔", _ID_LOAD)
 	popup.add_item("主選單", _ID_MAIN_MENU)
 	popup.id_pressed.connect(_on_menu_id_pressed)
 
@@ -500,5 +504,9 @@ func _on_menu_id_pressed(id: int) -> void:
 			NavigationStore.go_to("res://Scenes/CharacterRoster/character_roster.tscn")
 		_ID_NEWS:
 			NavigationStore.go_to("res://Scenes/News/news_list.tscn")
+		_ID_SAVE:
+			SaveSlotPicker.open_save_menu()
+		_ID_LOAD:
+			SaveSlotPicker.open_load_menu()
 		_ID_MAIN_MENU:
 			NavigationStore.go_to("res://Scenes/main.tscn")

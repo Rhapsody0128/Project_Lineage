@@ -7,17 +7,11 @@ extends RefCounted
 
 static func get_all() -> Array[WorkshopRecipe]:
 	return [
+		WorkshopRecipe.new("none", "不生產", {}, 0),
 		WorkshopRecipe.new("wood", "粗製木工", {GameEnums.ResourceType.WOOD: 3}, 1),
 		WorkshopRecipe.new("stone", "石雕工藝", {GameEnums.ResourceType.STONE: 3}, 1),
 		WorkshopRecipe.new("ore", "鍛造", {GameEnums.ResourceType.ORE: 2}, 1),
 		WorkshopRecipe.new("fur", "皮革工藝", {GameEnums.ResourceType.FUR: 2}, 1),
-		WorkshopRecipe.new("mixed", "精工複合", {
-			GameEnums.ResourceType.WOOD: 1,
-			GameEnums.ResourceType.STONE: 1,
-			GameEnums.ResourceType.ORE: 1,
-			GameEnums.ResourceType.FUR: 1,
-		}, 2),
-		WorkshopRecipe.new("none", "不生產", {}, 0),
 	]
 
 

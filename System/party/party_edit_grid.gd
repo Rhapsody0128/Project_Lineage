@@ -51,6 +51,19 @@ func clone() -> PartyEditGrid:
 	copy._leader = _leader
 	return copy
 
+## 存檔/讀檔用(見 Scripts/save_data_codec.gd):目前解鎖的格子清單,不含預設 4x4 以外
+## 由 unlock_random_locked_cell() 額外解鎖的格子也要一併存起來,重開遊戲不能被重置回
+## 預設解鎖範圍。
+func get_unlocked_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	cells.assign(_unlocked.keys())
+	return cells
+
+## 存檔/讀檔用:依存檔資料補上額外解鎖的格子(不會取消已經解鎖的預設 4x4,直接聯集)。
+func unlock_cells(cells: Array[Vector2i]) -> void:
+	for cell in cells:
+		_unlocked[cell] = true
+
 func is_in_bounds(cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.x < GRID_COLS and cell.y >= 0 and cell.y < GRID_ROWS
 

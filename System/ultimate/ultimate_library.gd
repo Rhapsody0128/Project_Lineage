@@ -35,6 +35,15 @@ static func build() -> Array[Ultimate]:
 	library.append_array(enemy_ultimates())
 	return library
 
+## 依名稱找奧義:Ultimate.id 是隨機 UUID、重開遊戲會變(見上方註解),存檔/讀檔
+## (Scripts/Autoload/save_load_store.gd)要還原 Party.ultimates/UltimateStore 剩餘次數
+## 只能靠名稱比對——奧義名稱本來就唯一,找不到回傳 null。
+static func get_by_name(ultimate_name: String) -> Ultimate:
+	for ultimate in build():
+		if ultimate.name == ultimate_name:
+			return ultimate
+	return null
+
 ## 天降甘霖:施放後下一回合開始時,resolve_line 才顯示(不是施放當下的預告),
 ## 同時全體友軍(含施法者本人)恢復生命上限的 40%。一場戰鬥只能放一次。
 static func _rain_of_blessing() -> Ultimate:

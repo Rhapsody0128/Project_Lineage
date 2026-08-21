@@ -20,3 +20,12 @@ func get_favor(nation_id: int) -> int:
 func add_favor(nation_id: int, amount: int) -> void:
 	favors[nation_id] = get_favor(nation_id) + amount
 	changed.emit()
+
+
+func to_save_data() -> Dictionary:
+	return SaveDataCodec.int_keyed_to_str(favors)
+
+
+func load_save_data(data: Dictionary) -> void:
+	favors = SaveDataCodec.str_keyed_to_int(data)
+	changed.emit()

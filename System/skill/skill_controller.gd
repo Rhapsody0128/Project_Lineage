@@ -9,6 +9,16 @@ static func get_skill_list() -> Array[Skill]:
 static func get_skill(skill_index: int) -> Skill:
 	return _skill_library[skill_index]
 
+## 依名稱找技能:Skill.id 是隨機 UUID、重開遊戲會變(見 skill.gd _init()),存檔/讀檔
+## (Scripts/Autoload/save_load_store.gd)要還原角色技能表只能靠名稱比對——技能名稱在
+## SkillLibrary 裡本來就唯一,找不到回傳 null(技能改名/移除時讀舊存檔會遺漏該技能,
+## 呼叫端自行過濾 null)。
+static func get_by_name(skill_name: String) -> Skill:
+	for skill in _skill_library:
+		if skill.name == skill_name:
+			return skill
+	return null
+
 static func get_skill_list_by_rank(skill_rank: GameEnums.RankType) -> Array[Skill]:
 	var result: Array[Skill] = []
 	for skill in _skill_library:

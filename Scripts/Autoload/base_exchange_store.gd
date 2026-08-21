@@ -82,6 +82,15 @@ func get_projected_monthly_delta() -> Dictionary:
 	return delta
 
 
+func to_save_data() -> Dictionary:
+	return SaveDataCodec.int_keyed_to_str(_orders)
+
+
+func load_save_data(data: Dictionary) -> void:
+	_orders = SaveDataCodec.str_keyed_to_int(data)
+	changed.emit()
+
+
 func _on_month_passed() -> void:
 	for building_type in _orders.keys():
 		if not BaseBuildingProgressStore.is_unlocked(building_type):

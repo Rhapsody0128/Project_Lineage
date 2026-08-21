@@ -70,3 +70,20 @@ func get_display_string() -> String:
 func set_speed_level(level: int) -> void:
 	speed_level = clampi(level, 1, 4)
 	play_speed_multiplier = SPEED_MULTIPLIERS[speed_level]
+
+
+## 存檔/讀檔用:只換掉 controller.world_time(時鐘本身)跟 is_playing/speed_level,
+## 不能整個重 new 一顆 WorldTimeController——那樣會連帶弄丟 _ready() 時各 store 已經
+## 註冊好的 day/month/year 事件(見 CLAUDE.md「世界時間」的 RefCounted 生命週期陷阱)。
+func to_save_data() -> Dictionary:
+	return {
+		"day_accumulator": controller.world_time.get_day_accumulator(),
+		"is_playing": controller.is_playing,
+		"speed_level": speed_level,
+	}
+
+
+func load_save_data(data: Dictionary) -> void:
+	controller.world_time = WorldTime.new(1.0, float(data.get("day_accumulator", 0.0)))
+	controller.is_playing = data.get("is_playing", false)
+	set_speed_level(int(data.get("speed_level", 1)))

@@ -17,3 +17,18 @@ var party: Party = null
 
 func save_party(p_party: Party) -> void:
 	party = p_party
+
+
+## 存檔用:party/grid 兩份一起打包,見 Scripts/save_data_codec.gd(grid 的站位其實跟
+## party.battle_cost_positions 是同一份資料,不重複存)。
+func to_save_data() -> Dictionary:
+	return {
+		"party": SaveDataCodec.encode_party(party),
+		"grid": SaveDataCodec.encode_party_grid(grid),
+	}
+
+
+## 讀檔用:by_id 是 AllCharacterStore.load_save_data() 回傳的 id → Character 對照表。
+func load_save_data(data: Dictionary, by_id: Dictionary) -> void:
+	party = SaveDataCodec.decode_party(data.get("party", {}), by_id)
+	grid = SaveDataCodec.decode_party_grid(data.get("grid", {}), party, by_id)

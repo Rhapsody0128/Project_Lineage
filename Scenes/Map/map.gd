@@ -167,6 +167,11 @@ func _create_dash_texture() -> ImageTexture:
 
 
 func _process(delta: float) -> void:
+	# 每幀都同步一次目前座標/移動目標/相機進 MapSessionStore(見 _sync_session_state()
+	# 註解)——不只是離開場景時才存一次,HeaderBar「存檔」在地圖上任何時刻按下都要能
+	# 抓到當下最新位置,不能只靠 _exit_tree() 那一次性的收尾。
+	_sync_session_state()
+
 	# 世界時間的實際推進由 HeaderBar._process() 負責(見 Scripts/UI/header_bar.gd),
 	# 這裡只管地圖移動。角色移動額外判斷 is_playing,跟世界時間共用同一個開關,兩者
 	# 一起凍結/一起跑。倍速(WorldTimeStore.play_speed_multiplier,由 1/2/3/4 鍵或
@@ -312,6 +317,15 @@ func _update_hover_cursor() -> void:
 ## Scripts/Autoload/map_session_store.gd)。世界時間/是否播放中不需要存——那是
 ## WorldTimeStore autoload 的狀態,離開/返回地圖不會重置它。
 func _exit_tree() -> void:
+	_sync_session_state()
+	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+
+
+## 跟 _exit_tree() 共用同一段狀態同步邏輯,額外由 _process() 每幀呼叫一次(見上方
+## 說明)——存檔(Scripts/Autoload/save_load_store.gd)直接把 MapSessionStore 目前的
+## 內容原封不動寫進存檔,不會另外去戳目前場景是不是地圖,靠這裡讓 MapSessionStore
+## 本身隨時保持最新,存檔端不用關心呼叫時機。
+func _sync_session_state() -> void:
 	var entered_id := _current_map_object.id if _current_map_object != null else ""
 	var traveling_id := _traveling_to.id if _traveling_to != null else ""
 	MapSessionStore.save_map_state(
@@ -323,7 +337,6 @@ func _exit_tree() -> void:
 		entered_id,
 		traveling_id
 	)
-	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
 
 
 func _update_player_visual(move_delta: Vector2, moving: bool) -> void:

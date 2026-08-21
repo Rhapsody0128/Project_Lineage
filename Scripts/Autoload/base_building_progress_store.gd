@@ -140,6 +140,21 @@ func start_upgrade(building: Building) -> bool:
 	return true
 
 
+func to_save_data() -> Dictionary:
+	return {
+		"levels": SaveDataCodec.int_keyed_to_str(_levels),
+		"construction": SaveDataCodec.int_keyed_to_str(_construction),
+		"upgrades": SaveDataCodec.int_keyed_to_str(_upgrades),
+	}
+
+
+func load_save_data(data: Dictionary) -> void:
+	_levels = SaveDataCodec.str_keyed_to_int(data.get("levels", {}))
+	_construction = SaveDataCodec.str_keyed_to_int(data.get("construction", {}))
+	_upgrades = SaveDataCodec.str_keyed_to_int(data.get("upgrades", {}))
+	changed.emit()
+
+
 func _on_day_passed() -> void:
 	for building_type in _construction.keys():
 		_construction[building_type] -= 1

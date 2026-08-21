@@ -23,6 +23,14 @@ offset_right = 1576.0
 offset_bottom = 876.0
 text = "離開"
 
+[node name="LoadButton" type="Button" parent="UI"]
+offset_left = 1436.0
+offset_top = 748.0
+offset_right = 1576.0
+offset_bottom = 808.0
+text = "讀取存檔"
+
 [node name="Sprite2D" type="Sprite2D" parent="." unique_id=1241627064]
 
 [connection signal="pressed" from="UI/LeaveButton" to="." method="_on_leave_button_pressed"]
+[connection signal="pressed" from="UI/LoadButton" to="." method="_on_load_button_pressed"]

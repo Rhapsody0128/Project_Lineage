@@ -48,3 +48,12 @@ func spend(costs: Dictionary) -> void:
 	for resource_type in costs:
 		amounts[resource_type] = get_amount(resource_type) - costs[resource_type]
 	changed.emit()
+
+
+func to_save_data() -> Dictionary:
+	return SaveDataCodec.int_keyed_to_str(amounts)
+
+
+func load_save_data(data: Dictionary) -> void:
+	amounts = SaveDataCodec.str_keyed_to_int(data)
+	changed.emit()

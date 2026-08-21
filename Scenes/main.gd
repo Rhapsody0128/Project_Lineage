@@ -1,11 +1,13 @@
 extends Control
 
 @onready var _map_button: Button = $CenterContainer/VBoxContainer/Map
+@onready var _load_game_button: Button = $CenterContainer/VBoxContainer/LoadGame
 @onready var _quit_button: Button = $CenterContainer/VBoxContainer/Quit
 
 func _ready() -> void:
 	_ensure_starting_party()
 	UiStyle.apply_wood_plaque_button(_map_button)
+	UiStyle.apply_wood_plaque_button(_load_game_button)
 	UiStyle.apply_wood_plaque_button(_quit_button)
 
 
@@ -42,6 +44,10 @@ func _on_map_pressed() -> void:
 	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)
+
+
+func _on_load_game_pressed() -> void:
+	SaveSlotPicker.open_load_menu()
 
 
 func _on_quit_pressed() -> void:

@@ -30,3 +30,19 @@ func unlock(tech: Tech) -> bool:
 	_unlocked_ids[tech.id] = true
 	changed.emit()
 	return true
+
+
+## Tech.id 是寫死的固定字串(見 tech_library.gd),不像 Skill/Ultimate 那樣是隨機 UUID,
+## 可以直接存/讀。
+func to_save_data() -> Array:
+	var ids: Array = []
+	for tech_id in _unlocked_ids:
+		ids.append(tech_id)
+	return ids
+
+
+func load_save_data(data: Array) -> void:
+	_unlocked_ids.clear()
+	for tech_id in data:
+		_unlocked_ids[tech_id] = true
+	changed.emit()

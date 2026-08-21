@@ -53,6 +53,27 @@ func start_training(character: Character, skill: Skill) -> bool:
 	return true
 
 
+## Skill.id 是執行期隨機 UUID(見 skill.gd _init()),重開遊戲會變,改用名稱當還原依據
+## (技能名稱在 SkillLibrary 裡本來就唯一,見 skill_controller.gd get_by_name())。
+func to_save_data() -> Dictionary:
+	var result: Dictionary = {}
+	for character_id in _training:
+		var entry: Dictionary = _training[character_id]
+		var skill: Skill = entry["skill"]
+		result[character_id] = {"skill_name": skill.name, "days_remaining": entry["days_remaining"]}
+	return result
+
+
+func load_save_data(data: Dictionary) -> void:
+	_training.clear()
+	for character_id in data:
+		var entry: Dictionary = data[character_id]
+		var skill := SkillController.get_by_name(entry.get("skill_name", ""))
+		if skill != null:
+			_training[character_id] = {"skill": skill, "days_remaining": int(entry.get("days_remaining", 0))}
+	changed.emit()
+
+
 func _on_day_passed() -> void:
 	for character_id in _training.keys():
 		var entry: Dictionary = _training[character_id]

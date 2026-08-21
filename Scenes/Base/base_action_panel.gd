@@ -9,17 +9,24 @@ extends VBoxContainer
 ## 依 BaseBuildingProgressStore 的狀態分支顯示:0 級未建造顯示「建造」按鈕;建造中顯示
 ## 倒數天數;已建成顯示等級/升級(升級中不影響下面的產出/派遣顯示,建築正常運作);
 ## 生產類建築額外顯示目前月產量與工作角色頭像格(容量=等級,點空格開角色清單指派、
-## 點已填格子直接召回);非生產類建築維持「尚未實作」。角色清單顯示全部未禁用角色,
+## 點已填格子直接召回)。角色清單顯示全部未禁用角色,
 ## 已在此工作/在別處工作的人反灰純顯示,整卡點擊指派只對可選的人生效,卡片上的頭像
 ## 另外接一個獨立點擊區開 CharacterPanel(靠子節點 MOUSE_FILTER_STOP 先吃掉事件擋掉
 ## 冒泡,同 Scenes/Battle/battle_party_roster.gd 頭像框的寫法)。角色清單排成
 ## PICKER_GRID_COLUMNS 欄的卡片網格,見 _build_character_picker()/_build_character_row()。
 ##
-## 建造/升級按鈕一律套 _style_button()(木牌樣式,同 action_panel.gd 清單列的
-## action_button,SIZE_SHRINK_BEGIN 避免被 VBoxContainer 橫向撐滿),文字只寫
-## 「建造」/「升級」,耗材/天數/現有存量合併成按鈕外面獨立一行的 _add_cost_row()
-## (現有跟需要寫在一起,不足標紅),不用切去倉庫頁籤心算庫存夠不夠。名稱後面直接附
-## 等級(_build_title_text(),例如「住宅區 (F)」),不再多開一行「等級：F」。
+## 「建造」「升級」鈕不放在這塊內容區塊裡,而是塞進 ActionPanel 自己的標題列
+## (ActionPanel.set_title_action_button(),TitleLabel 右邊、CloseButton 左邊),
+## 跟名稱/等級同一行,例如「大本營 (F) [升級]」——不用在內容裡重複一次名稱,只要一行。
+## title_label.text 也是每次 _rebuild_body() 直接改寫(_build_title_text()),不再另起
+## 一行寫「升級至 X 級」。耗材/天數/現有存量不常駐顯示,改成滑鼠移到按鈕上的
+## tooltip_text(_build_cost_tooltip(),見 _build_build_button()/_build_upgrade_button());
+## 資材不足或城鎮中心等級(effective_max_level)不足都讓按鈕直接 disabled,不用點下去
+## 才跳錯誤訊息;建造中/升級中一樣讓按鈕 disabled,tooltip 改顯示倒數天數
+## (_build_status_button()),不再另外常駐一行「建造中,X 天後完工」文字——只有已達
+## 最高等級這個永久不會再變的狀態不放按鈕(回傳 null),用文字說明。按鈕一律套
+## _style_button()(木牌樣式,同 action_panel.gd 清單列的 action_button,
+## SIZE_SHRINK_BEGIN 避免被 VBoxContainer 橫向撐滿)。
 
 const AVATAR_SLOT_SIZE := Vector2(64, 64)
 const PICKER_FACE_SIZE := Vector2(128, 128)
@@ -56,8 +63,8 @@ func _init(p_building: Building) -> void:
 	_building = p_building
 
 
-## 名稱後面直接附等級,例如「住宅區 (F)」,不用另外多一行「等級：F」——0 級未建造/
-## 建造中還沒有等級可顯示,只留名稱。
+## 名稱後面直接附等級,例如「住宅區 (F)」——0 級未建造/建造中還沒有等級可顯示,只留
+## 名稱。
 func _build_title_text() -> String:
 	if not BaseBuildingProgressStore.is_unlocked(_building.type):
 		return _building.name
@@ -73,18 +80,27 @@ func _rebuild_body() -> void:
 	for child in get_children():
 		child.queue_free()
 
-	_add_label(_build_title_text())
+	## 名稱/等級跟「建造」「升級」鈕擺在 ActionPanel 標題列同一行(ActionPanel.
+	## set_title_action_button()),不在內容區塊裡另外重複一次名稱——ActionPanel 是
+	## autoload 單例,這裡直接改寫它目前顯示中的標題列,跟 open_custom() 開面板時傳入
+	## 初始標題屬於同一顆 title_label,每次 _rebuild_body() 都會覆寫成最新的名稱/等級。
+	ActionPanel.title_label.text = _build_title_text()
+	ActionPanel.set_title_action_button(_build_construction_button())
 	_add_label(_building.description)
 
-	if BaseBuildingProgressStore.is_constructing(_building.type):
-		_add_label("建造中,%d 天後完工" % BaseBuildingProgressStore.get_construction_days_remaining(_building.type))
-		return
+	if _build_error:
+		_add_label("資材不足")
+		_build_error = false
+	if _upgrade_error:
+		_add_label("資材不足")
+		_upgrade_error = false
 
 	if not BaseBuildingProgressStore.is_unlocked(_building.type):
-		_build_build_section()
 		return
 
-	_build_level_section()
+	var level := BaseBuildingProgressStore.get_level(_building.type)
+	if level >= _building.max_level():
+		_add_label("已達最高等級")
 
 	if _building.type == GameEnums.BuildingType.BARRACKS:
 		_build_barracks_section()
@@ -99,7 +115,6 @@ func _rebuild_body() -> void:
 		return
 
 	if not _building.is_production_building():
-		_add_label("尚未實作")
 		return
 
 	if _picking_character:
@@ -120,51 +135,96 @@ func _rebuild_body() -> void:
 			_build_tech_section()
 
 
-func _build_build_section() -> void:
-	if BaseBuildingProgressStore.effective_max_level(_building) < 1:
-		_add_label("市鎮中心等級不足")
-		return
+## 已達最高等級是唯一「現在按了也沒用」又不放按鈕的狀態(下面另有文字說明,見
+## _rebuild_body())。其餘狀態一律回傳一顆按鈕——資材不足/城鎮中心等級不足/建造中/
+## 升級中都不是不顯示按鈕,是讓按鈕 disabled,滑鼠移上去看 tooltip 就知道現在是什麼
+## 狀況(進度倒數天數或差在哪),不用另外常駐一行文字。
+func _build_construction_button() -> Button:
+	if BaseBuildingProgressStore.is_constructing(_building.type):
+		return _build_status_button("建造", "建造中,%d 天後完工" % BaseBuildingProgressStore.get_construction_days_remaining(_building.type))
+	if not BaseBuildingProgressStore.is_unlocked(_building.type):
+		return _build_build_button()
+	if BaseBuildingProgressStore.is_upgrading(_building.type):
+		return _build_status_button("升級", "升級中,%d 天後完成" % BaseBuildingProgressStore.get_upgrade_days_remaining(_building.type))
+	if BaseBuildingProgressStore.get_level(_building.type) >= _building.max_level():
+		return null
+	return _build_upgrade_button()
 
-	_add_cost_row(_building.build_cost, _building.build_days)
 
+## 建造中/升級中專用:按鈕本身 disabled,純粹用 tooltip 顯示進度,不能點。
+func _build_status_button(text: String, tooltip: String) -> Button:
+	var button := Button.new()
+	button.text = text
+	_style_button(button)
+	button.disabled = true
+	button.tooltip_text = tooltip
+	return button
+
+
+func _build_build_button() -> Button:
 	var button := Button.new()
 	button.text = "建造"
 	_style_button(button)
+
+	var level_ok := BaseBuildingProgressStore.effective_max_level(_building) >= 1
+	var affordable := BaseResourceStore.can_afford(_building.build_cost)
+	button.disabled = not level_ok or not affordable
+
+	var tooltip := _build_cost_tooltip(_building.build_cost, _building.build_days)
+	if not level_ok:
+		tooltip += "\n市鎮中心等級不足"
+	elif not affordable:
+		tooltip += "\n資材不足"
+	button.tooltip_text = tooltip
+
 	button.pressed.connect(func() -> void:
 		_build_error = not BaseBuildingProgressStore.start_construction(_building)
 		_rebuild_body()
 	)
-	add_child(button)
-	if _build_error:
-		_add_label("資材不足")
-		_build_error = false
+	return button
 
 
-func _build_level_section() -> void:
+## 直接讀 Building.upgrade_costs/upgrade_days(不透過 can_upgrade()/get_upgrade_cost()),
+## 因為城鎮中心等級不足時 can_upgrade() 會回傳 false、get_upgrade_cost() 只給空字典——
+## 這裡即使升級被城鎮中心等級擋住,也要能算出耗材/天數放進 tooltip 說明「差在哪」,
+## 不是直接不顯示按鈕(呼叫端 _build_construction_button() 已保證這裡 level < max_level(),
+## upgrade_costs[level - 1] 一定是合法索引)。
+func _build_upgrade_button() -> Button:
+	var button := Button.new()
+	button.text = "升級"
+	_style_button(button)
+
 	var level := BaseBuildingProgressStore.get_level(_building.type)
+	var cost: Dictionary = _building.upgrade_costs[level - 1]
+	var days: int = _building.upgrade_days[level - 1]
+	var level_ok := level < BaseBuildingProgressStore.effective_max_level(_building)
+	var affordable := BaseResourceStore.can_afford(cost)
+	button.disabled = not level_ok or not affordable
 
-	if BaseBuildingProgressStore.is_upgrading(_building.type):
-		_add_label("升級中,%d 天後完成" % BaseBuildingProgressStore.get_upgrade_days_remaining(_building.type))
-	elif BaseBuildingProgressStore.can_upgrade(_building):
-		var cost := BaseBuildingProgressStore.get_upgrade_cost(_building)
-		var days := BaseBuildingProgressStore.get_upgrade_days(_building)
-		_add_label("升級至 %s 級" % GameEnums.rank_label(level))
-		_add_cost_row(cost, days)
-		var upgrade_button := Button.new()
-		upgrade_button.text = "升級"
-		_style_button(upgrade_button)
-		upgrade_button.pressed.connect(func() -> void:
-			_upgrade_error = not BaseBuildingProgressStore.start_upgrade(_building)
-			_rebuild_body()
-		)
-		add_child(upgrade_button)
-		if _upgrade_error:
-			_add_label("資材不足")
-			_upgrade_error = false
-	elif level >= _building.max_level():
-		_add_label("已達最高等級")
-	else:
-		_add_label("市鎮中心等級不足")
+	var tooltip := _build_cost_tooltip(cost, days)
+	if not level_ok:
+		tooltip += "\n市鎮中心等級不足"
+	elif not affordable:
+		tooltip += "\n資材不足"
+	button.tooltip_text = tooltip
+
+	button.pressed.connect(func() -> void:
+		_upgrade_error = not BaseBuildingProgressStore.start_upgrade(_building)
+		_rebuild_body()
+	)
+	return button
+
+
+## 每種資源一行「圖示 現有X / 需要Y」,最後附一行天數,給 _build_build_button()/
+## _build_upgrade_button() 的 tooltip_text 用。
+func _build_cost_tooltip(cost: Dictionary, days: int) -> String:
+	var lines: Array[String] = []
+	for resource_type in cost:
+		var owned := BaseResourceStore.get_amount(resource_type)
+		var required: int = cost[resource_type]
+		lines.append("%s 現有%d / 需要%d" % [GameEnums.resource_type_label(resource_type), owned, required])
+	lines.append("天數：%d 天" % days)
+	return "\n".join(lines)
 
 
 ## 倉庫:列出全部 12 種資源目前的儲存上限(依 System/base/base_warehouse.gd 的
@@ -546,7 +606,7 @@ func _build_skill_row(skill: Skill) -> Control:
 ## 讓玩家換配方前先看得到會不會白忙一場。沒派工作角色時是另一回事(沒人做事,不是原料
 ## 不足),分開判斷、分開顯示,見 _build_recipe_row() 的 has_workers。
 func _build_recipe_section() -> void:
-	_add_label("配方（資源不足時整個月不生產,不會部分執行）：")
+	_add_label("配方（資源不足時整個月不生產）：")
 	var selected_id := WorkshopRecipeStore.get_selected().id
 	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
 	var level := BaseBuildingProgressStore.get_level(_building.type)
@@ -833,36 +893,6 @@ func _format_cost(cost: Dictionary) -> String:
 	for resource_type in cost:
 		parts.append("%s x%d" % [GameEnums.resource_type_label(resource_type), cost[resource_type]])
 	return "、".join(parts)
-
-
-## 建造/升級的耗材/天數整合成單獨一行:「耗材：」後面每種資源直接是「圖示 現有X 需要Y」,
-## 現有跟需要寫在一起,不用另外多一行心算庫存夠不夠——不足的資源標紅,一眼看出卡在哪一項。
-func _add_cost_row(cost: Dictionary, days: int) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-
-	var prefix := Label.new()
-	prefix.text = "耗材："
-	prefix.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	row.add_child(prefix)
-
-	for resource_type in cost:
-		var owned := BaseResourceStore.get_amount(resource_type)
-		var required: int = cost[resource_type]
-		var label := Label.new()
-		label.text = "%s 現有%d 需要%d" % [GameEnums.resource_type_label(resource_type), owned, required]
-		label.add_theme_color_override(
-			"font_color",
-			UiStyle.PARCHMENT_TEXT_COLOR if owned >= required else Color(0.75, 0.15, 0.15, 1)
-		)
-		row.add_child(label)
-
-	var days_label := Label.new()
-	days_label.text = "｜天數：%d 天" % days
-	days_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	row.add_child(days_label)
-
-	add_child(row)
 
 
 ## 「按鈕都用 ACTION PANEL WOOD PANEL」——比照 Scenes/ActionPanel/action_panel.gd 清單列

@@ -29,20 +29,19 @@ jobs:
           use-dotnet: false
           include-templates: true
 
-      - name: Export Web build
-        run: godot --headless --export-release "Web"
-
-      - name: Deploy to page branch
+      - name: Prepare page branch worktree
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin page
           git worktree add ../page-branch origin/page
-
           find ../page-branch -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-          cp -r Page/. ../page-branch/
-          mv "../page-branch/Project L.html" "../page-branch/index.html"
 
+      - name: Export Web build directly into page branch worktree
+        run: godot --headless --export-release "Web" "../page-branch/index.html"
+
+      - name: Commit and push
+        run: |
           cd ../page-branch
           git add -A
           if git diff --cached --quiet; then

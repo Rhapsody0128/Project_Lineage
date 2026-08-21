@@ -176,7 +176,6 @@ const WOOD_BUTTON_NORMAL_TEXTURE := preload("res://Images/UI/button/wood_button_
 const WOOD_BUTTON_HOVER_TEXTURE := preload("res://Images/UI/button/wood_button_hover.png")
 const WOOD_BUTTON_PRESSED_TEXTURE := preload("res://Images/UI/button/wood_button_pressed.png")
 const WOOD_BUTTON_DISABLED_TEXTURE := preload("res://Images/UI/button/wood_button_disabled.png")
-const WOOD_BUTTON_FONT := preload("res://Fonts/NotoSerifTC-Bold.ttf")
 
 ## 木牌鐵框按鈕樣式(見 main.tscn 的 Start/Quit),共用同一組 PNG 素材與雕刻字體配色,
 ## 呼叫端(場景腳本)在 `_ready()` 對每顆 Button 呼叫一次即可,不用在 .tscn 裡把
@@ -192,7 +191,6 @@ static func apply_wood_plaque_button(
 	button.add_theme_stylebox_override("focus", _wood_button_stylebox(WOOD_BUTTON_HOVER_TEXTURE, content_margin_h, content_margin_v))
 	button.add_theme_stylebox_override("disabled", _wood_button_stylebox(WOOD_BUTTON_DISABLED_TEXTURE, content_margin_h, content_margin_v))
 
-	button.add_theme_font_override("font", WOOD_BUTTON_FONT)
 	button.add_theme_color_override("font_color", Color(0.88, 0.82, 0.68, 1))
 	button.add_theme_color_override("font_hover_color", Color(1, 0.92, 0.68, 1))
 	button.add_theme_color_override("font_pressed_color", Color(0.72, 0.65, 0.52, 1))

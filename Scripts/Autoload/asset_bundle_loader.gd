@@ -22,7 +22,11 @@ func _ready() -> void:
 	for bundle_name in BUNDLE_NAMES:
 		var package_name : String = "%s.pck" % bundle_name
 		if OS.has_feature("web"):
-			await _load_bundle_web(package_name)
+			# 不 await——讓六個 bundle 同時平行下載,而不是一個接一個排隊。序列下載時,
+			# 排在後面的 bundle(例如 MapTown)要等前面所有 bundle 都下載完才會開始,
+			# 玩家若在那之前就走到對應場景,圖片會因為 pck 還沒掛載而讀不到(res://
+			# 路徑對 ResourceLoader 來說是「No loader found」,不是單純的 404)。
+			_load_bundle_web(package_name)
 		else:
 			_load_bundle_native(package_name)
 

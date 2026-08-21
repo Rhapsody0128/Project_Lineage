@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Project L"
-run/main_scene="res://Scenes/Boot/boot.tscn"
+run/main_scene="uid://bksb6osavtmgu"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
@@ -42,7 +42,6 @@ TechStore="*res://Scripts/Autoload/tech_store.gd"
 BarracksTrainingStore="*res://Scripts/Autoload/barracks_training_store.gd"
 SaveLoadStore="*res://Scripts/Autoload/save_load_store.gd"
 TavernStore="*res://Scripts/Autoload/tavern_store.gd"
-AssetBundleLoader="*res://Scripts/Autoload/asset_bundle_loader.gd"
 
 [display]
 
@@ -51,10 +50,6 @@ window/size/viewport_height=918
 window/size/mode=3
 window/size/borderless=true
 window/stretch/mode="canvas_items"
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/asset_bundle/plugin.cfg")
 
 [gui]
 

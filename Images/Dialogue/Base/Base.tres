@@ -1,9 +1,0 @@
-[gd_resource type="Resource" script_class="AssetBundle" load_steps=2 format=3]
-
-[ext_resource type="Script" path="res://addons/asset_bundle/AssetBundle.gd" id="1_base"]
-
-[resource]
-script = ExtResource("1_base")
-enabled = true
-export_enabled = true
-pack_external_dependencies = true

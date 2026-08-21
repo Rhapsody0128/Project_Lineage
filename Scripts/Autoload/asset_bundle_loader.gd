@@ -38,14 +38,14 @@ func _load_bundle_native(package_name: String) -> void:
 ## (跟 index.html 同一層,見 .github/workflows/build-and-deploy-web.yml)下載到 user://
 ## 再掛載——這段路徑假設頁面部署時 subpackages/ 資料夾有跟著一起發佈。
 func _load_bundle_web(package_name: String) -> void:
-	var remote_path : String = "subpackages/%s" % package_name
+	var remote_url : String = _resolve_web_bundle_url(package_name)
 
 	var request : HTTPRequest = HTTPRequest.new()
 	add_child(request)
 
-	var error : int = request.request(remote_path)
+	var error : int = request.request(remote_url)
 	if error != OK:
-		push_warning("Failed to request asset bundle: %s" % remote_path)
+		push_warning("Failed to request asset bundle: %s" % remote_url)
 		request.queue_free()
 		return
 
@@ -56,7 +56,7 @@ func _load_bundle_web(package_name: String) -> void:
 	var response_code : int = response[1]
 	var body : PackedByteArray = response[3]
 	if result != HTTPRequest.RESULT_SUCCESS || response_code != 200:
-		push_warning("Failed to download asset bundle: %s" % remote_path)
+		push_warning("Failed to download asset bundle: %s" % remote_url)
 		return
 
 	var local_path : String = "user://%s" % package_name
@@ -69,3 +69,12 @@ func _load_bundle_web(package_name: String) -> void:
 
 	if !ProjectSettings.load_resource_pack(local_path):
 		push_warning("Failed to load asset bundle: %s" % local_path)
+
+## HTTPRequest.request() 要求絕對 URL(必須是 http(s):// 開頭),傳純相對路徑
+## (例如 "subpackages/Base.pck")會直接被 _parse_url 判定失敗、連請求都送不出去——
+## 這正是先前「所有 Dialogue 背景圖在 Web 都讀不到」的原因。改用目前頁面的實際網址
+## (JavaScriptBridge.eval 讀 window.location.href)組出絕對路徑,才能在任何部署路徑
+## (例如 GitHub Pages 的子路徑)下都正確解析。
+func _resolve_web_bundle_url(package_name: String) -> String:
+	var page_url : String = String(JavaScriptBridge.eval("window.location.href", true))
+	return page_url.get_base_dir().path_join("subpackages").path_join(package_name)

@@ -151,7 +151,7 @@ func _ready() -> void:
 	left_group.add_child(_build_time_player_control())
 
 	var menu_button := MenuButton.new()
-	menu_button.text = "☰"
+	menu_button.text = "功能"
 	menu_button.focus_mode = Control.FOCUS_NONE
 	menu_button.custom_minimum_size = Vector2(48, 36)
 	menu_button.add_theme_font_size_override("font_size", 20)

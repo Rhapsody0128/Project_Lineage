@@ -10,11 +10,13 @@ config_version=5
 
 [application]
 
+config/name="Project L"
 run/main_scene="uid://bksb6osavtmgu"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
+AssetBundleLoader="*res://Scripts/Autoload/asset_bundle_loader.gd"
 WorldTimeStore="*res://Scripts/Autoload/world_time_store.gd"
 CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
 BattleReportStore="*res://Scripts/Autoload/battle_report_store.gd"
@@ -50,6 +52,10 @@ window/size/mode=3
 window/size/borderless=true
 window/stretch/mode="canvas_items"
 window/stretch/aspect="keep_height"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/asset_bundle/plugin.cfg")
 
 [gui]
 

@@ -58,7 +58,14 @@ func _ready() -> void:
 
 
 func toggle_playing() -> void:
-	controller.is_playing = not controller.is_playing
+	set_playing(not controller.is_playing)
+
+
+## HeaderBar 的時間播放列(Scripts/UI/header_bar.gd 的 TIMEPLAYER 圖組)點「暫停」/
+## 「▶1x」/「2x」/「3x」四顆各自要明確設成暫停或播放中,不是切換,所以獨立出這支給
+## toggle_playing() 跟按鈕共用,不用各自重複寫 controller.is_playing = ...。
+func set_playing(value: bool) -> void:
+	controller.is_playing = value
 
 
 func get_display_string() -> String:

@@ -7,7 +7,7 @@ extends RefCounted
 ## 不影響生產/效率/交易。
 
 ## T1 大宗(木材/糧食/金錢)/T2 中量(毛皮/書本/信仰)/T3 少量(石材/鐵礦/贓物)/
-## T4 稀有(製作工藝/科研/詛咒)——分級依據是各資源的月產量基準(見
+## T4 稀有(工具/科研/詛咒)——分級依據是各資源的月產量基準(見
 ## System/base/building/building_library.gd 12 棟生產建築的 base_yield)。
 const TIER_BASE: Dictionary = {
 	GameEnums.ResourceType.WOOD: 200,
@@ -19,7 +19,7 @@ const TIER_BASE: Dictionary = {
 	GameEnums.ResourceType.STONE: 120,
 	GameEnums.ResourceType.ORE: 120,
 	GameEnums.ResourceType.CONTRABAND: 120,
-	GameEnums.ResourceType.CRAFT: 80,
+	GameEnums.ResourceType.TOOL: 80,
 	GameEnums.ResourceType.RESEARCH: 80,
 	GameEnums.ResourceType.CURSE: 80,
 }

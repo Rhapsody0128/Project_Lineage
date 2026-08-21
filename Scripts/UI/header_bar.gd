@@ -9,10 +9,10 @@ extends Control
 #   推進世界時間、再更新文字,呼叫端不用管——這也代表世界時間「是否會走」直接綁在「這個
 #   場景有沒有掛 HeaderBar」,不是綁在個別場景腳本(過去只有 map.gd._process() 會推進,
 #   根據地按暫停鈕會顯示播放中但時間實際上沒在走,是舊版留下的不一致)。
-# - 旁邊四顆倍速按鈕(1x/2x/3x/DEMO,互斥單選按鈕組)點下去、或鍵盤 1/2/3/4,都直接呼叫
-#   WorldTimeStore.set_speed_level();Space 鍵直接呼叫 WorldTimeStore.toggle_playing()——
-#   HeaderBar 自己是全域唯一的倍速/暫停控制入口,不會有第二條路徑改到同一份狀態,所以
-#   不需要像 CharacterPanel 那樣經由訊號讓呼叫端轉發。
+# - 旁邊的時間播放列(TIMEPLAYER 木牌美術,見下方常數說明)點暫停/▶1x/2x/3x,或鍵盤
+#   1/2/3/4,都直接呼叫 WorldTimeStore.set_speed_level() + set_playing();Space 鍵直接呼叫
+#   WorldTimeStore.toggle_playing()——HeaderBar 自己是全域唯一的倍速/暫停控制入口,不會
+#   有第二條路徑改到同一份狀態,所以不需要像 CharacterPanel 那樣經由訊號讓呼叫端轉發。
 # - 右上角一顆漢堡選單按鈕,點開下拉選單可直接切去戰報列表/隊伍編輯/角色列表,或直接
 #   跳回主選單,不用像 main.gd 那樣得先繞回主選單才能到這些畫面。切場景一律走
 #   NavigationStore.go_to(),party_edit.gd/battle_report_list.gd/character_roster.gd 的
@@ -42,13 +42,29 @@ const _ID_MAIN_MENU := 4
 const _ID_SAVE := 5
 const _ID_LOAD := 6
 
-## 倍速按鈕的等級 → 顯示文字,4 是 DEMO 用的 100 倍速(見
-## Scripts/Autoload/world_time_store.gd 的 set_speed_level())。▶️ 代表一般倍速、
-## ⏩ 代表快轉,跟 _update_time_label() 裡播放中/暫停用的 ▶️/⏸️ 圖示呼應,同一套
-## 視覺語言。
-const _SPEED_LEVEL_LABELS := {1: "▶️ 1x", 2: "⏩ 2x", 3: "⏩ 3x", 4: "⏩ DEMO"}
-const _SPEED_BUTTON_BG := Color(0.2, 0.24, 0.36, 1)
-const _SPEED_BUTTON_ACTIVE_BG := Color(0.55, 0.32, 0.16, 1)
+## 時間播放列美術(Images/UI/other/TIMEPLAYER.png,1024x559)——由上到下 4 排,每排是
+## 一張完整的木牌長條圖,分別代表「暫停/▶1x/2x/3x」四種互斥狀態整排的樣子(哪顆按鈕在
+## 發光是畫死在圖裡的,不是可疊加的獨立圖層)。座標是逐排用像素掃描量出來的實際內容
+## 範圍,4 排之間有不等寬的留白,並非簡單的 559/4 均分,所以每排各自列一個 Rect2,不用
+## 公式算。DEMO(100 倍速,speed_level 4)這張圖沒有對應的第五排美術,見
+## _current_time_player_state() 的處理方式。
+const _TIME_PLAYER_TEXTURE_PATH := "res://Images/UI/other/TIMEPLAYER.png"
+const _TIME_PLAYER_ROW_RECTS := {
+	"paused": Rect2(0, 29, 1024, 118),
+	"1x": Rect2(0, 157, 1024, 119),
+	"2x": Rect2(0, 285, 1024, 119),
+	"3x": Rect2(0, 413, 1024, 118),
+}
+## 圖上 4 顆按鈕(暫停/▶/2X/3X)在整排寬度(1024)裡的 x 範圍,換算成 0~1 的比例,
+## 用來在顯示用的 TextureRect 上疊透明點擊區——4 排的按鈕位置是對齊的,量一排就夠套用
+## 全部狀態。範圍比按鈕實際發光區再往外加一點邊界,點擊判定不用卡到像素邊緣。
+const _TIME_PLAYER_HIT_FRACTIONS := {
+	"paused": Vector2(130.0 / 1024.0, 286.0 / 1024.0),
+	"1x": Vector2(343.0 / 1024.0, 497.0 / 1024.0),
+	"2x": Vector2(552.0 / 1024.0, 705.0 / 1024.0),
+	"3x": Vector2(760.0 / 1024.0, 913.0 / 1024.0),
+}
+const _TIME_PLAYER_DISPLAY_SIZE := Vector2(340.0, 40.0)
 
 ## 「資源」「隊伍」這類展開式狀態面板共用的樣式,見 _add_status_toggle()。
 const _PANEL_BG := Color(0.1, 0.12, 0.18, 0.97)
@@ -65,17 +81,16 @@ const _STATUS_PARTY_HEIGHT := 180.0
 const _STATUS_RESOURCE_HEIGHT := 120.0
 const _STATUS_FLOW_SEPARATION := 10
 
-## 鍵盤 1/2/3/4 → 倍速等級,跟按鈕走同一個路徑:_unhandled_input() 直接按下對應的
-## speed_button,觸發它的 toggled 訊號,由 _on_speed_button_toggled() 統一處理,不
-## 另外開一條呼叫 WorldTimeStore 的路。
+## 鍵盤 1/2/3/4 → 倍速等級,見 _unhandled_input()。
 const _KEY_TO_SPEED_LEVEL := {KEY_1: 1, KEY_2: 2, KEY_3: 3, KEY_4: 4}
 
 var time_label: Label
-## 等級(1/2/3/4)→ 對應按鈕,單選按鈕組(ButtonGroup)確保同時間只有一顆按下。
-var speed_buttons: Dictionary = {}
+## 時間播放列的顯示用貼圖(隨狀態切換 AtlasTexture.region,見 _update_time_player_display()),
+## 疊在上面的 4 個透明點擊區只在建構時用一次,不需要存成員變數。
+var _time_player_atlas: AtlasTexture
 
-## 倍速按鈕/漢堡選單所在的橫向排列,add_menu_button() 插入的額外按鈕也塞進這裡,
-## 見該函式。
+## 日期/時間播放列(包在 left_group 裡)跟漢堡選單所在的橫向排列,add_menu_button()
+## 插入的額外按鈕也塞進這裡,見該函式。
 var _row: HBoxContainer
 
 ## add_status_button() 建立的狀態面板,存成成員變數而非局部變數捕捉進 lambda——
@@ -116,37 +131,24 @@ func _ready() -> void:
 	_row.add_theme_constant_override("separation", 12)
 	bg.add_child(_row)
 
+	## 日期文字 + 時間播放列包在同一個會展開的 HBoxContainer 裡,兩者本身都不 expand——
+	## 這樣播放列會緊貼在日期文字右邊(取代舊版貼在文字裡的 ⏸️/▶️/⏩ 圖示),而不是被
+	## 單獨 expand 的 time_label 推到 _row 最右邊、離日期文字很遠。這個 left_group 才是
+	## 真正吃掉 _row 剩餘空間、把漢堡選單等按鈕推去右側的那個節點。
+	var left_group := HBoxContainer.new()
+	left_group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left_group.add_theme_constant_override("separation", 12)
+	_row.add_child(left_group)
+
 	time_label = Label.new()
-	time_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	time_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	time_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	time_label.add_theme_font_size_override("font_size", 22)
 	time_label.add_theme_color_override("font_color", _TIME_FONT_COLOR)
 	time_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 1))
 	time_label.add_theme_constant_override("outline_size", 4)
-	_row.add_child(time_label)
+	left_group.add_child(time_label)
 
-	var speed_button_group := ButtonGroup.new()
-	for level in _SPEED_LEVEL_LABELS.keys():
-		var speed_button := Button.new()
-		speed_button.text = _SPEED_LEVEL_LABELS[level]
-		speed_button.toggle_mode = true
-		speed_button.button_group = speed_button_group
-		## 不搶鍵盤焦點——按鈕搶到焦點的話,之後按 Space 會先被這顆按鈕內建的
-		## ui_accept 處理(重新觸發 toggled,可能把已經展開的「詳細」面板關掉),
-		## 搶在 _unhandled_input() 的 WorldTimeStore.toggle_playing() 之前,兩套
-		## 邏輯打架。整條 HeaderBar 的按鈕都只吃滑鼠點擊,鍵盤快捷鍵統一交給
-		## _unhandled_input() 處理。
-		speed_button.focus_mode = Control.FOCUS_NONE
-		speed_button.custom_minimum_size = Vector2(76, 36)
-		speed_button.add_theme_font_size_override("font_size", 16)
-		speed_button.add_theme_stylebox_override("normal", UiStyle.bordered_panel(_SPEED_BUTTON_BG, _BUTTON_BORDER, 2, 8))
-		speed_button.add_theme_stylebox_override("hover", UiStyle.bordered_panel(_BUTTON_HOVER_BG, _BUTTON_HOVER_BORDER, 2, 8))
-		speed_button.add_theme_stylebox_override("pressed", UiStyle.bordered_panel(_SPEED_BUTTON_ACTIVE_BG, _BUTTON_HOVER_BORDER, 2, 8))
-		speed_button.toggled.connect(_on_speed_button_toggled.bind(level))
-		_row.add_child(speed_button)
-		speed_buttons[level] = speed_button
-	speed_buttons[WorldTimeStore.speed_level].set_pressed_no_signal(true)
+	left_group.add_child(_build_time_player_control())
 
 	var menu_button := MenuButton.new()
 	menu_button.text = "☰"
@@ -169,6 +171,93 @@ func _ready() -> void:
 	popup.id_pressed.connect(_on_menu_id_pressed)
 
 
+## 建一個固定尺寸(_TIME_PLAYER_DISPLAY_SIZE)的容器:底層 TextureRect 顯示 TIMEPLAYER
+## 木牌美術目前狀態對應的那一排(見 _update_time_player_display()),上面疊 4 個沒有
+## 樣式、只負責吃點擊的透明按鈕,座標用 _TIME_PLAYER_HIT_FRACTIONS 換算——4 排美術的
+## 按鈕位置對齊,疊一份透明按鈕就能套用全部狀態,不用每排各自疊一份。
+func _build_time_player_control() -> Control:
+	var container := Control.new()
+	container.custom_minimum_size = _TIME_PLAYER_DISPLAY_SIZE
+
+	_time_player_atlas = AtlasTexture.new()
+	_time_player_atlas.atlas = load(_TIME_PLAYER_TEXTURE_PATH) as Texture2D
+
+	var texture_rect := TextureRect.new()
+	texture_rect.texture = _time_player_atlas
+	texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	texture_rect.stretch_mode = TextureRect.STRETCH_SCALE
+	texture_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+	container.add_child(texture_rect)
+
+	_add_time_player_hit_zone(container, "paused", _on_time_player_pause_pressed)
+	_add_time_player_hit_zone(container, "1x", _on_time_player_speed_pressed.bind(1))
+	_add_time_player_hit_zone(container, "2x", _on_time_player_speed_pressed.bind(2))
+	_add_time_player_hit_zone(container, "3x", _on_time_player_speed_pressed.bind(3))
+
+	_update_time_player_display()
+	return container
+
+
+## 透明點擊區用空白 StyleBox 蓋掉 Button 預設外觀(不用 flat=true——不同主題下 flat
+## 仍可能在 hover/focus 時畫出一點底色,蓋在木牌美術上會很明顯),只留點擊判定跟滑鼠
+## 手勢游標。anchor 用比例(不是像素 offset)卡位置,_TIME_PLAYER_DISPLAY_SIZE 之後如果
+## 調整寬高,點擊區會跟著等比例縮放,不會跑掉。
+func _add_time_player_hit_zone(container: Control, state: String, callback: Callable) -> void:
+	var fraction: Vector2 = _TIME_PLAYER_HIT_FRACTIONS[state]
+	var hit := Button.new()
+	hit.focus_mode = Control.FOCUS_NONE
+	hit.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	hit.anchor_left = fraction.x
+	hit.anchor_right = fraction.y
+	hit.anchor_top = 0.0
+	hit.anchor_bottom = 1.0
+	hit.offset_left = 0.0
+	hit.offset_right = 0.0
+	hit.offset_top = 0.0
+	hit.offset_bottom = 0.0
+	var empty_style := StyleBoxEmpty.new()
+	hit.add_theme_stylebox_override("normal", empty_style)
+	hit.add_theme_stylebox_override("hover", empty_style)
+	hit.add_theme_stylebox_override("pressed", empty_style)
+	hit.add_theme_stylebox_override("focus", empty_style)
+	hit.pressed.connect(callback)
+	container.add_child(hit)
+
+
+## 點「暫停」明確設成暫停,不是切換——跟 Space 鍵的 toggle_playing() 語意不同(見
+## _unhandled_input()),但共用同一顆 controller.is_playing。
+func _on_time_player_pause_pressed() -> void:
+	WorldTimeStore.set_playing(false)
+
+
+## 點▶1x/2x/3x 明確設成「這個倍速 + 播放中」,不是只改倍速——舊版倍速按鈕跟播放/暫停
+## 是兩條獨立狀態(選 2x 不會自動恢復播放),但新版木牌美術把兩者畫成同一組互斥按鈕,
+## 點下去理應兩者一起生效,鍵盤 1/2/3/4(見 _unhandled_input())也走同一段邏輯。
+func _on_time_player_speed_pressed(level: int) -> void:
+	WorldTimeStore.set_speed_level(level)
+	WorldTimeStore.set_playing(true)
+
+
+## 目前應該顯示哪一排:暫停中一律顯示「paused」排,不看倍速等級;播放中依 speed_level
+## 對應排數。DEMO(4)沒有第五排美術,借用「3x」排顯示(不影響 play_speed_multiplier
+## 實際還是 100 倍,只是外觀上顯示不出「比 3x 更快」的差異)。
+func _current_time_player_state() -> String:
+	if not WorldTimeStore.controller.is_playing:
+		return "paused"
+	match WorldTimeStore.speed_level:
+		2:
+			return "2x"
+		3, 4:
+			return "3x"
+		_:
+			return "1x"
+
+
+func _update_time_player_display() -> void:
+	_time_player_atlas.region = _TIME_PLAYER_ROW_RECTS[_current_time_player_state()]
+
+
 ## 世界時間的實際推進(WorldTimeStore.controller.advance())綁在這裡,不是綁在個別
 ## 場景腳本——HeaderBar 是唯一的倍速/暫停控制入口,同時掛在大地圖(map.gd)跟根據地
 ## (base.gd),只要場景掛了 HeaderBar,is_playing 為真時世界時間就會走,不會出現「按了
@@ -178,29 +267,21 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	WorldTimeStore.controller.advance(delta * WorldTimeStore.play_speed_multiplier)
 	_update_time_label()
+	_update_time_player_display()
 
 
-## 圖示語意:⏸️ 暫停中;▶️ 播放中(1x/2x/3x);⏩ 播放中且倍速等級是 DEMO(4)。跟
-## 倍速按鈕的 ▶️/⏩ 用同一套視覺語言。
+## 播放/暫停狀態已經改由旁邊的時間播放列(TIMEPLAYER 木牌美術)顯示,這裡只單純顯示
+## 日期文字,不再需要 ⏸️/▶️/⏩ 這組 emoji 圖示。
 func _update_time_label() -> void:
-	var state_icon: String
-	if not WorldTimeStore.controller.is_playing:
-		state_icon = "⏸️"
-	elif WorldTimeStore.speed_level == 2:
-		state_icon = "⏩"
-	elif WorldTimeStore.speed_level == 3:
-		state_icon = "⏩"
-	elif WorldTimeStore.speed_level == 4:
-		state_icon = "⏩"
-	else:
-		state_icon = "▶️"
-	time_label.text = "%s　%s" % [WorldTimeStore.get_display_string(), state_icon]
+	time_label.text = WorldTimeStore.get_display_string()
 
 
-## Space 切換播放/暫停、1/2/3/4 切倍速等級——跟滑鼠點按鈕共用同一個 ButtonGroup +
-## _on_speed_button_toggled(),數字鍵只是程式化按下對應按鈕,不另外開一條路徑改
-## WorldTimeStore。這支 HeaderBar 是全域唯一的倍速/暫停控制入口,所在場景不需要自己
-## 再接一份鍵盤快捷鍵。
+## Space 切換播放/暫停(跟時間播放列的「暫停」按鈕不同,是 toggle 不是明確設定,維持
+## 原本「按一下暫停/再按一下恢復原本倍速」的手感);1/2/3/4 切倍速等級,跟滑鼠點▶/2X/3X
+## 走同一段邏輯(_on_time_player_speed_pressed())——選倍速的同時也會恢復播放。4 是
+## DEMO(100 倍速),時間播放列沒有對應的可見按鈕(見 _current_time_player_state()),
+## 仍保留鍵盤 4 當隱藏入口。這支 HeaderBar 是全域唯一的倍速/暫停控制入口,所在場景不需要
+## 自己再接一份鍵盤快捷鍵。
 func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey:
 		return
@@ -210,7 +291,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key_event.keycode == KEY_SPACE:
 		WorldTimeStore.toggle_playing()
 	elif _KEY_TO_SPEED_LEVEL.has(key_event.keycode):
-		speed_buttons[_KEY_TO_SPEED_LEVEL[key_event.keycode]].set_pressed(true)
+		_on_time_player_speed_pressed(_KEY_TO_SPEED_LEVEL[key_event.keycode])
 
 
 ## 給需要在 HEADER 上多掛一顆下拉選單的場景用,塞在漢堡選單(☰)前面、倍速按鈕後面,
@@ -228,8 +309,8 @@ func add_menu_button(button_text: String) -> MenuButton:
 ## add_menu_button()/_add_status_toggle() 共用的按鈕外觀(邊框樣式/字級/最小尺寸),
 ## 避免兩處各自複製貼上同一段 stylebox override。
 func _style_header_button(button: BaseButton, min_width: float = 64.0) -> void:
-	## 同上方 speed_button 的理由:不讓按鈕搶鍵盤焦點,避免 Space 被focus住的按鈕
-	## 內建 ui_accept 處理掉,誤觸「詳細」等展開面板按鈕的 toggled、把面板關掉。
+	## 不讓按鈕搶鍵盤焦點,避免 Space 被 focus 住的按鈕內建 ui_accept 處理掉,誤觸
+	## 「詳細」等展開面板按鈕的 toggled、把面板關掉。
 	button.focus_mode = Control.FOCUS_NONE
 	button.custom_minimum_size = Vector2(min_width, 36)
 	button.add_theme_font_size_override("font_size", 16)
@@ -433,7 +514,8 @@ func _on_party_avatar_gui_input(input_event: InputEvent, character: Character) -
 		CharacterPanel.open_for_character(character)
 
 
-## 只顯示 icon(GameEnums.resource_type_label,emoji)+ 數量,不顯示中文品項名稱
+## 只顯示 icon(GameEnums.resource_type_icon_path(),Images/ResourceType/ 底下的圖片,
+## 靠 RichTextLabel 的 bbcode [img] 標籤內嵌)+ 數量,不顯示中文品項名稱
 ## (resource_string_label)——資源種類多,面板寬度有限,icon 已經夠辨識。用
 ## HFlowContainer 排版:預設由左往右排,單項寬度超出容器剩餘空間就自動換到下一行,
 ## 不用像過去那樣手動兩兩配對成列。數量後面用括號附上「下月預估增減量」
@@ -479,7 +561,8 @@ func _build_resource_icon_label(resource_type: int, amount: int, delta: int) -> 
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.scroll_active = false
 	label.add_theme_font_size_override("normal_font_size", 16)
-	var base_text := "%s %d" % [GameEnums.resource_type_label(resource_type), amount]
+	var icon_tag := "[img=26x26]%s[/img]" % GameEnums.resource_type_icon_path(resource_type)
+	var base_text := "%s %d" % [icon_tag, amount]
 	if delta == 0:
 		label.text = base_text
 	else:
@@ -487,11 +570,6 @@ func _build_resource_icon_label(resource_type: int, amount: int, delta: int) -> 
 		var sign_text := "+%d" % delta if delta > 0 else str(delta)
 		label.text = "%s[color=#%s](%s)[/color]" % [base_text, color_hex, sign_text]
 	return label
-
-
-func _on_speed_button_toggled(enabled: bool, level: int) -> void:
-	if enabled:
-		WorldTimeStore.set_speed_level(level)
 
 
 func _on_menu_id_pressed(id: int) -> void:

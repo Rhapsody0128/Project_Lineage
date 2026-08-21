@@ -5,7 +5,7 @@ extends RefCounted
 ## 純函式,不碰任何 autoload,呼叫端(BaseDispatchStore/base_action_panel.gd 預覽)
 ## 提供目前庫存快照(只需要 recipe.inputs 涉及的資源)。
 
-## 回傳 {"output": 這個月的製作工藝產出量, "consumed": 這個月實際消耗的原料 Dictionary}。
+## 回傳 {"output": 這個月的工具產出量, "consumed": 這個月實際消耗的原料 Dictionary}。
 ## 資源不足時兩者都是 0/空字典——這個月作白工,不會扣成負數,也不會只做一半。
 static func resolve(recipe: WorkshopRecipe, theoretical_output: int, available: Dictionary) -> Dictionary:
 	if theoretical_output <= 0 or recipe.output_amount <= 0 or recipe.inputs.is_empty():

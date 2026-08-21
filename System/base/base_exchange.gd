@@ -68,7 +68,7 @@ static func black_market_options() -> Array[ExchangeOption]:
 		ExchangeOption.new(GameEnums.ResourceType.STONE, 4, 5, 5, 2),
 		ExchangeOption.new(GameEnums.ResourceType.ORE, 1, 1, 2, 1),
 		ExchangeOption.new(GameEnums.ResourceType.CURSE, 24, 5, 5, 12),
-		ExchangeOption.new(GameEnums.ResourceType.CRAFT, 16, 5, 5, 8),
+		ExchangeOption.new(GameEnums.ResourceType.TOOL, 16, 5, 5, 8),
 		ExchangeOption.new(GameEnums.ResourceType.GOLD, 1, 2, 4, 1),
 	]
 

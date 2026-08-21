@@ -11,7 +11,6 @@ extends Node2D
 
 @onready var ui_layer: CanvasLayer = $UI
 @onready var leave_button: Button = $UI/LeaveButton
-@onready var load_button: Button = $UI/LoadButton
 
 var _base_system := BaseSystem.new()
 var _buildings: Array[Building] = []
@@ -27,8 +26,6 @@ func _ready() -> void:
 
 	UiStyle.apply_wood_plaque_button(leave_button, 24.0, 12.0)
 	leave_button.add_theme_font_size_override("font_size", 22)
-	UiStyle.apply_wood_plaque_button(load_button, 24.0, 12.0)
-	load_button.add_theme_font_size_override("font_size", 22)
 
 
 func _process(_delta: float) -> void:
@@ -59,7 +56,3 @@ func _exit_tree() -> void:
 ## map_location.gd._find_entered_map_object() 能正確還原成「根據地」那一頁。
 func _on_leave_button_pressed() -> void:
 	get_tree().change_scene_to_file("res://Scenes/MapLocation/map_location.tscn")
-
-
-func _on_load_button_pressed() -> void:
-	SaveSlotPicker.open_load_menu()

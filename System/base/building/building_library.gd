@@ -35,11 +35,11 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.WOOD: 60, GameEnums.ResourceType.STONE: 40},
 				{GameEnums.ResourceType.WOOD: 85, GameEnums.ResourceType.STONE: 55, GameEnums.ResourceType.GOLD: 55},
 				{GameEnums.ResourceType.STONE: 75, GameEnums.ResourceType.ORE: 50, GameEnums.ResourceType.GOLD: 110},
-				{GameEnums.ResourceType.STONE: 100, GameEnums.ResourceType.ORE: 70, GameEnums.ResourceType.GOLD: 150, GameEnums.ResourceType.CRAFT: 25},
-				{GameEnums.ResourceType.ORE: 95, GameEnums.ResourceType.GOLD: 200, GameEnums.ResourceType.CRAFT: 35, GameEnums.ResourceType.BOOK: 70},
-				{GameEnums.ResourceType.GOLD: 270, GameEnums.ResourceType.CRAFT: 45, GameEnums.ResourceType.BOOK: 95, GameEnums.ResourceType.RESEARCH: 25},
-				{GameEnums.ResourceType.GOLD: 360, GameEnums.ResourceType.CRAFT: 60, GameEnums.ResourceType.RESEARCH: 35, GameEnums.ResourceType.FAITH: 85},
-				{GameEnums.ResourceType.GOLD: 495, GameEnums.ResourceType.CRAFT: 85, GameEnums.ResourceType.RESEARCH: 50, GameEnums.ResourceType.FAITH: 115, GameEnums.ResourceType.CURSE: 25},
+				{GameEnums.ResourceType.STONE: 100, GameEnums.ResourceType.ORE: 70, GameEnums.ResourceType.GOLD: 150, GameEnums.ResourceType.TOOL: 25},
+				{GameEnums.ResourceType.ORE: 95, GameEnums.ResourceType.GOLD: 200, GameEnums.ResourceType.TOOL: 35, GameEnums.ResourceType.BOOK: 70},
+				{GameEnums.ResourceType.GOLD: 270, GameEnums.ResourceType.TOOL: 45, GameEnums.ResourceType.BOOK: 95, GameEnums.ResourceType.RESEARCH: 25},
+				{GameEnums.ResourceType.GOLD: 360, GameEnums.ResourceType.TOOL: 60, GameEnums.ResourceType.RESEARCH: 35, GameEnums.ResourceType.FAITH: 85},
+				{GameEnums.ResourceType.GOLD: 495, GameEnums.ResourceType.TOOL: 85, GameEnums.ResourceType.RESEARCH: 50, GameEnums.ResourceType.FAITH: 115, GameEnums.ResourceType.CURSE: 25},
 			],
 			UPGRADE_DAYS                                     ## 升級天數表
 		),
@@ -79,9 +79,9 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.FOOD: 75, GameEnums.ResourceType.BOOK: 35},
 				{GameEnums.ResourceType.FOOD: 100, GameEnums.ResourceType.BOOK: 50},
 				{GameEnums.ResourceType.FOOD: 135, GameEnums.ResourceType.BOOK: 65},
-				{GameEnums.ResourceType.FOOD: 180, GameEnums.ResourceType.BOOK: 90, GameEnums.ResourceType.CRAFT: 30},
-				{GameEnums.ResourceType.FOOD: 245, GameEnums.ResourceType.BOOK: 120, GameEnums.ResourceType.CRAFT: 40},
-				{GameEnums.ResourceType.FOOD: 330, GameEnums.ResourceType.BOOK: 165, GameEnums.ResourceType.CRAFT: 55},
+				{GameEnums.ResourceType.FOOD: 180, GameEnums.ResourceType.BOOK: 90, GameEnums.ResourceType.TOOL: 30},
+				{GameEnums.ResourceType.FOOD: 245, GameEnums.ResourceType.BOOK: 120, GameEnums.ResourceType.TOOL: 40},
+				{GameEnums.ResourceType.FOOD: 330, GameEnums.ResourceType.BOOK: 165, GameEnums.ResourceType.TOOL: 55},
 			],
 			UPGRADE_DAYS                                      ## 升級天數表
 		),
@@ -100,9 +100,9 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.STONE: 75, GameEnums.ResourceType.ORE: 35},
 				{GameEnums.ResourceType.STONE: 100, GameEnums.ResourceType.ORE: 50},
 				{GameEnums.ResourceType.STONE: 135, GameEnums.ResourceType.ORE: 65},
-				{GameEnums.ResourceType.STONE: 180, GameEnums.ResourceType.ORE: 90, GameEnums.ResourceType.CRAFT: 30},
-				{GameEnums.ResourceType.STONE: 245, GameEnums.ResourceType.ORE: 120, GameEnums.ResourceType.CRAFT: 40},
-				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.ORE: 165, GameEnums.ResourceType.CRAFT: 55},
+				{GameEnums.ResourceType.STONE: 180, GameEnums.ResourceType.ORE: 90, GameEnums.ResourceType.TOOL: 30},
+				{GameEnums.ResourceType.STONE: 245, GameEnums.ResourceType.ORE: 120, GameEnums.ResourceType.TOOL: 40},
+				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.ORE: 165, GameEnums.ResourceType.TOOL: 55},
 			],
 			UPGRADE_DAYS                                      ## 升級天數表
 		),
@@ -119,11 +119,11 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.ORE: 30, GameEnums.ResourceType.GOLD: 30},
 				{GameEnums.ResourceType.ORE: 40, GameEnums.ResourceType.GOLD: 40},
 				{GameEnums.ResourceType.ORE: 50, GameEnums.ResourceType.GOLD: 75},
-				{GameEnums.ResourceType.ORE: 70, GameEnums.ResourceType.GOLD: 100, GameEnums.ResourceType.CRAFT: 20},
-				{GameEnums.ResourceType.ORE: 95, GameEnums.ResourceType.GOLD: 135, GameEnums.ResourceType.CRAFT: 30},
-				{GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.GOLD: 180, GameEnums.ResourceType.CRAFT: 40},
-				{GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.GOLD: 245, GameEnums.ResourceType.CRAFT: 55},
-				{GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.GOLD: 330, GameEnums.ResourceType.CRAFT: 75},
+				{GameEnums.ResourceType.ORE: 70, GameEnums.ResourceType.GOLD: 100, GameEnums.ResourceType.TOOL: 20},
+				{GameEnums.ResourceType.ORE: 95, GameEnums.ResourceType.GOLD: 135, GameEnums.ResourceType.TOOL: 30},
+				{GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.GOLD: 180, GameEnums.ResourceType.TOOL: 40},
+				{GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.GOLD: 245, GameEnums.ResourceType.TOOL: 55},
+				{GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.GOLD: 330, GameEnums.ResourceType.TOOL: 75},
 			],
 			UPGRADE_DAYS                                      ## 升級天數表
 		),
@@ -151,7 +151,7 @@ static func get_all() -> Array[Building]:
 		Building.new(
 			GameEnums.BuildingType.QUARRY,                    ## 建築類型(同時也是識別碼)
 			"採石場",                                         ## 中文名稱
-			"派遣力量角色開採石材,屬於高階內政。",                 ## ACTION PANEL 描述文字
+			"派遣力量角色開採石材,消耗工具維護採石工序,產出石材。", ## ACTION PANEL 描述文字
 			GameEnums.PotentialType.STRENGTH,                 ## 素質需求
 			GameEnums.ResourceType.STONE,                     ## 產出資源
 			6,                                                ## 基礎產量
@@ -163,11 +163,12 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.GOLD: 150, GameEnums.ResourceType.ORE: 50},
 				{GameEnums.ResourceType.GOLD: 200, GameEnums.ResourceType.ORE: 70},
 				{GameEnums.ResourceType.GOLD: 270, GameEnums.ResourceType.ORE: 95},
-				{GameEnums.ResourceType.GOLD: 360, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.CRAFT: 45},
-				{GameEnums.ResourceType.GOLD: 490, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.CRAFT: 65},
-				{GameEnums.ResourceType.GOLD: 660, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.CRAFT: 85},
+				{GameEnums.ResourceType.GOLD: 360, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.TOOL: 45},
+				{GameEnums.ResourceType.GOLD: 490, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.TOOL: 65},
+				{GameEnums.ResourceType.GOLD: 660, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.TOOL: 85},
 			],
-			UPGRADE_DAYS                                     ## 升級天數表
+			UPGRADE_DAYS,                                     ## 升級天數表
+			WorkshopRecipe.new("quarry_tool", "採石耗材", {GameEnums.ResourceType.TOOL: 1}, 4) ## 固定消耗配方:1 工具→4 石材(工具價值點數 40 是石材 10 的 4 倍,見 workshop_recipe_library.gd 開頭註解的換算方法)
 		),
 		Building.new(
 			GameEnums.BuildingType.FARM,                      ## 建築類型(同時也是識別碼)
@@ -193,7 +194,7 @@ static func get_all() -> Array[Building]:
 		Building.new(
 			GameEnums.BuildingType.MINE,                      ## 建築類型(同時也是識別碼)
 			"採礦場",                                         ## 中文名稱
-			"派遣體質角色採礦,屬於高階內政。",                     ## ACTION PANEL 描述文字
+			"派遣體質角色採礦,消耗工具維護開採,產出鐵礦。",        ## ACTION PANEL 描述文字
 			GameEnums.PotentialType.VITALITY,                 ## 素質需求
 			GameEnums.ResourceType.ORE,                       ## 產出資源
 			5,                                                ## 基礎產量
@@ -205,11 +206,12 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.STONE: 75, GameEnums.ResourceType.ORE: 50},
 				{GameEnums.ResourceType.STONE: 100, GameEnums.ResourceType.ORE: 70},
 				{GameEnums.ResourceType.STONE: 135, GameEnums.ResourceType.ORE: 95},
-				{GameEnums.ResourceType.STONE: 180, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.CRAFT: 45},
-				{GameEnums.ResourceType.STONE: 245, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.CRAFT: 65},
-				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.CRAFT: 85},
+				{GameEnums.ResourceType.STONE: 180, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.TOOL: 45},
+				{GameEnums.ResourceType.STONE: 245, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.TOOL: 65},
+				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.TOOL: 85},
 			],
-			UPGRADE_DAYS                                     ## 升級天數表
+			UPGRADE_DAYS,                                     ## 升級天數表
+			WorkshopRecipe.new("mine_tool", "採礦耗材", {GameEnums.ResourceType.TOOL: 1}, 3) ## 固定消耗配方:1 工具→3 鐵礦(工具價值點數 40 約是鐵礦 12 的 3 倍)
 		),
 		Building.new(
 			GameEnums.BuildingType.CARAVAN,                   ## 建築類型(同時也是識別碼)
@@ -235,7 +237,7 @@ static func get_all() -> Array[Building]:
 		Building.new(
 			GameEnums.BuildingType.BLACK_MARKET,              ## 建築類型(同時也是識別碼)
 			"黑市",                                           ## 中文名稱
-			"派遣敏捷角色進行地下交易,屬於高階內政。",              ## ACTION PANEL 描述文字
+			"派遣敏捷角色進行地下交易,消耗金錢打點關係,產出贓物。", ## ACTION PANEL 描述文字
 			GameEnums.PotentialType.AGILITY,                  ## 素質需求
 			GameEnums.ResourceType.CONTRABAND,                ## 產出資源
 			4,                                                ## 基礎產量
@@ -251,7 +253,8 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.GOLD: 490, GameEnums.ResourceType.FUR: 255, GameEnums.ResourceType.ORE: 125},
 				{GameEnums.ResourceType.GOLD: 660, GameEnums.ResourceType.FUR: 345, GameEnums.ResourceType.ORE: 165},
 			],
-			UPGRADE_DAYS                                     ## 升級天數表
+			UPGRADE_DAYS,                                     ## 升級天數表
+			WorkshopRecipe.new("black_market_gold", "地下交易耗材", {GameEnums.ResourceType.GOLD: 3}, 1) ## 固定消耗配方:3 金錢→1 贓物(贓物價值點數 15 約是金錢 6 的 2.5 倍)
 		),
 		Building.new(
 			GameEnums.BuildingType.HUNTING_GROUND,            ## 建築類型(同時也是識別碼)
@@ -277,9 +280,9 @@ static func get_all() -> Array[Building]:
 		Building.new(
 			GameEnums.BuildingType.WORKSHOP,                  ## 建築類型(同時也是識別碼)
 			"工匠坊",                                         ## 中文名稱
-			"派遣靈巧角色進行製作,產出工藝品,屬於高階內政。",         ## ACTION PANEL 描述文字
+			"派遣靈巧角色進行製作,依配方消耗原料,產出工具。",         ## ACTION PANEL 描述文字
 			GameEnums.PotentialType.DEXTERITY,                ## 素質需求
-			GameEnums.ResourceType.CRAFT,                     ## 產出資源
+			GameEnums.ResourceType.TOOL,                     ## 產出資源
 			3,                                                ## 基礎產量
 			{GameEnums.ResourceType.WOOD: 90},                ## 建造(0→1)耗材
 			BUILD_DAYS,                                       ## 建造天數
@@ -289,16 +292,16 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.STONE: 75, GameEnums.ResourceType.ORE: 50},
 				{GameEnums.ResourceType.STONE: 100, GameEnums.ResourceType.ORE: 70},
 				{GameEnums.ResourceType.STONE: 135, GameEnums.ResourceType.ORE: 95},
-				{GameEnums.ResourceType.STONE: 180, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.FUR: 135, GameEnums.ResourceType.CRAFT: 35},
-				{GameEnums.ResourceType.STONE: 245, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.FUR: 190, GameEnums.ResourceType.CRAFT: 45},
-				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.FUR: 250, GameEnums.ResourceType.CRAFT: 60},
+				{GameEnums.ResourceType.STONE: 180, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.FUR: 135, GameEnums.ResourceType.TOOL: 35},
+				{GameEnums.ResourceType.STONE: 245, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.FUR: 190, GameEnums.ResourceType.TOOL: 45},
+				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.FUR: 250, GameEnums.ResourceType.TOOL: 60},
 			],
 			UPGRADE_DAYS                                     ## 升級天數表
 		),
 		Building.new(
 			GameEnums.BuildingType.SCRIPTORIUM,               ## 建築類型(同時也是識別碼)
 			"抄書院",                                         ## 中文名稱
-			"派遣智慧角色抄寫書籍,產出書本。",                     ## ACTION PANEL 描述文字
+			"派遣智慧角色抄寫書籍,消耗毛皮製作紙張,產出書本。",     ## ACTION PANEL 描述文字
 			GameEnums.PotentialType.INTELLIGENCE,             ## 素質需求
 			GameEnums.ResourceType.BOOK,                      ## 產出資源
 			8,                                                ## 基礎產量
@@ -314,12 +317,13 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.STONE: 245, GameEnums.ResourceType.FUR: 255},
 				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.FUR: 345},
 			],
-			UPGRADE_DAYS                                     ## 升級天數表
+			UPGRADE_DAYS,                                     ## 升級天數表
+			WorkshopRecipe.new("scriptorium_fur", "抄書耗材", {GameEnums.ResourceType.FUR: 1}, 1) ## 固定消耗配方:1 毛皮→1 書本(書本價值點數 8 跟毛皮 7 相近)
 		),
 		Building.new(
 			GameEnums.BuildingType.RESEARCH_INSTITUTE,        ## 建築類型(同時也是識別碼)
 			"科學研究所",                                      ## 中文名稱
-			"派遣智慧角色進行研究,產出科研用於科技系統,屬於高階內政。",   ## ACTION PANEL 描述文字
+			"派遣智慧角色進行研究,消耗書本查閱資料,產出科研,用於科技系統。", ## ACTION PANEL 描述文字
 			GameEnums.PotentialType.INTELLIGENCE,             ## 素質需求
 			GameEnums.ResourceType.RESEARCH,                  ## 產出資源
 			2,                                                ## 基礎產量
@@ -331,11 +335,12 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.BOOK: 115, GameEnums.ResourceType.ORE: 50},
 				{GameEnums.ResourceType.BOOK: 150, GameEnums.ResourceType.ORE: 70},
 				{GameEnums.ResourceType.BOOK: 205, GameEnums.ResourceType.ORE: 95},
-				{GameEnums.ResourceType.BOOK: 270, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.CRAFT: 45, GameEnums.ResourceType.RESEARCH: 35},
-				{GameEnums.ResourceType.BOOK: 370, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.CRAFT: 65, GameEnums.ResourceType.RESEARCH: 45},
-				{GameEnums.ResourceType.BOOK: 495, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.CRAFT: 85, GameEnums.ResourceType.RESEARCH: 60},
+				{GameEnums.ResourceType.BOOK: 270, GameEnums.ResourceType.ORE: 125, GameEnums.ResourceType.TOOL: 45, GameEnums.ResourceType.RESEARCH: 35},
+				{GameEnums.ResourceType.BOOK: 370, GameEnums.ResourceType.ORE: 170, GameEnums.ResourceType.TOOL: 65, GameEnums.ResourceType.RESEARCH: 45},
+				{GameEnums.ResourceType.BOOK: 495, GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.TOOL: 85, GameEnums.ResourceType.RESEARCH: 60},
 			],
-			UPGRADE_DAYS                                     ## 升級天數表
+			UPGRADE_DAYS,                                     ## 升級天數表
+			WorkshopRecipe.new("research_book", "研究耗材", {GameEnums.ResourceType.BOOK: 4}, 1) ## 固定消耗配方:4 書本→1 科研(科研價值點數 30 約是書本 8 的 4 倍)
 		),
 		Building.new(
 			GameEnums.BuildingType.ALTAR,                     ## 建築類型(同時也是識別碼)
@@ -349,19 +354,19 @@ static func get_all() -> Array[Building]:
 			[                                                 ## 升級(1→9)耗材表
 				{GameEnums.ResourceType.GOLD: 80},
 				{GameEnums.ResourceType.GOLD: 110},
-				{GameEnums.ResourceType.GOLD: 150, GameEnums.ResourceType.CRAFT: 25},
-				{GameEnums.ResourceType.GOLD: 200, GameEnums.ResourceType.CRAFT: 35},
-				{GameEnums.ResourceType.GOLD: 270, GameEnums.ResourceType.CRAFT: 50},
-				{GameEnums.ResourceType.GOLD: 360, GameEnums.ResourceType.CRAFT: 65},
-				{GameEnums.ResourceType.GOLD: 490, GameEnums.ResourceType.CRAFT: 85},
-				{GameEnums.ResourceType.GOLD: 660, GameEnums.ResourceType.CRAFT: 115},
+				{GameEnums.ResourceType.GOLD: 150, GameEnums.ResourceType.TOOL: 25},
+				{GameEnums.ResourceType.GOLD: 200, GameEnums.ResourceType.TOOL: 35},
+				{GameEnums.ResourceType.GOLD: 270, GameEnums.ResourceType.TOOL: 50},
+				{GameEnums.ResourceType.GOLD: 360, GameEnums.ResourceType.TOOL: 65},
+				{GameEnums.ResourceType.GOLD: 490, GameEnums.ResourceType.TOOL: 85},
+				{GameEnums.ResourceType.GOLD: 660, GameEnums.ResourceType.TOOL: 115},
 			],
 			UPGRADE_DAYS                                     ## 升級天數表
 		),
 		Building.new(
 			GameEnums.BuildingType.FORBIDDEN_ALTAR,           ## 建築類型(同時也是識別碼)
 			"禁忌祭壇",                                        ## 中文名稱
-			"派遣意志角色進行禁忌祭祀,產出詛咒,屬於高階內政。",       ## ACTION PANEL 描述文字
+			"派遣意志角色進行禁忌祭祀,消耗信仰,產出詛咒。",         ## ACTION PANEL 描述文字
 			GameEnums.PotentialType.MENTALITY,                ## 素質需求
 			GameEnums.ResourceType.CURSE,                     ## 產出資源
 			1,                                                ## 基礎產量
@@ -373,10 +378,11 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.FAITH: 115, GameEnums.ResourceType.GOLD: 100},
 				{GameEnums.ResourceType.FAITH: 150, GameEnums.ResourceType.GOLD: 140},
 				{GameEnums.ResourceType.FAITH: 205, GameEnums.ResourceType.GOLD: 190},
-				{GameEnums.ResourceType.FAITH: 270, GameEnums.ResourceType.GOLD: 250, GameEnums.ResourceType.CRAFT: 45, GameEnums.ResourceType.CURSE: 35},
-				{GameEnums.ResourceType.FAITH: 370, GameEnums.ResourceType.GOLD: 340, GameEnums.ResourceType.CRAFT: 65, GameEnums.ResourceType.CURSE: 45},
-				{GameEnums.ResourceType.FAITH: 495, GameEnums.ResourceType.GOLD: 460, GameEnums.ResourceType.CRAFT: 85, GameEnums.ResourceType.CURSE: 60},
+				{GameEnums.ResourceType.FAITH: 270, GameEnums.ResourceType.GOLD: 250, GameEnums.ResourceType.TOOL: 45, GameEnums.ResourceType.CURSE: 35},
+				{GameEnums.ResourceType.FAITH: 370, GameEnums.ResourceType.GOLD: 340, GameEnums.ResourceType.TOOL: 65, GameEnums.ResourceType.CURSE: 45},
+				{GameEnums.ResourceType.FAITH: 495, GameEnums.ResourceType.GOLD: 460, GameEnums.ResourceType.TOOL: 85, GameEnums.ResourceType.CURSE: 60},
 			],
-			UPGRADE_DAYS                                     ## 升級天數表
+			UPGRADE_DAYS,                                     ## 升級天數表
+			WorkshopRecipe.new("forbidden_altar_faith", "禁忌祭祀耗材", {GameEnums.ResourceType.FAITH: 7}, 1) ## 固定消耗配方:7 信仰→1 詛咒(詛咒價值點數 60 約是信仰 9 的 7 倍)
 		),
 	]

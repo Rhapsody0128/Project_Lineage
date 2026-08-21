@@ -86,20 +86,26 @@ func find_character(character_id: String) -> Character:
 	return null
 
 
-## 工匠坊依目前選定配方(WorkshopRecipeStore)把理論產出換算成實際產出:原料不足時
-## 按比例打折(見 System/base/workshop_production.gd),不會讓整棟工匠坊那個月直接停產。
-func _resolve_workshop_yield(theoretical_output: int) -> int:
-	var recipe := WorkshopRecipeStore.get_selected()
+## 依建築目前生效的配方把理論產出換算成實際產出:工匠坊看 WorkshopRecipeStore 目前選定
+## 的三選一配方,其餘 6 棟高階內政建築(採石場/採礦場/黑市/抄書院/科學研究所/禁忌祭壇)
+## 看 Building.fixed_recipe,兩者都交給 WorkshopProduction.resolve() 統一換算——原料不足
+## 時整個月不生產、不消耗(all-or-nothing,見該檔案)。其餘 5 棟不吃資源的建築
+## fixed_recipe 是 null,直接原樣回傳理論產出、不消耗。
+func _resolve_recipe(building: Building, theoretical_output: int) -> Dictionary:
+	var recipe: WorkshopRecipe = (
+		WorkshopRecipeStore.get_selected() if building.type == GameEnums.BuildingType.WORKSHOP
+		else building.fixed_recipe
+	)
+	if recipe == null:
+		return {"output": theoretical_output, "consumed": {}}
 	var available: Dictionary = {}
 	for resource_type in recipe.inputs:
 		available[resource_type] = BaseResourceStore.get_amount(resource_type)
-	var result := WorkshopProduction.resolve(recipe, theoretical_output, available)
-	BaseResourceStore.spend(result["consumed"])
-	return result["output"]
+	return WorkshopProduction.resolve(recipe, theoretical_output, available)
 
 
-## 預覽「如果現在跨過月結算」每種資源的淨變動量(工匠坊已套用配方消耗/all-or-nothing
-## 判定),供 Scripts/UI/header_bar.gd 的「詳細」面板顯示下月預估增減量用——算法跟
+## 預覽「如果現在跨過月結算」每種資源的淨變動量(配方消耗/all-or-nothing 判定已套用),
+## 供 Scripts/UI/header_bar.gd 的「詳細」面板顯示下月預估增減量用——算法跟
 ## _on_month_passed() 一致,但不真的扣款/加值,純預覽。
 func get_projected_monthly_delta() -> Dictionary:
 	var delta: Dictionary = {}
@@ -108,6 +114,8 @@ func get_projected_monthly_delta() -> Dictionary:
 			continue
 		if not BaseBuildingProgressStore.is_unlocked(building.type):
 			continue
+		if not BaseBuildingProgressStore.is_active(building.type):
+			continue
 		var characters: Array[Character] = get_dispatched_characters(building.type).filter(
 			func(character: Character) -> bool: return not character.is_disabled
 		)
@@ -115,17 +123,10 @@ func get_projected_monthly_delta() -> Dictionary:
 			continue
 		var level := BaseBuildingProgressStore.get_level(building.type)
 		var theoretical_output := BaseProduction.compute_monthly_yield(building, characters, level)
-		if building.type == GameEnums.BuildingType.WORKSHOP:
-			var recipe := WorkshopRecipeStore.get_selected()
-			var available: Dictionary = {}
-			for resource_type in recipe.inputs:
-				available[resource_type] = BaseResourceStore.get_amount(resource_type)
-			var result := WorkshopProduction.resolve(recipe, theoretical_output, available)
-			delta[building.produces] = delta.get(building.produces, 0) + result.output
-			for resource_type in result.consumed:
-				delta[resource_type] = delta.get(resource_type, 0) - result.consumed[resource_type]
-		else:
-			delta[building.produces] = delta.get(building.produces, 0) + theoretical_output
+		var result := _resolve_recipe(building, theoretical_output)
+		delta[building.produces] = delta.get(building.produces, 0) + result.output
+		for resource_type in result.consumed:
+			delta[resource_type] = delta.get(resource_type, 0) - result.consumed[resource_type]
 	return delta
 
 
@@ -135,16 +136,18 @@ func _on_month_passed() -> void:
 			continue
 		if not BaseBuildingProgressStore.is_unlocked(building.type):
 			continue
+		if not BaseBuildingProgressStore.is_active(building.type):
+			continue
 		var characters: Array[Character] = get_dispatched_characters(building.type).filter(
 			func(character: Character) -> bool: return not character.is_disabled
 		)
 		if characters.is_empty():
 			continue
 		var level := BaseBuildingProgressStore.get_level(building.type)
-		var monthly_yield := BaseProduction.compute_monthly_yield(building, characters, level)
-		if building.type == GameEnums.BuildingType.WORKSHOP:
-			monthly_yield = _resolve_workshop_yield(monthly_yield)
-		BaseResourceStore.add(building.produces, monthly_yield)
+		var theoretical_output := BaseProduction.compute_monthly_yield(building, characters, level)
+		var result := _resolve_recipe(building, theoretical_output)
+		BaseResourceStore.spend(result.consumed)
+		BaseResourceStore.add(building.produces, result.output)
 		var rank := BaseBuildingProgressStore.get_rank(building.type)
 		var exp_amount := BattleReward.exp_for_dispatch(rank)
 		for character in characters:

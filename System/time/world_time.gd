@@ -5,14 +5,14 @@ extends RefCounted
 ## Scripts/Autoload/world_time_store.gd 呼叫(見 System/time/world_time_controller.gd),
 ## 不再由任一場景腳本(例如原本的 Scenes/Map/map.gd)持有/驅動。
 ##
-## 簡化曆法:12 個月,每月固定 30 天,全年 360 天,不設閏年。
-## 天文紀年(無「西元 0 年」問題):B.C.621 年 1 月 1 日 = 天文紀年 -620 年第 0 天,
-## 天文紀年 <= 0 顯示為 B.C.(1 - 天文紀年),天文紀年 >= 1 顯示為 A.D.(天文紀年)。
+## 簡化曆法:12 個月,每月固定 30 天,全年 360 天,不設閏年。架空紀年,不對應真實
+## 西元/BC 換算——遊戲開始(day_count 0)固定是 START_YEAR 年 1 月 1 日,年份只會隨
+## day_count 增加往上加,不需要、也不支援往回推算成負數年份。
 
 const DAYS_PER_MONTH := 30
 const MONTHS_PER_YEAR := 12
 const DAYS_PER_YEAR := DAYS_PER_MONTH * MONTHS_PER_YEAR
-const START_ASTRO_YEAR := -620
+const START_YEAR := 116
 
 var days_per_real_second: float
 var _day_accumulator: float = 0.0
@@ -37,8 +37,8 @@ func get_day_accumulator() -> float:
 	return _day_accumulator
 
 
-func get_astro_year() -> int:
-	return START_ASTRO_YEAR + get_day_count() / DAYS_PER_YEAR
+func get_year() -> int:
+	return START_YEAR + get_day_count() / DAYS_PER_YEAR
 
 
 func get_month() -> int:
@@ -52,10 +52,4 @@ func get_day() -> int:
 
 
 func get_display_string() -> String:
-	var astro_year := get_astro_year()
-	var era_str: String
-	if astro_year <= 0:
-		era_str = "B.C. %d" % (1 - astro_year)
-	else:
-		era_str = "A.D. %d" % astro_year
-	return "%s 年 %d 月 %d 日" % [era_str, get_month(), get_day()]
+	return "%d年%d月%d日" % [get_year(), get_month(), get_day()]

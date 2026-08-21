@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://8te7hux6wpl1"
-path="res://.godot/imported/panel_1920x144.png.png-cfa4123afa7b5c7aed270f47db43ff20.ctex"
+uid="uid://b42a3dhgm5mra"
+path="res://.godot/imported/ORE.png-f2c14bc51e01d553f55bdf67994cee7b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/UI/panel_1920x144.png.png"
-dest_files=["res://.godot/imported/panel_1920x144.png.png-cfa4123afa7b5c7aed270f47db43ff20.ctex"]
+source_file="res://Images/ResourceType/ORE.png"
+dest_files=["res://.godot/imported/ORE.png-f2c14bc51e01d553f55bdf67994cee7b.ctex"]
 
 [params]
 

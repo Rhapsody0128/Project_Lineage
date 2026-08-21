@@ -121,7 +121,7 @@ layout_mode = 2
 vertical_alignment = 1
 theme_override_font_sizes/font_size = 28
 theme_override_colors/font_color = Color(0.85, 0.35, 0.4, 1)
-text = "❤"
+text = "告白"
 
 [node name="TargetSlot" type="VBoxContainer" parent="MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow"]
 layout_mode = 2

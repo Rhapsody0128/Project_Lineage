@@ -85,7 +85,7 @@ func _rebuild_body() -> void:
 	## autoload 單例,這裡直接改寫它目前顯示中的標題列,跟 open_custom() 開面板時傳入
 	## 初始標題屬於同一顆 title_label,每次 _rebuild_body() 都會覆寫成最新的名稱/等級。
 	ActionPanel.title_label.text = _build_title_text()
-	ActionPanel.set_title_action_button(_build_construction_button())
+	ActionPanel.set_title_action_button(_build_title_action_row())
 	_add_label(_building.description)
 
 	if _build_error:
@@ -124,6 +124,9 @@ func _rebuild_body() -> void:
 	_build_efficiency_label()
 	_build_worker_slots()
 
+	if _building.fixed_recipe != null:
+		_build_fixed_recipe_section()
+
 	match _building.type:
 		GameEnums.BuildingType.WORKSHOP:
 			_build_recipe_section()
@@ -133,6 +136,39 @@ func _rebuild_body() -> void:
 			_build_altar_section()
 		GameEnums.BuildingType.RESEARCH_INSTITUTE:
 			_build_tech_section()
+
+
+## 生產類建築已解鎖時,在建造/升級鈕左邊多插一顆啟動/暫停開關鈕(見
+## _build_active_toggle_button()),包成 HBoxContainer 一起塞進 ActionPanel 標題列;
+## 其餘情況(非生產建築、或建築還沒解鎖)直接回傳 _build_construction_button() 本身
+## (可能是 null,例如已達最高等級)。
+func _build_title_action_row() -> Control:
+	var construction_button := _build_construction_button()
+	if not _building.is_production_building() or not BaseBuildingProgressStore.is_unlocked(_building.type):
+		return construction_button
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	row.add_child(_build_active_toggle_button())
+	if construction_button != null:
+		row.add_child(construction_button)
+	return row
+
+
+## 關閉後 BaseDispatchStore 月結算整棟跳過(不產出、不消耗、角色也不會拿到派遣經驗,
+## 見 Scripts/Autoload/base_dispatch_store.gd),預設啟動。
+func _build_active_toggle_button() -> Button:
+	var button := Button.new()
+	button.toggle_mode = true
+	var active := BaseBuildingProgressStore.is_active(_building.type)
+	button.text = "運作中" if active else "已暫停"
+	button.button_pressed = active
+	_style_button(button)
+	button.pressed.connect(func() -> void:
+		BaseBuildingProgressStore.set_active(_building.type, not BaseBuildingProgressStore.is_active(_building.type))
+		_rebuild_body()
+	)
+	return button
 
 
 ## 已達最高等級是唯一「現在按了也沒用」又不放按鈕的狀態(下面另有文字說明,見
@@ -162,7 +198,7 @@ func _build_status_button(text: String, tooltip: String) -> Button:
 
 
 func _build_build_button() -> Button:
-	var button := Button.new()
+	var button := CostTooltipButton.new()
 	button.text = "建造"
 	_style_button(button)
 
@@ -170,12 +206,13 @@ func _build_build_button() -> Button:
 	var affordable := BaseResourceStore.can_afford(_building.build_cost)
 	button.disabled = not level_ok or not affordable
 
-	var tooltip := _build_cost_tooltip(_building.build_cost, _building.build_days)
+	var extra_lines: Array[String] = []
 	if not level_ok:
-		tooltip += "\n市鎮中心等級不足"
+		extra_lines.append("市鎮中心等級不足")
 	elif not affordable:
-		tooltip += "\n資材不足"
-	button.tooltip_text = tooltip
+		extra_lines.append("資材不足")
+	button.set_cost_tooltip(_building.build_cost, _building.build_days, extra_lines)
+	button.tooltip_text = _build_cost_tooltip(_building.build_cost, _building.build_days, extra_lines)
 
 	button.pressed.connect(func() -> void:
 		_build_error = not BaseBuildingProgressStore.start_construction(_building)
@@ -190,7 +227,7 @@ func _build_build_button() -> Button:
 ## 不是直接不顯示按鈕(呼叫端 _build_construction_button() 已保證這裡 level < max_level(),
 ## upgrade_costs[level - 1] 一定是合法索引)。
 func _build_upgrade_button() -> Button:
-	var button := Button.new()
+	var button := CostTooltipButton.new()
 	button.text = "升級"
 	_style_button(button)
 
@@ -201,12 +238,13 @@ func _build_upgrade_button() -> Button:
 	var affordable := BaseResourceStore.can_afford(cost)
 	button.disabled = not level_ok or not affordable
 
-	var tooltip := _build_cost_tooltip(cost, days)
+	var extra_lines: Array[String] = []
 	if not level_ok:
-		tooltip += "\n市鎮中心等級不足"
+		extra_lines.append("市鎮中心等級不足")
 	elif not affordable:
-		tooltip += "\n資材不足"
-	button.tooltip_text = tooltip
+		extra_lines.append("資材不足")
+	button.set_cost_tooltip(cost, days, extra_lines)
+	button.tooltip_text = _build_cost_tooltip(cost, days, extra_lines)
 
 	button.pressed.connect(func() -> void:
 		_upgrade_error = not BaseBuildingProgressStore.start_upgrade(_building)
@@ -215,15 +253,17 @@ func _build_upgrade_button() -> Button:
 	return button
 
 
-## 每種資源一行「圖示 現有X / 需要Y」,最後附一行天數,給 _build_build_button()/
-## _build_upgrade_button() 的 tooltip_text 用。
-func _build_cost_tooltip(cost: Dictionary, days: int) -> String:
+## 每種資源一行「現有X / 需要Y」,最後附一行天數,純文字備援(見
+## Scenes/Base/cost_tooltip_button.gd 開頭註解)——真正顯示給玩家看的是
+## CostTooltipButton._make_custom_tooltip() 組的圖示版本。
+func _build_cost_tooltip(cost: Dictionary, days: int, extra_lines: Array[String] = []) -> String:
 	var lines: Array[String] = []
 	for resource_type in cost:
 		var owned := BaseResourceStore.get_amount(resource_type)
 		var required: int = cost[resource_type]
-		lines.append("%s 現有%d / 需要%d" % [GameEnums.resource_type_label(resource_type), owned, required])
+		lines.append("%s 現有%d / 需要%d" % [GameEnums.resource_string_label(resource_type), owned, required])
 	lines.append("天數：%d 天" % days)
+	lines.append_array(extra_lines)
 	return "\n".join(lines)
 
 
@@ -239,12 +279,14 @@ func _build_warehouse_section() -> void:
 	for resource_type in GameEnums.ResourceType.values():
 		var capacity := BaseWarehouse.get_capacity(resource_type, level)
 		var amount := BaseResourceStore.get_amount(resource_type)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 4)
+		row.add_child(_build_resource_icon(resource_type))
 		var label := Label.new()
-		label.text = "%s %s：%d / %d" % [
-			GameEnums.resource_type_label(resource_type), GameEnums.resource_string_label(resource_type), amount, capacity
-		]
+		label.text = "%s：%d / %d" % [GameEnums.resource_string_label(resource_type), amount, capacity]
 		label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-		grid.add_child(label)
+		row.add_child(label)
+		grid.add_child(row)
 	add_child(grid)
 
 
@@ -264,7 +306,19 @@ func _build_efficiency_label() -> void:
 	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
 	var level := BaseBuildingProgressStore.get_level(_building.type)
 	var monthly_yield := BaseProduction.compute_monthly_yield(_building, characters, level)
-	_add_label("目前效率：%d %s/月" % [monthly_yield, GameEnums.resource_type_label(_building.produces)])
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	row.add_child(_build_plain_text("目前效率：%d" % monthly_yield))
+	row.add_child(_build_resource_icon(_building.produces))
+	row.add_child(_build_plain_text("/月"))
+	add_child(row)
+
+
+func _build_plain_text(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	return label
 
 
 func _build_worker_slots() -> void:
@@ -600,11 +654,11 @@ func _build_skill_row(skill: Skill) -> Control:
 	return row
 
 
-## 工匠坊:五種配方任選一種,月結算時依 WorkshopRecipeStore 目前選定的配方換算實際產出
-## (見 Scripts/Autoload/base_dispatch_store.gd 的 _resolve_workshop_yield())。原料不夠時
-## 整個月不生產、不消耗(不是部分打折),選中的配方下面直接列出本月預計消耗/取得量,
-## 讓玩家換配方前先看得到會不會白忙一場。沒派工作角色時是另一回事(沒人做事,不是原料
-## 不足),分開判斷、分開顯示,見 _build_recipe_row() 的 has_workers。
+## 工匠坊:三種配方任選一種,月結算時依 WorkshopRecipeStore 目前選定的配方換算實際產出
+## (見 Scripts/Autoload/base_dispatch_store.gd 的 _resolve_recipe())。原料不夠時整個月
+## 不生產、不消耗(不是部分打折),選中的配方下面直接列出本月預計消耗/取得量,讓玩家換
+## 配方前先看得到會不會白忙一場。沒派工作角色時是另一回事(沒人做事,不是原料不足),
+## 分開判斷、分開顯示,見 _build_recipe_preview_row() 的 has_workers。
 func _build_recipe_section() -> void:
 	_add_label("配方（資源不足時整個月不生產）：")
 	var selected_id := WorkshopRecipeStore.get_selected().id
@@ -617,8 +671,7 @@ func _build_recipe_section() -> void:
 
 
 ## 未選用的配方只列品項名稱,消耗/產出(或原料不足)這些細節選用後才在同一塊空間往下
-## 多一行顯示,不用每種配方都攤開一次資訊——「製作工藝」這個資源改用 emoji
-## (GameEnums.resource_type_label)呈現,不寫死中文字。
+## 多一行顯示,不用每種配方都攤開一次資訊。
 func _build_recipe_row(recipe: WorkshopRecipe, is_selected: bool, theoretical_output: int, has_workers: bool) -> Control:
 	var column := VBoxContainer.new()
 
@@ -644,26 +697,78 @@ func _build_recipe_row(recipe: WorkshopRecipe, is_selected: bool, theoretical_ou
 	row.add_child(button)
 
 	if is_selected:
-		var craft_icon := GameEnums.resource_type_label(GameEnums.ResourceType.CRAFT)
-		var preview_label := Label.new()
-		preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-		preview_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
-		if recipe.inputs.is_empty():
-			preview_label.text = "本月不消耗原料,也不會產出"
-		elif not has_workers:
-			preview_label.text = "尚未指派工作角色,本月不會生產"
-		else:
-			var available: Dictionary = {}
-			for resource_type in recipe.inputs:
-				available[resource_type] = BaseResourceStore.get_amount(resource_type)
-			var result := WorkshopProduction.resolve(recipe, theoretical_output, available)
-			if result.output <= 0:
-				preview_label.text = "本月原料不足,將不會生產"
-			else:
-				preview_label.text = "本月將消耗 %s，取得 %d %s" % [_format_cost(result.consumed), result.output, craft_icon]
-		column.add_child(preview_label)
+		column.add_child(_build_recipe_preview_row(recipe, _building.produces, theoretical_output, has_workers))
 
 	return column
+
+
+## 6 棟高階內政建築(Building.fixed_recipe 不為 null)共用:配方固定、玩家不能選,直接
+## 顯示本月預計消耗/取得量,邏輯跟工匠坊配方預覽(_build_recipe_row() 的 is_selected 分支)
+## 一致,見 _build_recipe_preview_row()。
+func _build_fixed_recipe_section() -> void:
+	_add_label("固定消耗（資源不足時整個月不生產）：")
+	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
+	var level := BaseBuildingProgressStore.get_level(_building.type)
+	var theoretical_output := BaseProduction.compute_monthly_yield(_building, characters, level)
+	var has_workers := not characters.is_empty()
+	add_child(_build_recipe_preview_row(_building.fixed_recipe, _building.produces, theoretical_output, has_workers))
+
+
+## 「本月將消耗 [圖示]x數量...，取得 [圖示]x數量」這行預覽,工匠坊配方(_build_recipe_row())
+## 跟固定消耗建築(_build_fixed_recipe_section())共用同一套邏輯跟排版。
+func _build_recipe_preview_row(recipe: WorkshopRecipe, output_resource: int, theoretical_output: int, has_workers: bool) -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+
+	if not has_workers:
+		row.add_child(_build_preview_text("尚未指派工作角色,本月不會生產"))
+		return row
+
+	var available: Dictionary = {}
+	for resource_type in recipe.inputs:
+		available[resource_type] = BaseResourceStore.get_amount(resource_type)
+	var result := WorkshopProduction.resolve(recipe, theoretical_output, available)
+	if result.output <= 0:
+		row.add_child(_build_preview_text("本月原料不足,將不會生產"))
+		return row
+
+	row.add_child(_build_preview_text("本月將消耗"))
+	for resource_type in result.consumed:
+		row.add_child(_build_resource_amount_chip(resource_type, result.consumed[resource_type]))
+	row.add_child(_build_preview_text("，取得"))
+	row.add_child(_build_resource_amount_chip(output_resource, result.output))
+	return row
+
+
+func _build_preview_text(text: String) -> Label:
+	var label := Label.new()
+	label.text = text
+	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
+	return label
+
+
+## 資源圖示(Images/ResourceType/,見 GameEnums.resource_type_icon_path())+ 數量的最小
+## 組合單位,取代原本 emoji 文字——tooltip 補上中文名稱,比照
+## Scenes/PartyEdit/character_card.gd 武器圖示的既有寫法。
+func _build_resource_amount_chip(resource_type: int, amount: int) -> Control:
+	var chip := HBoxContainer.new()
+	chip.add_theme_constant_override("separation", 2)
+	chip.add_child(_build_resource_icon(resource_type))
+	var label := Label.new()
+	label.text = "x%d" % amount
+	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
+	chip.add_child(label)
+	return chip
+
+
+func _build_resource_icon(resource_type: int, size: Vector2 = Vector2(26, 26)) -> TextureRect:
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = size
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = load(GameEnums.resource_type_icon_path(resource_type)) as Texture2D
+	icon.tooltip_text = GameEnums.resource_string_label(resource_type)
+	return icon
 
 
 ## 商隊站/黑市:被動生產(AGI→金錢/贓物)維持不變,這裡是疊加上去的「每月自動兌換」——
@@ -684,7 +789,7 @@ func _build_exchange_section() -> void:
 	add_child(direction_row)
 
 	var buy_button := Button.new()
-	buy_button.text = "買入（%s → 資材）" % GameEnums.resource_type_label(currency)
+	buy_button.text = "買入（%s → 資材）" % GameEnums.resource_string_label(currency)
 	buy_button.toggle_mode = true
 	buy_button.button_group = direction_group
 	buy_button.button_pressed = order.get("is_buy", true)
@@ -692,7 +797,7 @@ func _build_exchange_section() -> void:
 	direction_row.add_child(buy_button)
 
 	var sell_button := Button.new()
-	sell_button.text = "賣出（資材 → %s）" % GameEnums.resource_type_label(currency)
+	sell_button.text = "賣出（資材 → %s）" % GameEnums.resource_string_label(currency)
 	sell_button.toggle_mode = true
 	sell_button.button_group = direction_group
 	sell_button.button_pressed = not order.get("is_buy", true)
@@ -700,8 +805,12 @@ func _build_exchange_section() -> void:
 	direction_row.add_child(sell_button)
 
 	var resource_dropdown := OptionButton.new()
+	## 來源 PNG 是 512x512(見 Images/ResourceType/),OptionButton 預設不會自動縮小 icon,
+	## 這裡明確設 icon_max_width 限制顯示尺寸,不然下拉選單會被巨大圖示撐爆。
+	resource_dropdown.add_theme_constant_override("icon_max_width", 26)
 	for option in options:
-		resource_dropdown.add_item(GameEnums.resource_type_label(option.resource), option.resource)
+		var icon := load(GameEnums.resource_type_icon_path(option.resource)) as Texture2D
+		resource_dropdown.add_icon_item(icon, GameEnums.resource_string_label(option.resource), option.resource)
 	var selected_resource: int = order.get("resource", -1)
 	if selected_resource == -1 and not options.is_empty():
 		selected_resource = options[0].resource
@@ -744,8 +853,8 @@ func _build_exchange_section() -> void:
 			preview_label.text = "尚未設定兌換數量"
 		else:
 			preview_label.text = "本月將消耗 %d %s，取得 %d %s" % [
-				result.source_amount, GameEnums.resource_type_label(result.source_resource),
-				result.target_amount, GameEnums.resource_type_label(result.target_resource)
+				result.source_amount, GameEnums.resource_string_label(result.source_resource),
+				result.target_amount, GameEnums.resource_string_label(result.target_resource)
 			]
 
 	buy_button.toggled.connect(func(_pressed: bool) -> void: refresh_preview.call())
@@ -807,7 +916,7 @@ func _build_ultimate_row(ultimate: Ultimate) -> Control:
 
 	var cost := BaseAltar.cost_for_rank(ultimate.rank)
 	var label := Label.new()
-	label.text = "%s (%s) ：消耗 %s %s" % [ultimate.name, GameEnums.rank_label(ultimate.rank), GameEnums.resource_type_label(_building.produces), cost]
+	label.text = "%s (%s) ：消耗 %s %s" % [ultimate.name, GameEnums.rank_label(ultimate.rank), GameEnums.resource_string_label(_building.produces), cost]
 	label.tooltip_text = ultimate.description
 	label.mouse_filter = Control.MOUSE_FILTER_STOP
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -891,7 +1000,7 @@ func _build_tech_row(tech: Tech, research_institute_level: int) -> Control:
 func _format_cost(cost: Dictionary) -> String:
 	var parts: Array[String] = []
 	for resource_type in cost:
-		parts.append("%s x%d" % [GameEnums.resource_type_label(resource_type), cost[resource_type]])
+		parts.append("%s x%d" % [GameEnums.resource_string_label(resource_type), cost[resource_type]])
 	return "、".join(parts)
 
 

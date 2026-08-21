@@ -81,7 +81,9 @@ const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城鎮", "根據地"]
 
 ## 根據地建築類型,見 System/base/building/building_library.gd 與
 ## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
-## 實作;後十二種是生產類建築,兩兩一組對應六大素質的基礎/高階內政。
+## 實作;後十二種是生產類建築,每種對應六大素質之一。其中 6 種(採石場/採礦場/黑市/
+## 抄書院/科學研究所/禁忌祭壇)月結算會額外消耗固定資源才能產出(見 Building.fixed_recipe),
+## 工匠坊則是玩家自選三種配方之一(見 WorkshopRecipeLibrary),其餘 5 種不消耗任何資源。
 enum BuildingType {
 	STRONGHOLD, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS,
 	LUMBER_MILL, QUARRY, FARM, MINE, CARAVAN, BLACK_MARKET,
@@ -99,20 +101,14 @@ const BUILDING_TYPE_LABELS: Array[String] = [
 
 ## 根據地資源類型,見 System/base/base_production.gd / Scripts/Autoload/base_resource_store.gd
 enum ResourceType {
-	WOOD, STONE, FOOD, ORE, GOLD, CONTRABAND, FUR, CRAFT,
+	WOOD, STONE, FOOD, ORE, GOLD, CONTRABAND, FUR, TOOL,
 	BOOK, RESEARCH, FAITH, CURSE,
 }
 
 ## 根據地資源 UI 顯示用中文標籤,順序對應 ResourceType enum
 const RESOURCE_STRING_LABELS: Array[String] = [
-	"木材", "石材", "糧食", "鐵礦", "金錢", "贓物", "毛皮", "製作工藝",
+	"木材", "石材", "糧食", "鐵礦", "金錢", "贓物", "毛皮", "工具",
 	"書本", "科研", "信仰", "詛咒",
-]
-
-## 根據地資源 UI 顯示用顯示標籤,順序對應 ResourceType enum
-const RESOURCE_TYPE_LABELS: Array[String] = [
-	"🪵", "🪨", "🌾", "⛏️", "🪙", "💰", "🐺", "⚒️",
-	"📚", "🔬", "🙏", "🩸",
 ]
 
 ## 血統國家 UI 顯示用中文標籤,順序對應 BloodlineNation enum
@@ -123,7 +119,7 @@ const BLOODLINE_NATION_LABELS: Array[String] = ["獅", "鷹", "豹", "熊", "龍
 const BLOODLINE_RANK_LABELS: Array[String] = ["血", "高血"]
 
 ## 性別 UI 顯示用符號,順序對應 Gender enum
-const GENDER_SYMBOLS: Array[String] = ["♂", "♀"]
+const GENDER_SYMBOLS: Array[String] = ["男", "女"]
 
 ## 以下四個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
 ## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
@@ -146,11 +142,14 @@ static func map_object_type_label(map_object_type: int) -> String:
 static func building_type_label(building_type: int) -> String:
 	return BUILDING_TYPE_LABELS[building_type]
 
-static func resource_type_label(resource_type: int) -> String:
-	return RESOURCE_TYPE_LABELS[resource_type]
-
 static func resource_string_label(resource_type: int) -> String:
 	return RESOURCE_STRING_LABELS[resource_type]
+
+## 資源圖示路徑(見 Images/ResourceType/),檔名對應 ResourceType enum 成員名稱,同
+## weapon_icon_path()/base_building_background_path() 的慣例——取代舊版
+## RESOURCE_TYPE_LABELS 那組 emoji,畫面一律改用 TextureRect 載入這裡回傳的路徑。
+static func resource_type_icon_path(resource_type: int) -> String:
+	return "res://Images/ResourceType/%s.png" % ResourceType.keys()[resource_type]
 
 static func bloodline_nation_label(nation: int) -> String:
 	return BLOODLINE_NATION_LABELS[nation]

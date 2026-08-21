@@ -149,7 +149,7 @@ func _refresh_picker() -> void:
 ## 的 selected 金色邊框(目前點誰預覽)是兩件事,不會互相蓋掉。
 func _add_courted_marker(card: CharacterAvatarCard) -> void:
 	var marker := Label.new()
-	marker.text = "❤"
+	marker.text = "被告白"
 	marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	marker.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	marker.position = Vector2(-20, -6)

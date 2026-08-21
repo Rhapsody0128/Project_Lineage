@@ -12,12 +12,12 @@ const COST_BY_RANK: Array[Dictionary] = [
 	{GameEnums.ResourceType.WOOD: 20},
 	{GameEnums.ResourceType.WOOD: 35, GameEnums.ResourceType.STONE: 15},
 	{GameEnums.ResourceType.STONE: 40, GameEnums.ResourceType.ORE: 15},
-	{GameEnums.ResourceType.STONE: 60, GameEnums.ResourceType.ORE: 30, GameEnums.ResourceType.CRAFT: 10},
-	{GameEnums.ResourceType.ORE: 50, GameEnums.ResourceType.CRAFT: 25, GameEnums.ResourceType.GOLD: 60},
-	{GameEnums.ResourceType.CRAFT: 45, GameEnums.ResourceType.GOLD: 120, GameEnums.ResourceType.BOOK: 30},
-	{GameEnums.ResourceType.CRAFT: 70, GameEnums.ResourceType.GOLD: 220, GameEnums.ResourceType.BOOK: 60, GameEnums.ResourceType.RESEARCH: 20},
-	{GameEnums.ResourceType.CRAFT: 100, GameEnums.ResourceType.GOLD: 380, GameEnums.ResourceType.RESEARCH: 45, GameEnums.ResourceType.FAITH: 30},
-	{GameEnums.ResourceType.CRAFT: 150, GameEnums.ResourceType.GOLD: 600, GameEnums.ResourceType.RESEARCH: 80, GameEnums.ResourceType.FAITH: 60, GameEnums.ResourceType.CURSE: 20},
+	{GameEnums.ResourceType.STONE: 60, GameEnums.ResourceType.ORE: 30, GameEnums.ResourceType.TOOL: 10},
+	{GameEnums.ResourceType.ORE: 50, GameEnums.ResourceType.TOOL: 25, GameEnums.ResourceType.GOLD: 60},
+	{GameEnums.ResourceType.TOOL: 45, GameEnums.ResourceType.GOLD: 120, GameEnums.ResourceType.BOOK: 30},
+	{GameEnums.ResourceType.TOOL: 70, GameEnums.ResourceType.GOLD: 220, GameEnums.ResourceType.BOOK: 60, GameEnums.ResourceType.RESEARCH: 20},
+	{GameEnums.ResourceType.TOOL: 100, GameEnums.ResourceType.GOLD: 380, GameEnums.ResourceType.RESEARCH: 45, GameEnums.ResourceType.FAITH: 30},
+	{GameEnums.ResourceType.TOOL: 150, GameEnums.ResourceType.GOLD: 600, GameEnums.ResourceType.RESEARCH: 80, GameEnums.ResourceType.FAITH: 60, GameEnums.ResourceType.CURSE: 20},
 ]
 
 

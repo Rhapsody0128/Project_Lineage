@@ -150,7 +150,7 @@ func _build_accepted_reaction(picked: Character, stranger_character: Character) 
 	var stranger_speaker := DialogueSpeaker.new(stranger_character.id, stranger_character.full_name, stranger_character.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(picked_speaker.id, "這是我的榮幸。"),
-		DialogueLine.new(stranger_speaker.id, "❤"),
+		# DialogueLine.new(stranger_speaker.id, ""),
 	]
 	return Dialogue.new([picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
 
@@ -165,7 +165,7 @@ func _build_change_but_accept_reaction(picked: Character, stranger_character: Ch
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(courted_speaker.id, "不太適合,但我有個適合的人選介紹給你,"),
 		DialogueLine.new(picked_speaker.id, "你好...請問我有這個榮幸請你喝一杯嗎?"),
-		DialogueLine.new(stranger_speaker.id, "好啊!❤"),
+		DialogueLine.new(stranger_speaker.id, "好啊!"),
 	]
 	return Dialogue.new([courted_speaker, picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
 

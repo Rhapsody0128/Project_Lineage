@@ -154,7 +154,8 @@ get_nonzero_entries()` + `GameEnums.bloodline_full_label`/`bloodline_nation_colo
 ## 世界時間(System/time + WorldTimeStore)
 
 `WorldTime`(`System/time/world_time.gd`)是純曆法算式(12 個月/每月 30 天/全年 360 天,
-天文紀年,見檔案內註解),`WorldTimeController`(`System/time/world_time_controller.gd`)
+架空紀年、不對應真實西元/BC,遊戲開始固定是 `START_YEAR` 年 1 月 1 日,年份只會往上加不會
+往回推算,見檔案內註解),`WorldTimeController`(`System/time/world_time_controller.gd`)
 包一層「推進後跨過幾天邊界」的偵測,逐天派發已註冊的 day/month/year 固定事件——不是每
 frame 觸發,是每跨過一天才觸發一次,快轉一次跳好幾天一樣會逐天觸發,不會漏掉中間的月/
 年事件。兩者都是 `RefCounted`,不自己跑迴圈。

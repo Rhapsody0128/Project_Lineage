@@ -38,6 +38,10 @@ var build_days: int
 var upgrade_costs: Array[Dictionary]
 ## 跟 upgrade_costs 平行的天數表,index i = 從第 i+1 級升到第 i+2 級要花幾天。
 var upgrade_days: Array[int]
+## 固定消耗配方(見 System/base/workshop_recipe.gd)——不像工匠坊三選一配方需要玩家挑選,
+## 這裡是月結算固定套用的單一配方,null 代表不消耗任何資源。BaseDispatchStore 月結算
+## (見 _resolve_recipe())統一用 WorkshopProduction.resolve() 換算實際產出。
+var fixed_recipe: WorkshopRecipe
 ## 建築圖示範圍多邊形(跟 Background 同一個座標系的絕對座標),供點擊命中判定/畫面
 ## 繪製使用(見 BaseSystem.pick_building()、Scenes/Base/building_visual.gd),同
 ## MapObject.territory_polygon 的設計。由 _init() 依 type 自動從 BuildingPositions 查出。
@@ -54,7 +58,8 @@ func _init(
 	p_build_cost: Dictionary = {},
 	p_build_days: int = 1,
 	p_upgrade_costs: Array[Dictionary] = [],
-	p_upgrade_days: Array[int] = []
+	p_upgrade_days: Array[int] = [],
+	p_fixed_recipe: WorkshopRecipe = null
 ) -> void:
 	type = p_type
 	name = p_name
@@ -66,6 +71,7 @@ func _init(
 	build_days = p_build_days
 	upgrade_costs = p_upgrade_costs
 	upgrade_days = p_upgrade_days
+	fixed_recipe = p_fixed_recipe
 	territory_polygon = BuildingPositions.get_polygon(p_type)
 
 

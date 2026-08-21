@@ -32,6 +32,10 @@ var _levels: Dictionary = {}
 var _construction: Dictionary = {}
 ## building_type -> 升級剩餘天數,只在「已建成、升級中」時存在。
 var _upgrades: Dictionary = {}
+## building_type -> 是否啟動生產(玩家可在 ActionPanel 標題列的開關鈕手動關閉,見
+## Scenes/Base/base_action_panel.gd),缺值視為 true(預設啟動)。關閉的建築
+## BaseDispatchStore 月結算會整棟跳過(不產出、不消耗、角色也不會拿到派遣經驗)。
+var _active: Dictionary = {}
 
 
 func _ready() -> void:
@@ -48,6 +52,15 @@ func is_unlocked(building_type: GameEnums.BuildingType) -> bool:
 
 func get_max_workers(building_type: GameEnums.BuildingType) -> int:
 	return get_level(building_type)
+
+
+func is_active(building_type: GameEnums.BuildingType) -> bool:
+	return _active.get(building_type, true)
+
+
+func set_active(building_type: GameEnums.BuildingType, active: bool) -> void:
+	_active[building_type] = active
+	changed.emit()
 
 
 ## 城鎮中心等級決定其他 16 棟建築的等級上限(見「根據地內政系統設計」文件二節):城鎮中心
@@ -145,6 +158,7 @@ func to_save_data() -> Dictionary:
 		"levels": SaveDataCodec.int_keyed_to_str(_levels),
 		"construction": SaveDataCodec.int_keyed_to_str(_construction),
 		"upgrades": SaveDataCodec.int_keyed_to_str(_upgrades),
+		"active": SaveDataCodec.int_keyed_to_str(_active),
 	}
 
 
@@ -152,6 +166,7 @@ func load_save_data(data: Dictionary) -> void:
 	_levels = SaveDataCodec.str_keyed_to_int(data.get("levels", {}))
 	_construction = SaveDataCodec.str_keyed_to_int(data.get("construction", {}))
 	_upgrades = SaveDataCodec.str_keyed_to_int(data.get("upgrades", {}))
+	_active = SaveDataCodec.str_keyed_to_int(data.get("active", {}))
 	changed.emit()
 
 

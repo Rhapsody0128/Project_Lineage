@@ -4,13 +4,12 @@
 [ext_resource type="Texture2D" uid="uid://brshvytyolmhu" path="res://Images/Base/base.jpg" id="3_background"]
 
 [node name="Base" type="Node2D" unique_id=1967325294]
-scale = Vector2(1.875, 1.875)
+scale = Vector2(1.875, 1.932021)
 script = ExtResource("1_base")
 
 [node name="Background" type="TextureRect" parent="." unique_id=1016420332]
-offset_top = 15.433336
 offset_right = 1024.0
-offset_bottom = 574.43335
+offset_bottom = 559.0
 mouse_filter = 2
 texture = ExtResource("3_background")
 

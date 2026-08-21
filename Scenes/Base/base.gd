@@ -2,7 +2,13 @@ extends Node2D
 
 ## 根據地場景整合層,比照 Scenes/Map/map.gd 的角色分工,但沒有走位/攝影機拖曳縮放
 ## (使用者已確認:直接點擊建築物,不做角色走到定點——見計畫)。背景圖 1024x559,
-## 靠根節點 scale 撐滿視窗寬度,UI 放獨立 CanvasLayer 不受這個 scale 影響。跟大地圖
+## 靠根節點 scale 的 x/y 分別撐滿視窗寬高(1920x1080,見 project.godot),讓背景滿版鋪滿
+## 畫面(比照 Dialogue 場景背景滿版的做法),非等比縮放造成的些微變形可接受,因為
+## Images/Base/base.jpg 上沒有疊其他需要維持長寬比的圖層。BaseSystem.pick_building() 用
+## Building.territory_polygon(使用者在原圖 1024x559 像素座標點出來的多邊形)比對
+## get_local_mouse_position(),因為 Node2D.scale 就是 Godot 內建座標轉換,即使 x/y
+## 縮放比例不同,click 判定一樣正確,不需要額外換算。UI 放獨立 CanvasLayer 不受這個
+## scale 影響。跟大地圖
 ## 一樣掛 HeaderBar(見 Scripts/UI/header_bar.gd),隊伍/資源狀態面板走
 ## HeaderBar.add_status_button()(Map 場景也掛同一顆,見 map.gd),不另外開一條
 ## 常駐的資源列。建築本身不畫任何額外圖層(不疊色塊、不顯示中文名稱標籤)——

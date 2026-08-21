@@ -16,7 +16,6 @@ config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [autoload]
 
-AssetBundleLoader="*res://Scripts/Autoload/asset_bundle_loader.gd"
 WorldTimeStore="*res://Scripts/Autoload/world_time_store.gd"
 CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
 BattleReportStore="*res://Scripts/Autoload/battle_report_store.gd"
@@ -43,15 +42,16 @@ TechStore="*res://Scripts/Autoload/tech_store.gd"
 BarracksTrainingStore="*res://Scripts/Autoload/barracks_training_store.gd"
 SaveLoadStore="*res://Scripts/Autoload/save_load_store.gd"
 TavernStore="*res://Scripts/Autoload/tavern_store.gd"
+AssetBundleLoader="*res://Scripts/Autoload/asset_bundle_loader.gd"
 
 [display]
 
-window/size/viewport_width=1920
-window/size/viewport_height=1080
+window/size/viewport_width=1632
+window/size/viewport_height=918
 window/size/mode=3
+window/size/resizable=false
 window/size/borderless=true
 window/stretch/mode="canvas_items"
-window/stretch/aspect="keep"
 
 [editor_plugins]
 

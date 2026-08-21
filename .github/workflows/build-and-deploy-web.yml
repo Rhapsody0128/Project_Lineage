@@ -1,0 +1,53 @@
+name: Build & Deploy Web
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.1
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-and-deploy-web
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Godot
+        uses: chickensoft-games/setup-godot@v2
+        with:
+          version: ${{ env.GODOT_VERSION }}
+          use-dotnet: false
+          include-templates: true
+
+      - name: Export Web build
+        run: godot --headless --export-release "Web"
+
+      - name: Deploy to page branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin page
+          git worktree add ../page-branch origin/page
+
+          find ../page-branch -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -r Page/. ../page-branch/
+          mv "../page-branch/Project L.html" "../page-branch/index.html"
+
+          cd ../page-branch
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to deploy"
+            exit 0
+          fi
+          git commit -m "Deploy: web build from ${{ github.sha }}"
+          git push origin HEAD:page

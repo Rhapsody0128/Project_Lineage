@@ -154,7 +154,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | 鷹(EAGLE) | 森林(FOREST) |
 | 豹(LEOPARD) | 沙漠(DESERT) |
 | 熊(BEAR) | 山岳(MOUNTAINS) |
-| 龍(DRAGON) | 孤島(ISLANDS) |
+| 龍(DRAGON) | 冰原(ICEFIELD) |
 | 鹿(DEER) | 高原(PLATEAU) |
 
 `System/map/map_object.gd` 的 `MapObject.nation` 記錄每個地點所屬國家,`terrain_type()`

@@ -94,7 +94,7 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 func _background_path() -> String:
 	var nation_type := _enemy.party.nation_type
 	var terrain_type := GameEnums.bloodline_nation_terrain(nation_type) if nation_type != -1 else GameEnums.TerrainType.PLAINS
-	return GameEnums.town_background_path(terrain_type)
+	return GameEnums.terrain_background_path(terrain_type)
 
 
 ## 開戰前先告知玩家這場遭遇的評級/金錢與好感度利害關係(見 System/battle/battle_reward.gd

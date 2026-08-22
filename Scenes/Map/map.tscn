@@ -1,12 +1,15 @@
 [gd_scene format=3 uid="uid://cpo0737ciego8"]
 
 [ext_resource type="Script" uid="uid://bgr1g22dcm84h" path="res://Scenes/Map/map.gd" id="1_map"]
+[ext_resource type="Texture2D" uid="uid://v4vckyr6rx76" path="res://Images/Map/map.png" id="2_03x5g"]
 [ext_resource type="PackedScene" uid="uid://dqf4wd7iad55i" path="res://Images/Warrier/animated_sprite_2d.tscn" id="2_avatar"]
-[ext_resource type="Texture2D" uid="uid://dpag5ldedc5fl" path="res://Images/Map/main_map.png" id="3_background"]
+[ext_resource type="PackedScene" uid="uid://ccdyhygbnnu0t" path="res://Scenes/MapObject/Castle/Castle.tscn" id="2_pvgv4"]
 
 [node name="Map" type="Node2D" unique_id=176181823]
 rotation = -6.2831855
 script = ExtResource("1_map")
+
+[node name="Castle" parent="." unique_id=2125403038 instance=ExtResource("2_pvgv4")]
 
 [node name="Camera" type="Camera2D" parent="." unique_id=2135090404]
 limit_left = 0
@@ -16,10 +19,12 @@ limit_bottom = 4500
 limit_smoothed = true
 
 [node name="Background" type="TextureRect" parent="." unique_id=1517579340]
+offset_left = -1.04907285e-05
+offset_top = 60.0
 offset_right = 8000.0
-offset_bottom = 4500.0
+offset_bottom = 4560.0
 mouse_filter = 2
-texture = ExtResource("3_background")
+texture = ExtResource("2_03x5g")
 
 [node name="MapObjectsLayer" type="Node2D" parent="." unique_id=596360902]
 

@@ -52,7 +52,7 @@ enum DialogueSide {LEFT, RIGHT, NARRATOR}
 ## 血統六大國家,對應血統代表色紅/白/黃/綠/藍/青,見 System/bloodline/
 enum BloodlineNation {LION, EAGLE, LEOPARD, BEAR, DRAGON, DEER}
 ## 血統階級:平民血統/高階血統,同一國家內兩者是分開計量的獨立欄位
-enum TerrainType {PLAINS, MOUNTAINS, PLATEAU, FOREST, DESERT, ISLANDS}
+enum TerrainType {PLAINS, MOUNTAINS, PLATEAU, FOREST, DESERT, ICEFIELD}
 # 對應六種國家所處的六種地理環境,見 Spec.md 六、血統國家與地理環境對照表,以及
 # bloodline_nation_terrain() 的換算。
 enum BloodlineRank {COMMON, NOBLE}
@@ -220,10 +220,10 @@ static func bloodline_nation_color(nation: int) -> Color:
 	return BLOODLINE_NATION_COLORS[nation]
 
 ## 血統國家所屬地形,順序對應 BloodlineNation enum:獅→平原/鷹→森林/豹→沙漠/熊→山岳/
-## 龍→孤島/鹿→高原,對照表見 Spec.md 六、血統國家與地理環境對照表。
+## 龍→冰原/鹿→高原,對照表見 Spec.md 六、血統國家與地理環境對照表。
 const BLOODLINE_NATION_TERRAINS: Array[TerrainType] = [
 	TerrainType.PLAINS, TerrainType.FOREST, TerrainType.DESERT,
-	TerrainType.MOUNTAINS, TerrainType.ISLANDS, TerrainType.PLATEAU,
+	TerrainType.MOUNTAINS, TerrainType.ICEFIELD, TerrainType.PLATEAU,
 ]
 
 static func bloodline_nation_terrain(nation: int) -> int:
@@ -235,6 +235,9 @@ static func bloodline_nation_terrain(nation: int) -> int:
 ## Scenes/MapLocation/map_location.gd 進到 TOWN 地點選單時的整頁背景圖。
 static func town_background_path(terrain_type: int) -> String:
 	return "res://Images/Dialogue/Map/Town/town_%s.png" % TerrainType.keys()[terrain_type]
+
+static func terrain_background_path(terrain_type: int) -> String:
+	return "res://Images/Dialogue/Map/Terrain/%s.png" % TerrainType.keys()[terrain_type]
 
 ## 根據地內部共用對話背景圖(不分地形),見 System/event/base/base_leave_event.gd
 ## 的離開過場。

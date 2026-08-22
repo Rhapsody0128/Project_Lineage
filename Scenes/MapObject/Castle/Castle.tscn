@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://ccdyhygbnnu0t"]
+
+[ext_resource type="Texture2D" uid="uid://xtkhamlg0ldj" path="res://Scenes/MapObject/Castle/Gemini_Generated_Image_ijj7ksijj7ksijj7.png" id="1_d0afa"]
+
+[node name="Castle" type="Node2D" unique_id=2125403038]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1581204893]
+position = Vector2(3, 2)
+scale = Vector2(0.0039062696, 0.00390627)
+texture = ExtResource("1_d0afa")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=910706737]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=665680059]
+debug_color = Color(0.59966993, 0.3943992, 0.94960374, 0.41960785)

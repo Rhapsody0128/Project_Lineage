@@ -12,7 +12,7 @@ const NO_WEAPON_BINDING := -1
 ## 前三項是衍生值,後六項對應 PotentialType 六大素質
 enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
 ## 大地圖上的地點類型,見 System/map/map_object.gd
-enum MapObjectType {TOWN, BASE}
+enum MapObjectType {TOWN, BASE, CASTLE}
 
 
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
@@ -77,7 +77,7 @@ const WEAPON_TYPE_LABELS: Array[String] = ["劍", "弓", "盾", "匕首", "法�
 const CHARACTER_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數", "力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
 ## 大地圖地點 UI 顯示用中文標籤,順序對應 MapObjectType enum
-const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城鎮", "根據地"]
+const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城鎮", "根據地", "城堡"]
 
 ## 根據地建築類型,見 System/base/building/building_library.gd 與
 ## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
@@ -238,6 +238,27 @@ static func town_background_path(terrain_type: int) -> String:
 
 static func terrain_background_path(terrain_type: int) -> String:
 	return "res://Images/Dialogue/Map/Terrain/%s.png" % TerrainType.keys()[terrain_type]
+
+## 大地圖城鎮圖示(Images/Map/MapObject/Town/),見 Scenes/MapObject/Town/town.gd。
+## 檔名沿用美術原始命名(DESSERT 是既有拼字,不是 DESERT 的筆誤修正),所以不能像
+## town_background_path() 那樣直接用 TerrainType.keys() 拼路徑,改用固定對照表。
+const TOWN_MAP_ICON_FILENAMES: Array[String] = [
+	"TOWN_PLAINS.png", "TOWN_MOUNTAINS.png", "TOWN_PLATEAU.png",
+	"TOWN_FOREST.png", "TOWN_DESSERT.png", "TOWN_ICEFIELD.png",
+]
+
+static func town_map_icon_path(terrain_type: int) -> String:
+	return "res://Images/Map/MapObject/Town/%s" % TOWN_MAP_ICON_FILENAMES[terrain_type]
+
+## 大地圖城堡圖示(Images/Map/MapObject/Castle/),見 Scenes/MapObject/Castle/castle.gd。
+## 同上不能用 TerrainType.keys() 拼路徑,原因同 TOWN_MAP_ICON_FILENAMES。
+const CASTLE_MAP_ICON_FILENAMES: Array[String] = [
+	"CASTLE_PLAINS.png", "CASTLE_MOUNTAINS.png", "CASTLE_PLATEAU.png",
+	"CASTLE_FOREST.png", "CASTLE_DESSERT.png", "CASTLE_ICEFIELD.png",
+]
+
+static func castle_map_icon_path(terrain_type: int) -> String:
+	return "res://Images/Map/MapObject/Castle/%s" % CASTLE_MAP_ICON_FILENAMES[terrain_type]
 
 ## 根據地內部共用對話背景圖(不分地形),見 System/event/base/base_leave_event.gd
 ## 的離開過場。

@@ -44,7 +44,10 @@ func _ready() -> void:
 		_style_sub_location_button(button)
 		if sub_location_label == TOWN_LABEL:
 			button.pressed.connect(_on_town_button_pressed)
-		elif sub_location_label == CHAT_LABEL:
+		elif sub_location_label == CHAT_LABEL and _map_object.type == GameEnums.MapObjectType.TOWN:
+			# CASTLE 子地點清單也有一顆同樣文字的「聊天」按鈕(見 System/map/map_object.gd
+			# 的 TYPE_SUB_LOCATIONS),但故意不接 TownChatEvent——城堡的聊天內容還沒設計,
+			# 先維持空按鈕,不能只靠文字比對,否則會被這裡誤接成村民閒聊。
 			button.pressed.connect(_on_chat_button_pressed)
 		elif sub_location_label == TAVERN_LABEL:
 			button.pressed.connect(_on_tavern_button_pressed)

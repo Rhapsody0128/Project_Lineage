@@ -1,0 +1,15 @@
+[gd_scene format=3 uid="uid://s602fxblhd7e"]
+
+[ext_resource type="Script" uid="uid://cbjcef4cs6rxx" path="res://Scenes/MapObject/Town/town.gd" id="1_town_script"]
+[ext_resource type="Texture2D" uid="uid://gdrgcg3gxy3c" path="res://Images/Map/MapObject/Town/TOWN_PLAINS.png" id="2_a1p8l"]
+
+[node name="Town" type="Node2D" unique_id=137531394]
+script = ExtResource("1_town_script")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=475645836]
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("2_a1p8l")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1438936887]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=185897702]

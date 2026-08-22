@@ -1,0 +1,13 @@
+[gd_scene format=3 uid="uid://c218k7tly7x77"]
+
+[ext_resource type="Texture2D" uid="uid://08uk0p7r7nsa" path="res://Images/Map/MapObject/Base.png" id="1_base_tex"]
+
+[node name="Base" type="Node2D" unique_id=407605808]
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1671194856]
+scale = Vector2(0.2, 0.2)
+texture = ExtResource("1_base_tex")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=1913617782]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=324733172]

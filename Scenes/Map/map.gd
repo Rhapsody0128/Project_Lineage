@@ -74,12 +74,41 @@ var _traveling_to_enemy: RoamingEnemy = null
 ## 正常曝露在地圖上的風險。
 var _is_resting := false
 
+## 城鎮血統國家 → map.tscn 裡手動擺放的 Town 場景節點名稱,見 _sync_map_object_positions()。
+const TOWN_NODE_NAMES: Dictionary = {
+	GameEnums.BloodlineNation.LION: "Town_Lion",
+	GameEnums.BloodlineNation.BEAR: "Town_Bear",
+	GameEnums.BloodlineNation.EAGLE: "Town_Eagle",
+	GameEnums.BloodlineNation.DRAGON: "Town_Dragon",
+	GameEnums.BloodlineNation.DEER: "Town_Deer",
+	GameEnums.BloodlineNation.LEOPARD: "Town_Leopard",
+}
+## 玩家根據地(唯一一個,不分血統國家)在 map.tscn 裡手動擺放的節點名稱,同上。
+const BASE_NODE_NAME := "Base"
+## 城堡 MapObject.id → map.tscn 裡手動擺放的 Castle 場景節點名稱,同上。城堡同一地形有
+## 兩座、不像城鎮一個國家對一個節點,所以用 id(而非 nation)當 key。
+const CASTLE_NODE_NAMES: Dictionary = {
+	"PlainsCastle1": "Castle_Plains_1",
+	"PlainsCastle2": "Castle_Plains_2",
+	"MountainsCastle1": "Castle_Mountains_1",
+	"MountainsCastle2": "Castle_Mountains_2",
+	"PlateauCastle1": "Castle_Plateau_1",
+	"PlateauCastle2": "Castle_Plateau_2",
+	"ForestCastle1": "Castle_Forest_1",
+	"ForestCastle2": "Castle_Forest_2",
+	"DesertCastle1": "Castle_Desert_1",
+	"DesertCastle2": "Castle_Desert_2",
+	"IcefieldCastle1": "Castle_Icefield_1",
+	"IcefieldCastle2": "Castle_Icefield_2",
+}
+
 
 func _ready() -> void:
 	header_bar = HeaderBar.new()
 	ui_layer.add_child(header_bar)
 
 	_objects = MapObject.get_all()
+	_sync_map_object_positions()
 	_spawn_map_objects()
 
 	# 目前玩家 Party 從 PartyStore 取得;玩家尚未去過 PartyEdit 時該值為 null,
@@ -149,8 +178,37 @@ func _find_object_by_id(id: String) -> MapObject:
 	return null
 
 
+## 城鎮/根據地座標一律以 map.tscn 裡手動擺放的節點為準(美術直接拖曳決定,見
+## System/map/map_object.gd 的 get_all() 註解),這裡覆寫掉那邊存的快照數值,
+## RoamingEnemySpawner 等獨立呼叫 MapObject.get_all() 的 System 層邏輯沒有場景樹可讀,
+## 只能繼續吃那份快照,所以拖動節點後記得手動同步回 map_object.gd。
+func _sync_map_object_positions() -> void:
+	for obj in _objects:
+		var node_name := _map_object_node_name(obj)
+		if node_name.is_empty():
+			continue
+		var map_node := get_node_or_null(node_name)
+		if map_node != null:
+			obj.position = map_node.position
+
+
+func _map_object_node_name(obj: MapObject) -> String:
+	if obj.type == GameEnums.MapObjectType.TOWN:
+		return TOWN_NODE_NAMES.get(obj.nation, "")
+	if obj.type == GameEnums.MapObjectType.BASE:
+		return BASE_NODE_NAME
+	if obj.type == GameEnums.MapObjectType.CASTLE:
+		return CASTLE_NODE_NAMES.get(obj.id, "")
+	return ""
+
+
+## TOWN/BASE/CASTLE 物件的畫面就是 map.tscn 裡那些手動擺放的節點本身(已經在場景樹裡,
+## 一開始就看得到),不用再另外產生方塊/多邊形視覺;這裡只處理其他還沒有手動擺放美術的
+## 物件(目前沒有,保留給之後新增的地點類型)。
 func _spawn_map_objects() -> void:
 	for obj in _objects:
+		if not _map_object_node_name(obj).is_empty():
+			continue
 		var visual := MapObjectVisual.new()
 		map_objects_layer.add_child(visual)
 		visual.setup(obj)

@@ -3,13 +3,13 @@
 [ext_resource type="Script" uid="uid://bgr1g22dcm84h" path="res://Scenes/Map/map.gd" id="1_map"]
 [ext_resource type="Texture2D" uid="uid://v4vckyr6rx76" path="res://Images/Map/map.png" id="2_03x5g"]
 [ext_resource type="PackedScene" uid="uid://dqf4wd7iad55i" path="res://Images/Warrier/animated_sprite_2d.tscn" id="2_avatar"]
-[ext_resource type="PackedScene" uid="uid://ccdyhygbnnu0t" path="res://Scenes/MapObject/Castle/Castle.tscn" id="2_pvgv4"]
+[ext_resource type="PackedScene" uid="uid://s602fxblhd7e" path="res://Scenes/MapObject/Town/Town.tscn" id="3_town_scene"]
+[ext_resource type="PackedScene" uid="uid://c218k7tly7x77" path="res://Scenes/MapObject/Base/Base.tscn" id="4_base_scene"]
+[ext_resource type="PackedScene" uid="uid://ccdyhygbnnu0t" path="res://Scenes/MapObject/Castle/Castle.tscn" id="5_castle_scene"]
 
 [node name="Map" type="Node2D" unique_id=176181823]
 rotation = -6.2831855
 script = ExtResource("1_map")
-
-[node name="Castle" parent="." unique_id=2125403038 instance=ExtResource("2_pvgv4")]
 
 [node name="Camera" type="Camera2D" parent="." unique_id=2135090404]
 limit_left = 0
@@ -19,10 +19,10 @@ limit_bottom = 4500
 limit_smoothed = true
 
 [node name="Background" type="TextureRect" parent="." unique_id=1517579340]
-offset_left = -1.04907285e-05
-offset_top = 60.0
+offset_left = -2.0981453e-05
+offset_top = 120.0
 offset_right = 8000.0
-offset_bottom = 4560.0
+offset_bottom = 4620.0
 mouse_filter = 2
 texture = ExtResource("2_03x5g")
 
@@ -33,6 +33,78 @@ texture = ExtResource("2_03x5g")
 [node name="DestinationLine" type="Line2D" parent="." unique_id=1109073231]
 visible = false
 default_color = Color(1, 1, 1, 0.85)
+
+[node name="Town_Lion" parent="." unique_id=472845721 instance=ExtResource("3_town_scene")]
+position = Vector2(2069.9995, 2842.0002)
+
+[node name="Town_Bear" parent="." unique_id=718601313 instance=ExtResource("3_town_scene")]
+position = Vector2(4069.9995, 2427.0007)
+terrain = 1
+
+[node name="Town_Eagle" parent="." unique_id=816051248 instance=ExtResource("3_town_scene")]
+position = Vector2(6009, 1081.0011)
+terrain = 3
+
+[node name="Town_Dragon" parent="." unique_id=865846281 instance=ExtResource("3_town_scene")]
+position = Vector2(1566.9998, 1373.0004)
+terrain = 5
+
+[node name="Town_Deer" parent="." unique_id=1004092403 instance=ExtResource("3_town_scene")]
+position = Vector2(5699.9995, 2393.001)
+terrain = 2
+
+[node name="Town_Leopard" parent="." unique_id=2109070663 instance=ExtResource("3_town_scene")]
+position = Vector2(4290, 595.00073)
+terrain = 4
+
+[node name="Base" parent="." unique_id=1519051970 instance=ExtResource("4_base_scene")]
+position = Vector2(2733.9995, 1810.0005)
+
+[node name="Castle_Plains_1" parent="." unique_id=1741310550 instance=ExtResource("5_castle_scene")]
+position = Vector2(1669.9996, 2191.0002)
+
+[node name="Castle_Plains_2" parent="." unique_id=1507093462 instance=ExtResource("5_castle_scene")]
+position = Vector2(3093.9995, 3302.0005)
+
+[node name="Castle_Mountains_1" parent="." unique_id=953054884 instance=ExtResource("5_castle_scene")]
+position = Vector2(4628.9995, 2997.0007)
+terrain = 1
+
+[node name="Castle_Mountains_2" parent="." unique_id=2048921324 instance=ExtResource("5_castle_scene")]
+position = Vector2(5890.9995, 3314.001)
+terrain = 1
+
+[node name="Castle_Plateau_1" parent="." unique_id=946658995 instance=ExtResource("5_castle_scene")]
+position = Vector2(3725.9998, 1096.0006)
+terrain = 2
+
+[node name="Castle_Plateau_2" parent="." unique_id=723946085 instance=ExtResource("5_castle_scene")]
+position = Vector2(5088, 651.00085)
+terrain = 2
+
+[node name="Castle_Forest_1" parent="." unique_id=154736969 instance=ExtResource("5_castle_scene")]
+position = Vector2(6927, 1663.0012)
+terrain = 3
+
+[node name="Castle_Forest_2" parent="." unique_id=1862970856 instance=ExtResource("5_castle_scene")]
+position = Vector2(5578.9995, 1586.001)
+terrain = 3
+
+[node name="Castle_Desert_1" parent="." unique_id=1530041103 instance=ExtResource("5_castle_scene")]
+position = Vector2(6261.9995, 3033.0012)
+terrain = 4
+
+[node name="Castle_Desert_2" parent="." unique_id=2129941813 instance=ExtResource("5_castle_scene")]
+position = Vector2(6449.9995, 2100.0012)
+terrain = 4
+
+[node name="Castle_Icefield_1" parent="." unique_id=1737130213 instance=ExtResource("5_castle_scene")]
+position = Vector2(865.9999, 661.0002)
+terrain = 5
+
+[node name="Castle_Icefield_2" parent="." unique_id=1000961108 instance=ExtResource("5_castle_scene")]
+position = Vector2(2224, 807.0004)
+terrain = 5
 
 [node name="PlayerAvatar" parent="." unique_id=2023387468 instance=ExtResource("2_avatar")]
 

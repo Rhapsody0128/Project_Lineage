@@ -72,6 +72,7 @@ func save_game(slot: int) -> bool:
 		"news_entries": NewsStore.to_save_data(),
 		"map_session": MapSessionStore.to_save_data(),
 		"tavern": TavernStore.to_save_data(),
+		"quests": QuestStore.to_save_data(),
 	}
 
 	var file := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
@@ -108,4 +109,5 @@ func load_game(slot: int) -> bool:
 	NewsStore.load_save_data(data.get("news_entries", []))
 	MapSessionStore.load_save_data(data.get("map_session", {}))
 	TavernStore.load_save_data(data.get("tavern", {}), by_id)
+	QuestStore.load_save_data(data.get("quests", []))
 	return true

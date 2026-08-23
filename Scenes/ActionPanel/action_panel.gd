@@ -140,6 +140,8 @@ func _build_row(item: ActionPanelItem) -> Control:
 	icon.stretch_mode = TextureRect.STRETCH_SCALE
 	if not item.icon_path.is_empty():
 		icon.texture = load(item.icon_path) as Texture2D
+	if item.icon_blacked_out:
+		icon.modulate = Color.BLACK
 	row.add_child(icon)
 
 	var text_box := VBoxContainer.new()

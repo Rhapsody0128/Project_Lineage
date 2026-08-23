@@ -29,20 +29,10 @@ extends VBoxContainer
 ## SIZE_SHRINK_BEGIN 避免被 VBoxContainer 橫向撐滿)。
 
 const AVATAR_SLOT_SIZE := Vector2(64, 64)
-const PICKER_FACE_SIZE := Vector2(128, 128)
-## 選人清單改成多欄卡片網格(每張卡:大頭像 + 姓名/等級/年紀/適應性素質/潛力評分的
-## 兩欄 label:value 小表),不是單一長長一列,充分利用 ActionPanel 的寬度。
-const PICKER_GRID_COLUMNS := 3
-
-## 角色清單排序依據——依建築的適應性素質數值/該素質潛力評分/角色等級,
-## 由高到低排序(見 _build_sort_dropdown()),方便挑最適合派遣的人。
-enum SortMode {STAT, POTENTIAL_RANK, LEVEL}
 
 var _building: Building
 ## 是否正在展開「選一位角色派遣」清單,指派/取消後歸零。
 var _picking_character: bool = false
-## 選人清單目前的排序依據,挑人途中(未取消/未指派)維持選擇,重新排序不用重選。
-var _sort_mode: SortMode = SortMode.STAT
 ## 升級/建造失敗(資材不足)後單次顯示一行提示,顯示完就消耗掉,不跨 rebuild 保留。
 var _upgrade_error: bool = false
 var _build_error: bool = false
@@ -367,30 +357,23 @@ func _build_worker_slot(character: Character) -> Control:
 
 
 ## 顯示全部未禁用角色(不只是可指派的人)——已在此工作/在別處工作的人一樣列出來,
-## 靠反灰純視覺區分,召回改到 _build_worker_slot() 那邊點頭像格處理。上面先放排序下拉選單
-## (依建築適應性素質/該素質潛力評分/等級,見 _build_sort_dropdown()),一人一列改成
-## 表格式緊湊排版(_build_character_list_header() 對齊 _build_character_row() 的欄位)。
+## 靠反灰純視覺區分,召回改到 _build_worker_slot() 那邊點頭像格處理。清單/排序/卡片外觀
+## 改用共用元件 CharacterSelectBar + CharacterStatCard(見 Scenes/CharacterSelect/),
+## 排序預設依建築適應性素質(見 setup() 的 initial_sort_key,3 + PotentialType 剛好對應
+## GameEnums.CharacterSortKey 的 STRENGTH..MENTALITY,見該檔案註解),不需要武器篩選列。
 func _build_character_picker() -> void:
 	var characters: Array[Character] = []
 	for character in CharacterRosterStore.all_characteres:
 		if not character.is_disabled:
 			characters.append(character)
 
-	_build_sort_dropdown()
-
 	if characters.is_empty():
 		_add_label("沒有角色")
 	else:
-		characters.sort_custom(func(a: Character, b: Character) -> bool:
-			return _sort_value(a) > _sort_value(b)
-		)
-		var grid := GridContainer.new()
-		grid.columns = PICKER_GRID_COLUMNS
-		grid.add_theme_constant_override("h_separation", 10)
-		grid.add_theme_constant_override("v_separation", 10)
-		add_child(grid)
-		for character in characters:
-			grid.add_child(_build_character_row(character))
+		var select_bar := CharacterSelectBar.new()
+		add_child(select_bar)
+		select_bar.character_selected.connect(_on_dispatch_character_selected)
+		select_bar.setup(characters, _build_dispatch_card, 3 + _building.potential_type, false)
 
 	var cancel_button := Button.new()
 	cancel_button.text = "取消"
@@ -402,112 +385,32 @@ func _build_character_picker() -> void:
 	add_child(cancel_button)
 
 
-## 排序下拉選單,選項固定 3 種(對應建築的適應性素質),item id 直接用 SortMode 數值,
-## 跟 index 剛好一一對應,select()/get_item_id() 不用額外轉換。
-func _build_sort_dropdown() -> void:
-	var stat_name := GameEnums.potential_label(_building.potential_type)
-	var dropdown := OptionButton.new()
-	dropdown.add_item("依 %s 排序" % stat_name, SortMode.STAT)
-	dropdown.add_item("依 %s 潛力排序" % stat_name, SortMode.POTENTIAL_RANK)
-	dropdown.add_item("依等級排序", SortMode.LEVEL)
-	dropdown.select(_sort_mode)
-	dropdown.item_selected.connect(func(index: int) -> void:
-		_sort_mode = dropdown.get_item_id(index) as SortMode
-		_rebuild_body()
-	)
-	add_child(dropdown)
-
-
-func _sort_value(character: Character) -> float:
-	match _sort_mode:
-		SortMode.STAT:
-			return character.get_potential(_building.potential_type)
-		SortMode.POTENTIAL_RANK:
-			return character.get_potential_rank(_building.potential_type)
-		SortMode.LEVEL:
-			return character.level_system.level
-		_:
-			return 0.0
-
-
-## 整卡點擊 = 指派(只對可選的人接線,反灰的人點了沒反應);卡片上的頭像另外包一層
-## MOUSE_FILTER_STOP + 自己的 gui_input,靠子節點優先吃到輸入事件擋掉往外層卡片冒泡,
-## 所有人(含反灰)都能點頭像開 CharacterPanel 看詳情,跟 battle_party_roster.gd 頭像框
-## 同一套技巧。卡片右側是姓名/等級/年紀/建築適應性素質/該素質潛力評分的兩欄
-## label:value 小表,不再列出全部六維素質——別的素質細節開 CharacterPanel 看,這裡的卡片
-## 進 PICKER_GRID_COLUMNS 欄的網格,一次能看到更多角色。
-func _build_character_row(character: Character) -> Control:
+## card_factory:卡片顯示姓名/等級/年紀/建築適應性素質/該素質潛力評分,不再列出全部六維
+## 素質——別的素質細節開 CharacterPanel 看。已在此工作/在別處工作的人顯示為不可指派
+## (CharacterStatCard 自己處理反灰+tooltip)。
+func _build_dispatch_card(character: Character) -> Control:
 	var is_here := BaseDispatchStore.get_dispatched_character_ids(_building.type).has(character.id)
 	var is_elsewhere := not is_here and BaseDispatchStore.is_character_dispatched(character.id)
-	var assignable := not is_here and not is_elsewhere
+	var is_in_party := PartyStore.party != null and PartyStore.party.characteres.has(character)
+	var assignable := not is_here and not is_elsewhere and not is_in_party
+	var unavailable_reason := "在此工作" if is_here else ("在其他地方工作" if is_elsewhere else "已編入小隊")
 
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", UiStyle.parchment_row_style(UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0))
-	card.mouse_filter = Control.MOUSE_FILTER_STOP
-	if not assignable:
-		card.modulate.a = 0.45
-		card.tooltip_text = "在此工作" if is_here else "在其他地方工作"
-	else:
-		card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		card.gui_input.connect(func(event: InputEvent) -> void:
-			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				var success := BaseDispatchStore.dispatch(_building.type, character.id)
-				_picking_character = false
-				_rebuild_body()
-				if not success:
-					_add_label("已滿額")
-		)
-
-	var content := HBoxContainer.new()
-	content.add_theme_constant_override("separation", 12)
-	card.add_child(content)
-
-	var face_wrapper := CenterContainer.new()
-	face_wrapper.custom_minimum_size = PICKER_FACE_SIZE
-	face_wrapper.mouse_filter = Control.MOUSE_FILTER_STOP
-	face_wrapper.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	face_wrapper.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			CharacterPanel.open_for_character(character)
-			get_viewport().set_input_as_handled()
-	)
-	content.add_child(face_wrapper)
-
-	var face := TextureRect.new()
-	face.custom_minimum_size = PICKER_FACE_SIZE
-	face.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	face.stretch_mode = TextureRect.STRETCH_SCALE
-	face.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if not character.face_path.is_empty():
-		face.texture = load(character.face_path) as Texture2D
-	face_wrapper.add_child(face)
-
-	var stat_grid := GridContainer.new()
-	stat_grid.columns = 2
-	stat_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	stat_grid.add_theme_constant_override("h_separation", 12)
-	stat_grid.add_theme_constant_override("v_separation", 2)
-	content.add_child(stat_grid)
-
-	_add_stat_grid_row(stat_grid, "名字", character.full_name)
-	_add_stat_grid_row(stat_grid, "等級", str(character.level_system.level))
-	_add_stat_grid_row(stat_grid, "年紀", str(character.age))
-	_add_stat_grid_row(stat_grid, GameEnums.potential_label(_building.potential_type), str(roundi(character.get_potential(_building.potential_type))))
-	_add_stat_grid_row(stat_grid, "潛力", GameEnums.rank_label(character.get_potential_rank(_building.potential_type)))
-
-	return card
+	var stat_rows: Array = [
+		["名字", character.full_name],
+		["等級", str(character.level_system.level)],
+		["年紀", str(character.age)],
+		[GameEnums.potential_label(_building.potential_type), str(roundi(character.get_potential(_building.potential_type)))],
+		["潛力", GameEnums.rank_label(character.get_potential_rank(_building.potential_type))],
+	]
+	return CharacterStatCard.new(character, stat_rows, assignable, unavailable_reason)
 
 
-func _add_stat_grid_row(stat_grid: GridContainer, label_text: String, value_text: String) -> void:
-	var label := Label.new()
-	label.text = label_text
-	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
-	stat_grid.add_child(label)
-
-	var value_label := Label.new()
-	value_label.text = value_text
-	value_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	stat_grid.add_child(value_label)
+func _on_dispatch_character_selected(character: Character) -> void:
+	var success := BaseDispatchStore.dispatch(_building.type, character.id)
+	_picking_character = false
+	_rebuild_body()
+	if not success:
+		_add_label("已滿額")
 
 
 ## 兵營:技能傳授/被動訓練 Rank 上限跟著建築等級開放,不影響戰場 COST(固定 20)。訓練中

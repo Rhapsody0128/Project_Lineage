@@ -56,26 +56,26 @@ static func get_all() -> Array[MapObject]:
 	return [
 		MapObject.new("LionTown", "獅城", null, Vector2(2069.9995, 2842.0002), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.LION),
 		MapObject.new("BearTown", "雄城", null, Vector2(4069.9995, 2427.0007), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.BEAR),
-		MapObject.new("EagleTown", "鷹城", null, Vector2(6009.0, 1081.0011), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.EAGLE),
+		MapObject.new("EagleTown", "鷹城", null, Vector2(6076.0, 1064.0011), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.EAGLE),
 		MapObject.new("DragonTown", "龍城", null, Vector2(1566.9998, 1373.0004), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.DRAGON),
-		MapObject.new("DeerTown", "鹿城", null, Vector2(5699.9995, 2393.001), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.DEER),
-		MapObject.new("LeopardTown", "豹城", null, Vector2(4290.0, 595.00073), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.LEOPARD),
+		MapObject.new("DeerTown", "鹿城", null, Vector2(4238.0, 530.00073), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.DEER),
+		MapObject.new("LeopardTown", "豹城", null, Vector2(6874.9995, 2519.0012), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.LEOPARD),
 		# nation 暫定 LION——玩家目前沒有可選的自身國家血統,根據地地點選單背景圖固定用
 		# GameEnums.BASE_LOCATION_BACKGROUND_PATH,不吃這個 nation 換算的地形,等玩家
 		# 可選血統國家的功能接上再視需要改成真正的選擇結果。
 		MapObject.new("PlayerBase", "根據地", null, Vector2(2733.9995, 1810.0005), GameEnums.MapObjectType.BASE, GameEnums.BloodlineNation.LION),
 		# 十二座城堡,每種地形各兩座。nation 純粹借地形對應的國家當查表 key(見上方 nation
 		# 欄位註解),不代表城堡效忠哪國。
-		MapObject.new("PlainsCastle1", "平原城堡1", null, Vector2(1669.9996, 2191.0002), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.LION),
+		MapObject.new("PlainsCastle1", "平原城堡1", null, Vector2(1218.9996, 2387.0002), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.LION),
 		MapObject.new("PlainsCastle2", "平原城堡2", null, Vector2(3093.9995, 3302.0005), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.LION),
 		MapObject.new("MountainsCastle1", "山岳城堡1", null, Vector2(4628.9995, 2997.0007), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.BEAR),
 		MapObject.new("MountainsCastle2", "山岳城堡2", null, Vector2(5890.9995, 3314.001), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.BEAR),
 		MapObject.new("PlateauCastle1", "高原城堡1", null, Vector2(3725.9998, 1096.0006), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.DEER),
 		MapObject.new("PlateauCastle2", "高原城堡2", null, Vector2(5088.0, 651.00085), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.DEER),
-		MapObject.new("ForestCastle1", "森林城堡1", null, Vector2(6927.0, 1663.0012), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.EAGLE),
-		MapObject.new("ForestCastle2", "森林城堡2", null, Vector2(5578.9995, 1586.001), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.EAGLE),
+		MapObject.new("ForestCastle1", "森林城堡1", null, Vector2(6912.9995, 1625.0012), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.EAGLE),
+		MapObject.new("ForestCastle2", "森林城堡2", null, Vector2(5198.9995, 1312.001), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.EAGLE),
 		MapObject.new("DesertCastle1", "沙漠城堡1", null, Vector2(6261.9995, 3033.0012), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.LEOPARD),
-		MapObject.new("DesertCastle2", "沙漠城堡2", null, Vector2(6449.9995, 2100.0012), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.LEOPARD),
+		MapObject.new("DesertCastle2", "沙漠城堡2", null, Vector2(5616.9995, 2088.001), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.LEOPARD),
 		MapObject.new("IcefieldCastle1", "冰原城堡1", null, Vector2(865.9999, 661.0002), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.DRAGON),
 		MapObject.new("IcefieldCastle2", "冰原城堡2", null, Vector2(2224.0, 807.0004), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.DRAGON),
 	]

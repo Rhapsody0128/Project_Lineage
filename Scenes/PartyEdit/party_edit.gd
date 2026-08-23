@@ -163,16 +163,18 @@ func _refresh_all() -> void:
 	_update_finish_button_state()
 
 
-## 候補清單列出全部角色,包含已上陣的——已上陣的那幾張卡片反灰、不能再拖去網格
-## (只能點開看素質),讓玩家能在同一份清單裡確認「誰已經在場上」,不用切去網格上
-## 對照。實際「能不能放置」規則仍在 PartyEditGrid,這裡只轉發 is_placed() 結果給
-## CharacterCard 決定要不要反灰/擋拖曳。
+## 候補清單列出全部角色,包含已上陣的、已派駐根據地生產的——這幾種都反灰、不能再拖去
+## 網格(只能點開看素質),讓玩家能在同一份清單裡確認「誰已經在場上/在工作」,不用切去
+## 網格或根據地面板對照。實際「能不能放置」規則仍在 PartyEditGrid,這裡只轉發
+## is_placed()/BaseDispatchStore 的查詢結果給 CharacterCard 決定要不要反灰/擋拖曳。
 func _refresh_roster() -> void:
 	for child in roster_list.get_children():
 		child.queue_free()
 	var candidates: Array[Character] = CharacterRosterStore.all_characteres.duplicate()
 	for character in sort_filter_bar.filter.apply(candidates):
-		roster_list.add_child(CharacterCard.new(character, grid.is_placed(character)))
+		var is_dispatched := BaseDispatchStore.is_character_dispatched(character.id)
+		var disabled_reason := "已派駐根據地工作,無法上陣" if is_dispatched else ""
+		roster_list.add_child(CharacterCard.new(character, grid.is_placed(character) or is_dispatched, disabled_reason))
 
 
 func _refresh_placed_layer() -> void:

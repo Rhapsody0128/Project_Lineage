@@ -222,8 +222,8 @@ func _build_person_column(character: Character) -> Control:
 	top_row.add_child(info_column)
 
 	info_column.add_child(_build_stat_row("姓名", character.full_name, 14))
-	var age_text := "%d歲(已故)" % character.age if character.is_dead else "%d歲" % character.age
-	info_column.add_child(_build_stat_row("年齡", age_text, 12))
+	info_column.add_child(_build_stat_row("年齡", "%d歲" % character.age, 12))
+	info_column.add_child(_build_stat_row("狀態", CharacterStatusRule.get_status_label(character), 12))
 	info_column.add_child(_build_stat_row("性別", GameEnums.gender_symbol(character.gender), 12))
 
 	var rank_row := _build_stat_row("血統評級", GameEnums.rank_label(character.noble_bloodline_rank), 12)

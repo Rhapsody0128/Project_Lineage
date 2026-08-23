@@ -41,9 +41,14 @@ static func get_weapon_for_potential(potential: Potential) -> int:
 	return Util.get_random_from_array(best_weapons)
 
 ## rank_type/nation 不填(-1)= 維持原本隨機生成(Bloodline Rank/Potential Rank/國家各自
-## 獨立隨機);指定時整份 Bloodline/Potential 都依指定條件產生,見
-## PotentialController.get_random_potential()/BloodlineController.get_random_bloodline()。
+## 獨立隨機);指定 rank_type 時視為「基準評級」(例如 Party.rank_type),不會整批直接套用
+## 給這個角色——改用 RankDrawTable.roll() 依基準評級那一列權重各自獨立骰一次實際評級
+## (集中在基準評級附近、偶爾探高一兩級,不會超過基準),每次呼叫本函式都重新骰一次,
+## 所以同一隊呼叫多次會讓隊員評級各自不同,不是整隊統一同一級。骰出來的評級同時餵給
+## Bloodline/Potential 兩者,見 PotentialController.get_random_potential()/
+## BloodlineController.get_random_bloodline()。
 static func get_random_character(rank_type: int = -1, nation: int = -1) -> Character:
+	var resolved_rank := RankDrawTable.roll(rank_type) if rank_type != -1 else -1
 	var gender = Util.get_random_from_array([GameEnums.Gender.MALE, GameEnums.Gender.FEMALE])
 	var character_name: String
 	if gender == GameEnums.Gender.MALE:
@@ -55,11 +60,12 @@ static func get_random_character(rank_type: int = -1, nation: int = -1) -> Chara
 	var last_name: String = Util.get_random_from_array(GameEnums.CHARACTER_LAST_NAMES)
 	var age := Util.get_random_int(MIN_AGE, MAX_AGE + 1)
 	var traits := TraitController.get_random_traits(2)
-	var potential := PotentialController.get_random_potential(rank_type)
-	var bloodline := BloodlineController.get_random_bloodline(rank_type, nation)
+	var potential := PotentialController.get_random_potential(resolved_rank)
+	var bloodline := BloodlineController.get_random_bloodline(resolved_rank, nation)
 	var weapon: int = get_weapon_for_potential(potential)
-	var skill_list := SkillController.get_skill_list_by_weapon(weapon)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
+	var skill_count := SkillCountDrawTable.roll(noble_rank)
+	var skill_list := SkillController.get_skill_list_by_weapon(weapon, skill_count)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))
 	# 加上男女抽池子了
 	return Character.new(character_name, last_name, age, gender, face_path, traits, potential, bloodline, weapon, skill_list, LevelSystem.new(), battle_cost)
@@ -79,8 +85,9 @@ static func get_fixed_protagonist() -> Character:
 	var traits := TraitController.get_random_traits(2)
 	var potential := PotentialController.get_random_potential(GameEnums.RankType.F)
 	var bloodline := BloodlineController.get_random_bloodline(GameEnums.RankType.F)
-	var skill_list := SkillController.get_skill_list_by_weapon(PROTAGONIST_WEAPON)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
+	var skill_count := SkillCountDrawTable.roll(noble_rank)
+	var skill_list := SkillController.get_skill_list_by_weapon(PROTAGONIST_WEAPON, skill_count)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))
 	var protagonist := Character.new(PROTAGONIST_NAME, PROTAGONIST_LAST_NAME, PROTAGONIST_AGE, PROTAGONIST_GENDER, face_path, traits, potential, bloodline, PROTAGONIST_WEAPON, skill_list, LevelSystem.new(), battle_cost)
 	protagonist.is_protagonist = true

@@ -97,7 +97,11 @@ func can_place(shape: Array[Vector2i], anchor: Vector2i, excluding_character: Ch
 			return false
 	return true
 
+## 已派駐根據地生產的角色不能放上小隊網格——跟 BaseDispatchStore.dispatch() 互為
+## 對稱防線(見 CLAUDE.md 這次新增的互斥規則)。
 func place(character: Character, shape: Array[Vector2i], anchor: Vector2i) -> bool:
+	if BaseDispatchStore.is_character_dispatched(character.id):
+		return false
 	if not can_place(shape, anchor, character):
 		return false
 	if is_placed(character):

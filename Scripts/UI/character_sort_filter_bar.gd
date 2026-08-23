@@ -20,6 +20,19 @@ const _FONT_COLOR := UiStyle.PARCHMENT_TEXT_COLOR
 
 ## OptionButton 索引 0 固定是「不排序」,索引 1 起依序對應 GameEnums.CharacterSortKey
 
+var _initial_sort_key: int = -1
+var _show_weapon_filter: bool = true
+
+
+## 呼叫端(例如 CharacterSelectBar.setup())要在 add_child() 之前呼叫,才能在 _ready() 建
+## OptionButton/篩選列時套用——比照這份檔案一貫「先設好初始狀態再進場景樹」的用法。
+## initial_sort_key 是 -1(不排序)以外的值時對應預選 GameEnums.CharacterSortKey;
+## show_weapon_filter 為 false 時整排武器篩選 CheckBox 不會被建立(某些情境武器類型跟
+## 篩選目的無關,例如根據地資源派遣選人清單)。
+func configure(initial_sort_key: int = -1, show_weapon_filter: bool = true) -> void:
+	_initial_sort_key = initial_sort_key
+	_show_weapon_filter = show_weapon_filter
+
 
 func _ready() -> void:
 	add_theme_constant_override("separation", 6)
@@ -30,7 +43,12 @@ func _ready() -> void:
 	for key in GameEnums.CharacterSortKey.values():
 		sort_option.add_item(GameEnums.character_sort_key_label(key))
 	sort_option.item_selected.connect(_on_sort_selected)
+	sort_option.select(_initial_sort_key + 1)
+	filter.sort_key = _initial_sort_key
 	add_child(sort_option)
+
+	if not _show_weapon_filter:
+		return
 
 	var filter_row := HFlowContainer.new()
 	filter_row.add_theme_constant_override("h_separation", 12)

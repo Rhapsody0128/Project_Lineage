@@ -122,7 +122,8 @@ func _try_spawn_in_cell(cell: Vector2i) -> void:
 		return
 
 	var nation := _nearest_town_nation(spawn_pos)
-	var party := PartyController.get_random_party(GameEnums.RankType.F, nation)
+	var rank := NationFavorRank.rank_for_favor(NationFavorStore.get_favor(nation)) if nation != -1 else GameEnums.RankType.F
+	var party := PartyController.get_random_party(rank, nation)
 	var enemy := RoamingEnemy.new(Util.generate_uuid(), spawn_pos, party, party.rank_type)
 	enemies.append(enemy)
 

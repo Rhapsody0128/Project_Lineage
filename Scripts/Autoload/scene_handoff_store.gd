@@ -5,13 +5,15 @@ extends Node
 # Autoload 的作法:場景切換沒辦法直接傳建構參數,所以呼叫端把資料存進來,再切場景,
 # 目的地場景的 _ready() 讀出來用——這套「mailbox」邏輯每個用途都一樣,只是欄位命名
 # 不同,沒必要每多一個 Event/UI 就多寫一支 pending_xxx 欄位 + Autoload .gd。以後新增
-# 任何需要跨場景轉手資料的情境,直接呼叫這裡的 queue()/take()/peek(),要傳什麼型別的
-# payload 就自己另外開一個小型 RefCounted 資料類別(比照 System/marriage/
-# marriage_proposal_request.gd),不用碰這支檔案。
+# 任何需要跨場景轉手資料的情境,直接呼叫這裡的 queue()/take()/peek(),payload 型別不限
+# ——單一欄位可以直接傳現成物件(例如 FamilyTree.FOCUS_MAILBOX_KEY 直接傳一個
+# Character,見 character_roster.gd),資料不只一個欄位時另外寫一個小型 RefCounted
+# 資料類別(比照 System/marriage/marriage_proposal_request.gd 曾經的用法——這個類別已
+# 隨告白流程改用 ActionPanel 疊加、不再切場景而刪除,不用碰這支檔案)。
 #
 # 用字串 key 分流不同用途,同一時間可以有好幾筆不同用途的資料同時待處理——例如
-# TownTavernEvent 一次呼叫會先 queue "marriage_proposal" 給下下個場景用,又 queue
-# "dialogue" 給下一個場景用,兩筆不會互相覆蓋。
+# LocationEvent.goto_dialogue() 一次呼叫會 queue DIALOGUE_MAILBOX_KEY 給下一個場景播放
+# Dialogue,跟同時待處理的其他 key 不會互相覆蓋。
 #
 # take() 讀取後立刻清空(比照原本 ProposalStore 在 _ready() 讀完就清空的用法);
 # peek() 讀取後保留不清——Dialogue 專用,因為 DialogueLine.choices 裡可能嵌著捕捉

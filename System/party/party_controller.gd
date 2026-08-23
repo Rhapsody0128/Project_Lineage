@@ -37,8 +37,11 @@ const RANK_PARTY_SIZE_RANGE: Array[Vector2i] = [
 
 ## rank_type/nation/level 皆為 -1 = 不指定,三者互相獨立、任意組合:
 ## - rank_type 沒指定時,先骰一個隨機 RankType 當這個 Party 的評級(party.rank_type),
-##   整隊角色統一套用該評級——不再是每個角色各自獨立隨機 Bloodline Rank,才能讓
-##   RANK_LEVEL_RANGE/RANK_PARTY_SIZE_RANGE 對得上「這隊多強」。nation 仍然獨立,不受
+##   拿來決定 RANK_LEVEL_RANGE/RANK_PARTY_SIZE_RANGE(這隊多強/多少人)。隊員的實際
+##   Bloodline/Potential 評級不是整隊統一套用這個值,而是各自呼叫
+##   CharacterController.get_random_character(resolved_rank, nation) 時,由該函式內的
+##   RankDrawTable.roll() 依 resolved_rank 那一列權重各自獨立骰一次(集中在 resolved_rank
+##   附近、偶爾探高一兩級),同一隊隊員因此評級不會整齊劃一。nation 仍然獨立,不受
 ##   rank_type 是否指定影響。
 ## - 人數不再固定 6 人,改成依最終 rank_type 從 RANK_PARTY_SIZE_RANGE 骰。
 ## - level 是 Party 層級的生成條件,沒指定就依最終 rank_type 從 RANK_LEVEL_RANGE 骰;

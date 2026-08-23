@@ -22,19 +22,25 @@ const STAT_FONT_SIZE := 13
 
 var character: Character
 
-## 角色已上陣時為 true:卡片反灰、不能再拖去網格(_get_drag_data() 直接擋掉),
-## 但仍可點擊開 CharacterPanel 查看素質——玩家只是想確認場上角色的數值,不是要
+## 角色已上陣或已派駐根據地生產時為 true:卡片反灰、不能再拖去網格(_get_drag_data()
+## 直接擋掉),但仍可點擊開 CharacterPanel 查看素質——玩家只是想確認場上角色的數值,不是要
 ## 重新放置,見 party_edit.gd._refresh_roster()。
 var _disabled := false
+
+## 反灰原因(選填):非空字串時設成 tooltip_text,呼應 CharacterStatCard 的
+## unavailable_reason 慣例——已上陣(靠格子位置本來就看得出來)不需要額外說明,
+## 已派駐根據地生產則需要提示玩家原因。
+var _disabled_reason := ""
 
 ## 拖曳門檻觸發後 _get_drag_data() 會先設 true,擋掉隨後那次放開滑鼠的
 ## _gui_input——不然「拖去網格放置」放開滑鼠那一下會被誤判成單純的輕點,
 ## 多彈出一個 CharacterPanel。NOTIFICATION_DRAG_END 統一重置回 false。
 var _dragging := false
 
-func _init(p_character: Character = null, p_disabled: bool = false) -> void:
+func _init(p_character: Character = null, p_disabled: bool = false, p_disabled_reason: String = "") -> void:
 	character = p_character
 	_disabled = p_disabled
+	_disabled_reason = p_disabled_reason
 
 
 func _ready() -> void:
@@ -45,6 +51,8 @@ func _ready() -> void:
 	))
 	if _disabled:
 		modulate.a = 0.45
+		if not _disabled_reason.is_empty():
+			tooltip_text = _disabled_reason
 
 	var content := HBoxContainer.new()
 	content.add_theme_constant_override("separation", 12)

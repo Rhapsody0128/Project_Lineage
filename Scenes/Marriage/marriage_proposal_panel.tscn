@@ -1,69 +1,15 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://Scenes/Marriage/marriage_proposal.gd" id="1"]
-[ext_resource type="Script" path="res://Scripts/UI/character_sort_filter_bar.gd" id="2"]
-[ext_resource type="Texture2D" path="res://Images/UI/system_background.png" id="3_bg"]
+[ext_resource type="Script" path="res://Scenes/Marriage/marriage_proposal_panel.gd" id="1"]
 
-[node name="MarriageProposal" type="Control"]
+[node name="MarriageProposalPanel" type="VBoxContainer"]
 layout_mode = 3
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
+theme_override_constants/separation = 16
 script = ExtResource("1")
 
-[node name="Background" type="TextureRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-z_index = -3
-texture = ExtResource("3_bg")
-expand_mode = 1
-
-[node name="Title" type="Label" parent="."]
-layout_mode = 0
-offset_left = 32.0
-offset_top = 20.0
-offset_right = 900.0
-offset_bottom = 66.0
-theme_override_font_sizes/font_size = 30
-theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
-text = "告白"
-
-[node name="ActionRow" type="HBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 1262.0
-offset_top = 20.0
-offset_right = 1568.0
-offset_bottom = 68.0
-theme_override_constants/separation = 16
-
-[node name="AcceptButton" type="Button" parent="ActionRow"]
-custom_minimum_size = Vector2(145, 46)
-layout_mode = 2
-text = "接受"
-
-[node name="SecondButton" type="Button" parent="ActionRow"]
-custom_minimum_size = Vector2(145, 46)
-layout_mode = 2
-text = "婉拒"
-
 [node name="MainRow" type="HBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 32.0
-offset_top = 84.0
-offset_right = -32.0
-offset_bottom = -24.0
-grow_horizontal = 2
-grow_vertical = 2
+layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 16
 
 [node name="DetailPanel" type="PanelContainer" parent="MainRow"]
@@ -111,8 +57,10 @@ alignment = 1
 theme_override_constants/separation = 12
 
 [node name="SelfInfo" type="Label" parent="MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/SelfSlot/SelfRow"]
+custom_minimum_size = Vector2(140, 0)
 layout_mode = 2
 vertical_alignment = 1
+autowrap_mode = 3
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 
@@ -134,8 +82,10 @@ alignment = 1
 theme_override_constants/separation = 12
 
 [node name="TargetInfo" type="Label" parent="MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/TargetSlot/TargetRow"]
+custom_minimum_size = Vector2(140, 0)
 layout_mode = 2
 vertical_alignment = 1
+autowrap_mode = 3
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 
@@ -187,18 +137,17 @@ button_pressed = true
 disabled = true
 text = "排除已婚"
 
-[node name="SortFilterBar" type="VBoxContainer" parent="MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox"]
+[node name="ActionRow" type="HBoxContainer" parent="."]
 layout_mode = 2
-script = ExtResource("2")
+alignment = 2
+theme_override_constants/separation = 16
 
-[node name="ScrollContainer" type="ScrollContainer" parent="MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox"]
+[node name="AcceptButton" type="Button" parent="ActionRow"]
+custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
-size_flags_vertical = 3
-mouse_filter = 1
-horizontal_scroll_mode = 0
+text = "接受"
 
-[node name="PickerGrid" type="HFlowContainer" parent="MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox/ScrollContainer"]
+[node name="SecondButton" type="Button" parent="ActionRow"]
+custom_minimum_size = Vector2(145, 46)
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/h_separation = 12
-theme_override_constants/v_separation = 12
+text = "婉拒"

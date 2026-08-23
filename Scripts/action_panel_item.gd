@@ -15,7 +15,9 @@ extends RefCounted
 ## (騰出空位)後可以直接再按一次,不用整個面板關掉重開才能重試。initial_disabled 選填:
 ## 這一列一開始就要是 disabled(例如 TownTavernEvent 重新開面板時,清單裡上次已經招募過
 ## 的英雄不該又能按一次)——跟 disable_after_select 是兩件事,前者是「開面板當下就已經
-## 是這個狀態」,後者是「這次操作完才變成這個狀態」。
+## 是這個狀態」,後者是「這次操作完才變成這個狀態」。icon_blacked_out 選填:圖示照樣載入
+## icon_path 的貼圖,但整張塗成純黑剪影(見 TownTavernEvent 的特殊推薦——招募前不讓玩家
+## 看到長相,只露出名字/等級,但仍要有一塊「頭像形狀」的視覺存在,不是留空)。
 var icon_path: String
 var title: String
 var subtitle: String
@@ -23,9 +25,10 @@ var button_label: String
 var on_selected: Callable
 var disable_after_select: bool
 var initial_disabled: bool
+var icon_blacked_out: bool
 
 
-func _init(p_title: String, p_button_label: String, p_on_selected: Callable, p_icon_path: String = "", p_subtitle: String = "", p_disable_after_select: bool = false, p_initial_disabled: bool = false) -> void:
+func _init(p_title: String, p_button_label: String, p_on_selected: Callable, p_icon_path: String = "", p_subtitle: String = "", p_disable_after_select: bool = false, p_initial_disabled: bool = false, p_icon_blacked_out: bool = false) -> void:
 	title = p_title
 	button_label = p_button_label
 	on_selected = p_on_selected
@@ -33,3 +36,4 @@ func _init(p_title: String, p_button_label: String, p_on_selected: Callable, p_i
 	subtitle = p_subtitle
 	disable_after_select = p_disable_after_select
 	initial_disabled = p_initial_disabled
+	icon_blacked_out = p_icon_blacked_out

@@ -14,6 +14,14 @@ enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, A
 ## 大地圖上的地點類型,見 System/map/map_object.gd
 enum MapObjectType {TOWN, BASE, CASTLE}
 
+## 角色目前狀態,見 System/character/character_status_rule.gd(唯一判定/顯示入口)。
+## ACTIVE 服役中(在角色池,沒有派遣/離隊/死亡以外的特殊狀態);STATIONED 駐守中
+## (未來城鎮駐守機制預留,目前沒有任何流程會產生這個值);WORKING 派駐在根據地建築
+## 生產中(顯示文字要內插建築名稱,不吃靜態 label,見 CharacterStatusRule);DISMISSED
+## 已被玩家解雇離隊;DEAD 已老死。祖譜/角色面板統一顯示這個狀態,取代舊版「年齡欄位
+## 加註(已故)」的寫法。
+enum CharacterStatus {ACTIVE, STATIONED, WORKING, DISMISSED, DEAD}
+
 
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
@@ -63,6 +71,28 @@ enum Gender {MALE, FEMALE}
 ## (雙方角色已固定,畫面只用來看資訊+決定接受/婉拒),OUTGOING 是「玩家選人去告白」
 ## (對方固定,玩家從角色池挑我方人選)。
 enum ProposalMode {INCOMING, OUTGOING}
+
+## 任務類型,見 System/quest/。DELIVERY(交貨委託)完成方式是玩家在任務列表手動繳交
+## 指定資源(見 QuestStore.complete_delivery_quest());COURIER(送信委託)完成方式是
+## 玩家移動到 Quest.destination_nation 對應的城鎮地點選單畫面(見
+## Scenes/MapLocation/map_location.gd 呼叫 QuestStore.notify_courier_arrived())。之後
+## 新增任務種類時在這裡擴充,QuestLibrary 的文案/生成分支要跟著加。
+enum QuestType {BANDIT_SUBJUGATION, DELIVERY, COURIER}
+## 任務進度狀態:IN_PROGRESS 進行中,COMPLETED 已達成條件並發過獎勵,EXPIRED 逾期未完成
+## (見 QuestStore._on_day_passed())。COMPLETED/EXPIRED 都會永久留在 QuestStore.quests
+## 清單裡當結果紀錄,任務列表(Scenes/QuestList/quest_list.gd)只給 IN_PROGRESS 顯示
+## 「放棄」按鈕(QuestStore.abandon_quest()),COMPLETED/EXPIRED 沒有任何按鈕、玩家沒有
+## 主動清除的管道。
+enum QuestStatus {IN_PROGRESS, COMPLETED, EXPIRED}
+## 任務分類,對應 Scenes/QuestList/quest_list.gd 左側邊欄的三個分頁——跟 QuestType
+## (任務實際內容,例如討伐周邊強盜)是兩個獨立欄位,同一個 QuestType 理論上可能被歸進
+## 不同分類。目前只有 TownTavernEvent 酒館老闆「詢問委託」接的三種任務是 COMMISSION
+## (委託任務),MAIN(主線任務)/SIDE(支線任務)先開分頁佔位,還沒有對應的任務生成來源。
+enum QuestCategory {MAIN, SIDE, COMMISSION}
+
+## 國與國之間的邦交狀態,見 System/nation/nation_relation.gd。目前沒有任何機制會
+## 改變邦交,一律回傳 PEACE,先開這個欄位讓 Scenes/NationRelations 有型別可用。
+enum NationWarStatus {PEACE, WAR}
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
@@ -121,6 +151,18 @@ const BLOODLINE_RANK_LABELS: Array[String] = ["血", "高血"]
 ## 性別 UI 顯示用符號,順序對應 Gender enum
 const GENDER_SYMBOLS: Array[String] = ["男", "女"]
 
+## 任務類型 UI 顯示用中文標籤,順序對應 QuestType enum
+const QUEST_TYPE_LABELS: Array[String] = ["討伐委託", "交貨委託", "送信委託"]
+
+## 任務進度狀態 UI 顯示用中文標籤,順序對應 QuestStatus enum
+const QUEST_STATUS_LABELS: Array[String] = ["進行中", "已完成", "已過期"]
+
+## 任務分類 UI 顯示用中文標籤,順序對應 QuestCategory enum
+const QUEST_CATEGORY_LABELS: Array[String] = ["主線任務", "支線任務", "委託任務"]
+
+## 邦交狀態 UI 顯示用中文標籤,順序對應 NationWarStatus enum
+const NATION_WAR_STATUS_LABELS: Array[String] = ["停戰中", "交戰中"]
+
 ## 以下四個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
 ## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
 ## 不會有任何編譯期或執行期警告,悄悄對應錯標籤;呼叫函式至少能在這裡集中防呆。
@@ -138,6 +180,18 @@ static func character_sort_key_label(sort_key: int) -> String:
 
 static func map_object_type_label(map_object_type: int) -> String:
 	return MAP_OBJECT_TYPE_LABELS[map_object_type]
+
+static func quest_type_label(quest_type: int) -> String:
+	return QUEST_TYPE_LABELS[quest_type]
+
+static func quest_status_label(quest_status: int) -> String:
+	return QUEST_STATUS_LABELS[quest_status]
+
+static func quest_category_label(quest_category: int) -> String:
+	return QUEST_CATEGORY_LABELS[quest_category]
+
+static func nation_war_status_label(war_status: int) -> String:
+	return NATION_WAR_STATUS_LABELS[war_status]
 
 static func building_type_label(building_type: int) -> String:
 	return BUILDING_TYPE_LABELS[building_type]

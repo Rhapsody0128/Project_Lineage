@@ -78,8 +78,24 @@ func _is_protected_from_dismissal(character: Character) -> bool:
 	return PartyStore.party != null and PartyStore.party.leader == character
 
 
+## 解雇後角色狀態顯示「已離隊」(見 CharacterStatusRule),所以要比照
+## CharacterDeathController.kill() 一併清掉根據地派遣/小隊編成,不然會出現「已離隊」卻
+## 還留在根據地工作或小隊裡的矛盾狀態。不比照死亡觸發 GAME OVER——主角/隊長本來就不能
+## 解雇(見 _is_protected_from_dismissal()),不會發生小隊團滅的情況。
 func _dismiss_character(character: Character) -> void:
 	var dismissed_index := sort_filter_bar.filter.apply(CharacterRosterStore.all_characteres).find(character)
+
+	character.is_dismissed = true
+	BaseDispatchStore.undispatch_character(character.id)
+	if PartyStore.grid != null:
+		PartyStore.grid.remove(character)
+	if PartyStore.party != null and PartyStore.party.characteres.has(character):
+		PartyStore.party.characteres.erase(character)
+		PartyStore.party.battle_cost_positions.erase(character)
+		if PartyStore.party.leader == character:
+			var remaining := PartyStore.party.characteres
+			PartyStore.party.leader = remaining[0] if not remaining.is_empty() else null
+
 	CharacterRosterStore.all_characteres.erase(character)
 	AllCharacterStore.all_characteres.erase(character)
 	_refresh_grid(dismissed_index)

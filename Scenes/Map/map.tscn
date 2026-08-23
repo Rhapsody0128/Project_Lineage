@@ -42,7 +42,7 @@ position = Vector2(4069.9995, 2427.0007)
 terrain = 1
 
 [node name="Town_Eagle" parent="." unique_id=816051248 instance=ExtResource("3_town_scene")]
-position = Vector2(6009, 1081.0011)
+position = Vector2(6076, 1064.0011)
 terrain = 3
 
 [node name="Town_Dragon" parent="." unique_id=865846281 instance=ExtResource("3_town_scene")]
@@ -50,18 +50,18 @@ position = Vector2(1566.9998, 1373.0004)
 terrain = 5
 
 [node name="Town_Deer" parent="." unique_id=1004092403 instance=ExtResource("3_town_scene")]
-position = Vector2(5699.9995, 2393.001)
+position = Vector2(4238, 530.00073)
 terrain = 2
 
 [node name="Town_Leopard" parent="." unique_id=2109070663 instance=ExtResource("3_town_scene")]
-position = Vector2(4290, 595.00073)
+position = Vector2(6874.9995, 2519.0012)
 terrain = 4
 
 [node name="Base" parent="." unique_id=1519051970 instance=ExtResource("4_base_scene")]
 position = Vector2(2733.9995, 1810.0005)
 
 [node name="Castle_Plains_1" parent="." unique_id=1741310550 instance=ExtResource("5_castle_scene")]
-position = Vector2(1669.9996, 2191.0002)
+position = Vector2(1218.9996, 2387.0002)
 
 [node name="Castle_Plains_2" parent="." unique_id=1507093462 instance=ExtResource("5_castle_scene")]
 position = Vector2(3093.9995, 3302.0005)
@@ -83,11 +83,11 @@ position = Vector2(5088, 651.00085)
 terrain = 2
 
 [node name="Castle_Forest_1" parent="." unique_id=154736969 instance=ExtResource("5_castle_scene")]
-position = Vector2(6927, 1663.0012)
+position = Vector2(6912.9995, 1625.0012)
 terrain = 3
 
 [node name="Castle_Forest_2" parent="." unique_id=1862970856 instance=ExtResource("5_castle_scene")]
-position = Vector2(5578.9995, 1586.001)
+position = Vector2(5198.9995, 1312.001)
 terrain = 3
 
 [node name="Castle_Desert_1" parent="." unique_id=1530041103 instance=ExtResource("5_castle_scene")]
@@ -95,7 +95,7 @@ position = Vector2(6261.9995, 3033.0012)
 terrain = 4
 
 [node name="Castle_Desert_2" parent="." unique_id=2129941813 instance=ExtResource("5_castle_scene")]
-position = Vector2(6449.9995, 2100.0012)
+position = Vector2(5616.9995, 2088.001)
 terrain = 4
 
 [node name="Castle_Icefield_1" parent="." unique_id=1737130213 instance=ExtResource("5_castle_scene")]

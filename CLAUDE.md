@@ -45,7 +45,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 | `battle/` | 自動戰鬥流程與戰報,見下方拆解 |
 | `util/` | `GameEnums`(所有列舉+label 靜態函式)、`Util`(隨機/UUID/棋盤距離)、`level_system.gd` |
 | `event/` | 大地圖地點事件(酒館搭訕/城門挑戰/閒聊等),共用基底 `LocationEvent`,見下方「事件與跨場景資料交接」 |
-| `marriage/` | 聯姻規則(`MarriageRule`:告白資格/成功率判定)與告白 payload(`MarriageProposalRequest`) |
+| `marriage/` | 聯姻規則(`MarriageRule`:告白資格/成功率判定) |
 | `time/` | 世界時間曆法(`WorldTime`)與推進/固定事件派發規則(`WorldTimeController`),見下方「世界時間」 |
 | `family_tree/` | 從任一角色出發,沿 `Character.parent`/`mate`/`children` 邊做世代分組,產出祖譜樹狀結構(`FamilyTreeBuilder`/`FamilyTreeUnit`),見下方「祖譜」 |
 | `nation/` | 六大國家(對應 `GameEnums.BloodlineNation`)的靜態身分資料:國家名稱、低血/高血稱呼(`Nation`/`NationLibrary`),見下方「國家好感度」 |
@@ -99,6 +99,20 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 `BattleReportStore`(autoload,見 `Scripts/Autoload/battle_report_store.gd`)是全域戰報
 存取點與場景間播放交接用的 `pending_report`。跟 `CharacterPanel` 一樣屬於 Scenes 層的
 session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需要當 autoload 的例外。
+
+`CharacterSelectBar`(`Scenes/CharacterSelect/character_select_bar.gd`,純 script Control,
+不是 autoload)是共用的「角色頭像網格 + 排序/篩選」元件,取代各畫面各自重複的選人清單
+寫法:`setup(characters, card_factory, initial_sort_key, show_weapon_filter)` 灌資料,
+`card_factory` 是 `func(character) -> Control`,回傳的卡片要有 `character`/`selected`
+屬性跟 `character_selected` 訊號(`CharacterAvatarCard` 頭像卡跟
+`CharacterStatCard`——同資料夾,含姓名/等級/年紀/素質的兩欄小表版——都符合這個形狀,
+可以互換塞入)。這個元件不含自己的 `ScrollContainer`,設計上就是配合
+`ActionPanel.open_custom(title, bar_or_wrapper, on_close)` 疊加彈出用(`ActionPanel`
+本身的捲動已經包住內容),不切場景就能讓玩家選一位角色、選完套用到接續流程——見
+`Scenes/Marriage/marriage_proposal_panel.gd`(告白選人選)跟
+`Scenes/Base/base_action_panel.gd` 的 `_build_character_picker()`(根據地資源生產派遣選
+工作角色)兩個實例。之後任何「彈出角色清單挑一位」的新情境,比照這兩處直接重用,不要
+再各自兜一份 grid + 排序邏輯。
 
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
@@ -271,16 +285,20 @@ class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好�
 **跨場景資料轉手一律走 `SceneHandoffStore`**(autoload,`Scripts/Autoload/scene_handoff_store.gd`)
 這個通用信箱,不要再為每個新情境各開一支 `pending_xxx` 欄位 + Autoload .gd(舊的
 `DialogueStore`/`ProposalStore` 已合併掉,不要再新增類似的專用 autoload)。用字串 key
-分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `TownTavernEvent` 一次呼叫
-會先 queue `"marriage_proposal"` 給下下個場景用,又 queue `"dialogue"` 給下一個場景用):
+分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `LocationEvent.goto_dialogue()`
+queue `DIALOGUE_MAILBOX_KEY` 給下一個場景播 `Dialogue`,跟同時待處理的其他 key 不會
+互相覆蓋)。這一套只在**真的要切場景**時才需要——不切場景、只是疊加彈出面板的情境
+(見下方「共用 UI」的 `CharacterSelectBar` + `ActionPanel.open_custom()` 模式)直接用
+closure 傳資料/callback 即可,不要為了套用這套 mailbox 模式硬切一次場景。
 
 - `queue(key, payload, next_scene_path, result_callback)` 存資料,再自己切場景。
-- `take(key)` 讀取後立刻清空——一次性用途(例如 `MarriageProposalRequest`)。
+- `take(key)` 讀取後立刻清空——一次性用途(例如 `FamilyTree.FOCUS_MAILBOX_KEY`)。
 - `peek(key)` 讀取後保留不清——目前只有對話系統用,見下方生命週期陷阱。
-- payload 型別不限定,呼叫端跟接收端自己約定;資料不只一個欄位時另外寫一個小型
-  `RefCounted` 資料類別(比照 `System/marriage/marriage_proposal_request.gd`),裡面放一個
-  `const MAILBOX_KEY` 讓兩端共用同一把 key,不要去改 `SceneHandoffStore`/`SceneHandoff`
-  (`Scripts/scene_handoff.gd`,純資料信封,不是 autoload)這兩支通用檔案本身。
+- payload 型別不限定,呼叫端跟接收端自己約定;單一欄位可以直接傳現成物件(例如
+  `FamilyTree.FOCUS_MAILBOX_KEY` 直接傳一個 `Character`),資料不只一個欄位時另外寫一個
+  小型 `RefCounted` 資料類別,裡面放一個 `const MAILBOX_KEY` 讓兩端共用同一把 key,不要
+  去改 `SceneHandoffStore`/`SceneHandoff`(`Scripts/scene_handoff.gd`,純資料信封,不是
+  autoload)這兩支通用檔案本身。
 
 **對話系統**(`Scenes/Dialogue/dialogue_box.gd`)是最大宗的使用者:`LocationEvent.goto_dialogue()`
 把 `Dialogue` 塞進 key `"dialogue"`(常數 `LocationEvent.DIALOGUE_MAILBOX_KEY`)、切去

@@ -40,10 +40,15 @@ func _start() -> void:
 
 ## 只有真的打贏才把敵人從地圖上消耗掉;戰敗或平手都算沒能擊退盜賊,敵人留在原地——
 ## 跟選「離開」共用同一套 decline_encounter() 暫時擋重觸發機制,避免播完結果對話回到
-## map.tscn 時玩家還站在原地,立刻又撞上同一隻敵人重播一次。
+## map.tscn 時玩家還站在原地,立刻又撞上同一隻敵人重播一次。打贏同時通知 QuestStore
+## 檢查這隻敵人的所屬國家(見 _background_path() 同一份 party.nation_type)有沒有進行中的
+## 「討伐周邊強盜」任務,有的話直接完成、補發任務獎勵(見 QuestStore.notify_bandit_defeated())
+## ——一般擊退盜賊的金錢/好感度獎勵已經由 Battle 場景照常發放,這裡不重複。
 func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 	if result == GameEnums.BattleResultType.SELF_WIN:
 		RoamingEnemyStore.spawner.remove_enemy(_enemy)
+		if _enemy.party.nation_type != -1:
+			QuestStore.notify_bandit_defeated(_enemy.party.nation_type)
 	else:
 		RoamingEnemyStore.spawner.decline_encounter(_enemy)
 	goto_dialogue(_build_result(result), RETURN_SCENE_PATH)

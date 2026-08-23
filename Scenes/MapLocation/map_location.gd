@@ -38,6 +38,11 @@ func _ready() -> void:
 
 	title_label.text = _map_object.name
 	_update_background()
+	if _map_object.type == GameEnums.MapObjectType.TOWN:
+		# 送信委託(System/quest/,見 TownTavernEvent「詢問委託」)的完成條件是玩家移動到
+		# 目的地城鎮——每次進到 TOWN 地點選單都檢查一次有沒有以這座城鎮為目的地、進行中的
+		# 送信委託,找不到的話 notify_courier_arrived() 自己什麼都不做,呼叫端不用先判斷。
+		QuestStore.notify_courier_arrived(_map_object.nation)
 	for sub_location_label in MapObject.get_sub_locations(_map_object.type):
 		var button := Button.new()
 		button.text = sub_location_label
@@ -94,14 +99,20 @@ func _on_town_button_pressed() -> void:
 
 ## 隨機村民聊天,同樣整段交給 System/event/town/town_chat_event.gd 的
 ## TownChatEvent 接管,聊完回到這個地點選單本身。背景圖固定用住宅區場景,不分地形。
+## 純聊天,不接任何委託——委託改由酒館老闆的「詢問委託」選項接管(見
+## System/event/town/town_tavern_event.gd)。
 func _on_chat_button_pressed() -> void:
 	TownChatEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
 
 
 ## 酒館搭訕,整段交給 System/event/town/town_tavern_event.gd 的 TownTavernEvent
-## 接管,結束後回到這個地點選單本身。
+## 接管,結束後回到這個地點選單本身。帶上這座城鎮的 nation,讓 TavernStore 能依該國好感度
+## 決定酒館招募清單/特殊推薦/搭訕對象的抽選基礎評級(見 TavernStore._resolve_base_rank())
+## ——「酒館」這顆按鈕只會出現在 TOWN 類型地點的子選單(見 System/map/map_object.gd 的
+## TYPE_SUB_LOCATIONS),_map_object.nation 一定有效,跟 _on_chat_button_pressed() 同一個
+## 前提。
 func _on_tavern_button_pressed() -> void:
-	TownTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
+	TownTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn", _map_object.nation)
 
 
 ## 進入根據地:直接切去 Scenes/Base/base.tscn,不經過任何過場對話(建築內政的實際

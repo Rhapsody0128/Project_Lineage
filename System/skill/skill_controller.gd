@@ -43,10 +43,13 @@ static func get_random_skill_list_by_rank(skill_rank: GameEnums.RankType) -> Arr
 ## 避免技能欄/AI 骰選池被撐得過大。
 const MAX_SKILLS_PER_CHARACTER := 4
 
-## 該武器能用的技能:bind_weapon 相符,或技能沒有綁定武器(NO_WEAPON_BINDING,任何武器都能用),
-## 超過 MAX_SKILLS_PER_CHARACTER 時優先保留這把武器「專屬綁定」的技能(至少要有東西能打),
-## 其餘名額(含無綁定的被動/LEADER 技能)隨機從剩下的裡面抽,不會每次都固定同一批。
-static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array[Skill]:
+## 該武器能用的技能:bind_weapon 相符,或技能沒有綁定武器(NO_WEAPON_BINDING,任何武器都能用)。
+## target_count 是實際要抽的技能數(1~MAX_SKILLS_PER_CHARACTER,呼叫端多半傳
+## SkillCountDrawTable.roll() 依血統評級骰出的值,不填則沿用舊行為抽滿上限)——優先保留這把
+## 武器「專屬綁定」的技能(至少要有東西能打),其餘名額(含無綁定的被動/LEADER 技能)隨機從
+## 剩下的裡面抽,不會每次都固定同一批,技能池本身不重複故結果不會重複。
+static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType, target_count: int = MAX_SKILLS_PER_CHARACTER) -> Array[Skill]:
+	var clamped_count := clampi(target_count, 1, MAX_SKILLS_PER_CHARACTER)
 	var bound: Array[Skill] = []
 	var unbound: Array[Skill] = []
 	for skill in _skill_library:
@@ -58,14 +61,14 @@ static func get_skill_list_by_weapon(weapon_type: GameEnums.WeaponType) -> Array
 	var result: Array[Skill] = bound.duplicate()
 	unbound.shuffle()
 	for skill in unbound:
-		if result.size() >= MAX_SKILLS_PER_CHARACTER:
+		if result.size() >= clamped_count:
 			break
 		result.append(skill)
 
-	# 保險:萬一單一武器專屬技能本身就超過上限(目前不會發生),還是要夾住上限。
-	if result.size() > MAX_SKILLS_PER_CHARACTER:
+	# 保險:萬一單一武器專屬技能本身就超過骰出的數量,還是要夾住上限(至少留 1 個能打)。
+	if result.size() > clamped_count:
 		result.shuffle()
-		result = result.slice(0, MAX_SKILLS_PER_CHARACTER)
+		result = result.slice(0, clamped_count)
 
 	return result
 

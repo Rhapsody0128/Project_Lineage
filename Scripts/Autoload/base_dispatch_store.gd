@@ -22,9 +22,15 @@ func _ready() -> void:
 	WorldTimeStore.controller.register_month_event(_on_month_passed)
 
 
-## 建築未解鎖(0 級)或名額已滿回傳 false 且不指派,呼叫端(Scenes/Base/base_action_panel.gd)用回傳值
-## 決定要不要顯示「已滿額」提示。
+## 建築未解鎖(0 級)、名額已滿、或角色目前已編入小隊都回傳 false 且不指派,呼叫端
+## (Scenes/Base/base_action_panel.gd)用回傳值決定要不要顯示提示。跟 PartyEditGrid.place()
+## 互為對稱防線——已編入小隊的角色不能再派去根據地生產,反之亦然(見 CLAUDE.md 這次
+## 新增的互斥規則)。
 func dispatch(building_type: GameEnums.BuildingType, character_id: String) -> bool:
+	if PartyStore.party != null:
+		for character in PartyStore.party.characteres:
+			if character.id == character_id:
+				return false
 	undispatch_character(character_id)
 	var current: Array = _assignments.get(building_type, [])
 	if current.size() >= BaseBuildingProgressStore.get_max_workers(building_type):
@@ -69,6 +75,15 @@ func is_character_dispatched(character_id: String) -> bool:
 		if (_assignments[building_type] as Array).has(character_id):
 			return true
 	return false
+
+
+## 查角色目前派駐哪一棟建築,查不到回傳 -1(見 CharacterStatusRule.get_status_label()
+## 要組「在OOO工作」的顯示文字)。
+func get_dispatched_building_type(character_id: String) -> int:
+	for building_type in _assignments:
+		if (_assignments[building_type] as Array).has(character_id):
+			return building_type
+	return -1
 
 
 func to_save_data() -> Dictionary:

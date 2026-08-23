@@ -49,6 +49,10 @@ var is_protagonist: bool = false
 ## 是否已死亡(見 CharacterDeathController.kill())。死亡角色仍留在 AllCharacterStore
 ## (祖譜要沿用)但已從 CharacterRosterStore 移除，且不再隨世界時間增齡（見 age_up()）。
 var is_dead: bool = false
+## 是否已被玩家從角色列表解雇(見 character_roster.gd._dismiss_character())。跟 is_dead
+## 同一套慣例:解雇後仍可能留在祖譜親族圖裡(靠 parent/mate/children 參照撐住),但已從
+## CharacterRosterStore/AllCharacterStore 移除。狀態顯示見 CharacterStatusRule。
+var is_dismissed: bool = false
 
 func _init(
 	p_name: String,

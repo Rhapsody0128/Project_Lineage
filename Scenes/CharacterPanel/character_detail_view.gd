@@ -71,6 +71,7 @@ const POTENTIAL_GRID_ORDER := [
 var portrait_texture: TextureRect
 var name_label: Label
 var age_label: Label
+var status_label: Label
 var gender_label: Label
 var level_value_label: Label
 var weapon_icon: TextureRect
@@ -138,7 +139,8 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 
 	portrait_texture.texture = _load_face_texture(character.face_path)
 	name_label.text = character.full_name
-	age_label.text = "%d(已故)" % character.age if character.is_dead else "%d" % character.age
+	age_label.text = "%d" % character.age
+	status_label.text = CharacterStatusRule.get_status_label(character)
 	gender_label.text = GameEnums.gender_symbol(character.gender)
 	bloodline_rank_value_label.text = GameEnums.rank_label(character.noble_bloodline_rank)
 
@@ -235,6 +237,10 @@ func _build_identity_header() -> Control:
 	var age_row := _build_stat_row("年齡")
 	age_label = age_row["value_label"]
 	info_column.add_child(age_row["row"])
+
+	var status_row := _build_stat_row("狀態")
+	status_label = status_row["value_label"]
+	info_column.add_child(status_row["row"])
 
 	var gender_row := _build_stat_row("性別")
 	gender_label = gender_row["value_label"]
@@ -697,8 +703,12 @@ func _build_family_member_row(member: Character) -> Control:
 	info_column.add_child(name_row["row"])
 
 	var age_row := _build_stat_row("年齡")
-	age_row["value_label"].text = "%d(已故)" % member.age if member.is_dead else "%d" % member.age
+	age_row["value_label"].text = "%d" % member.age
 	info_column.add_child(age_row["row"])
+
+	var status_row := _build_stat_row("狀態")
+	status_row["value_label"].text = CharacterStatusRule.get_status_label(member)
+	info_column.add_child(status_row["row"])
 
 	var gender_row := _build_stat_row("性別")
 	gender_row["value_label"].text = GameEnums.gender_symbol(member.gender)

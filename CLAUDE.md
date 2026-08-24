@@ -176,25 +176,37 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 寫法:`setup(characters, card_factory, initial_sort_key, show_weapon_filter)` 灌資料,
 `card_factory` 是 `func(character) -> Control`,回傳的卡片要有 `character`/`selected`
 屬性跟 `character_selected` 訊號(`CharacterAvatarCard` 頭像卡就符合這個形狀)。這個元件
-不含自己的 `ScrollContainer`,設計上配合下方兩種「近全螢幕彈出面板殼」之一使用,一律不
-切場景、不借用 `ActionPanel`:
+不含自己的 `ScrollContainer`,設計上配合下方彈出面板殼使用,一律不切場景。
 
-- `Scenes/CharacterSelect/character_select_overlay.gd` 的 `CharacterSelectOverlay`——選人
-  情境專用外殼,內建 `CharacterSelectPanel`(左側 `CharacterDetailView` + 右側
-  `CharacterSelectBar`,見 `Scenes/CharacterSelect/character_select_panel.gd`),呼叫端只要
-  `CharacterSelectOverlay.new()` 塞進場景樹、呼叫 `open(title, characters, card_factory,
-  initial_sort_key, on_confirmed, ...)` 即可——見 `Scenes/Base/base_action_panel.gd` 的
-  `_open_dispatch_picker()`/`_open_trainee_picker()`/`_open_leader_picker()` 三個實例。
-- `Scripts/UI/fullscreen_overlay.gd` 的 `FullscreenOverlay`——更泛用的殼,內容自己組
-  (不限定 `CharacterSelectPanel` 版面),`open(title, content, on_close_button)` 疊加顯示,
-  用在告白/聯姻這類版面結構跟純選人不同、但一樣要蓋滿畫面的情境——見
-  `Scenes/Marriage/marriage_proposal_panel.gd`(告白)跟
-  `Scenes/Marriage/stronghold_marriage_panel.gd`(聯姻選人選國家)兩個實例。
+近全螢幕/近大彈窗的內容一律走同一層共用外殼——`Scenes/ActionPanel/action_panel.gd`
+(`ActionPanel`,autoload,見「共用彈出式操作面板」段落開頭)。不管是清單式的 `open()`
+還是任意版面的 `open_custom(title, content, on_close, min_size)`,寬度/外框/標題列/×
+關閉鈕全部只由這一層控制,不疊多層 CanvasLayer 互相影響(先前的 `FullscreenOverlay` 已
+整個移除)。`open_custom()` 是**取代**而不是疊加——換內容時原本顯示中的 content 會被
+`queue_free()`,呼叫端如果之後要「取消/關閉」回到前一個畫面,不是簡單 `close()` 就能復原,
+要在 `on_close` callback 裡重新呼叫建構前一個內容的入口(例如
+`System/event/base/base_building_event.gd` 的 `open_action_panel()`,重開一份全新的
+`BaseBuildingPanelContent`),不要嘗試復用已經被釋放的舊 content——見
+`Scenes/Marriage/stronghold_marriage_panel.gd`(聯姻選人選國家,取代掉城鎮中心建築面板)、
+`Scenes/Marriage/marriage_proposal_panel.gd`(告白)、
+`System/event/base/base_marriage_event.gd` 的 `_open_candidate_picker()`(候選人盲選)
+三個 `open_custom()` 實例,以及 `close(trigger_callback)` 的 `false` 用法——確認/選定時
+呼叫端已經自己決定好下一步,要傳 `false` 蓋掉預設的 `on_close` 續接,避免兩條後續流程
+搶著跑。
 
-兩者都是「每次呼叫端要用就 `.new()` 一份塞進場景樹、`close()` 時自己 `queue_free()`」,
-不是 autoload 單例,疊上來的當下底下的畫面(Dialogue 或另一層 `ActionPanel`)完全不受
-影響、不會被取代/釋放。之後任何「彈出角色清單挑一位」或「近全螢幕彈出面板」的新情境,
-比照這兩顆元件直接重用,不要再各自兜一份 grid + 排序邏輯或另開一份面板殼。
+`Scenes/CharacterSelect/character_select_overlay.gd` 的 `CharacterSelectOverlay` 是唯一
+的例外——選人情境專用外殼,`extends CanvasLayer`(自成一層,layer 比 `ActionPanel` 高),
+不借用 `ActionPanel`,因為它經常需要疊加在「目前已經開著的 `ActionPanel` 內容之上」而不
+取代它(例如根據地建築面板還開著時彈出的派遣/受訓/領導人選人清單)。外觀比照
+`ActionPanel` 的既有彈出視覺語言(半透明黑幕 + `CenterContainer` 置中 + 固定
+`custom_minimum_size` 的 `PanelBox`,尺寸直接沿用 `ActionPanel.DEFAULT_MIN_SIZE`,不再
+另外調一組數字),內部塞一個 `CharacterSelectPanel`(左側 `CharacterDetailView` + 右側
+`CharacterSelectBar`,見 `Scenes/CharacterSelect/character_select_panel.gd`)。呼叫端
+`CharacterSelectOverlay.new()` 塞進場景樹、呼叫 `open_picker(title, characters,
+card_factory, initial_sort_key, on_confirmed, ...)`——見 `Scenes/Base/base_action_panel.gd`
+的 `_open_dispatch_picker()`/`_open_trainee_picker()`/`_open_leader_picker()` 三個實例,
+`close()` 時自己 `queue_free()`,不是 autoload 單例,疊上來的當下底下的 `ActionPanel`
+內容完全不受影響、不會被取代/釋放。
 
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
@@ -370,7 +382,7 @@ class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好�
 分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `LocationEvent.goto_dialogue()`
 queue `DIALOGUE_MAILBOX_KEY` 給下一個場景播 `Dialogue`,跟同時待處理的其他 key 不會
 互相覆蓋)。這一套只在**真的要切場景**時才需要——不切場景、只是疊加彈出面板的情境
-(見下方「共用 UI」的 `CharacterSelectOverlay`/`FullscreenOverlay` 模式)直接用 closure
+(見下方「共用 UI」的 `ActionPanel.open_custom()`/`CharacterSelectOverlay` 模式)直接用 closure
 傳資料/callback 即可,不要為了套用這套 mailbox 模式硬切一次場景。
 
 - `queue(key, payload, next_scene_path, result_callback)` 存資料,再自己切場景。

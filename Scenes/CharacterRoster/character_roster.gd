@@ -37,9 +37,7 @@ func _ready() -> void:
 		button.add_theme_font_size_override("font_size", 16)
 	UiStyle.apply_parchment_panel(roster_panel, 1120.0, 792.0)
 	UiStyle.apply_parchment_scrollbar(roster_scroll_container)
-	# DetailPanel 自己的 DetailMargin 已經有 20/14/20/14 留白,這裡用比大面板預設值
-	# (30/50/30/50)小一點的 content_margin,理由跟 character_panel.gd 的 PanelBox 一樣。
-	UiStyle.apply_parchment_panel(detail_panel, 400.0, 792.0, 16.0, 18.0, 16.0, 18.0)
+	UiStyle.apply_parchment_panel(detail_panel, 400.0, 792.0)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL

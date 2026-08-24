@@ -26,7 +26,7 @@ extends HBoxContainer
 signal character_confirmed(character: Character)
 signal cancelled()
 
-const DETAIL_PANEL_WIDTH := 380.0
+const DETAIL_PANEL_WIDTH := 180.0
 const DEFAULT_CONFIRM_LABEL := "確認選擇"
 
 var context_box: VBoxContainer
@@ -44,7 +44,7 @@ func _ready() -> void:
 	var detail_panel := PanelContainer.new()
 	detail_panel.custom_minimum_size = Vector2(DETAIL_PANEL_WIDTH, 0)
 	detail_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	UiStyle.apply_parchment_panel(detail_panel, DETAIL_PANEL_WIDTH, 600.0, 16.0, 18.0, 16.0, 18.0)
+	UiStyle.apply_parchment_panel(detail_panel, DETAIL_PANEL_WIDTH, 600.0)
 	add_child(detail_panel)
 
 	_detail_view = CharacterDetailView.new()

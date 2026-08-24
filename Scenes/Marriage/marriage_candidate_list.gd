@@ -5,11 +5,11 @@ extends VBoxContainer
 # 城鎮中心聯姻候選人盲選清單——只顯示姓名/年齡,不用 CharacterDetailView 那套完整情報選人
 # 畫面(呼應玩家角色本人「還沒真的認識這些候選人」的敘事:國家寄回的介紹信只會提名字
 # 年紀,不會附完整素質/血統/家族資料),跟酒館告白/根據地派遣等「看得到完整情報」的選人
-# 情境刻意不同。塞進 Scripts/UI/fullscreen_overlay.gd 的 FullscreenOverlay 顯示(見
+# 情境刻意不同。塞進共用的 Scenes/ActionPanel/action_panel.gd(autoload)顯示(見
 # System/event/base/base_marriage_event.gd 的 _open_candidate_picker()),不是獨立場景。
 #
 # 只有兩個結果:candidate_picked(candidate) 選了某位候選人;declined() 都不合適(呼叫端的
-# FullscreenOverlay × 鈕也接到同一個 declined 處理,見呼叫端寫法)——兩者是完全不同的收尾
+# ActionPanel × 鈕也接到同一個 declined 處理,見呼叫端寫法)——兩者是完全不同的收尾
 # 分支(前者接候選人反應 Dialogue,後者直接播聯姻角色婉拒獨白),呼叫端不要合併成同一個
 # callback 用 null 判斷。
 # =========================================================

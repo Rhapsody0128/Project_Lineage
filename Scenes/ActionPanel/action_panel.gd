@@ -7,17 +7,16 @@ extends CanvasLayer
 # 內容/大小/按鈕動作完全由呼叫端決定(見 Scripts/action_panel_item.gd 的 ActionPanelItem),
 # 不綁定任何特定用途——例如 System/event/town/town_tavern_event.gd 的酒館老闆用這裡
 # 列出可招募的隨機英雄,之後其他 Dialogue 情境要彈類似的清單/操作浮框,一律呼叫這裡,
-# 不要另開新的彈出面板。面板底圖固定用 Images/UI/panel_1980x1080.png(木框+羊皮紙,見
-# action_panel.tscn 的 StyleBoxTexture,texture_margin/content_margin 依這張圖的實際邊框
-# 厚度量出來,九宮格切片避免邊框被拉伸變形),清單/標題文字顏色跟著改成暖色系配色
+# 不要另開新的彈出面板。面板底圖固定用 UiStyle.apply_parchment_panel()(木框+羊皮紙,見
+# Scripts/UI/ui_style.gd),清單/標題文字顏色跟著改成暖色系配色
 # (_TEXT_COLOR/_SUBTITLE_COLOR),不是任意場景都能沿用深色底金字那一套。
 # =========================================================
 
-## 視窗固定 1600x900(見 project.godot),預設面板大約佔 3/4 畫面。
-const DEFAULT_MIN_SIZE := Vector2(1200, 675)
+## 視窗固定 1600x820(見 project.godot),預設面板大約佔 7/8 畫面。
+const DEFAULT_MIN_SIZE := Vector2(1600, 820)
 const ICON_SIZE := Vector2(64, 64)
 
-## 面板背景換成 panel_1980x1080.png(木框+羊皮紙)之後,列跟文字改用暖色系
+## 面板背景換成羊皮紙木框(UiStyle.apply_parchment_panel())之後,列跟文字改用暖色系
 ## (UiStyle.PARCHMENT_* 系列),配合淺色羊皮紙底色維持可讀性——原本的深藍底金字是給
 ## 深色面板配色用的。
 const _TEXT_COLOR := UiStyle.PARCHMENT_TEXT_COLOR
@@ -45,7 +44,7 @@ var _title_action_button: Control = null
 
 func _ready() -> void:
 	root.visible = false
-	UiStyle.apply_parchment_panel(panel_box, 1200.0, 675.0)
+	UiStyle.apply_parchment_panel(panel_box, 1600.0, 720.0)
 	UiStyle.apply_wood_plaque_button(close_button, 10.0, 4.0)
 	close_button.add_theme_font_size_override("font_size", 18)
 	close_button.pressed.connect(close)

@@ -35,7 +35,7 @@ var _on_finished: Callable = Callable()
 
 
 func _ready() -> void:
-	UiStyle.apply_parchment_panel(text_box, 1520.0, 180.0, 40.0, 22.0, 40.0, 22.0)
+	UiStyle.apply_parchment_panel(text_box, 1520.0, 180.0)
 	click_catcher.gui_input.connect(_on_click_catcher_gui_input)
 
 	# peek() 不清空——DialogueLine.choices 裡可能嵌著捕捉呼叫端 self 的 lambda,提早

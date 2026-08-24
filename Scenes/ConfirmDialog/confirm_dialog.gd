@@ -27,8 +27,7 @@ func _ready() -> void:
 	for button in [yes_button, no_button]:
 		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
 		button.add_theme_font_size_override("font_size", 18)
-	# 跟 ask_battle.tscn 的 PanelBox 同一組尺寸/留白慣例,見該檔案註解。
-	UiStyle.apply_parchment_panel(panel_box, 420.0, 180.0, 160.0, 120.0, 160.0, 120.0)
+	UiStyle.apply_parchment_panel(panel_box, 420.0, 180.0)
 	root.visible = false
 
 

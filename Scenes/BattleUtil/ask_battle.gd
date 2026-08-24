@@ -44,11 +44,8 @@ func _ready() -> void:
 		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
 		button.add_theme_font_size_override("font_size", 18)
 
-	# PanelBox/ReportPromptBox 內的 Margin 節點自己已經有 24/20/24/20 的留白,這裡的
-	# content_margin 只是額外留一點空間讓文字不要貼在羊皮紙毛邊上,不能沿用大面板(例如
-	# action_panel)的 30/50/30/50——420x180 這麼小的彈窗會把文字擠到快放不下按鈕。
-	UiStyle.apply_parchment_panel(panel_box, 420.0, 180.0, 160.0, 120.0, 160.0, 120.0)
-	UiStyle.apply_parchment_panel(report_prompt_box, 420.0, 180.0, 160.0, 120.0, 160.0, 120.0)
+	UiStyle.apply_parchment_panel(panel_box, 420.0, 180.0)
+	UiStyle.apply_parchment_panel(report_prompt_box, 420.0, 180.0)
 
 	root.visible = false
 	report_prompt_box.visible = false

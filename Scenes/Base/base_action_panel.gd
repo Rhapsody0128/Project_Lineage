@@ -370,7 +370,7 @@ func _open_leader_picker() -> void:
 
 	var overlay := CharacterSelectOverlay.new()
 	get_tree().root.add_child(overlay)
-	overlay.open(
+	overlay.open_picker(
 		"選擇整團領導人", characters, _simple_avatar_card, -1,
 		_on_leader_confirmed, "設為領導人", LeaderStore.get_leader()
 	)
@@ -382,29 +382,30 @@ func _on_leader_confirmed(character: Character) -> void:
 
 
 ## 「聯姻」按鈕按下後呼叫:選聯姻角色→選寄信國家兩步驟,整個交給
-## Scenes/Marriage/stronghold_marriage_panel.gd 的 StrongholdMarriagePanel 一份
-## FullscreenOverlay 內容處理——疊加在目前顯示中的城鎮中心建築面板(ActionPanel)最上層,
-## 不是取代它,跟 _open_dispatch_picker()/_open_trainee_picker()/_open_leader_picker()
-## 三個 CharacterSelectOverlay 選人情境同一套疊加模式,不切場景、不借用 ActionPanel。
-## self(這份建築面板內容)全程不受影響、不會被釋放,取消/× 只需要把這層疊加面板關掉,
-## 底下的 ActionPanel 本來就沒被動過,不用像舊版那樣重新呼叫
-## BaseBuildingEvent.open_action_panel() 重建一份。確認聯姻時面板自己先 overlay.close()
-## 讓路,這裡收到的 on_confirmed 只需要接手交給 BaseMarriageEvent 演出後續 Dialogue/
-## 候選人盲選。
+## Scenes/Marriage/stronghold_marriage_panel.gd 的 StrongholdMarriagePanel 一份 ActionPanel
+## 內容處理——直接換掉 ActionPanel 目前顯示的城鎮中心建築面板內容(不是疊加),self(這份
+## 建築面板內容)因此會被 ActionPanel.open_custom() 釋放掉,跟
+## _open_dispatch_picker()/_open_trainee_picker()/_open_leader_picker() 三個
+## CharacterSelectOverlay 選人情境(疊加在最上層,self 全程不受影響)是不同的模式。取消/×
+## 時 on_close 重新呼叫 BaseBuildingEvent.open_action_panel() 開一份全新的建築面板(比照
+## BaseMarriageEvent._finish() 演出結束後回到城鎮中心面板的既有寫法),不嘗試復用已經被釋放
+## 的這份 self。self 即將被釋放,下面兩個 lambda 因此不能再透過隱含的 self 存取
+## `_building`,改成先存進區域變數 building 再捕捉——lambda 執行的當下(玩家真正按下
+## 取消/確認聯姻)self 早就不在了。確認聯姻時面板自己呼叫 setup() 傳入的 on_confirmed,
+## 這裡收到後只需要 ActionPanel.close(false) 讓路、接手交給 BaseMarriageEvent 演出後續
+## Dialogue/候選人盲選。
 func _open_stronghold_marriage_panel(eligible: Array[Character]) -> void:
+	var building := _building
 	var panel := StrongholdMarriagePanel.new()
-	var overlay := FullscreenOverlay.new()
-	get_tree().root.add_child(overlay)
-	overlay.open("城鎮中心聯姻", panel, overlay.close)
-	panel.overlay = overlay
+	ActionPanel.open_custom("城鎮中心聯姻", panel, func(): BaseBuildingEvent.open_action_panel(building))
 	panel.setup(eligible, func(proposer: Character, nation: int) -> void:
 		# BaseMarriageEvent 接下來會呼叫 goto_dialogue() 真的切場景離開 base.tscn——
-		# ActionPanel 掛在 autoload CanvasLayer 上不會跟著切場景消失,底下的城鎮中心
-		# 建築面板本來就沒被這層 FullscreenOverlay 動過,這裡要先手動關掉,不然會一路
-		# 疊在 Dialogue 畫面最上層(理由同 BaseMarriageEvent 內部各處 ActionPanel.close()
-		# 呼叫點的既有註解)。
+		# ActionPanel 掛在 autoload CanvasLayer 上不會跟著切場景消失,要先手動關掉,不然會
+		# 一路疊在 Dialogue 畫面最上層(理由同 BaseMarriageEvent 內部各處 ActionPanel.close()
+		# 呼叫點的既有註解)。trigger_callback=false,避免又觸發上面那個重開建築面板的
+		# on_close。
 		ActionPanel.close(false)
-		BaseMarriageEvent.trigger(_building, proposer, nation)
+		BaseMarriageEvent.trigger(building, proposer, nation)
 	)
 
 
@@ -483,7 +484,7 @@ func _open_dispatch_picker() -> void:
 
 	var overlay := CharacterSelectOverlay.new()
 	get_tree().root.add_child(overlay)
-	overlay.open(
+	overlay.open_picker(
 		"指派工作角色", characters, _make_dispatch_card,
 		3 + _building.potential_type, _on_dispatch_confirmed, "確認指派"
 	)
@@ -556,7 +557,7 @@ func _open_trainee_picker() -> void:
 
 	var overlay := CharacterSelectOverlay.new()
 	get_tree().root.add_child(overlay)
-	overlay.open("指派角色訓練", characters, _simple_avatar_card, -1, _on_trainee_confirmed)
+	overlay.open_picker("指派角色訓練", characters, _simple_avatar_card, -1, _on_trainee_confirmed)
 
 
 func _on_trainee_confirmed(character: Character) -> void:

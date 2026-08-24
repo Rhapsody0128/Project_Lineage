@@ -10,7 +10,7 @@ extends LocationEvent
 ##    要不要幫忙寄信(proposer 是領導人本人時沒有「大人」可以問,改成領導人自己的獨白,見
 ##    _build_self_request_dialogue())。
 ## 2. 彈出候選人盲選清單(_open_candidate_picker(),Scenes/Marriage/marriage_candidate_list.gd
-##    的 MarriageCandidateList 塞進 Scripts/UI/fullscreen_overlay.gd 的 FullscreenOverlay,
+##    的 MarriageCandidateList 塞進共用的 Scenes/ActionPanel/action_panel.gd(autoload),
 ##    只顯示姓名/年齡——玩家角色本人根本沒見過這些候選人,不該一開始就看得到完整素質/血統/
 ##    家族,跟酒館告白流程「看得到完整情報」刻意不同)。玩家可以選一位候選人,也可以直接
 ##    婉拒(不選任何人,回一句「沒有心儀的對象」的獨白)。
@@ -20,10 +20,11 @@ extends LocationEvent
 ## goto_dialogue() 會真的切場景離開 base.tscn——觸發時呼叫端
 ## (_open_stronghold_marriage_panel())要先 ActionPanel.close(false) 把目前開著的城鎮中心
 ## 面板藏起來,不然它是掛在 ActionPanel 這個 autoload CanvasLayer 上,不會因為切場景被
-## 收掉,會一直疊在 Dialogue 畫面最上層;候選人盲選清單是另一層獨立的 FullscreenOverlay,
-## 不受影響,選完/婉拒各自負責把自己這層 close() 掉(見 _on_candidate_picked()/
-## _on_candidate_declined())。演出結束後改呼叫 BaseBuildingEvent.open_action_panel() 開
-## 一份全新的面板顯示結果,不去嘗試復用切場景前那份舊的 BaseBuildingPanelContent。
+## 收掉,會一直疊在 Dialogue 畫面最上層,所以這裡的候選人盲選清單能直接沿用同一個已經空出
+## 來的 ActionPanel,不需要另開一層。選完/婉拒各自負責 ActionPanel.close(false)(見
+## _on_candidate_picked()/_on_candidate_declined())。演出結束後改呼叫
+## BaseBuildingEvent.open_action_panel() 開一份全新的面板顯示結果,不去嘗試復用切場景前
+## 那份舊的 BaseBuildingPanelContent。
 
 const THRONE_ROOM_NOBLE_THRESHOLD := 50.0
 const CANDIDATE_PANEL_TITLE := "回信人選"
@@ -33,7 +34,6 @@ var _proposer: Character
 var _nation: int
 var _candidate: Character = null
 var _accepted: bool = false
-var _candidate_overlay: FullscreenOverlay
 
 
 ## Scenes/Base/base_action_panel.gd 的 _open_stronghold_marriage_panel() 按下「確認聯姻」
@@ -80,29 +80,29 @@ func _build_self_request_dialogue(leader: Character) -> Dialogue:
 
 ## 候選人盲選:只顯示姓名/年齡,不用 CharacterSelectOverlay/CharacterDetailView 那套完整
 ## 情報選人畫面——MarriageCandidateList(Scenes/Marriage/marriage_candidate_list.gd)塞進
-## FullscreenOverlay 顯示,疊在目前 Dialogue 畫面背景上,不切場景。candidate_picked/
-## declined 兩個訊號接到不同分支(見 _on_candidate_picked()/_on_candidate_declined()),
-## FullscreenOverlay 的 × 鈕也接到 declined 分支——都不選一律視同婉拒。
+## 共用的 ActionPanel(autoload),疊在目前 Dialogue 畫面背景上,不切場景。此時 ActionPanel
+## 已經在 _open_stronghold_marriage_panel() 那步被 close(false) 空出來,可以直接沿用。
+## candidate_picked/declined 兩個訊號接到不同分支(見 _on_candidate_picked()/
+## _on_candidate_declined()),ActionPanel 的 × 鈕(on_close)也接到 declined 分支——都不選
+## 一律視同婉拒。
 func _open_candidate_picker() -> void:
 	var candidates := MarriageCandidateGenerator.generate_candidates(_proposer, _nation)
 	var list := MarriageCandidateList.new()
-	_candidate_overlay = FullscreenOverlay.new()
-	var tree := Engine.get_main_loop() as SceneTree
-	tree.root.add_child(_candidate_overlay)
-	_candidate_overlay.open(CANDIDATE_PANEL_TITLE, list, func(): _on_candidate_declined())
+	ActionPanel.open_custom(CANDIDATE_PANEL_TITLE, list, func(): _on_candidate_declined())
 	list.setup(candidates)
 	list.candidate_picked.connect(_on_candidate_picked)
 	list.declined.connect(_on_candidate_declined)
 
 
 ## 選了候選人:是否接受在這裡就骰定(_accepted),不是播到那句才骰——這樣接下來的 Dialogue
-## 狀態是確定的,不會因為玩家中途做了其他操作而改變結果。_candidate_overlay.close() 是
-## 必要的一步——goto_dialogue() 接下來會真的切場景離開目前畫面,這層盲選清單自己也要先
-## 關掉,不然會一路疊在 Dialogue 畫面最上層。
+## 狀態是確定的,不會因為玩家中途做了其他操作而改變結果。ActionPanel.close(false) 是必要
+## 的一步(trigger_callback=false,避免又觸發上面那個 declined 分支)——goto_dialogue()
+## 接下來會真的切場景離開目前畫面,這層盲選清單自己也要先關掉,不然會一路疊在 Dialogue
+## 畫面最上層。
 func _on_candidate_picked(candidate: Character) -> void:
 	_candidate = candidate
 	_accepted = MarriageRule.roll_alliance_success()
-	_candidate_overlay.close()
+	ActionPanel.close(false)
 	goto_dialogue(_build_reaction_dialogue(), "", func(): _finish())
 
 
@@ -122,9 +122,11 @@ func _candidate_background_path() -> String:
 	return GameEnums.TOWN_RESIDENTIAL_BACKGROUND_PATH
 
 
-## 沒選任何候選人:聯姻角色自己回絕領導人的好意,不進候選人反應那段對話,直接收尾。
+## 沒選任何候選人:聯姻角色自己回絕領導人的好意,不進候選人反應那段對話,直接收尾。這裡
+## 同時是 ActionPanel 的 on_close(× 鈕)跟 list.declined 訊號(清單按鈕)兩條路徑共用的
+## handler——close(false) 避免 × 觸發時 on_close 再呼叫一次自己形成無謂的重入。
 func _on_candidate_declined() -> void:
-	_candidate_overlay.close()
+	ActionPanel.close(false)
 	goto_dialogue(_build_decline_dialogue(), "", func(): _finish())
 
 

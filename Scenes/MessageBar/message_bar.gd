@@ -11,6 +11,7 @@ const _FADE_DURATION := 0.3
 const _DISPLAY_DURATION := 5.0
 
 @onready var bar: Control = $Root/Bar
+@onready var background: Panel = $Root/Bar/Background
 @onready var label: Label = $Root/Bar/Label
 
 var _queue: Array[String] = []
@@ -20,6 +21,7 @@ var _is_showing := false
 func _ready() -> void:
 	bar.modulate.a = 0.0
 	bar.visible = false
+	UiStyle.apply_parchment_panel(background, 1200.0, 60.0)
 	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	label.add_theme_font_size_override("font_size", 22)
 

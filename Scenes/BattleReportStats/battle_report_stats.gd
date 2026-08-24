@@ -29,10 +29,7 @@ var _fallback_portrait: Texture2D
 func _ready() -> void:
 	UiStyle.apply_wood_plaque_button(back_button, 30.0, 10.0)
 	back_button.add_theme_font_size_override("font_size", 16)
-	# MainPanel 是 PanelContainer,這裡的 content_margin 會跟 Margin 節點自己的 24/20/24/16
-	# 疊加。木框貼圖的 texture_margin 是 30/50/30/80(見 UiStyle.apply_parchment_panel),
-	# 疊加後的總留白必須大於這組數字,內容才不會被上下較厚的木框皺褶壓到。
-	UiStyle.apply_parchment_panel(main_panel, 1320.0, 740.0, 20.0, 44.0, 20.0, 80.0)
+	UiStyle.apply_parchment_panel(main_panel, 1320.0, 740.0)
 
 	var report := BattleReportStore.pending_stats_report
 	if report == null:

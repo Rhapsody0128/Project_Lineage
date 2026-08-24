@@ -32,7 +32,7 @@ static func bordered_panel(
 
 
 ## 共用 ScrollContainer 捲軸樣式:預設 Godot 捲軸是深色系統風格,跟羊皮紙/木框面板
-## (見 action_panel.tscn 的 panel_1980x1080.png)的暖色調不搭。呼叫端在 _ready() 對面板
+## (見 apply_parchment_panel 的 panel.png)的暖色調不搭。呼叫端在 _ready() 對面板
 ## 內的 ScrollContainer 呼叫一次即可套用做舊木紋配色的捲軸——軌道用半透明羊皮紙色,
 ## 握把用木紋深棕色,圓角柔化邊緣,不是系統預設那種生硬的直角灰條。
 ##
@@ -60,54 +60,28 @@ static func apply_parchment_scrollbar(scroll_container: ScrollContainer) -> void
 	))
 
 
-## 羊皮紙面板底圖(Images/UI/Panel/)依實際比例分好幾種尺寸,不是單一張圖硬拉伸——
-## 硬拉伸會讓四邊手繪的破損毛邊被橫向/縱向擠壓變形。每個呼叫端在 apply_parchment_panel()
-## 傳入面板的設計寬高,_panel_texture_for_size() 依寬高比挑最接近的一張,不用呼叫端自己
-## 對照檔名。新增素材時只要把新的 preload 加進 _PANEL_TEXTURE_RATIOS 陣列即可,不用改
-## 呼叫端。
-const _TEX_320x1080 := preload("res://Images/UI/Panel/panel_320x1080.png")
-const _TEX_400x1080 := preload("res://Images/UI/Panel/panel_400x1080.png")
-const _TEX_600x1080 := preload("res://Images/UI/Panel/panel_600x1080.png")
-const _TEX_800x1080 := preload("res://Images/UI/Panel/panel_800x1080.png")
-const _TEX_1080x1080 := preload("res://Images/UI/Panel/panel_1080x1080.png")
-const _TEX_1200x1080 := preload("res://Images/UI/Panel/panel_1200x1080.png")
-const _TEX_1400x1080 := preload("res://Images/UI/Panel/panel_1400x1080.png")
-const _TEX_1680x1080 := preload("res://Images/UI/Panel/panel_1680x1080.png")
-const _TEX_1980x1080 := preload("res://Images/UI/Panel/panel_1980x1080.png")
-const _TEX_1920x800 := preload("res://Images/UI/Panel/panel_1920x800.png")
-const _TEX_1920x600 := preload("res://Images/UI/Panel/panel_1920x600.png")
-const _TEX_1920x320 := preload("res://Images/UI/Panel/panel_1920x320.png")
-const _TEX_1920x144 := preload("res://Images/UI/Panel/panel_1920x144.png")
+## 羊皮紙面板底圖只有一張原圖(Images/UI/Panel/panel.png,實際像素 1920x1080)。
+## 不管呼叫端面板是什麼寬高,一律不拉伸整張圖去塞——拉伸會讓四邊手繪的破損毛邊變形。
+## 改成依面板寬高比從原圖中央「裁」出一塊同比例的區域當背景(等同 CSS background-size:
+## cover 置中裁切,裁下來的區域是原圖的實際像素,不縮放不變形):面板比原圖寬(例如
+## 1920x300 這種扁長條),裁滿原圖寬度、只取中央那一截高度;面板比原圖窄(例如 300x1080
+## 這種瘦長條),裁滿原圖高度、只取中央那一截寬度。_panel_crop_region() 算出來的區域交給
+## AtlasTexture 當 StyleBoxTexture.texture,texture_margin(九宮格邊框厚度)吃的是裁切後
+## 區域的像素,不是原圖整體。
 
-## [寬高比, 對應貼圖] 清單,_panel_texture_for_size() 用 log 比例距離找最接近的一筆——
-## log 距離對「等倍縮放/等倍放大」對稱(例如比例差 2 倍不管是變寬或變窄,距離一樣),
-## 直接用寬高比相減在極端瘦長/極端扁寬的素材之間比較會失真。
-const _PANEL_TEXTURE_RATIOS: Array[Array] = [
-	[320.0 / 1080.0, _TEX_320x1080],
-	[400.0 / 1080.0, _TEX_400x1080],
-	[600.0 / 1080.0, _TEX_600x1080],
-	[800.0 / 1080.0, _TEX_800x1080],
-	[1080.0 / 1080.0, _TEX_1080x1080],
-	[1200.0 / 1080.0, _TEX_1200x1080],
-	[1400.0 / 1080.0, _TEX_1400x1080],
-	[1680.0 / 1080.0, _TEX_1680x1080],
-	[1980.0 / 1080.0, _TEX_1980x1080],
-	[1920.0 / 800.0, _TEX_1920x800],
-	[1920.0 / 600.0, _TEX_1920x600],
-	[1920.0 / 320.0, _TEX_1920x320],
-	[1920.0 / 144.0, _TEX_1920x144],
-]
+const _TEX_PARCHMENT := preload("res://Images/UI/Panel/panel.png")
 
-static func _panel_texture_for_size(width: float, height: float) -> Texture2D:
+static func _panel_crop_region(width: float, height: float) -> Rect2:
+	var tex_size := Vector2(_TEX_PARCHMENT.get_size())
 	var target_ratio := width / height
-	var best_texture: Texture2D = _PANEL_TEXTURE_RATIOS[0][1]
-	var best_distance := INF
-	for entry in _PANEL_TEXTURE_RATIOS:
-		var distance: float = absf(log(float(entry[0]) / target_ratio))
-		if distance < best_distance:
-			best_distance = distance
-			best_texture = entry[1]
-	return best_texture
+	var master_ratio := tex_size.x / tex_size.y
+	var region_size: Vector2
+	if target_ratio >= master_ratio:
+		region_size = Vector2(tex_size.x, tex_size.x / target_ratio)
+	else:
+		region_size = Vector2(tex_size.y * target_ratio, tex_size.y)
+	var region_pos := Vector2.ZERO
+	return Rect2(region_pos, region_size)
 
 
 ## 羊皮紙木框彈窗共用文字配色(搭配 apply_parchment_panel 的淺色底,深色系深咖啡才夠
@@ -144,27 +118,67 @@ static func parchment_row_style(
 ## 內嵌一份 StyleBoxTexture SubResource)。panel_width/panel_height 是呼叫端面板的設計
 ## 寬高(讀 .tscn 的 offset/custom_minimum_size 算出來,不是拿 Control.size 在 _ready()
 ## 現場量——版面在容器裡的最終大小要等排版跑完才確定,_ready() 當下不保證正確),用來
-## 挑選比例最接近的貼圖(見 _panel_texture_for_size())。texture_margin 是依貼圖家族
-## 共用的邊框厚度量出來的固定值,不開放呼叫端調整(改了九宮格切片會跑掉);content_margin
-## (面板內容跟邊框的留白)每個用途大小差很多(彈出清單面板 vs 對話框窄長條 vs 小型詢問
-## 彈窗),留給呼叫端依面板尺寸傳入。
+## 從原圖裁出對應比例的區域(見 _panel_crop_region())。content_margin(面板內容跟邊框的
+## 留白)每個用途大小差很多(彈出清單面板 vs 對話框窄長條 vs 小型詢問彈窗),留給呼叫端
+## 依面板尺寸傳入。
 ##
+## panel_width/panel_height 只是「第一次套用」時的猜測值,對有固定 custom_minimum_size
+## 的面板通常夠準;但對用 size_flags_*=EXPAND_FILL 撐滿容器剩餘空間的面板(例如
+## marriage_proposal_panel.gd 的 PickerPanel,實際寬高由 RightPanel 扣掉 DetailPanel
+## 固定寬度後才算得出來,跟呼叫端隨手傳的設計值可能差一大截),裁切比例對不上實際顯示
+## 比例,九宮格中段會被非等比拉伸去填滿剩餘空間,肉眼看就是背景花紋被「壓縮」變形。
+## 因此這裡多接一手 panel.resized——排版跑完、面板真正定案的大小出來之後,用
+## panel.size(而不是呼叫端猜的值)重新套一次,裁切永遠跟顯示框同比例,不管容器怎麼排版
+## 都不會走樣;呼叫端不用自己去反推正確的設計寬高。
+
+const _TEXTURE_MARGIN_LEFT := 5.0
+const _TEXTURE_MARGIN_TOP := 5.0
+const _TEXTURE_MARGIN_RIGHT := 5.0
+const _TEXTURE_MARGIN_BOTTOM := 5.0
 
 static func apply_parchment_panel(
 	panel: Control,
 	panel_width: float,
 	panel_height: float,
-	content_margin_left: float = 30.0,
-	content_margin_top: float = 50.0,
-	content_margin_right: float = 30.0,
-	content_margin_bottom: float = 50.0
+	content_margin_left: float = 20.0,
+	content_margin_top: float = 20.0,
+	content_margin_right: float = 20.0,
+	content_margin_bottom: float = 20.0
 ) -> void:
+	_set_parchment_style(panel, panel_width, panel_height, content_margin_left, content_margin_top, content_margin_right, content_margin_bottom)
+	panel.resized.connect(func():
+		_set_parchment_style(panel, panel.size.x, panel.size.y, content_margin_left, content_margin_top, content_margin_right, content_margin_bottom)
+	)
+
+
+static func _set_parchment_style(
+	panel: Control,
+	panel_width: float,
+	panel_height: float,
+	content_margin_left: float,
+	content_margin_top: float,
+	content_margin_right: float,
+	content_margin_bottom: float
+) -> void:
+	if panel_width <= 0.0 or panel_height <= 0.0:
+		return
+
+	var region := _panel_crop_region(panel_width, panel_height)
+
+	var atlas := AtlasTexture.new()
+	atlas.atlas = _TEX_PARCHMENT
+	atlas.region = region
+
+	var margin_scale_h := minf(1.0, region.size.x / (_TEXTURE_MARGIN_LEFT + _TEXTURE_MARGIN_RIGHT))
+	var margin_scale_v := minf(1.0, region.size.y / (_TEXTURE_MARGIN_TOP + _TEXTURE_MARGIN_BOTTOM))
+
 	var style := StyleBoxTexture.new()
-	style.texture = _panel_texture_for_size(panel_width, panel_height)
-	style.texture_margin_left = 30.0
-	style.texture_margin_top = 50.0
-	style.texture_margin_right = 30.0
-	style.texture_margin_bottom = 80.0
+	style.texture = atlas
+	style.texture_margin_left = _TEXTURE_MARGIN_LEFT * margin_scale_h
+	style.texture_margin_right = _TEXTURE_MARGIN_RIGHT * margin_scale_h
+	style.texture_margin_top = _TEXTURE_MARGIN_TOP * margin_scale_v
+	style.texture_margin_bottom = _TEXTURE_MARGIN_BOTTOM * margin_scale_v
+
 	style.content_margin_left = content_margin_left
 	style.content_margin_top = content_margin_top
 	style.content_margin_right = content_margin_right

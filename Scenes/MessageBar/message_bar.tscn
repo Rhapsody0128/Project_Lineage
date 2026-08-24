@@ -1,7 +1,6 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://Scenes/MessageBar/message_bar.gd" id="1"]
-[ext_resource type="Texture2D" path="res://Images/UI/Panel/panel_1920x144.png" id="2"]
 
 [node name="MessageBar" type="CanvasLayer"]
 layer = 30
@@ -28,7 +27,7 @@ offset_top = 72.0
 offset_bottom = 132.0
 mouse_filter = 2
 
-[node name="Background" type="TextureRect" parent="Root/Bar"]
+[node name="Background" type="Panel" parent="Root/Bar"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -36,9 +35,6 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-texture = ExtResource("2")
-expand_mode = 1
-stretch_mode = 0
 
 [node name="Label" type="Label" parent="Root/Bar"]
 layout_mode = 1

@@ -4,26 +4,24 @@ extends VBoxContainer
 # =========================================================
 # 城鎮中心聯姻面板——第一階段只負責選「聯姻角色」與「寄信國家」,不含候選人選擇(候選人是
 # 盲選,發生在確認之後的 Dialogue 事件裡,見 System/event/base/base_marriage_event.gd)。
-# 塞進 Scripts/UI/fullscreen_overlay.gd 的 FullscreenOverlay 顯示(見 Scenes/Base/
-# base_action_panel.gd 的 _open_stronghold_marriage_panel()),不切場景、不借用
-# ActionPanel,近全螢幕疊在目前顯示中的城鎮中心建築面板最上層。版面結構:左側
+# 塞進共用的 Scenes/ActionPanel/action_panel.gd(autoload)顯示(見 Scenes/Base/
+# base_action_panel.gd 的 _open_stronghold_marriage_panel()),不切場景——直接換掉
+# ActionPanel 目前顯示的城鎮中心建築面板內容(不是疊在上面另開一層)。版面結構:左側
 # CharacterDetailView 顯示目前聚焦角色的完整資料,右側是兩個各自獨立、同時顯示的區塊——
 # 上方「寄信國家」(六國按鈕 + 好感度)、下方「聯姻角色」(已篩過未婚角色的清單),不用
-# TabContainer 切換,兩塊同時可見可選,順序不拘。main_row/detail_panel 都用
-# size_flags_vertical = EXPAND_FILL 撐滿 FullscreenOverlay.content_slot 給的整個高度,不用
-# 像塞進 ActionPanel 的 ScrollContainer 時那樣另外給高度下限。
+# TabContainer 切換,兩塊同時可見可選,順序不拘。
 #
 # 聯姻角色預設聚焦清單第一位(呼叫端 setup() 傳入的 characters 已經是 MarriageRule.
 # eligible_proposers() 篩過的結果)。
 #
-# overlay 欄位由呼叫端在 instantiate() 之後、setup() 之前直接賦值。取消/× 都走 overlay
-# 自己 close() 掉自己(建築面板本來就沒被替換,不用重開);確認聯姻由這裡自己
-# overlay.close() 讓路,再呼叫 setup() 傳入的 on_confirmed(proposer, nation) 交棒給
-# BaseMarriageEvent.trigger()。
+# 取消/× 都走 ActionPanel.close()(trigger_callback 預設 true),觸發呼叫端傳給
+# open_custom() 的 on_close——重新呼叫 BaseBuildingEvent.open_action_panel() 開一份全新的
+# 城鎮中心建築面板(這份面板本身已經在換掉 ActionPanel 內容的當下被釋放,回不去了,見
+# _open_stronghold_marriage_panel() 註解)。確認聯姻只需要呼叫 setup() 傳入的
+# on_confirmed(proposer, nation)——ActionPanel.close(false) 交給呼叫端的 on_confirmed
+# callback 自己處理(要接著切場景去 BaseMarriageEvent,trigger_callback 必須是 false,
+# 不能讓 on_close 又跑一次重開面板)。
 # =========================================================
-
-## 呼叫端在 instantiate() 之後、setup() 之前賦值——見檔案開頭註解。
-var overlay: FullscreenOverlay
 
 var _detail_view: CharacterDetailView
 var _proposer_bar: CharacterSelectBar
@@ -46,7 +44,7 @@ func _ready() -> void:
 	var detail_panel := PanelContainer.new()
 	detail_panel.custom_minimum_size = Vector2(400, 0)
 	detail_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	UiStyle.apply_parchment_panel(detail_panel, 400.0, 700.0, 16.0, 18.0, 16.0, 18.0)
+	UiStyle.apply_parchment_panel(detail_panel, 400.0, 700.0)
 	main_row.add_child(detail_panel)
 
 	_detail_view = CharacterDetailView.new()
@@ -72,7 +70,7 @@ func _ready() -> void:
 	cancel_button.text = "取消"
 	UiStyle.apply_wood_plaque_button(cancel_button, 16.0, 8.0)
 	cancel_button.add_theme_font_size_override("font_size", 18)
-	cancel_button.pressed.connect(func() -> void: overlay.close())
+	cancel_button.pressed.connect(func() -> void: ActionPanel.close())
 	action_row.add_child(cancel_button)
 
 	_confirm_button = Button.new()
@@ -90,7 +88,7 @@ func _ready() -> void:
 func _build_nation_panel() -> Control:
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size = Vector2(0, 210)
-	UiStyle.apply_parchment_panel(panel, 700.0, 210.0, 16.0, 14.0, 16.0, 14.0)
+	UiStyle.apply_parchment_panel(panel, 700.0, 210.0)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
@@ -137,7 +135,7 @@ func _build_nation_button(nation: int) -> Button:
 func _build_proposer_panel() -> Control:
 	var panel := PanelContainer.new()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	UiStyle.apply_parchment_panel(panel, 700.0, 380.0, 16.0, 14.0, 16.0, 14.0)
+	UiStyle.apply_parchment_panel(panel, 700.0, 380.0)
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
@@ -160,8 +158,9 @@ func _build_proposer_panel() -> Control:
 
 ## 聯姻流程唯一的入口:eligible 是已經篩過(未婚且未禁用,見 MarriageRule.eligible_proposers())
 ## 的角色清單,呼叫端(base_action_panel.gd)按下「聯姻」鈕時保證非空才會開這個面板。
-## on_confirmed 簽名 func(proposer: Character, nation: int) -> void,按下「確認聯姻」時
-## 觸發,面板自己先 overlay.close() 讓路,不需要呼叫端重複處理。
+## on_confirmed 簽名 func(proposer: Character, nation: int) -> void,按下「確認聯姻」時觸發,
+## 關閉 ActionPanel(trigger_callback=false,避免又觸發重開建築面板)是呼叫端 on_confirmed
+## callback 自己的責任,見 _open_stronghold_marriage_panel() 註解。
 func setup(eligible: Array[Character], on_confirmed: Callable) -> void:
 	_on_confirmed = on_confirmed
 	_proposal_character = eligible[0]
@@ -194,5 +193,4 @@ func _update_confirm_button() -> void:
 
 
 func _on_confirm_pressed() -> void:
-	overlay.close()
 	_on_confirmed.call(_proposal_character, _proposal_nation)

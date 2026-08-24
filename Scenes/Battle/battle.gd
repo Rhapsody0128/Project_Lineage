@@ -141,8 +141,8 @@ func _ready() -> void:
 	# 面板(取代原本的深藍色系 StyleBoxFlat),文字顏色跟著 UiStyle.PARCHMENT_TEXT_COLOR
 	# 那一套(見 .tscn 內 TitleLabel/LogLabel/DetailLabel 的 font_color),跟其他彈出式
 	# 對話框保持一致。
-	UiStyle.apply_parchment_panel($LogDialog/Panel, 800.0, 700.0, 60.0, 50.0, 80.0, 50.0)
-	UiStyle.apply_parchment_panel($ResultDialog/Panel, 440.0, 300.0, 20.0, 16.0, 20.0, 16.0)
+	UiStyle.apply_parchment_panel($LogDialog/Panel, 800.0, 700.0)
+	UiStyle.apply_parchment_panel($ResultDialog/Panel, 440.0, 300.0)
 
 	log_toggle_button.pressed.connect(_on_log_toggle_button_pressed)
 	log_dialog_close_button.pressed.connect(_on_log_dialog_close_pressed)

@@ -111,19 +111,15 @@ func _start(return_scene_path: String, nation: int) -> void:
 	goto_dialogue(_build_approach(), "", func(): _open_marriage_panel())
 
 
-## 疊一層 FullscreenOverlay(Scripts/UI/fullscreen_overlay.gd)顯示告白面板
-## (MarriageProposalPanel,見 Scenes/Marriage/marriage_proposal_panel.gd)——不切場景、
-## 不借用 ActionPanel,近全螢幕蓋在觸發事件當下的對話畫面上。面板內容自己不知道也不需要
-## 知道結果要接到哪裡,由這裡傳的 on_result callback 決定。這裡的 lambda 捕捉 self,撐住
-## 這個 RefCounted 事件物件活到玩家真正按下按鈕的那一刻(跟本檔案其餘 callback 用法同一套
-## 道理,見檔案開頭陷阱說明)。按 × 視同婉拒/取消,接到 panel.decline。
+## 疊加共用的 Scenes/ActionPanel/action_panel.gd(autoload)顯示告白面板
+## (MarriageProposalPanel,見 Scenes/Marriage/marriage_proposal_panel.gd)——不切場景,蓋在
+## 觸發事件當下的對話畫面上。面板內容自己不知道也不需要知道結果要接到哪裡,由這裡傳的
+## on_result callback 決定。這裡的 lambda 捕捉 self,撐住這個 RefCounted 事件物件活到玩家
+## 真正按下按鈕的那一刻(跟本檔案其餘 callback 用法同一套道理,見檔案開頭陷阱說明)。按 ×
+## 視同婉拒/取消,接到 panel.decline。
 func _open_marriage_panel() -> void:
 	var panel := MARRIAGE_PROPOSAL_PANEL_SCENE.instantiate()
-	var overlay := FullscreenOverlay.new()
-	var tree := Engine.get_main_loop() as SceneTree
-	tree.root.add_child(overlay)
-	overlay.open(MARRIAGE_PANEL_TITLE, panel, panel.decline)
-	panel.overlay = overlay
+	ActionPanel.open_custom(MARRIAGE_PANEL_TITLE, panel, panel.decline)
 	# setup() 簽名是 (target_character, self_character, ...):target 是對方(搭訕的人,
 	# stranger),self 是我方(被搭訕、原本屬意要出面的人,courted)——順序跟兩個變數的
 	# 命名容易搞混,注意不要傳反。

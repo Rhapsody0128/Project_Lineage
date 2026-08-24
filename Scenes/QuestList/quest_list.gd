@@ -51,7 +51,7 @@ func _ready() -> void:
 	back_button.add_theme_font_size_override("font_size", 16)
 	UiStyle.apply_parchment_panel(main_panel, 1320.0, 740.0)
 	UiStyle.apply_parchment_scrollbar(scroll_container)
-	UiStyle.apply_parchment_panel(sidebar, 200.0, 740.0, 16.0, 20.0, 16.0, 20.0)
+	UiStyle.apply_parchment_panel(sidebar, 200.0, 740.0)
 	for button in [main_quest_button, side_quest_button, commission_quest_button]:
 		UiStyle.apply_wood_plaque_button(button, 20.0, 10.0)
 		button.add_theme_font_size_override("font_size", 18)

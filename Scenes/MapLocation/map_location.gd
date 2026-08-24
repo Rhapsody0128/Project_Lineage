@@ -9,6 +9,7 @@ extends Control
 const TOWN_LABEL := "城門"
 const CHAT_LABEL := "聊天"
 const TAVERN_LABEL := "酒館"
+const MARKET_LABEL := "市集"
 const REST_LABEL := "休息"
 const ENTER_BASE_LABEL := "進入根據地"
 
@@ -56,6 +57,8 @@ func _ready() -> void:
 			button.pressed.connect(_on_chat_button_pressed)
 		elif sub_location_label == TAVERN_LABEL:
 			button.pressed.connect(_on_tavern_button_pressed)
+		elif sub_location_label == MARKET_LABEL:
+			button.pressed.connect(_on_market_button_pressed)
 		elif sub_location_label == REST_LABEL:
 			button.pressed.connect(_on_rest_button_pressed)
 		elif sub_location_label == ENTER_BASE_LABEL:
@@ -113,6 +116,13 @@ func _on_chat_button_pressed() -> void:
 ## 前提。
 func _on_tavern_button_pressed() -> void:
 	TownTavernEvent.trigger("res://Scenes/MapLocation/map_location.tscn", _map_object.nation)
+
+
+## 市集:純疊加彈出面板,不切場景、不經過 LocationEvent(比照 CLAUDE.md「共用 UI」節
+## 的彈出面板慣例)——內容/定價邏輯全交給 Scenes/MapLocation/market_panel_content.gd 的
+## MarketPanelContent,這裡只負責帶入這座城鎮的 nation(決定好感度加價倍率跟稱呼文字)。
+func _on_market_button_pressed() -> void:
+	ActionPanel.open_custom(MARKET_LABEL, MarketPanelContent.new(_map_object.nation))
 
 
 ## 進入根據地:直接切去 Scenes/Base/base.tscn,不經過任何過場對話(建築內政的實際

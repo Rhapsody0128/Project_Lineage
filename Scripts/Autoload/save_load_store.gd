@@ -59,6 +59,7 @@ func save_game(slot: int) -> bool:
 		"characters": AllCharacterStore.to_save_data(),
 		"roster_ids": CharacterRosterStore.to_save_data(),
 		"party_store": PartyStore.to_save_data(),
+		"leader": LeaderStore.to_save_data(),
 		"base_resources": BaseResourceStore.to_save_data(),
 		"building_progress": BaseBuildingProgressStore.to_save_data(),
 		"dispatch": BaseDispatchStore.to_save_data(),
@@ -73,6 +74,7 @@ func save_game(slot: int) -> bool:
 		"map_session": MapSessionStore.to_save_data(),
 		"tavern": TavernStore.to_save_data(),
 		"quests": QuestStore.to_save_data(),
+		"marriage_quota": MarriageQuotaStore.to_save_data(),
 	}
 
 	var file := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
@@ -96,6 +98,7 @@ func load_game(slot: int) -> bool:
 	var by_id: Dictionary = AllCharacterStore.load_save_data(data.get("characters", []))
 	CharacterRosterStore.load_save_data(data.get("roster_ids", []), by_id)
 	PartyStore.load_save_data(data.get("party_store", {}), by_id)
+	LeaderStore.load_save_data(data.get("leader", {}), by_id)
 	BaseResourceStore.load_save_data(data.get("base_resources", {}))
 	BaseBuildingProgressStore.load_save_data(data.get("building_progress", {}))
 	BaseDispatchStore.load_save_data(data.get("dispatch", {}))
@@ -110,4 +113,5 @@ func load_game(slot: int) -> bool:
 	MapSessionStore.load_save_data(data.get("map_session", {}))
 	TavernStore.load_save_data(data.get("tavern", {}), by_id)
 	QuestStore.load_save_data(data.get("quests", []))
+	MarriageQuotaStore.load_save_data(data.get("marriage_quota", {}))
 	return true

@@ -9,14 +9,16 @@ extends LocationEvent
 ##
 ## 不管有沒有遇到搭訕(沒骰中/骰中但沒人符合資格/告白流程跑完任何一種結局),最後
 ## 都會接到酒館老闆(bartender,見 _goto_bartender_after())的招呼台詞。招呼詞是一句
-## 帶兩個選項的選擇題(DialogueLine.choices,見 System/dialogue/):「雇用傭兵」接原本的
+## 帶三個選項的選擇題(DialogueLine.choices,見 System/dialogue/):「雇用傭兵」接原本的
 ## 招募清單(_open_recruit_panel());「詢問委託」彈出另一個 ActionPanel 列出討伐/交貨/
-## 送信三種委託報價供玩家接(_open_quest_offer_panel(),見 System/quest/)。兩者都是
-## 疊加彈出 ActionPanel(Scenes/ActionPanel/action_panel.gd),不切場景——招募清單那一列
-## 按鈕按下後改成 disabled(見 ActionPanelItem.disable_after_select),玩家可以在同一次
-## 彈窗裡連續招募好幾位,按 × 才離開、回到觸發事件時記下的地點選單場景;委託報價面板
-## 同一套「按 × 回地點選單」收尾。搭訕反應對話跟酒館老闆招呼詞合併成同一個 Dialogue
-## 播放(見 _goto_bartender_after()),不是切兩次場景。
+## 送信三種委託報價供玩家接(_open_quest_offer_panel(),見 System/quest/);「離開」才是
+## 真正離開酒館,切回觸發事件時記下的地點選單場景(_return_to_map_location())。前兩者
+## 都是疊加彈出 ActionPanel(Scenes/ActionPanel/action_panel.gd),不切場景——招募清單
+## 那一列按鈕按下後改成 disabled(見 ActionPanelItem.disable_after_select),玩家可以在
+## 同一次彈窗裡連續招募好幾位;按 × 關閉面板不會離開酒館,而是回到老闆招呼詞重新
+## 三選一(_return_to_bartender()),委託報價面板同一套收尾,要離開酒館得在招呼詞裡
+## 明確點「離開」。搭訕反應對話跟酒館老闆招呼詞合併成同一個 Dialogue 播放(見
+## _goto_bartender_after()),不是切兩次場景。
 ##
 ## CharacterController.get_random_character() 目前只有男性姓名庫,一律指派 MALE
 ## (見該檔案註解,女性角色池尚未建立),所以「性別相反」條件實務上要等女性角色池
@@ -56,6 +58,7 @@ const BARTENDER_NAME := "酒館老闆"
 const BARTENDER_GREETING := "你好,有甚麼需要的嗎?"
 const HIRE_MERCENARY_CHOICE_LABEL := "雇用傭兵"
 const ASK_COMMISSION_CHOICE_LABEL := "詢問委託"
+const LEAVE_CHOICE_LABEL := "離開"
 
 const RECRUIT_PANEL_TITLE := "酒館老闆介紹的旅人"
 const RECRUIT_BUTTON_LABEL := "招募"
@@ -108,14 +111,19 @@ func _start(return_scene_path: String, nation: int) -> void:
 	goto_dialogue(_build_approach(), "", func(): _open_marriage_panel())
 
 
-## 彈出 ActionPanel 顯示告白面板(MarriageProposalPanel,見 Scenes/Marriage/
-## marriage_proposal_panel.gd)——不切場景,面板內容自己不知道也不需要知道結果要接到哪裡,
-## 由這裡傳的 on_result callback 決定。這裡的 lambda 捕捉 self,撐住這個 RefCounted 事件
-## 物件活到玩家真正按下按鈕的那一刻(跟本檔案其餘 callback 用法同一套道理,見檔案開頭
-## 陷阱說明)。按 × 視同婉拒/取消,接到 panel.decline。
+## 疊一層 FullscreenOverlay(Scripts/UI/fullscreen_overlay.gd)顯示告白面板
+## (MarriageProposalPanel,見 Scenes/Marriage/marriage_proposal_panel.gd)——不切場景、
+## 不借用 ActionPanel,近全螢幕蓋在觸發事件當下的對話畫面上。面板內容自己不知道也不需要
+## 知道結果要接到哪裡,由這裡傳的 on_result callback 決定。這裡的 lambda 捕捉 self,撐住
+## 這個 RefCounted 事件物件活到玩家真正按下按鈕的那一刻(跟本檔案其餘 callback 用法同一套
+## 道理,見檔案開頭陷阱說明)。按 × 視同婉拒/取消,接到 panel.decline。
 func _open_marriage_panel() -> void:
 	var panel := MARRIAGE_PROPOSAL_PANEL_SCENE.instantiate()
-	ActionPanel.open_custom(MARRIAGE_PANEL_TITLE, panel, panel.decline, Vector2(1180, 760))
+	var overlay := FullscreenOverlay.new()
+	var tree := Engine.get_main_loop() as SceneTree
+	tree.root.add_child(overlay)
+	overlay.open(MARRIAGE_PANEL_TITLE, panel, panel.decline)
+	panel.overlay = overlay
 	# setup() 簽名是 (target_character, self_character, ...):target 是對方(搭訕的人,
 	# stranger),self 是我方(被搭訕、原本屬意要出面的人,courted)——順序跟兩個變數的
 	# 命名容易搞混,注意不要傳反。
@@ -244,9 +252,13 @@ func _build_declined_reaction(self_character: Character) -> Dialogue:
 
 ## 搭訕流程的收尾一律接到這裡:把酒館老闆這位新講者跟他的招呼詞直接接在傳入的
 ## dialogue 後面播,不切場景(dialogue.speakers/lines 只是普通 Array,直接 append
-## 即可)。招呼詞是整段對話的最後一句,帶「雇用傭兵」/「詢問委託」兩個選項
-## (DialogueLine.choices)——玩家選哪個由 DialogueChoice.on_selected 直接開對應的
-## ActionPanel,next_scene_path 留空讓對話畫面留在背景(不轉場)當 ActionPanel 的底圖。
+## 即可)。招呼詞是整段對話的最後一句,帶「雇用傭兵」/「詢問委託」/「離開」三個選項
+## (DialogueLine.choices)——前兩個由 DialogueChoice.on_selected 直接開對應的
+## ActionPanel,next_scene_path 留空讓對話畫面留在背景(不轉場)當 ActionPanel 的底圖;
+## 「離開」才是真正離開酒館、切回地點選單場景(_return_to_map_location())。招募/委託
+## 面板按 × 關閉時不會直接離開酒館,而是回到這裡重播一次老闆招呼詞(見
+## _return_to_bartender()),讓玩家可以連續逛「雇用傭兵」「詢問委託」,要離開酒館得
+## 明確點「離開」。
 ##
 ## 沒遇到搭訕(90% 機率)時呼叫端直接傳一個空 Dialogue(Dialogue.new([], [],
 ## BACKGROUND_PATH)),等同於單獨播一句酒館老闆招呼詞。
@@ -256,9 +268,17 @@ func _goto_bartender_after(dialogue: Dialogue) -> void:
 	var choices: Array[DialogueChoice] = [
 		DialogueChoice.new(HIRE_MERCENARY_CHOICE_LABEL, "", func(): _open_recruit_panel()),
 		DialogueChoice.new(ASK_COMMISSION_CHOICE_LABEL, "", func(): _open_quest_offer_panel()),
+		DialogueChoice.new(LEAVE_CHOICE_LABEL, "", func(): _return_to_map_location()),
 	]
 	dialogue.lines.append(DialogueLine.new(bartender_speaker.id, BARTENDER_GREETING, choices))
 	goto_dialogue(dialogue, "")
+
+
+## 招募/委託面板按 × 關閉時呼叫:不離開酒館,重播一次老闆招呼詞(空 Dialogue,等同
+## _start() 沒遇到搭訕那一支的播法),讓玩家回到「雇用傭兵/詢問委託/離開」三選一,
+## 可以連續逛好幾種互動,不會逛完一種就被硬送回地點選單。
+func _return_to_bartender() -> void:
+	_goto_bartender_after(Dialogue.new([], [], BACKGROUND_PATH))
 
 
 ## 酒館老闆招呼詞選「雇用傭兵」時呼叫:彈出 ActionPanel 列出 TavernStore 目前這批候補
@@ -266,15 +286,15 @@ func _goto_bartender_after(dialogue: Dialogue) -> void:
 ## 幾次都看到同一批人,只有跨月才會整批換新——不再每次開面板都重骰。招募不關面板
 ## (_on_recruit_hero_selected() 只註冊角色,不呼叫 ActionPanel.close()),那一列的按鈕靠
 ## ActionPanelItem.disable_after_select 自己變灰,玩家可以在同一次彈窗裡連續招募清單裡
-## 好幾位;按 × 才會呼叫 _return_to_map_location(),回到觸發這個事件時記下的地點選單
-## 場景——ActionPanel 本身不知道也不需要知道關閉之後該去哪,由這裡傳的 on_close
+## 好幾位;按 × 才會呼叫 _return_to_bartender(),回到老闆招呼詞重新三選一(不是直接離開
+## 酒館)——ActionPanel 本身不知道也不需要知道關閉之後該去哪,由這裡傳的 on_close
 ## callback 決定。
 func _open_recruit_panel() -> void:
 	var items: Array[ActionPanelItem] = []
 	items.append(_build_special_recruit_item())
 	for hero in TavernStore.get_recruits(_nation):
 		items.append(_build_recruit_item(hero))
-	ActionPanel.open(RECRUIT_PANEL_TITLE, items, func(): _return_to_map_location())
+	ActionPanel.open(RECRUIT_PANEL_TITLE, items, func(): _return_to_bartender())
 
 
 ## already_recruited:這位候補英雄是不是已經在玩家角色列裡——TavernStore 的清單同一個
@@ -282,10 +302,12 @@ func _open_recruit_panel() -> void:
 ## 不能讓玩家看起來還能再按一次(即使真的按了 try_add() 也只是無害地回傳 true,不會重複
 ## 入隊,但 UI 不該讓玩家以為那是一個有效動作)。
 func _build_recruit_item(hero: Character) -> ActionPanelItem:
-	var subtitle := "%d 歲 / Lv.%d" % [hero.age, hero.level_system.level]
+	var subtitle := "%d 歲" % hero.age
 	var already_recruited := CharacterRosterStore.all_characteres.has(hero)
 	var label := RECRUITED_BUTTON_LABEL if already_recruited else RECRUIT_BUTTON_LABEL
-	return ActionPanelItem.new(hero.full_name, label, func() -> bool: return _on_recruit_hero_selected(hero), hero.face_path, subtitle, true, already_recruited)
+	var item := ActionPanelItem.new(hero.full_name, label, func() -> bool: return _on_recruit_hero_selected(hero), hero.face_path, subtitle, true, already_recruited)
+	item.disabled_label = RECRUITED_BUTTON_LABEL
+	return item
 
 
 ## 招募改叫共用入口 CharacterRosterStore.try_add()(跟 PartyEdit「新增角色」、小孩
@@ -307,11 +329,13 @@ func _on_recruit_hero_selected(hero: Character) -> bool:
 ## 長相,只露出名字/等級(subtitle 刻意不放年齡,呼應「只繡名字和等級」)。
 func _build_special_recruit_item() -> ActionPanelItem:
 	var hero := TavernStore.get_special_recruit(_nation)
-	var subtitle := "Lv.%d" % hero.level_system.level
+	var  subtitle := "%d 歲" % hero.age
 	var already_recruited := CharacterRosterStore.all_characteres.has(hero)
 	var available := TavernStore.special_recruit_available(_nation)
 	var label := RECRUITED_BUTTON_LABEL if already_recruited else SPECIAL_RECRUIT_BUTTON_LABEL
-	return ActionPanelItem.new(hero.full_name, label, func() -> bool: return _on_special_recruit_selected(hero), hero.face_path, subtitle, true, already_recruited or not available, true)
+	var item := ActionPanelItem.new(hero.full_name, label, func() -> bool: return _on_special_recruit_selected(hero), hero.face_path, subtitle, true, already_recruited or not available, true)
+	item.disabled_label = RECRUITED_BUTTON_LABEL
+	return item
 
 
 ## 花錢招募:先確認付得起(付不起跳訊息、不消耗任何動作),再走跟一般招募同一套
@@ -333,13 +357,13 @@ func _on_special_recruit_selected(hero: Character) -> bool:
 ## System/quest/quest_library.gd 的 create_offer()——報價不快取,每次開面板都重新抽一輪
 ## (跟 TavernStore 招募清單每月固定不同,委託本來就該常換常新),該國已經有進行中的
 ## 同種委託時那一列改顯示成已受理、不能再接第二張(見 QuestStore.has_active_quest()),
-## 按鈕靠 initial_disabled 而不是重新整份清單重蓋。按 × 回到觸發事件時記下的地點選單
-## 場景,跟 _open_recruit_panel() 同一套 _return_to_map_location() 收尾。
+## 按鈕靠 initial_disabled 而不是重新整份清單重蓋。按 × 回到老闆招呼詞重新三選一,跟
+## _open_recruit_panel() 同一套 _return_to_bartender() 收尾。
 func _open_quest_offer_panel() -> void:
 	var items: Array[ActionPanelItem] = []
 	for quest_type in QUEST_OFFER_TYPES:
 		items.append(_build_quest_offer_item(quest_type))
-	ActionPanel.open(QUEST_OFFER_PANEL_TITLE, items, func(): _return_to_map_location())
+	ActionPanel.open(QUEST_OFFER_PANEL_TITLE, items, func(): _return_to_bartender())
 
 
 ## 委託名稱|說明|難度(RANK)|類型|期限|接受——ActionPanelItem 只有 title/subtitle 兩塊
@@ -352,7 +376,9 @@ func _build_quest_offer_item(quest_type: int) -> ActionPanelItem:
 	]
 	var subtitle := "%s\n%s" % [QuestLibrary.description_for(offer), meta_line]
 	var label := QUEST_ACCEPTED_BUTTON_LABEL if already_active else QUEST_ACCEPT_BUTTON_LABEL
-	return ActionPanelItem.new(QuestLibrary.title_for(offer), label, func() -> bool: return _on_quest_offer_selected(offer), "", subtitle, true, already_active)
+	var item := ActionPanelItem.new(QuestLibrary.title_for(offer), label, func() -> bool: return _on_quest_offer_selected(offer), "", subtitle, true, already_active)
+	item.disabled_label = QUEST_ACCEPTED_BUTTON_LABEL
+	return item
 
 
 ## disable_after_select 靠這裡的回傳值決定要不要真的變 disabled——按下當下再檢查一次

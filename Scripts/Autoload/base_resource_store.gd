@@ -32,13 +32,28 @@ func is_full(resource_type: int) -> bool:
 
 ## 超過倉庫儲存上限的部分直接捨棄(見 System/base/base_warehouse.gd),逼玩家在資源
 ## 快滿時去升級倉庫或花掉,而不是無腦囤積。capacity 為 -1 代表無上限(目前只有 GOLD),
-## 直接累加不封頂。
+## 直接累加不封頂。存量在呼叫前就已經超過上限時(例如開局預設 WOOD 300 高於未建倉庫的
+## Lv0 上限 200),結果取跟目前存量的較大值,不會因為呼叫 add() 反而把既有存量砍到上限
+## ——「超過上限」只代表新增的量進不去,不代表既有存量要被沒收。
 func add(resource_type: int, quantity: int) -> void:
 	var warehouse_level := BaseBuildingProgressStore.get_level(GameEnums.BuildingType.WAREHOUSE)
 	var capacity := BaseWarehouse.get_capacity(resource_type, warehouse_level)
-	var new_amount := get_amount(resource_type) + quantity
-	amounts[resource_type] = new_amount if capacity < 0 else mini(new_amount, capacity)
+	var current := get_amount(resource_type)
+	var new_amount := current + quantity
+	amounts[resource_type] = new_amount if capacity < 0 else maxi(current, mini(new_amount, capacity))
 	changed.emit()
+
+
+## 倉庫還放得下多少這個資源——呼叫端(例如市集購買)可以用這個判斷「這筆數量塞不塞得下」,
+## 買之前就擋下來,不要真的呼叫 add() 之後才發現多花的錢換到的資材被倉庫上限吃掉。
+## 回傳 -1 代表無上限(比照 BaseWarehouse.get_capacity())。存量已經超過上限時回傳 0
+## (放不下任何一點),不會是負數。
+func remaining_capacity(resource_type: int) -> int:
+	var warehouse_level := BaseBuildingProgressStore.get_level(GameEnums.BuildingType.WAREHOUSE)
+	var capacity := BaseWarehouse.get_capacity(resource_type, warehouse_level)
+	if capacity < 0:
+		return -1
+	return maxi(0, capacity - get_amount(resource_type))
 
 
 func can_afford(costs: Dictionary) -> bool:

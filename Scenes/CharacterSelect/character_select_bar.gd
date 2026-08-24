@@ -4,9 +4,10 @@ extends VBoxContainer
 # =========================================================
 # 角色頭像網格 + 排序/篩選列的共用組合,取代 CharacterRoster/MarriageProposal/
 # BaseBuildingPanelContent 各自重複的「排序列 + 卡片網格 + 選取狀態管理」寫法。不包自己的
-# ScrollContainer——這裡的消費端(告白面板、根據地資源派遣選人清單)都是塞進
-# ActionPanel.open_custom() 的內容,ActionPanel 本身的 scroll_container 已經包住整塊內容,
-# 這裡再包一層會變成巢狀捲動。
+# ScrollContainer——這裡的消費端(告白/聯姻面板、根據地資源派遣選人清單)都是塞進
+# Scenes/CharacterSelect/character_select_panel.gd(CharacterSelectPanel)或
+# Scripts/UI/fullscreen_overlay.gd(FullscreenOverlay)的內容,外殼本身已經給足版面空間,
+# 這裡再包一層 ScrollContainer 沒有意義。
 #
 # card_factory 簽名 func(character: Character) -> Control,回傳的 Control 必須具備
 # character: Character / selected: bool 兩個屬性,以及 character_selected(character) 訊號

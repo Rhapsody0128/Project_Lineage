@@ -71,15 +71,47 @@ func find_skill_by_id(id: String) -> Skill:
 			return s
 	return null
 
-## 普攻永遠是單體,出手前先過一次 CombatResolver.resolve_guard()——附近若有守護技能的
+## 依角色目前持有的被動技能宣告的 AI 傾向,算出「這個技能類型(GameEnums.SkillType)」
+## 的權重乘數——見 Skill.ai_weight_multipliers 註解。多個被動各自宣告同一類型時連乘,
+## 不是取代;沒有任何被動宣告這個類型時乘數是 1.0,不影響任何行為。BattleAi 骰選技能時
+## 在情境加權之後再乘上這個(見 BattleAi._build_action_chance_map())。
+func ai_personality_multiplier(skill_type: int) -> float:
+	var multiplier := 1.0
+	for skill in character.skill_list:
+		if not skill.is_passive:
+			continue
+		if not character.can_use_skill(skill):
+			continue
+		if skill.ai_weight_multipliers.has(skill_type):
+			multiplier *= skill.ai_weight_multipliers[skill_type]
+	return multiplier
+
+## 普攻鎖定 target,出手前先過一次 CombatResolver.resolve_guard()——附近若有守護技能的
 ## 友軍願意頂替,實際受擊(閃避/暴擊/傷害判定全部換算)的對象就換成守護者,連戰報顯示的
-## target 也一併換掉,動畫才會對準真正挨打的人。
-func attack(target: BattleCharacter, action_detail: String = "") -> void:
+## target 也一併換掉,動畫才會對準真正挨打的人。額外接了兩個「只作用於普通攻擊,不影響
+## 武器主動技」的武器被動機制(見 GameEnums.SkillMechanic 對應註解):
+## AREA_EXPAND_ON_ATTACK 讓這次攻擊機率擴大成命中目標周遭範圍 1 格內的敵人;
+## EXTRA_HIT_ON_ATTACK 命中後機率追加一次普通攻擊——allow_extra_hit 參數防止追加的
+## 那一擊自己又觸發追加,避免無限連鎖(遞迴呼叫 attack() 時傳 false)。守護只保護
+## target 本人,範圍擴大額外命中的敵人不會觸發守護。
+func attack(target: BattleCharacter, action_detail: String = "", allow_extra_hit: bool = true) -> void:
 	var guard_result := CombatResolver.resolve_guard(target, self)
 	var actual_target: BattleCharacter = guard_result.target
+	var guarded: bool = actual_target != target
 
-	var target_pick_detail := "%s 鎖定距離最近的敵人 %s(距離 %d 格)作為普攻目標" % [
-		name, target.name, Util.manhattan_distance(grid_pos, target.grid_pos),
+	var attack_targets: Array[BattleCharacter] = [actual_target]
+	var expand_note := ""
+	var area_expand_skill := character.find_skill_with_mechanic(GameEnums.SkillMechanic.AREA_EXPAND_ON_ATTACK)
+	if area_expand_skill != null and not guarded:
+		var expand_trigger := CombatResolver.judge_reactive_trigger(name, area_expand_skill.base_chance)
+		expand_note = "\n\n%s" % expand_trigger.detail
+		if expand_trigger.triggered:
+			for other in enemies:
+				if other != actual_target and Util.manhattan_distance(other.grid_pos, actual_target.grid_pos) <= 1:
+					attack_targets.append(other)
+
+	var target_pick_detail := "%s 鎖定距離最近的敵人 %s(距離 %d 格)作為普攻目標%s" % [
+		name, target.name, Util.manhattan_distance(grid_pos, target.grid_pos), expand_note,
 	]
 	var attack_detail := target_pick_detail
 	if action_detail != "":
@@ -87,24 +119,56 @@ func attack(target: BattleCharacter, action_detail: String = "") -> void:
 
 	battle.log_event(AttackEvent.new(self, actual_target, attack_detail))
 
-	var guarded: bool = actual_target != target
+	for hit_target in attack_targets:
+		_resolve_basic_attack_hit(hit_target, guarded, guard_result.damage_multiplier, allow_extra_hit)
+
+## 單次普通攻擊命中判定,見 attack() 對完美迴避/反擊/反應治療/追加一擊這幾個武器被動
+## 機制的說明。guarded 只對 attack_targets 裡的第一個(真正被鎖定的 target,或頂替的
+## 守護者)成立,範圍擴大額外命中的目標一律不觸發守護、正常判定閃避。
+func _resolve_basic_attack_hit(actual_target: BattleCharacter, guarded: bool, guard_damage_multiplier: float, allow_extra_hit: bool) -> void:
 	var dodge_check: DodgeResult
 	if guarded:
 		# 守護的意義就是「用身體擋下來」,擋都擋了就不會再靈巧閃開,直接視為命中。
 		dodge_check = DodgeResult.new(false, "%s 挺身守護,直接承受這次攻擊,不判定閃避" % actual_target.name)
 	else:
-		dodge_check = CombatResolver.judge_dodge(self, actual_target)
+		var perfect_dodge_skill := actual_target.character.find_skill_with_mechanic(GameEnums.SkillMechanic.PERFECT_DODGE)
+		if perfect_dodge_skill != null:
+			var perfect_check := CombatResolver.judge_reactive_trigger(actual_target.name, perfect_dodge_skill.base_chance)
+			dodge_check = DodgeResult.new(perfect_check.triggered, "完美迴避判定:\n%s" % perfect_check.detail)
+		else:
+			dodge_check = DodgeResult.new(false, "")
+		if not dodge_check.dodged:
+			dodge_check = CombatResolver.judge_dodge(self, actual_target)
 	if dodge_check.dodged:
+		SkillEffectLibrary.maybe_dodge_counter(actual_target, self)
 		return
-	var damage := SkillEffectLibrary.basic_attack_damage(self, actual_target, character.weapon)
+
+	var armor_pierce := SkillEffectLibrary.check_chance_armor_pierce(self)
+	var damage := SkillEffectLibrary.basic_attack_damage(self, actual_target, character.weapon, armor_pierce)
 	var crit_check := CombatResolver.judge_crit(self, actual_target)
+	if SkillEffectLibrary.check_chance_guaranteed_crit(self):
+		crit_check = CritResult.new(true, "%s 的被動使這次攻擊必定暴擊" % name)
 	if crit_check.critical:
 		damage *= CombatResolver.CRIT_DAMAGE_MULTIPLIER
 	var damage_detail := "%s\n\n%s" % [dodge_check.detail, crit_check.detail]
 	if guarded:
-		damage *= guard_result.damage_multiplier
+		damage *= guard_damage_multiplier
 		damage_detail += "\n\n此傷害因守護減少 30%"
 	CombatResolver.apply_damage(actual_target, damage, crit_check.critical, damage_detail)
+
+	SkillEffectLibrary.maybe_counter_attack(self, actual_target)
+	SkillEffectLibrary.maybe_reactive_heal(actual_target)
+	SkillEffectLibrary.maybe_kill_momentum(self, actual_target)
+	SkillEffectLibrary.maybe_limited_execute_counter(actual_target, self)
+
+	if not allow_extra_hit:
+		return
+	var extra_hit_skill := character.find_skill_with_mechanic(GameEnums.SkillMechanic.EXTRA_HIT_ON_ATTACK)
+	if extra_hit_skill == null:
+		return
+	var extra_trigger := CombatResolver.judge_reactive_trigger(name, extra_hit_skill.base_chance)
+	if extra_trigger.triggered:
+		attack(actual_target, extra_trigger.detail, false)
 
 func daze(action_detail: String = "") -> void:
 	battle.log_event(DazeEvent.new(self, action_detail))
@@ -172,8 +236,12 @@ func is_in_range(target: BattleCharacter, atk_range: int) -> bool:
 var basic_attack_range: int:
 	get: return GameEnums.WEAPON_BASIC_ATTACK_RANGE[character.weapon]
 
-## 找尋最近的敵人(以格子曼哈頓距離判定)
+## 找尋最近的敵人(以格子曼哈頓距離判定)——嘲諷中(taunted_by 不是 null 且對象還存活)
+## 強制回傳嘲諷來源,不管距離遠近,見 BattleCharacter.apply_taunt()。
 func search_enemy() -> BattleCharacter:
+	if taunted_by != null and not taunted_by.is_disabled:
+		return taunted_by
+
 	var best: BattleCharacter = null
 	var best_dist := -1
 	for other in enemies:
@@ -286,19 +354,173 @@ func _replay_stat_modifier_multiplier(potential_type: GameEnums.PotentialType) -
 			total += m.multiplier
 	return total
 
+## 恐懼剩餘回合數(0 代表沒有恐懼)。恐懼刻意不透過 _stat_modifiers 那套素質加成/減益
+## 機制實作——它不改變任何素質數值,而是直接讓 BattleAi 的行動骰選大幅偏向撤退/發呆
+## (見 BattleAi._build_action_chance_map() 的 FEAR_ESCAPE_WEIGHT_MULTIPLIER/
+## FEAR_DAZE_WEIGHT_MULTIPLIER),不是隨機誤擊或亂選。套用前應該先經過
+## CombatResolver.judge_status_resist() 判定(意志/精神越高越容易抵抗),呼叫端抵抗成功
+## 就不要呼叫 apply_fear()。
+var fear_rounds_remaining: int = 0
+
+var is_feared: bool:
+	get: return fear_rounds_remaining > 0
+
+## 重複中招只延長/刷新回合數,不會疊加出「更嚴重的恐懼」——恐懼沒有程度之分,只有
+## 有沒有生效跟還剩幾回合,取較長的那個延續下去。
+func apply_fear(rounds: int) -> void:
+	fear_rounds_remaining = maxi(fear_rounds_remaining, rounds)
+
+## 護盾:獨立於 HP 之外的緩衝血量,CombatResolver.apply_damage() 扣血前會先扣這個,
+## 護盾值歸零才開始傷 HP。多次套用直接疊加(不像 buff/debuff 那樣「續時不疊加」)——
+## 護盾本來就是消耗品,疊加是護盾的核心價值,見 SkillEffectLibrary 的護盾類技能效果。
+var shield_points: float = 0.0
+
+func add_shield(amount: float) -> void:
+	shield_points += amount
+
+## 嘲諷:命中後強制目標接下來優先攻擊自己,見 BattleAi.take_turn()/search_enemy() 的
+## 呼叫端——taunted_by 不是 null 時,選定攻擊目標要優先回傳這個角色而不是最近的敵人。
+var taunted_by: BattleCharacter = null
+var taunt_rounds_remaining: int = 0
+
+func apply_taunt(source: BattleCharacter, rounds: int) -> void:
+	taunted_by = source
+	taunt_rounds_remaining = maxi(taunt_rounds_remaining, rounds)
+
+## 封印:接下來幾回合無法選用主動技能,只能普通攻擊/發呆/撤退,見
+## BattleAi._build_action_chance_map() 讀這個欄位排除所有技能候選。
+var seal_rounds_remaining: int = 0
+
+var is_sealed: bool:
+	get: return seal_rounds_remaining > 0
+
+func apply_seal(rounds: int) -> void:
+	seal_rounds_remaining = maxi(seal_rounds_remaining, rounds)
+
+## 降治療:接下來幾回合受到的治療效果打折扣,見 CombatResolver.apply_heal() 的呼叫端
+## (HEAL_DOWN_MULTIPLIER)。
+var heal_down_rounds_remaining: int = 0
+
+var is_healing_reduced: bool:
+	get: return heal_down_rounds_remaining > 0
+
+func apply_heal_down(rounds: int) -> void:
+	heal_down_rounds_remaining = maxi(heal_down_rounds_remaining, rounds)
+
+## 全隊限時破防/必定暴擊增益(破陣先鋒/常勝威名):見 GameEnums.SkillMechanic.
+## GRANT_ARMOR_PIERCE/GRANT_GUARANTEED_CRIT 註解,SkillEffectLibrary.
+## check_chance_armor_pierce()/check_chance_guaranteed_crit() 一併檢查這兩個欄位。
+var armor_pierce_rounds: int = 0
+var is_armor_piercing: bool:
+	get: return armor_pierce_rounds > 0
+
+func apply_armor_pierce_buff(rounds: int) -> void:
+	armor_pierce_rounds = maxi(armor_pierce_rounds, rounds)
+
+var guaranteed_crit_rounds: int = 0
+var is_guaranteed_crit: bool:
+	get: return guaranteed_crit_rounds > 0
+
+func apply_guaranteed_crit_buff(rounds: int) -> void:
+	guaranteed_crit_rounds = maxi(guaranteed_crit_rounds, rounds)
+
+## 異常抵抗加成(泰然自若):疊加進 CombatResolver.judge_status_resist() 的抵抗率,
+## 見 Skill.mechanics 對應說明。永久生效,不走 _stat_modifiers 那套回合數機制。
+var bonus_status_resist_percent: float = 0.0
+
+## 技能權重暫時加成(乘勝追擊/智將韜略):BattleAi._build_action_chance_map() 對所有
+## 主動技能(不含普攻/發呆/撤退)候選乘上這個倍數,見 GameEnums.SkillMechanic.
+## KILL_MOMENTUM 註解。倒數歸零時倍數自動失效(見 skill_weight_boost_multiplier getter)。
+var skill_weight_boost_rounds: int = 0
+var _skill_weight_boost_value: float = 1.0
+
+var skill_weight_boost_multiplier: float:
+	get: return _skill_weight_boost_value if skill_weight_boost_rounds > 0 else 1.0
+
+func apply_skill_weight_boost(bonus_ratio: float, rounds: int) -> void:
+	_skill_weight_boost_value = 1.0 + bonus_ratio
+	skill_weight_boost_rounds = maxi(skill_weight_boost_rounds, rounds)
+
+## 限定一次的強力反擊(怒濤反擊):整場戰鬥只會觸發一次,觸發後標記為已使用。
+var has_used_limited_execute_counter: bool = false
+
+## 異常解除:清除身上一項異常狀態,瞬間生效不算持續效果,優先順序上——封印/恐懼/嘲諷這類
+## 「完全限制行動」的先清,降治療其次,最後才清一般的素質減益(挑第一個找到的減益修正)。
+## 沒有任何異常狀態時什麼都不做。清除的每一種狀態都直接記一筆對應的戰報事件
+## (StatusMechanicEvent/StatEffectExpiredEvent,is_active/到期=false),讓
+## BattlePartyRoster/BattleUnitVisual 的狀態文字跟著同步拿掉,不會殘留一個其實已經被
+## 淨化掉、但畫面還顯示著的過期狀態。
+func cleanse_one_status() -> void:
+	if is_sealed:
+		seal_rounds_remaining = 0
+		battle.log_event(StatusMechanicEvent.new(self, GameEnums.SkillMechanic.SEAL, false))
+		return
+	if is_feared:
+		fear_rounds_remaining = 0
+		battle.log_event(StatusMechanicEvent.new(self, GameEnums.SkillMechanic.FEAR, false))
+		return
+	if taunt_rounds_remaining > 0:
+		taunt_rounds_remaining = 0
+		taunted_by = null
+		battle.log_event(StatusMechanicEvent.new(self, GameEnums.SkillMechanic.TAUNT, false))
+		return
+	if is_healing_reduced:
+		heal_down_rounds_remaining = 0
+		battle.log_event(StatusMechanicEvent.new(self, GameEnums.SkillMechanic.HEAL_DOWN, false))
+		return
+	for m in _stat_modifiers:
+		if m.multiplier < 0.0 and m.rounds_remaining >= 0:
+			m.rounds_remaining = 0
+			_stat_modifiers.erase(m)
+			battle.log_event(StatEffectExpiredEvent.new(self, [m.potential_type], false))
+			return
+
 ## 每回合結束時由 Battle._round_end() 呼叫:有時限的修正倒數 1 回合,歸零就移除;
-## 永久修正(rounds_remaining < 0)不受影響。回傳這回合到期、需要顯示「效果解除」的
-## 修正清單,給戰報 UI 用。
-func tick_status_effects() -> Array[StatModifier]:
-	var expired: Array[StatModifier] = []
+## 永久修正(rounds_remaining < 0)不受影響。恐懼/嘲諷/封印/降治療/全隊限時破防&必定
+## 暴擊也在這裡一併倒數(不是 StatModifier,倒數歸零時記進 TickStatusResult.
+## expired_mechanics,不是 expired_stat_modifiers);嘲諷倒數歸零時一併清掉
+## taunted_by,避免殘留一個過期的強制目標。skill_weight_boost_rounds(乘勝追擊/智將韜略)
+## 沒有對應的戰報 UI 顯示需求,倒數不記錄到期。
+func tick_status_effects() -> TickStatusResult:
+	var expired_mechanics: Array[GameEnums.SkillMechanic] = []
+
+	if fear_rounds_remaining > 0:
+		fear_rounds_remaining -= 1
+		if fear_rounds_remaining <= 0:
+			expired_mechanics.append(GameEnums.SkillMechanic.FEAR)
+	if seal_rounds_remaining > 0:
+		seal_rounds_remaining -= 1
+		if seal_rounds_remaining <= 0:
+			expired_mechanics.append(GameEnums.SkillMechanic.SEAL)
+	if heal_down_rounds_remaining > 0:
+		heal_down_rounds_remaining -= 1
+		if heal_down_rounds_remaining <= 0:
+			expired_mechanics.append(GameEnums.SkillMechanic.HEAL_DOWN)
+	if taunt_rounds_remaining > 0:
+		taunt_rounds_remaining -= 1
+		if taunt_rounds_remaining <= 0:
+			taunted_by = null
+			expired_mechanics.append(GameEnums.SkillMechanic.TAUNT)
+	if skill_weight_boost_rounds > 0:
+		skill_weight_boost_rounds -= 1
+	if armor_pierce_rounds > 0:
+		armor_pierce_rounds -= 1
+		if armor_pierce_rounds <= 0:
+			expired_mechanics.append(GameEnums.SkillMechanic.GRANT_ARMOR_PIERCE)
+	if guaranteed_crit_rounds > 0:
+		guaranteed_crit_rounds -= 1
+		if guaranteed_crit_rounds <= 0:
+			expired_mechanics.append(GameEnums.SkillMechanic.GRANT_GUARANTEED_CRIT)
+
+	var expired_stats: Array[StatModifier] = []
 	for m in _stat_modifiers.duplicate():
 		if m.rounds_remaining < 0:
 			continue
 		m.rounds_remaining -= 1
 		if m.rounds_remaining <= 0:
 			_stat_modifiers.erase(m)
-			expired.append(m)
-	return expired
+			expired_stats.append(m)
+	return TickStatusResult.new(expired_stats, expired_mechanics)
 
 var strength: float:
 	get: return character.strength * (1.0 + _stat_modifier_multiplier(GameEnums.PotentialType.STRENGTH))

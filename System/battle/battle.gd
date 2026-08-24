@@ -191,15 +191,15 @@ func _round_end() -> void:
 ## 單一角色的限時素質修正(見 BattleCharacter.add_stat_modifier())各自倒數 1 回合,到期就
 ## 移除並記一筆 stat_effect_expired 事件,讓頭像旁的箭頭指示跟著消失。永久修正
 ## (被動技能)不受影響。同一次可能有多筆修正同時到期,依增益/減益分兩組各記一筆事件,
-## 不逐筆記,才會跟套用時的分組方式一致,戰報/頭像箭頭不會被拆得太零碎。
+## 不逐筆記,才會跟套用時的分組方式一致,戰報/頭像箭頭不會被拆得太零碎。恐懼/封印/嘲諷/
+## 降治療/全隊限時破防&必定暴擊這類機制狀態(TickStatusResult.expired_mechanics)各自
+## 記一筆 StatusMechanicEvent(is_active=false),讓場上小人/頭像列的狀態文字跟著消失。
 func _tick_status_effects(battle_character: BattleCharacter) -> void:
-	var expired := battle_character.tick_status_effects()
-	if expired.is_empty():
-		return
+	var tick_result := battle_character.tick_status_effects()
 
 	var buff_types: Array[int] = []
 	var debuff_types: Array[int] = []
-	for m in expired:
+	for m in tick_result.expired_stat_modifiers:
 		if m.multiplier > 0.0:
 			buff_types.append(m.potential_type)
 		else:
@@ -209,6 +209,9 @@ func _tick_status_effects(battle_character: BattleCharacter) -> void:
 		log_event(StatEffectExpiredEvent.new(battle_character, buff_types, true))
 	if not debuff_types.is_empty():
 		log_event(StatEffectExpiredEvent.new(battle_character, debuff_types, false))
+
+	for mechanic in tick_result.expired_mechanics:
+		log_event(StatusMechanicEvent.new(battle_character, mechanic, false))
 
 ## 隊長(總大將)陣亡視為戰鬥分出勝負,立即結束整場戰鬥(不必等到跑滿 TOTAL_ROUND)。
 ## 找不到隊長(理論上不會發生)時視為不會提前結束。

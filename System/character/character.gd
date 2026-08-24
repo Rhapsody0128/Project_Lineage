@@ -102,9 +102,16 @@ static func compute_noble_bloodline_rank(p_bloodline: Bloodline) -> int:
 		GameEnums.RankType.SS
 	)
 
-## 該技能目前是否能施放:未綁定特定武器(NO_WEAPON_BINDING)一律可用,綁了武器則要手持相符武器
+## 該技能目前是否能施放:未綁定特定武器(NO_WEAPON_BINDING)一律可用,綁了武器則要手持相符
+## 武器;另外血統覺醒技(Skill.required_bloodline_nation != -1)還要角色持有對應血統
+## (Bloodline.get_percentage() > 0),避免這類技能被派給沒有對應血統的角色。
 func can_use_skill(skill: Skill) -> bool:
-	return skill.bind_weapon == GameEnums.NO_WEAPON_BINDING or skill.bind_weapon == weapon
+	if skill.bind_weapon != GameEnums.NO_WEAPON_BINDING and skill.bind_weapon != weapon:
+		return false
+	if skill.required_bloodline_nation != -1:
+		if bloodline.get_percentage(skill.required_bloodline_nation, skill.required_bloodline_rank) <= 0.0:
+			return false
+	return true
 
 ## 是否學會守護技能(Skill.is_guard_skill,武器仍要相符/未綁定)——用旗標而非顯示名稱
 ## 字串比對,重新命名技能不會悄悄讓守護判定失效。CombatResolver.resolve_guard() 用。
@@ -113,6 +120,19 @@ func knows_guard_skill() -> bool:
 		if s.is_guard_skill and can_use_skill(s):
 			return true
 	return false
+
+## 找出角色目前持有、掛著指定機制標記(GameEnums.SkillMechanic)且能使用的第一個技能,
+## 找不到回傳 null。反擊/完美迴避/反應治療/普通攻擊追加一擊/普通攻擊擴大範圍這類
+## 「持有這個武器被動的人就會有這個反應」的判定共用同一個查詢入口,不用旗標字串比對
+## 也不用為每種機制各寫一個專屬 bool——一個角色理論上不會同時持有兩個掛同一機制的技能
+## (每把武器被動只會有一種機制),找到第一個就回傳。
+func find_skill_with_mechanic(mechanic: int) -> Skill:
+	for s in skill_list:
+		if not can_use_skill(s):
+			continue
+		if mechanic in s.mechanics:
+			return s
+	return null
 
 var full_name: String:
 	get: return "%s·%s" % [name, last_name]

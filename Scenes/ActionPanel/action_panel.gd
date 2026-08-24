@@ -176,6 +176,8 @@ func _build_row(item: ActionPanelItem) -> Control:
 		# 只有明確回傳 false 才擋下 disable(見 ActionPanelItem.disable_after_select 註解)。
 		if item.disable_after_select and succeeded != false:
 			action_button.disabled = true
+			if not item.disabled_label.is_empty():
+				action_button.text = item.disabled_label
 	)
 	row.add_child(action_button)
 

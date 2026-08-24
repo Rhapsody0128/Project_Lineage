@@ -18,6 +18,13 @@ extends RefCounted
 ## 是這個狀態」,後者是「這次操作完才變成這個狀態」。icon_blacked_out 選填:圖示照樣載入
 ## icon_path 的貼圖,但整張塗成純黑剪影(見 TownTavernEvent 的特殊推薦——招募前不讓玩家
 ## 看到長相,只露出名字/等級,但仍要有一塊「頭像形狀」的視覺存在,不是留空)。
+## disabled_label 選填:disable_after_select 這次操作成功、按鈕真的變 disabled 的當下,
+## 順便把按鈕文字換成這個字串(例如 RECRUIT_BUTTON_LABEL → RECRUITED_BUTTON_LABEL)——
+## 沒有這欄以前按下去按鈕只會變灰,文字停在原本那句,要關掉面板重開才會顯示成
+## 「已招募」,誤導玩家以為還能再按一次。留空(預設)維持舊行為,文字不變。GDScript
+## 的 `.new()` 建構子呼叫上限是 8 個參數(超過會噴 "Too many arguments"),`_init()` 的
+## 位置參數已經用滿,所以這欄不放進 `_init()`,呼叫端建構完物件後直接賦值
+## (`item.disabled_label = ...`,見 TownTavernEvent 的三個 `_build_*_item()`)。
 var icon_path: String
 var title: String
 var subtitle: String
@@ -26,6 +33,7 @@ var on_selected: Callable
 var disable_after_select: bool
 var initial_disabled: bool
 var icon_blacked_out: bool
+var disabled_label: String
 
 
 func _init(p_title: String, p_button_label: String, p_on_selected: Callable, p_icon_path: String = "", p_subtitle: String = "", p_disable_after_select: bool = false, p_initial_disabled: bool = false, p_icon_blacked_out: bool = false) -> void:

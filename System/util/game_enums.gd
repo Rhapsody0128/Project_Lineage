@@ -23,10 +23,57 @@ enum MapObjectType {TOWN, BASE, CASTLE}
 enum CharacterStatus {ACTIVE, STATIONED, WORKING, DISMISSED, DEAD}
 
 
-## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND 對我方(含自己)生效,
+## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND/SHIELD 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
-## caster.allies 挑,見 Spec.md。
-enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND}
+## caster.allies 挑,見 Spec.md。SHIELD(護盾)賦予目標一層獨立於 HP 之外的緩衝血量
+## (BattleCharacter.shield_points),倍率格式比照 HEAL,但不直接回復 HP,傷害結算時
+## 先扣護盾再扣 HP,見 CombatResolver.apply_damage()。
+enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND, SHIELD}
+
+## 技能造成的特殊效果標記,一個技能可以掛多個(Skill.mechanics),取代針對技能名稱的
+## if/elif 特例判斷——BattleAi/SkillEffectLibrary/CombatResolver 一律只看這些旗標,
+## 不看技能叫什麼名字。必中(無視閃避)因為只是單一 bool 開關,直接用 Skill.true_hit
+## 欄位處理,不放進這個 enum。
+## ARMOR_PIERCE(破防):傷害結算無視防禦方防禦加成。
+## GUARANTEED_CRIT(必定暴擊):跳過暴擊判定,直接視為暴擊。
+## COUNTER(反擊):受到攻擊後一定機率對攻擊者反擊,見 CombatResolver.judge_counter()。
+## PERFECT_DODGE(完美迴避):獨立於一般迴避判定之外的第二層判定,見
+## CombatResolver.judge_perfect_dodge()。
+## TAUNT(嘲諷):命中後強制目標接下來優先攻擊自己,見 BattleCharacter.apply_taunt()。
+## SEAL(封印):使目標接下來幾回合無法選用主動技能,見 BattleCharacter.apply_seal()。
+## FEAR(恐懼):使目標接下來幾回合的行動骰選大幅偏向撤退/發呆,見
+## BattleCharacter.apply_fear()。
+## HEAL_DOWN(降治療):目標受到的治療效果打折扣。
+## CLEANSE(異常解除):清除目標身上一項異常狀態,瞬間生效不算持續效果。
+## REACTIVE_HEAL(反應治療):範圍內友軍受到攻擊時一定機率對其觸發小量治療,反應式判定,
+## 不吃行動骰選。
+## EXTRA_HIT_ON_ATTACK(追加一擊):普通攻擊命中後一定機率追加一次普通攻擊,只作用於
+## 普通攻擊,不影響武器主動技。
+## AREA_EXPAND_ON_ATTACK(範圍擴大):普通攻擊一定機率自動擴大成範圍攻擊,只作用於
+## 普通攻擊,不影響武器主動技。
+enum SkillMechanic {
+	ARMOR_PIERCE, GUARANTEED_CRIT, COUNTER, PERFECT_DODGE, TAUNT, SEAL, FEAR,
+	HEAL_DOWN, CLEANSE, REACTIVE_HEAL, EXTRA_HIT_ON_ATTACK, AREA_EXPAND_ON_ATTACK,
+	## 以下六個是通用被動(18 條,見 SkillLibraryPassive)專用的機制,概念跟上面幾個
+	## 一樣是「一個機制配一個共用判定函式」,不是各寫一個技能專屬效果:
+	## DAMAGE_REDUCTION(永久或 HP 門檻內減傷,skill.skill_ratio=減傷比例、
+	## skill.secondary_ratio=觸發門檻,0.0=無條件生效)、CHANCE_ARMOR_PIERCE/
+	## CHANCE_GUARANTEED_CRIT(攻擊方普攻/技能都有 base_chance 機率觸發既有的破防/
+	## 必定暴擊效果)、DODGE_COUNTER(防禦方成功閃避後,依 base_chance 機率立即反擊)、
+	## KILL_MOMENTUM(攻擊方擊殺後,依 skill.skill_ratio/skill.duration_rounds 取得
+	## 暫時的技能權重加成)、LIMITED_EXECUTE_COUNTER(防禦方 HP 低於 secondary_ratio 門檻
+	## 時,整場戰鬥限一次觸發強力反擊,倍率吃 skill_ratio)。
+	DAMAGE_REDUCTION, CHANCE_ARMOR_PIERCE, CHANCE_GUARANTEED_CRIT, DODGE_COUNTER,
+	KILL_MOMENTUM, LIMITED_EXECUTE_COUNTER,
+	## 全隊限時增益版的破防/必定暴擊(取代「全隊下一擊無視防禦/必中」這種需要暫時覆寫
+	## 判定的不可行設計):duration_rounds 回合內,持有者的普攻/技能一律視為破防/必定
+	## 暴擊,不是機率觸發——見 BattleCharacter.armor_pierce_rounds/guaranteed_crit_rounds,
+	## 施放端(SkillEffectLibrary._apply_status_mechanics())當成純增益套用,不需要
+	## judge_status_resist() 抵抗判定(不在 _NEGATIVE_MECHANICS 名單內)。1 回合的時限
+	## 剛好對應「每個角色一回合只行動一次」,天然就是「下一擊」的效果,不需要另外做
+	## 「用掉一次就消失」的一次性覆寫機制。
+	GRANT_ARMOR_PIERCE, GRANT_GUARANTEED_CRIT,
+}
 enum ActionType {ATTACK, DAZE, ESCAPE, CONFUSE, SKILL}
 enum Relations {SELF, ALLIES, NEUTRAL, HOSTILE, UNKNOWN}
 enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
@@ -40,15 +87,17 @@ enum BattleMode {AUTO, REALTIME}
 ## 技能範圍效果的形狀:SINGLE 只打中鎖定的那個目標;RADIUS 以命中目標為中心的菱形範圍
 ## (曼哈頓距離 ≤ area_size-1);LINE 從目標往施法者的反方向延伸 area_size 格「貫穿」;
 ## SQUARE 以命中目標為中心的正方形範圍(切比雪夫距離 ≤ area_size-1);ALL_ALLIES 無視
-## 距離,直接命中施法者本人+所有存活隊友(全隊技能用,例如 D. 大將之風)。
-enum AreaShape {SINGLE, RADIUS, LINE, SQUARE, ALL_ALLIES}
+## 距離,直接命中施法者本人+所有存活隊友(全隊技能用,例如 D. 大將之風);ALL_ENEMIES
+## 是 ALL_ALLIES 的敵方版本,無視距離直接命中所有存活敵人(大將減益技用)。
+enum AreaShape {SINGLE, RADIUS, LINE, SQUARE, ALL_ALLIES, ALL_ENEMIES}
 ## 戰報事件型別,對應 System/battle/events/ 底下的 BattleEvent 子類別,
 ## 見 Spec.md 一、戰報事件合約。
 enum BattleEventType {
 	BATTLE_START, ROUND_START, ROUND_END,
 	MOVE, DAZE, ATTACK, SKILL,
-	DODGE, DAMAGE, HEAL,
+	DODGE, DAMAGE, HEAL, SHIELD,
 	STAT_EFFECT, STAT_EFFECT_EXPIRED,
+	STATUS_MECHANIC,
 	GUARD, DEFEATED, BATTLE_END,
 	ULTIMATE_RESOLVE,
 }
@@ -260,6 +309,27 @@ const POTENTIAL_TYPE_COLORS: Array[Color] = [
 static func potential_color(potential_type: int) -> Color:
 	return POTENTIAL_TYPE_COLORS[potential_type]
 
+## 場上/頭像列的特殊狀態文字標籤,只涵蓋「有持續回合、需要玩家看得到目前中了什麼」的
+## 機制(恐懼/封印/嘲諷/降治療/全隊限時破防&必定暴擊);其餘機制(反擊/完美迴避/反應治療/
+## 追加一擊/範圍擴大/減傷/機率破防&暴擊/擊殺技能權重/限定反擊/異常解除)是永久被動或瞬間
+## 生效,沒有「目前正中著」的持續狀態可以顯示,回傳空字串。
+static func mechanic_status_label(mechanic: SkillMechanic) -> String:
+	match mechanic:
+		SkillMechanic.FEAR:
+			return "恐懼"
+		SkillMechanic.SEAL:
+			return "封印"
+		SkillMechanic.TAUNT:
+			return "嘲諷"
+		SkillMechanic.HEAL_DOWN:
+			return "降治療"
+		SkillMechanic.GRANT_ARMOR_PIERCE:
+			return "破防"
+		SkillMechanic.GRANT_GUARANTEED_CRIT:
+			return "必暴"
+		_:
+			return ""
+
 ## 血統國家代表色(計量槽顏色),順序對應 BloodlineNation enum:獅紅/鷹白/豹黃/熊綠/龍藍/鹿青
 const BLOODLINE_NATION_COLORS: Array[Color] = [
 	Color(0.85, 0.2, 0.2), # 紅:獅
@@ -330,6 +400,11 @@ const BASE_LOCATION_BACKGROUND_PATH := "res://Images/Dialogue/Map/Base.png"
 ## 大地圖城鎮村民聊天(TownChatEvent)固定用的對話背景圖,不分地形(聊天發生在城裡
 ## 隨處可見的住宅區,跟 TOWN_LABEL/城門/酒館等特定場景無關)。
 const TOWN_RESIDENTIAL_BACKGROUND_PATH := "res://Images/Dialogue/Town/town_residential.png"
+
+## 城鎮中心聯姻流程(見 System/event/base/base_marriage_event.gd)候選人回信場景背景,
+## 依候選人血統高低二選一:高血(Bloodline.get_total_noble_percentage() >= 50)站在
+## 王座廳、平民站在住宅區(跟 TOWN_RESIDENTIAL_BACKGROUND_PATH 共用同一張圖)。
+const TOWN_THRONE_ROOM_BACKGROUND_PATH := "res://Images/Dialogue/Town/town_throne_room.png"
 
 ## 隊長標記圖示:疊在頭像/小人物右上角的小旗子,取代舊版變色遮罩。
 ## BattleUnitVisual(戰場角色)、BattlePartyRoster(頭像列)與 BattleCostView

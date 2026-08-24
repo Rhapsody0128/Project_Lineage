@@ -25,6 +25,15 @@ const ATTACK_ANIM_FALLBACK_TIME := 0.4
 # 傷害數字浮字顯示時間
 const DAMAGE_NUMBER_RISE_TIME := 0.5
 
+# 連續命中(二/三連擊、AoE 命中同一格附近角色)短時間內連續跳出好幾個飄字時,
+# 依連續次數逐步延遲後面幾個的出現時機,讓玩家看得出這是「好幾下」而不是疊在一起
+# 糊成一團的一個數字——超過 FLOATING_NUMBER_STAGGER_RESET_MS 沒有新的飄字才視為
+# 新的一輪連擊,streak 歸零重新算。
+const FLOATING_NUMBER_STAGGER_STEP := 0.14
+const FLOATING_NUMBER_STAGGER_RESET_MS := 250
+var _floating_number_streak := 0
+var _last_floating_number_ms := -1000000
+
 # 傷害數字:一般傷害用白字,暴擊用紅字放更大顯示,一眼就能看出這下是不是暴擊
 const DAMAGE_NUMBER_FONT_SIZE := 28
 const CRIT_DAMAGE_NUMBER_FONT_SIZE := 40
@@ -84,6 +93,16 @@ const CLICK_AREA_OFFSET := Vector2(0, -8)
 const LEADER_ICON_TARGET_WIDTH := 22.0
 const LEADER_ICON_POSITION := Vector2(CLICK_AREA_OFFSET.x + CLICK_AREA_SIZE.x / 2.0, CLICK_AREA_OFFSET.y - CLICK_AREA_SIZE.y / 2.0)
 
+# 特殊狀態文字(恐懼/封印/嘲諷/降治療/全隊限時破防&必定暴擊):疊在角色右上角,比隊長
+# 旗子再往右上一點,避免兩者疊在一起看不清楚——跟 BattlePartyRoster 的頭像左上角文字
+# 是同一份資料來源(GameEnums.mechanic_status_label()),只是位置換成角色本人的右上角。
+const STATUS_LABEL_POSITION := Vector2(CLICK_AREA_OFFSET.x + CLICK_AREA_SIZE.x * 0.5, CLICK_AREA_OFFSET.y - CLICK_AREA_SIZE.y - 14.0)
+const STATUS_LABEL_SIZE := Vector2(70, 14)
+const STATUS_LABEL_FONT_SIZE := 12
+const STATUS_LABEL_COLOR := Color(1.0, 0.75, 0.25, 1.0)
+const STATUS_LABEL_OUTLINE_COLOR := Color(0.0, 0.0, 0.0, 0.9)
+const STATUS_LABEL_OUTLINE_SIZE := 3
+
 # 圖層順序:地板(BattleBoard)固定 z_index=-2 墊底,角色固定疊在地板上方一層,
 # 頭像列彈出的招式喊話框等 UI 疊層維持預設(0)或正值,永遠蓋在角色之上——不再依
 # grid_pos.y 逐格排序景深(格子間距已經讓同排角色的圖不會互相重疊,這個細節犧牲掉
@@ -95,6 +114,9 @@ var is_enemy: bool
 var grid_pos: Vector2i
 
 var sprite: AnimatedSprite2D
+
+var _status_label: Label
+var _status_mechanic_types: Array[int] = []
 
 
 ## 建立角色顯示(動畫),pixel_pos 為棋盤換算好的初始位置
@@ -125,6 +147,8 @@ func setup(p_battle_character: BattleCharacter, p_is_enemy: bool, character_scen
 	if battle_character.is_leader:
 		_setup_leader_icon()
 
+	_setup_status_label()
+
 	if SHOW_DEBUG_WEAPON_LABEL:
 		_setup_weapon_label()
 
@@ -143,6 +167,53 @@ func _setup_leader_icon() -> void:
 	if tex_width > 0:
 		icon.scale = Vector2.ONE * (LEADER_ICON_TARGET_WIDTH / tex_width)
 	add_child(icon)
+
+
+## 特殊狀態文字:右上角疊一個文字 Label(見上方 STATUS_LABEL_* 常數說明),預設不可見,
+## 內容/顯示由 add_status_mechanic()/remove_status_mechanic() 依戰報事件即時更新。
+func _setup_status_label() -> void:
+	_status_label = Label.new()
+	_status_label.position = STATUS_LABEL_POSITION
+	_status_label.size = STATUS_LABEL_SIZE
+	_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_label.z_as_relative = true
+	_status_label.z_index = 1
+	_status_label.add_theme_font_size_override("font_size", STATUS_LABEL_FONT_SIZE)
+	_status_label.add_theme_color_override("font_color", STATUS_LABEL_COLOR)
+	_status_label.add_theme_color_override("font_outline_color", STATUS_LABEL_OUTLINE_COLOR)
+	_status_label.add_theme_constant_override("outline_size", STATUS_LABEL_OUTLINE_SIZE)
+	_status_label.visible = false
+	add_child(_status_label)
+
+
+## 特殊狀態機制生效/到期(恐懼/封印/嘲諷/降治療/全隊限時破防&必定暴擊):跟
+## BattlePartyRoster.add_status_mechanic()/remove_status_mechanic() 同一份資料來源
+## (GameEnums.mechanic_status_label()),只是顯示位置換成角色本人右上角,見 battle.gd
+## 的 StatusMechanicEvent 處理。
+func add_status_mechanic(mechanic: int) -> void:
+	if not _status_mechanic_types.has(mechanic):
+		_status_mechanic_types.append(mechanic)
+	_refresh_status_label()
+
+
+func remove_status_mechanic(mechanic: int) -> void:
+	_status_mechanic_types.erase(mechanic)
+	_refresh_status_label()
+
+
+func _refresh_status_label() -> void:
+	if _status_label == null:
+		return
+	if _status_mechanic_types.is_empty():
+		_status_label.visible = false
+		return
+
+	var labels: Array[String] = []
+	for mechanic in _status_mechanic_types:
+		labels.append(GameEnums.mechanic_status_label(mechanic))
+	_status_label.text = "/".join(labels)
+	_status_label.visible = true
 
 
 ## 場上角色本人(不是頭像列的頭像,見 BattlePartyRoster._on_portrait_gui_input)也能
@@ -281,18 +352,31 @@ func wait_for_animation(anim_name: String) -> void:
 func show_damage_number(amount: int, is_critical: bool = false) -> void:
 	var font_size := CRIT_DAMAGE_NUMBER_FONT_SIZE if is_critical else DAMAGE_NUMBER_FONT_SIZE
 	var color := CRIT_DAMAGE_NUMBER_COLOR if is_critical else DAMAGE_NUMBER_COLOR
-	_show_floating_number("-%d" % amount, color, font_size)
+	_show_floating_number("-%d" % amount, color, font_size, _next_floating_number_stagger())
 
 
 ## 恢復 HP 時在頭上跳出綠色治療數字,樣式比照 show_damage_number() 但方向相反
 ## (正數、綠色),讓玩家一眼分辨是傷害還是治療。
 func show_heal_number(amount: int) -> void:
-	_show_floating_number("+%d" % amount, HEAL_NUMBER_COLOR, HEAL_NUMBER_FONT_SIZE)
+	_show_floating_number("+%d" % amount, HEAL_NUMBER_COLOR, HEAL_NUMBER_FONT_SIZE, _next_floating_number_stagger())
+
+
+## 依短時間內連續跳出飄字的次數算出這一次要延遲多久才出現(見上方 FLOATING_NUMBER_
+## STAGGER_* 常數),超過重置窗口沒有新飄字就視為新的一輪、從頭數起。
+func _next_floating_number_stagger() -> float:
+	var now := Time.get_ticks_msec()
+	if now - _last_floating_number_ms <= FLOATING_NUMBER_STAGGER_RESET_MS:
+		_floating_number_streak += 1
+	else:
+		_floating_number_streak = 0
+	_last_floating_number_ms = now
+	return _floating_number_streak * FLOATING_NUMBER_STAGGER_STEP
 
 
 ## show_damage_number()/show_heal_number() 共用的飄字實作:往上飄一小段、停頓、
-## 淡出釋放,兩者只差文字內容/顏色/字級。
-func _show_floating_number(text: String, color: Color, font_size: int) -> void:
+## 淡出釋放,兩者只差文字內容/顏色/字級;stagger_delay > 0 時先等這麼久才開始淡入,
+## 讓連續命中的好幾個數字錯開出現時機,不會疊在同一個位置糊成一團。
+func _show_floating_number(text: String, color: Color, font_size: int, stagger_delay: float = 0.0) -> void:
 	var label := Label.new()
 	label.text = text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -313,6 +397,8 @@ func _show_floating_number(text: String, color: Color, font_size: int) -> void:
 	add_child(label)
 
 	var tw := label.create_tween()
+	if stagger_delay > 0.0:
+		tw.tween_interval(stagger_delay)
 	tw.tween_property(label, "modulate:a", 1.0, 0.05)
 	tw.parallel().tween_property(label, "position:y", label.position.y - 24.0, DAMAGE_NUMBER_RISE_TIME)
 	tw.tween_interval(0.15)

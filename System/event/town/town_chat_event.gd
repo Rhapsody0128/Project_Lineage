@@ -26,7 +26,7 @@ func _start(return_scene_path: String) -> void:
 
 
 func _build_chat() -> Dialogue:
-	var player := PartyStore.party.leader
+	var player := LeaderStore.get_leader()
 	var npc := CharacterController.get_random_character()
 
 	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)

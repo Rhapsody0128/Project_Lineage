@@ -2,13 +2,18 @@ class_name MarriageProposalPanel
 extends VBoxContainer
 
 # =========================================================
-# 告白畫面內容:塞進 ActionPanel.open_custom() 顯示(見 System/event/town/
-# town_tavern_event.gd 的 _open_marriage_panel()),不再是獨立場景——不切場景,疊加在
-# 觸發事件當下的對話畫面上。左側固定寬度顯示目前聚焦角色的詳細資訊(CharacterDetailView,
-# 跟 CharacterRoster/CharacterPanel 共用同一顆元件),右側 FaceOff 是我方/對方頭像對照,
-# 下方是可篩選排序的我方角色選人清單(CharacterSelectBar + CharacterAvatarCard,見
-# Scenes/CharacterSelect/)。標題文字交給呼叫端傳給 ActionPanel.open_custom() 的 title
-# 顯示,這裡不重複畫一次(比照 base_action_panel.gd 的 BaseBuildingPanelContent 既有做法)。
+# 告白畫面內容:塞進 Scripts/UI/fullscreen_overlay.gd 的 FullscreenOverlay 顯示(見
+# System/event/town/town_tavern_event.gd 的 _open_marriage_panel()),不是獨立場景、也
+# 不借用 ActionPanel——疊加在觸發事件當下的對話畫面上,近全螢幕。左側固定寬度顯示目前
+# 聚焦角色的詳細資訊(CharacterDetailView,跟 CharacterRoster/CharacterPanel 共用同一顆
+# 元件),右側 FaceOff 是我方/對方頭像對照,下方是可篩選排序的我方角色選人清單
+# (CharacterSelectBar + CharacterAvatarCard,見 Scenes/CharacterSelect/)。標題文字交給
+# 呼叫端傳給 FullscreenOverlay.open() 的 title 顯示,這裡不重複畫一次(比照
+# base_action_panel.gd 的 BaseBuildingPanelContent 既有做法)。
+#
+# overlay 欄位由呼叫端在 instantiate() 之後、setup() 之前直接賦值(見
+# _open_marriage_panel()),接受/婉拒/取消都要靠它 close() 掉外層的 FullscreenOverlay,
+# 這裡自己不知道也不需要知道自己被誰疊在最上層。
 #
 # 點對方頭像不會換左側資料(只有我方頭像/選人清單點了才換),左側預設顯示的是
 # 「被告白的人」:INCOMING 是我方,OUTGOING 是對方。
@@ -37,6 +42,9 @@ extends VBoxContainer
 @onready var accept_button: Button = $ActionRow/AcceptButton
 @onready var second_button: Button = $ActionRow/SecondButton
 @onready var picker_vbox: VBoxContainer = $MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox
+
+## 呼叫端在 instantiate() 之後、setup() 之前賦值——見檔案開頭註解。
+var overlay: FullscreenOverlay
 
 var _detail_view: CharacterDetailView
 var _select_bar: CharacterSelectBar
@@ -169,15 +177,13 @@ func _on_second_pressed() -> void:
 	_resolve(false)
 
 
-## × 按鈕(ActionPanel 標題列的關閉鍵)呼叫,視同「婉拒/取消」——玩家必須有個出口,不能
-## 沒有反應。
+## × 按鈕(FullscreenOverlay 標題列的關閉鍵,見 _open_marriage_panel() 傳給
+## FullscreenOverlay.open() 的 on_close_button)呼叫,視同「婉拒/取消」——玩家必須有個
+## 出口,不能沒有反應。
 func decline() -> void:
 	_resolve(false)
 
 
 func _resolve(accepted: bool) -> void:
-	# trigger_callback=false:接下來自己直接呼叫 _on_result,不需要再觸發
-	# open_custom() 傳的 on_close(那顆是給玩家按 × 時走的 decline() 路徑用,兩者不會
-	# 同時發生,見 action_panel.gd 的 close() 實作)。
-	ActionPanel.close(false)
+	overlay.close()
 	_on_result.call(accepted, _self_character, _target_character)

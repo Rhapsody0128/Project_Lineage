@@ -46,10 +46,13 @@ static func get_weapon_for_potential(potential: Potential) -> int:
 ## (集中在基準評級附近、偶爾探高一兩級,不會超過基準),每次呼叫本函式都重新骰一次,
 ## 所以同一隊呼叫多次會讓隊員評級各自不同,不是整隊統一同一級。骰出來的評級同時餵給
 ## Bloodline/Potential 兩者,見 PotentialController.get_random_potential()/
-## BloodlineController.get_random_bloodline()。
-static func get_random_character(rank_type: int = -1, nation: int = -1) -> Character:
+## BloodlineController.get_random_bloodline()。gender 不填(-1)= 維持原本隨機生成,
+## 指定 GameEnums.Gender.MALE/FEMALE 時強制產出該性別(例如城鎮中心聯姻流程需要生成
+## 跟聯姻發起人性別相反的人選,見 System/marriage/marriage_candidate_generator.gd)。
+static func get_random_character(rank_type: int = -1, nation: int = -1, gender: int = -1) -> Character:
 	var resolved_rank := RankDrawTable.roll(rank_type) if rank_type != -1 else -1
-	var gender = Util.get_random_from_array([GameEnums.Gender.MALE, GameEnums.Gender.FEMALE])
+	if gender == -1:
+		gender = Util.get_random_from_array([GameEnums.Gender.MALE, GameEnums.Gender.FEMALE])
 	var character_name: String
 	if gender == GameEnums.Gender.MALE:
 		character_name = Util.get_random_from_array(GameEnums.MALE_CHARACTER_NAMES)

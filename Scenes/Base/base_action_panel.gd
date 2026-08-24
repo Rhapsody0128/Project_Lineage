@@ -8,13 +8,18 @@ extends VBoxContainer
 ##
 ## 依 BaseBuildingProgressStore 的狀態分支顯示:0 級未建造顯示「建造」按鈕;建造中顯示
 ## 倒數天數;已建成顯示等級/升級(升級中不影響下面的產出/派遣顯示,建築正常運作);
-## 生產類建築額外顯示目前月產量與工作角色頭像格(容量=等級,點空格開角色清單指派、
-## 點已填格子直接召回)。角色清單顯示全部未禁用角色,
-## 已在此工作/在別處工作的人反灰純顯示,整卡點擊指派只對可選的人生效,卡片上的頭像
-## 另外接一個獨立點擊區開 CharacterPanel(靠子節點 MOUSE_FILTER_STOP 先吃掉事件擋掉
-## 冒泡,同 Scenes/Battle/battle_party_roster.gd 頭像框的寫法)。角色清單排成
-## PICKER_GRID_COLUMNS 欄的卡片網格,見 _build_character_picker()/_build_character_row()。
+## 生產類建築額外顯示目前月產量與工作角色頭像格(容量=等級,點空格開角色選人面板指派、
+## 點已填格子直接召回)。
 ##
+## 「選一位角色」情境(派遣工作角色/兵營指派受訓/更換整團領導人)一律呼叫
+## Scenes/CharacterSelect/character_select_overlay.gd 的 CharacterSelectOverlay,疊加在
+## 這份建築面板最上層(獨立 CanvasLayer,不是原地替換 ActionPanel 目前的內容)——self
+## 全程留在畫面上不受影響,選定/取消都只是把疊加面板關掉,接下來直接沿用 self 更新狀態、
+## 呼叫 _rebuild_body(),見 _open_dispatch_picker()/_open_trainee_picker()/
+## _open_leader_picker() 的既有寫法。城鎮中心聯姻是例外:選聯姻角色/寄信國家改走
+## Scenes/Marriage/stronghold_marriage_panel.gd 的 StrongholdMarriagePanel(見
+## _open_stronghold_marriage_panel()),外殼直接換掉 ActionPanel 目前顯示的內容(不是疊
+## 加),候選人盲選跟後續 Dialogue 演出則交給 System/event/base/base_marriage_event.gd。
 ## 「建造」「升級」鈕不放在這塊內容區塊裡,而是塞進 ActionPanel 自己的標題列
 ## (ActionPanel.set_title_action_button(),TitleLabel 右邊、CloseButton 左邊),
 ## 跟名稱/等級同一行,例如「大本營 (F) [升級]」——不用在內容裡重複一次名稱,只要一行。
@@ -31,15 +36,12 @@ extends VBoxContainer
 const AVATAR_SLOT_SIZE := Vector2(64, 64)
 
 var _building: Building
-## 是否正在展開「選一位角色派遣」清單,指派/取消後歸零。
-var _picking_character: bool = false
-## 升級/建造失敗(資材不足)後單次顯示一行提示,顯示完就消耗掉,不跨 rebuild 保留。
+## 升級/建造/派遣失敗後單次顯示一行提示,顯示完就消耗掉,不跨 rebuild 保留。
 var _upgrade_error: bool = false
 var _build_error: bool = false
+var _dispatch_error: bool = false
 
-## 兵營:是否正在展開「選一位角色受訓」清單;選定角色後改存這裡,接著展開技能清單,
-## 兩者互斥(_picking_trainee 只在 _training_character 為 null 時有意義)。
-var _picking_trainee: bool = false
+## 兵營:選定要受訓的角色後存這裡,接著展開技能清單(_build_skill_picker())。
 var _training_character: Character = null
 var _barracks_error: bool = false
 ## 祭壇/禁忌祭壇購買奧義、科技樹解鎖各自的單次錯誤提示旗標,用法同
@@ -47,6 +49,13 @@ var _barracks_error: bool = false
 ## 不需要對應的錯誤旗標。
 var _altar_error: bool = false
 var _tech_error: bool = false
+
+## 城鎮中心:聯姻結果單次顯示,顯示完即消耗掉,同 _build_error/_upgrade_error 慣例。實際
+## 選聯姻角色/寄信國家兩步驟已經整個交給 Scenes/Marriage/stronghold_marriage_panel.gd 的
+## StrongholdMarriagePanel(見 _open_stronghold_marriage_panel()),候選人盲選跟後續
+## Dialogue 演出則在 System/event/base/base_marriage_event.gd,這裡不再需要自己存流程
+## 中途狀態。
+var _marriage_result_text: String = ""
 
 
 func _init(p_building: Building) -> void:
@@ -84,6 +93,9 @@ func _rebuild_body() -> void:
 	if _upgrade_error:
 		_add_label("資材不足")
 		_upgrade_error = false
+	if _dispatch_error:
+		_add_label("已滿額")
+		_dispatch_error = false
 
 	if not BaseBuildingProgressStore.is_unlocked(_building.type):
 		return
@@ -104,11 +116,11 @@ func _rebuild_body() -> void:
 		_build_residential_section()
 		return
 
-	if not _building.is_production_building():
+	if _building.type == GameEnums.BuildingType.STRONGHOLD:
+		_build_stronghold_section()
 		return
 
-	if _picking_character:
-		_build_character_picker()
+	if not _building.is_production_building():
 		return
 
 	_build_efficiency_label()
@@ -293,6 +305,109 @@ func _build_residential_section() -> void:
 	_add_label("目前角色數：%d / %d" % [current, capacity])
 
 
+## 城鎮中心:聯姻入口。名額公式見 MarriageQuotaRule.max_quota_per_year()(城鎮中心每級
+## +1 個名額),用掉幾個名額是 MarriageQuotaStore 的玩家資料,跨年自動歸零、升級不會
+## 把已用掉的名額補回來(見該檔案開頭註解)。名額剩餘/不能聯姻的原因不再常駐一行文字,
+## 改寫進「聯姻」按鈕的 tooltip(_build_marriage_button()),按下去才展開整段選人流程,
+## 選聯姻角色/寄信國家兩步驟已經整個交給 Scenes/Marriage/stronghold_marriage_panel.gd 的
+## StrongholdMarriagePanel,這裡不再自己存流程中途狀態。
+func _build_stronghold_section() -> void:
+	_build_leader_change_section()
+
+	if not _marriage_result_text.is_empty():
+		_add_label(_marriage_result_text)
+		_marriage_result_text = ""
+
+	add_child(_build_marriage_button())
+
+
+## 名額剩餘/不能聯姻的原因(名額用完、沒有可聯姻的角色)一律寫進 tooltip,按鈕本身只留
+## 「聯姻」兩個字——不用玩家先看到一行常駐文字才知道能不能按,滑鼠移上去就有完整說明。
+func _build_marriage_button() -> Button:
+	var button := Button.new()
+	button.text = "聯姻"
+	_style_button(button)
+
+	var remaining := MarriageQuotaStore.remaining()
+	var eligible := MarriageRule.eligible_proposers(CharacterRosterStore.all_characteres)
+	var tooltip_lines: Array[String] = ["本年度聯姻名額剩餘：%d（城鎮中心每級 +1 個,跨年重新計算）" % remaining]
+	if remaining <= 0:
+		tooltip_lines.append("本年度名額已用完")
+	if eligible.is_empty():
+		tooltip_lines.append("沒有可聯姻的角色（角色皆已婚或被禁用）")
+	button.tooltip_text = "\n".join(tooltip_lines)
+	button.disabled = remaining <= 0 or eligible.is_empty()
+
+	button.pressed.connect(func() -> void: _open_stronghold_marriage_panel(eligible))
+	return button
+
+
+## 城鎮中心:更換整團領導人入口。跟下面小隊隊長(Party.leader,只在戰場站位/金色標記/
+## 隊長陣亡判斷用)是完全不同的兩件事(見 Scripts/Autoload/leader_store.gd 開頭
+## 註解)——整團領導人代表玩家在大地圖各對話事件(TownGateEvent/TownChatEvent/
+## RoamingEnemyEvent/BaseMarriageEvent 等)開口說話,不需要人在目前小隊裡也能被指定,
+## 選人範圍是全部角色池(CharacterRosterStore.all_characteres),按鈕只要角色池不是空的
+## 就能按——一定至少有主角,實務上不會發生沒人可選的狀況,但仍防呆。
+func _build_leader_change_section() -> void:
+	_add_label("目前整團領導人：%s" % LeaderStore.get_leader().full_name)
+
+	var button := Button.new()
+	button.text = "更換領導人"
+	_style_button(button)
+	button.disabled = CharacterRosterStore.all_characteres.is_empty()
+	button.pressed.connect(func() -> void: _open_leader_picker())
+	add_child(button)
+
+
+## 選定範圍是全部角色池,不限定要編入目前小隊——跟 _open_dispatch_picker() 派遣工作角色
+## 同一套慣例(顯示全部未禁用角色)。initial_focus 帶目前領導人,一開進來就先聚焦顯示,
+## 不用玩家先點一次才看得到資料。
+func _open_leader_picker() -> void:
+	var characters: Array[Character] = []
+	for character in CharacterRosterStore.all_characteres:
+		if not character.is_disabled:
+			characters.append(character)
+
+	var overlay := CharacterSelectOverlay.new()
+	get_tree().root.add_child(overlay)
+	overlay.open(
+		"選擇整團領導人", characters, _simple_avatar_card, -1,
+		_on_leader_confirmed, "設為領導人", LeaderStore.get_leader()
+	)
+
+
+func _on_leader_confirmed(character: Character) -> void:
+	LeaderStore.set_leader(character)
+	_rebuild_body()
+
+
+## 「聯姻」按鈕按下後呼叫:選聯姻角色→選寄信國家兩步驟,整個交給
+## Scenes/Marriage/stronghold_marriage_panel.gd 的 StrongholdMarriagePanel 一份
+## FullscreenOverlay 內容處理——疊加在目前顯示中的城鎮中心建築面板(ActionPanel)最上層,
+## 不是取代它,跟 _open_dispatch_picker()/_open_trainee_picker()/_open_leader_picker()
+## 三個 CharacterSelectOverlay 選人情境同一套疊加模式,不切場景、不借用 ActionPanel。
+## self(這份建築面板內容)全程不受影響、不會被釋放,取消/× 只需要把這層疊加面板關掉,
+## 底下的 ActionPanel 本來就沒被動過,不用像舊版那樣重新呼叫
+## BaseBuildingEvent.open_action_panel() 重建一份。確認聯姻時面板自己先 overlay.close()
+## 讓路,這裡收到的 on_confirmed 只需要接手交給 BaseMarriageEvent 演出後續 Dialogue/
+## 候選人盲選。
+func _open_stronghold_marriage_panel(eligible: Array[Character]) -> void:
+	var panel := StrongholdMarriagePanel.new()
+	var overlay := FullscreenOverlay.new()
+	get_tree().root.add_child(overlay)
+	overlay.open("城鎮中心聯姻", panel, overlay.close)
+	panel.overlay = overlay
+	panel.setup(eligible, func(proposer: Character, nation: int) -> void:
+		# BaseMarriageEvent 接下來會呼叫 goto_dialogue() 真的切場景離開 base.tscn——
+		# ActionPanel 掛在 autoload CanvasLayer 上不會跟著切場景消失,底下的城鎮中心
+		# 建築面板本來就沒被這層 FullscreenOverlay 動過,這裡要先手動關掉,不然會一路
+		# 疊在 Dialogue 畫面最上層(理由同 BaseMarriageEvent 內部各處 ActionPanel.close()
+		# 呼叫點的既有註解)。
+		ActionPanel.close(false)
+		BaseMarriageEvent.trigger(_building, proposer, nation)
+	)
+
+
 func _build_efficiency_label() -> void:
 	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
 	var level := BaseBuildingProgressStore.get_level(_building.type)
@@ -324,7 +439,7 @@ func _build_worker_slots() -> void:
 		row.add_child(_build_worker_slot(character))
 
 
-## 已填的格子放頭像,點擊直接召回;空格子點擊展開下方的角色清單(_picking_character)。
+## 已填的格子放頭像,點擊直接召回;空格子點擊疊出選人面板(_open_dispatch_picker())。
 func _build_worker_slot(character: Character) -> Control:
 	var slot := PanelContainer.new()
 	slot.custom_minimum_size = AVATAR_SLOT_SIZE
@@ -349,73 +464,60 @@ func _build_worker_slot(character: Character) -> Control:
 	else:
 		slot.gui_input.connect(func(event: InputEvent) -> void:
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				_picking_character = true
-				_rebuild_body()
+				_open_dispatch_picker()
 		)
 
 	return slot
 
 
 ## 顯示全部未禁用角色(不只是可指派的人)——已在此工作/在別處工作的人一樣列出來,
-## 靠反灰純視覺區分,召回改到 _build_worker_slot() 那邊點頭像格處理。清單/排序/卡片外觀
-## 改用共用元件 CharacterSelectBar + CharacterStatCard(見 Scenes/CharacterSelect/),
-## 排序預設依建築適應性素質(見 setup() 的 initial_sort_key,3 + PotentialType 剛好對應
-## GameEnums.CharacterSortKey 的 STRENGTH..MENTALITY,見該檔案註解),不需要武器篩選列。
-func _build_character_picker() -> void:
+## 靠 CharacterAvatarCard 的 available/unavailable_reason 反灰純視覺區分,召回維持在
+## _build_worker_slot() 點頭像格處理。排序預設依建築適應性素質(見 CharacterSelectBar.
+## setup() 的 initial_sort_key,3 + PotentialType 剛好對應 GameEnums.CharacterSortKey 的
+## STRENGTH..MENTALITY,見該檔案註解)。
+func _open_dispatch_picker() -> void:
 	var characters: Array[Character] = []
 	for character in CharacterRosterStore.all_characteres:
 		if not character.is_disabled:
 			characters.append(character)
 
-	if characters.is_empty():
-		_add_label("沒有角色")
-	else:
-		var select_bar := CharacterSelectBar.new()
-		add_child(select_bar)
-		select_bar.character_selected.connect(_on_dispatch_character_selected)
-		select_bar.setup(characters, _build_dispatch_card, 3 + _building.potential_type, false)
-
-	var cancel_button := Button.new()
-	cancel_button.text = "取消"
-	_style_button(cancel_button)
-	cancel_button.pressed.connect(func() -> void:
-		_picking_character = false
-		_rebuild_body()
+	var overlay := CharacterSelectOverlay.new()
+	get_tree().root.add_child(overlay)
+	overlay.open(
+		"指派工作角色", characters, _make_dispatch_card,
+		3 + _building.potential_type, _on_dispatch_confirmed, "確認指派"
 	)
-	add_child(cancel_button)
 
 
-## card_factory:卡片顯示姓名/等級/年紀/建築適應性素質/該素質潛力評分,不再列出全部六維
-## 素質——別的素質細節開 CharacterPanel 看。已在此工作/在別處工作的人顯示為不可指派
-## (CharacterStatCard 自己處理反灰+tooltip)。
-func _build_dispatch_card(character: Character) -> Control:
+## 完整素質資訊已經在 CharacterSelectPanel 左側的 CharacterDetailView 顯示,卡片只需要
+## 負責「已在此工作/在別處工作/已編入小隊」這三種不可指派狀態(CharacterAvatarCard 自己
+## 處理反灰+tooltip)。
+func _make_dispatch_card(character: Character) -> Control:
 	var is_here := BaseDispatchStore.get_dispatched_character_ids(_building.type).has(character.id)
 	var is_elsewhere := not is_here and BaseDispatchStore.is_character_dispatched(character.id)
 	var is_in_party := PartyStore.party != null and PartyStore.party.characteres.has(character)
 	var assignable := not is_here and not is_elsewhere and not is_in_party
 	var unavailable_reason := "在此工作" if is_here else ("在其他地方工作" if is_elsewhere else "已編入小隊")
-
-	var stat_rows: Array = [
-		["名字", character.full_name],
-		["等級", str(character.level_system.level)],
-		["年紀", str(character.age)],
-		[GameEnums.potential_label(_building.potential_type), str(roundi(character.get_potential(_building.potential_type)))],
-		["潛力", GameEnums.rank_label(character.get_potential_rank(_building.potential_type))],
-	]
-	return CharacterStatCard.new(character, stat_rows, assignable, unavailable_reason)
+	return CharacterAvatarCard.new(character, assignable, unavailable_reason)
 
 
-func _on_dispatch_character_selected(character: Character) -> void:
+func _on_dispatch_confirmed(character: Character) -> void:
 	var success := BaseDispatchStore.dispatch(_building.type, character.id)
-	_picking_character = false
-	_rebuild_body()
 	if not success:
-		_add_label("已滿額")
+		_dispatch_error = true
+	_rebuild_body()
+
+
+## 兩個「選一個純頭像卡就好」的選人情境(兵營受訓/更換整團領導人)共用這顆最簡單的
+## card_factory——完整資訊都在 CharacterSelectPanel 左側,卡片不需要額外的可選/不可選
+## 狀態。
+func _simple_avatar_card(character: Character) -> Control:
+	return CharacterAvatarCard.new(character)
 
 
 ## 兵營:技能傳授/被動訓練 Rank 上限跟著建築等級開放,不影響戰場 COST(固定 20)。訓練中
-## 名單顯示在最上面,底下是「指派角色訓練」入口——依序展開選人清單(_picking_trainee)→
-## 選技能清單(_training_character),兩層都能按「取消」退回。
+## 名單顯示在最上面,底下是「指派角色訓練」入口——按下後疊出選人面板
+## (_open_trainee_picker()),確認選擇後回到這裡展開技能清單(_training_character)。
 func _build_barracks_section() -> void:
 	_add_label("可傳授/訓練最高 Rank：%s" % GameEnums.rank_label(BaseBuildingProgressStore.get_rank(_building.type)))
 	_add_label("戰場 COST 固定 20，不受兵營等級影響。")
@@ -436,65 +538,30 @@ func _build_barracks_section() -> void:
 		_build_skill_picker()
 		return
 
-	if _picking_trainee:
-		_build_trainee_picker()
-		return
-
 	var button := Button.new()
 	button.text = "指派角色訓練"
 	_style_button(button)
-	button.pressed.connect(func() -> void:
-		_picking_trainee = true
-		_rebuild_body()
-	)
+	button.pressed.connect(func() -> void: _open_trainee_picker())
 	add_child(button)
 
 
 ## 只列出目前空閒(未受訓/未派駐其他建築)的未禁用角色——不比照生產建築的派遣清單顯示
-## 全部角色反灰,訓練是相對少發生的操作,直接濾掉不可選的人更清楚。
-func _build_trainee_picker() -> void:
+## 全部角色反灰,訓練是相對少發生的操作,直接濾掉不可選的人更清楚。疊加面板選定後直接
+## 沿用 self 寫回 _training_character、呼叫 _rebuild_body()。
+func _open_trainee_picker() -> void:
 	var characters: Array[Character] = []
 	for character in CharacterRosterStore.all_characteres:
 		if not character.is_disabled and not BarracksTrainingStore.is_training(character.id) and not BaseDispatchStore.is_character_dispatched(character.id):
 			characters.append(character)
 
-	if characters.is_empty():
-		_add_label("沒有可派遣的角色")
-	else:
-		for character in characters:
-			add_child(_build_trainee_row(character))
-
-	var cancel_button := Button.new()
-	cancel_button.text = "取消"
-	_style_button(cancel_button)
-	cancel_button.pressed.connect(func() -> void:
-		_picking_trainee = false
-		_rebuild_body()
-	)
-	add_child(cancel_button)
+	var overlay := CharacterSelectOverlay.new()
+	get_tree().root.add_child(overlay)
+	overlay.open("指派角色訓練", characters, _simple_avatar_card, -1, _on_trainee_confirmed)
 
 
-func _build_trainee_row(character: Character) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-
-	var label := Label.new()
-	label.text = "%s（%d 歲）" % [character.full_name, character.age]
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	row.add_child(label)
-
-	var button := Button.new()
-	button.text = "選擇"
-	_style_button(button)
-	button.pressed.connect(func() -> void:
-		_training_character = character
-		_picking_trainee = false
-		_rebuild_body()
-	)
-	row.add_child(button)
-
-	return row
+func _on_trainee_confirmed(character: Character) -> void:
+	_training_character = character
+	_rebuild_body()
 
 
 ## 技能池取自 SkillLibrary.build()(主動/被動不分,方案 A:傳授新技能與訓練被動技能

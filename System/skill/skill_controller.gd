@@ -40,8 +40,10 @@ static func get_random_skill_list_by_rank(skill_rank: GameEnums.RankType) -> Arr
 	return [random_skill]
 
 ## 一個角色最多能持有的技能數——不是每個角色都要把全部「武器綁定+無綁定」技能塞滿,
-## 避免技能欄/AI 骰選池被撐得過大。
-const MAX_SKILLS_PER_CHARACTER := 4
+## 避免技能欄/AI 骰選池被撐得過大。5 對應設計上的理論上限:武器主動技+武器被動技+
+## 通用被動各 1(訓練固定習得)+大將技 1(僅隊長,見 Skill.is_leader_skill)+血統覺醒技 1
+## (僅高血角色有機率習得,見 Skill.required_bloodline_nation),不是每個角色都會集滿。
+const MAX_SKILLS_PER_CHARACTER := 5
 
 ## 該武器能用的技能:bind_weapon 相符,或技能沒有綁定武器(NO_WEAPON_BINDING,任何武器都能用)。
 ## target_count 是實際要抽的技能數(1~MAX_SKILLS_PER_CHARACTER,呼叫端多半傳

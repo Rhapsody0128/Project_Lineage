@@ -20,12 +20,15 @@ const BATCHABLE_EVENT_TYPES: Array[GameEnums.BattleEventType] = [
 ]
 # 上述可併發事件連續出現時,一次最多同時播放幾個,加快演示速度。
 const EVENT_BATCH_SIZE := 3
-# attack/skill 事件後面緊接著的反應事件型別(閃避、受傷、治療、素質增益/減益),
-# 都要跟前面的 attack/skill 同時播放,不要分先後拍——C. 治癒/D. 大將之風/E. 降咒
-# 都是「skill 事件後面緊接一串 heal 或 stat_effect」的結構,跟 AoE 傷害技能同一套。
+# attack/skill 事件後面緊接著的反應事件型別(閃避、受傷、治療、素質增益/減益、護盾、
+# 特殊狀態機制),都要跟前面的 attack/skill 同時播放,不要分先後拍——C. 治癒/D. 大將之風/
+# E. 降咒都是「skill 事件後面緊接一串 heal 或 stat_effect」的結構,跟 AoE 傷害技能同一套;
+# SHIELD/STATUS_MECHANIC(護盾/恐懼封印嘲諷降治療等)是同一批新增的機制效果,套用時機
+# 跟 stat_effect 完全一樣(緊跟在 skill 事件後面),一併收進同一張表。
 const REACTION_EVENT_TYPES: Array[GameEnums.BattleEventType] = [
 	GameEnums.BattleEventType.DODGE, GameEnums.BattleEventType.DAMAGE,
 	GameEnums.BattleEventType.HEAL, GameEnums.BattleEventType.STAT_EFFECT,
+	GameEnums.BattleEventType.SHIELD, GameEnums.BattleEventType.STATUS_MECHANIC,
 ]
 
 # 角色美術尚未完成前,全部角色暫時共用 Warrier 佔位動畫 Scene
@@ -700,7 +703,7 @@ func _play_single_event(event: BattleEvent) -> void:
 			await _anim_attack(event as AttackEvent)
 		GameEnums.BattleEventType.SKILL:
 			await _anim_skill(event as SkillEvent)
-		GameEnums.BattleEventType.DODGE, GameEnums.BattleEventType.DAMAGE, GameEnums.BattleEventType.HEAL, GameEnums.BattleEventType.STAT_EFFECT:
+		GameEnums.BattleEventType.DODGE, GameEnums.BattleEventType.DAMAGE, GameEnums.BattleEventType.HEAL, GameEnums.BattleEventType.STAT_EFFECT, GameEnums.BattleEventType.SHIELD, GameEnums.BattleEventType.STATUS_MECHANIC:
 			_apply_reaction(event)
 		GameEnums.BattleEventType.GUARD:
 			# 正常情況下 guard 一定會被 _play_battle_log() 的前瞻邏輯跟緊接著的
@@ -772,6 +775,7 @@ func _apply_reaction(event: BattleEvent) -> void:
 				hit_visual.play_hit_reaction()
 				hit_visual.show_damage_number(damage_event.damage_points, damage_event.is_critical)
 				_roster_for(damage_event.target).update_hp(damage_event.target, damage_event.remaining_hp)
+				_roster_for(damage_event.target).update_shield(damage_event.target, damage_event.remaining_shield)
 		GameEnums.BattleEventType.HEAL:
 			var heal_event := event as HealEvent
 			_log(_hint("%s 恢復 %d 點 HP" % [heal_event.target_name, heal_event.heal_points], heal_event))
@@ -796,6 +800,25 @@ func _apply_reaction(event: BattleEvent) -> void:
 			var stat_visual: BattleUnitVisual = visuals.get(stat_event.target)
 			if stat_visual != null:
 				stat_visual.play_stat_effect_spin()
+		GameEnums.BattleEventType.SHIELD:
+			var shield_event := event as ShieldEvent
+			_log(_hint("%s 獲得 %d 點護盾(剩餘 %d)" % [shield_event.target_name, shield_event.shield_points, shield_event.total_shield], shield_event))
+			_roster_for(shield_event.target).update_shield(shield_event.target, shield_event.total_shield)
+		GameEnums.BattleEventType.STATUS_MECHANIC:
+			var mechanic_event := event as StatusMechanicEvent
+			var mechanic_label := GameEnums.mechanic_status_label(mechanic_event.mechanic)
+			var mechanic_visual: BattleUnitVisual = visuals.get(mechanic_event.target)
+			if mechanic_event.is_active:
+				_log(_hint("%s 陷入%s" % [mechanic_event.target_name, mechanic_label], mechanic_event))
+				_roster_for(mechanic_event.target).add_status_mechanic(mechanic_event.target, mechanic_event.mechanic)
+				if mechanic_visual != null:
+					mechanic_visual.add_status_mechanic(mechanic_event.mechanic)
+					mechanic_visual.play_stat_effect_spin()
+			else:
+				_log("%s 的%s效果解除" % [mechanic_event.target_name, mechanic_label])
+				_roster_for(mechanic_event.target).remove_status_mechanic(mechanic_event.target, mechanic_event.mechanic)
+				if mechanic_visual != null:
+					mechanic_visual.remove_status_mechanic(mechanic_event.mechanic)
 
 
 ## 移動:System 層已經算好整趟路徑(event.path,可能為了繞路而轉彎),

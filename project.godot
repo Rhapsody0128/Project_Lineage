@@ -20,6 +20,7 @@ WorldTimeStore="*res://Scripts/Autoload/world_time_store.gd"
 CharacterPanel="*res://Scenes/CharacterPanel/character_panel.tscn"
 BattleReportStore="*res://Scripts/Autoload/battle_report_store.gd"
 PartyStore="*res://Scripts/Autoload/party_store.gd"
+LeaderStore="*res://Scripts/Autoload/leader_store.gd"
 CharacterRosterStore="*res://Scripts/Autoload/character_roster_store.gd"
 AllCharacterStore="*res://Scripts/Autoload/all_character_store.gd"
 UltimateStore="*res://Scripts/Autoload/ultimate_store.gd"
@@ -43,6 +44,7 @@ BarracksTrainingStore="*res://Scripts/Autoload/barracks_training_store.gd"
 SaveLoadStore="*res://Scripts/Autoload/save_load_store.gd"
 TavernStore="*res://Scripts/Autoload/tavern_store.gd"
 QuestStore="*res://Scripts/Autoload/quest_store.gd"
+MarriageQuotaStore="*res://Scripts/Autoload/marriage_quota_store.gd"
 
 [display]
 

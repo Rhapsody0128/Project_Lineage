@@ -64,16 +64,20 @@ func _on_dismiss_pressed() -> void:
 		return
 	var character := _selected_card.character
 	if _is_protected_from_dismissal(character):
-		MessageBar.show_message("%s 是主角或隊長,無法解雇" % character.full_name)
+		MessageBar.show_message("%s 是主角、整團領導人或隊長,無法解雇" % character.full_name)
 		return
 	ConfirmDialog.ask("確定要解雇 %s 嗎？" % character.full_name, func(): _dismiss_character(character))
 
 
-## 兩種角色不能解雇:玩家固定主角(Character.is_protagonist),以及目前小隊隊長
-## (PartyStore.party.leader)——隊長解雇掉會讓小隊瞬間無人領軍,索性連選都不給選,
-## 不用等玩家解雇完才另外處理「隊伍沒隊長」的補救邏輯。
+## 三種角色不能解雇:玩家固定主角(Character.is_protagonist)、目前整團領導人
+## (LeaderStore.leader,見該檔案開頭註解——跟隊長是不同職責,解雇掉會讓玩家在城鎮中心/
+## 大地圖對話突然沒人開得了口)、以及目前小隊隊長(PartyStore.party.leader)——隊長解雇
+## 掉會讓小隊瞬間無人領軍,索性連選都不給選,不用等玩家解雇完才另外處理「隊伍沒隊長」的
+## 補救邏輯。
 func _is_protected_from_dismissal(character: Character) -> bool:
 	if character.is_protagonist:
+		return true
+	if LeaderStore.leader == character:
 		return true
 	return PartyStore.party != null and PartyStore.party.leader == character
 

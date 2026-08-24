@@ -59,10 +59,12 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 ##
 ## self_party 可能是 null(玩家還沒去 PartyEdit 按過「完成編輯」,沒有真正屬於他的
 ## 隊伍)——這種情況不生一支假的隨機小隊頂替,直接不給「闖進去」選項,只能「離開」,
-## 守衛台詞也換成請玩家先去整隊。
+## 守衛台詞也換成請玩家先去整隊。開口說話的一律是 LeaderStore.get_leader()(整團領導人,
+## 見該檔案開頭註解),不是 self_party.leader(戰場隊長)——這兩者是不同職責,即使玩家
+## 還沒編隊,整團領導人一樣存在(預設主角),不需要 has_party 分支。
 func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dialogue:
 	var has_party := self_party != null
-	var player := self_party.leader if has_party else CharacterController.get_random_character(GameEnums.RankType.F)
+	var player := LeaderStore.get_leader()
 
 	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
 	var guard_speaker := DialogueSpeaker.new(guard.id, guard.full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)

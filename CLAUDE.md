@@ -39,7 +39,7 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 |---|---|
 | `character/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600);`aging_rule.gd`/`character_death_controller.gd` 是老年/死亡規則,見下方「老年與死亡」 |
 | `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/DEXTERITY/INTELLIGENCE/MENTALITY) |
-| `skill/` | 技能池與效果,依主動/被動/LEADER 分類(`SkillLibrary` 的 `_active_skills()`/`_passive_skills()`/`_leader_skills()`,用 `SkillBuilder` 鏈式組裝);數值計算/戰鬥表現在 `SkillEffectLibrary`,一律呼叫 `System/battle/combat_resolver.gd` |
+| `skill/` | 技能池(120 條)與效果,見下方「技能系統」 |
 | `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
 | `party/` | 小隊,由多個 `Character` 組成(`Party.characteres`) |
 | `battle/` | 自動戰鬥流程與戰報,見下方拆解 |
@@ -52,8 +52,8 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 `battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleCharacter`:`Battle`(回合迴圈/
 佈陣/勝負判定)、`BattleCharacter`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
-薄封裝,實際算法轉發給下面幾個服務類別)、`BattleAi`(每回合的行動決策:骰行動類型/選
-技能/AOE 選目標)、`MovementPlanner`(移動/尋路計算)、`CombatResolver`(閃避/暴擊/守護
+薄封裝,實際算法轉發給下面幾個服務類別)、`BattleAi`(每回合的行動決策:普通攻擊/發呆/撤退/每個已學會的技能全部攤平在同一張情境
+權重表裡一次骰選、AOE 選目標,見下方「戰鬥 AI 決策」)、`MovementPlanner`(移動/尋路計算)、`CombatResolver`(閃避/暴擊/守護
 判定、傷害/治療施放——`BattleCharacter.attack()` 與 `SkillEffectLibrary` 的技能效果都呼叫
 這裡,不再互相呼叫對方)、`StatModifier`(單筆素質加成/減益資料)、`events/`(型別化戰報
 事件 `BattleEvent` 子類別,見 Spec.md 一)。
@@ -91,6 +91,77 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 角色頭像:`Images/Face/` 隨機取一張,`FaceController` 指派給 `Character.face_path`。
 
+## 技能系統(System/skill)
+
+120 條技能(武器主動 54、武器被動 6、通用被動 18、大將技 18、血統覺醒技 24)分五個檔案
+維護,`SkillLibrary.build()` 只是薄聚合層依序 `append_array()`:`SkillLibraryWeapon`
+(六武器各 9 階 F~SSS)、`SkillLibraryWeaponPassive`(六武器各一支反應式被動,不分階級)、
+`SkillLibraryPassive`(不綁定武器,9 階各 2 支)、`SkillLibraryLeader`(只有隊長能用,9 階
+全隊增益 + 9 階全體敵人減益)、`SkillLibraryBlood`(六大血統各 4 支,限定高血
+`Character.can_use_skill()` 的血統守門)。技能數值/效果一律寫在 `SkillEffectLibrary`,
+呼叫 `CombatResolver` 判定,不直接碰 `BattleCharacter`。
+
+技能之間的差異靠 `Skill` 資料欄位表達(`effect_stat`/`secondary_stat`+`secondary_ratio`
+雙屬性乘區、`mechanics: Array[GameEnums.SkillMechanic]`、`true_hit`/`multi_strike_count`/
+`duration_rounds`),不是各寫一個同名微調效果函式——`SkillEffectLibrary` 因此只有一組
+「效果配方」(`weapon_attack`/`generic_attack`/`heal`/`shield`/`stat_buff`/`stat_debuff`/
+`mechanic_debuff` 等,武器/血統版差異靠 `Callable.bind()` 綁參數),BattleAi 也只看這些
+欄位骰選,不看技能叫什麼名字。`SkillMechanic` 目前涵蓋:`ARMOR_PIERCE`/`GUARANTEED_CRIT`
+(破防/必定暴擊)、`COUNTER`/`PERFECT_DODGE`/`REACTIVE_HEAL`(武器被動的反應式判定,
+`CombatResolver.judge_reactive_trigger()` 共用同一套「固定機率骰一次」)、
+`TAUNT`/`SEAL`/`FEAR`/`HEAL_DOWN`/`CLEANSE`(施加前經 `judge_status_resist()` 抵抗判定,
+意志/精神越高越容易抵抗)、`EXTRA_HIT_ON_ATTACK`/`AREA_EXPAND_ON_ATTACK`(只影響普通攻擊,
+不會讓武器主動技一併觸發)、`DAMAGE_REDUCTION`/`CHANCE_ARMOR_PIERCE`/
+`CHANCE_GUARANTEED_CRIT`/`DODGE_COUNTER`/`KILL_MOMENTUM`/`LIMITED_EXECUTE_COUNTER`
+(通用被動專用,見 `SkillLibraryPassive` 檔頭註解)、`GRANT_ARMOR_PIERCE`/
+`GRANT_GUARANTEED_CRIT`(全隊限時破防/必定暴擊,見 `BattleCharacter.armor_pierce_rounds`/
+`guaranteed_crit_rounds`——`duration_rounds` 回合內一律生效,不是機率觸發;1 回合天然對應
+「每個角色一回合只行動一次」,取代「全隊下一擊無視防禦/必中」這種需要暫時覆寫判定的不可行
+設計,見破陣先鋒/常勝威名)。護盾(`SkillType.SHIELD`)是獨立於 HP 之外的緩衝值
+(`BattleCharacter.shield_points`,`CombatResolver.apply_damage()` 扣血前先扣這個)。
+
+以下設計已知是簡化/暫代,之後要改直接找對應位置:「攏絡」(魅惑倒戈)只做了抵抗判定,
+沒有實際的戰場陣營轉換,亂軍之聲/豹瞳魅惑暫時用恐懼代替(見 `SkillLibraryLeader`/
+`SkillLibraryBlood` 檔頭註解)。
+
+## 戰鬥 AI 決策(System/battle/battle_ai.gd)
+
+`BattleAi.take_turn()` 是單一層級的情境權重骰選,不是「先骰行動類型、骰到技能才在技能間
+再骰一次」的兩層架構:普通攻擊/發呆/撤退(HP 低於 `ESCAPE_HP_THRESHOLD` 才列入)這三個
+固定選項,加上角色已學會的每一個技能,全部攤平進同一張候選表(`_build_action_chance_map()`)
+依戰場需求即時算權重、一起比大小。普通攻擊、撤退都是「真正的戰術選項」,權重(各 25)
+跟技能公平比大小;發呆的權重刻意壓得很低(`DAZE_BASE_WEIGHT` = 5)——它不是戰術選項,
+是「找不到任何值得做的事」時才浮上來的 AI 最低行動意願保底值,不該常態性搶進候選。撤退
+沒有寫成「HP 低於門檻就強制撤退」,而是跟其他候選一起進池子公平競爭——HP 49% 代表「開始
+認真考慮撤退」,不是「馬上逃跑」,行為才不會太機械。技能各自的情境加權沿用同一套邏輯:HEAL 不吃自身
+`base_chance`,改依「治得到的隊友」受傷程度動態給權重(沒人受傷 0、有人受傷普通、有人
+半血以下優先);BUFF/DEBUFF 如果打得到的目標已經全數生效同一組修正,權重打折
+(`STAT_SKILL_ACTIVE_DISCOUNT`),避免對著已經生效的隊友/敵人重複施放;ATTACK 類技能
+依「以最划算的敵人為中心實際上打得到幾個人」(`_best_aoe_hit_count()`)加權,不是看存活
+敵人總數——敵人再多但分散在地圖各處,AOE 實際可能只打得到 1 個,不該白白加權;敵人不多
+但剛好擠在一起,一樣算得出真正的命中數。範圍技(RADIUS/LINE/SQUARE)命中數夠多時大幅
+加權、只打得到一人時打折,單體技不受影響。算完情境加權後,統一乘上角色目前持有的被動
+技能宣告的 AI 個性乘數
+(`BattleCharacter.ai_personality_multiplier()` 讀 `Skill.ai_weight_multipliers`,
+key 是 `GameEnums.SkillType`、value 是乘數,空字典就是不影響任何行為)——普通攻擊也比照
+`SkillType.ATTACK` 一起吃這個乘數,一個「好戰」被動同時影響普攻跟攻擊技能的偏好,不必
+分開處理。目前沒有任何實際被動技能會填這個欄位,之後設計「狂戰」「醫療」這類影響 AI
+傾向的被動時,在對應的 `SkillLibrary*` 子檔案用 `SkillBuilder.ai_weight_multiplier()`
+掛上去就會生效。
+
+骰選前用 `_shortlist_top_candidates()` 收斂候選:只留權重最高的前 `ACTION_SHORTLIST_SIZE`
+個選項(權重 <= 0 的直接排除,例如沒人受傷的治療技不占候選名額),再對縮小後的名單做
+加權隨機——數值最高的選項不會每次都被選中,但也不會被「明明用不上的技能」稀釋掉整體
+機率。行動順序(誰先思考)由 `Battle.action_order`(依 `BattleCharacter.action_speed`,
+目前暫以敏捷計算)在每回合開始時排一次,跟「這一刻該做什麼」是分開的兩層——順序排定後,
+每個角色真正輪到自己時才呼叫 `take_turn()`,讀的是「當下」戰場狀態(HP/敵我陣容/buff),
+不是回合開始時就預先決定好、寫死不能改的行動。
+
+`_build_action_chance_map()` 同時回傳 `weights`(給 `Util.get_random_chance_item_detailed()`
+抽選用)與 `notes`(每個候選這次權重怎麼算出來的一行說明),兩份資料同一個迴圈算出來,
+不會各自維護一份導致跟實際骰選邏輯兜不起來;`take_turn()` 把這份說明併進 `action_detail`,
+戰報 UI 滑鼠懸停就能看到「這一招為什麼被選中/為什麼權重特別高」,不需要另外重算一次。
+
 ## 共用 UI
 
 `CharacterPanel`(autoload,見 `project.godot` 與 `Scenes/CharacterPanel/`)是彈出式角色
@@ -104,15 +175,26 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 不是 autoload)是共用的「角色頭像網格 + 排序/篩選」元件,取代各畫面各自重複的選人清單
 寫法:`setup(characters, card_factory, initial_sort_key, show_weapon_filter)` 灌資料,
 `card_factory` 是 `func(character) -> Control`,回傳的卡片要有 `character`/`selected`
-屬性跟 `character_selected` 訊號(`CharacterAvatarCard` 頭像卡跟
-`CharacterStatCard`——同資料夾,含姓名/等級/年紀/素質的兩欄小表版——都符合這個形狀,
-可以互換塞入)。這個元件不含自己的 `ScrollContainer`,設計上就是配合
-`ActionPanel.open_custom(title, bar_or_wrapper, on_close)` 疊加彈出用(`ActionPanel`
-本身的捲動已經包住內容),不切場景就能讓玩家選一位角色、選完套用到接續流程——見
-`Scenes/Marriage/marriage_proposal_panel.gd`(告白選人選)跟
-`Scenes/Base/base_action_panel.gd` 的 `_build_character_picker()`(根據地資源生產派遣選
-工作角色)兩個實例。之後任何「彈出角色清單挑一位」的新情境,比照這兩處直接重用,不要
-再各自兜一份 grid + 排序邏輯。
+屬性跟 `character_selected` 訊號(`CharacterAvatarCard` 頭像卡就符合這個形狀)。這個元件
+不含自己的 `ScrollContainer`,設計上配合下方兩種「近全螢幕彈出面板殼」之一使用,一律不
+切場景、不借用 `ActionPanel`:
+
+- `Scenes/CharacterSelect/character_select_overlay.gd` 的 `CharacterSelectOverlay`——選人
+  情境專用外殼,內建 `CharacterSelectPanel`(左側 `CharacterDetailView` + 右側
+  `CharacterSelectBar`,見 `Scenes/CharacterSelect/character_select_panel.gd`),呼叫端只要
+  `CharacterSelectOverlay.new()` 塞進場景樹、呼叫 `open(title, characters, card_factory,
+  initial_sort_key, on_confirmed, ...)` 即可——見 `Scenes/Base/base_action_panel.gd` 的
+  `_open_dispatch_picker()`/`_open_trainee_picker()`/`_open_leader_picker()` 三個實例。
+- `Scripts/UI/fullscreen_overlay.gd` 的 `FullscreenOverlay`——更泛用的殼,內容自己組
+  (不限定 `CharacterSelectPanel` 版面),`open(title, content, on_close_button)` 疊加顯示,
+  用在告白/聯姻這類版面結構跟純選人不同、但一樣要蓋滿畫面的情境——見
+  `Scenes/Marriage/marriage_proposal_panel.gd`(告白)跟
+  `Scenes/Marriage/stronghold_marriage_panel.gd`(聯姻選人選國家)兩個實例。
+
+兩者都是「每次呼叫端要用就 `.new()` 一份塞進場景樹、`close()` 時自己 `queue_free()`」,
+不是 autoload 單例,疊上來的當下底下的畫面(Dialogue 或另一層 `ActionPanel`)完全不受
+影響、不會被取代/釋放。之後任何「彈出角色清單挑一位」或「近全螢幕彈出面板」的新情境,
+比照這兩顆元件直接重用,不要再各自兜一份 grid + 排序邏輯或另開一份面板殼。
 
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
@@ -288,8 +370,8 @@ class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好�
 分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `LocationEvent.goto_dialogue()`
 queue `DIALOGUE_MAILBOX_KEY` 給下一個場景播 `Dialogue`,跟同時待處理的其他 key 不會
 互相覆蓋)。這一套只在**真的要切場景**時才需要——不切場景、只是疊加彈出面板的情境
-(見下方「共用 UI」的 `CharacterSelectBar` + `ActionPanel.open_custom()` 模式)直接用
-closure 傳資料/callback 即可,不要為了套用這套 mailbox 模式硬切一次場景。
+(見下方「共用 UI」的 `CharacterSelectOverlay`/`FullscreenOverlay` 模式)直接用 closure
+傳資料/callback 即可,不要為了套用這套 mailbox 模式硬切一次場景。
 
 - `queue(key, payload, next_scene_path, result_callback)` 存資料,再自己切場景。
 - `take(key)` 讀取後立刻清空——一次性用途(例如 `FamilyTree.FOCUS_MAILBOX_KEY`)。

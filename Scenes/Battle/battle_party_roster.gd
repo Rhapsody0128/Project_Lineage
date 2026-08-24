@@ -69,12 +69,29 @@ const STATUS_ARROW_OUTLINE_COLOR := Color(0.0, 0.0, 0.0, 0.9)
 const STATUS_ARROW_OUTLINE_SIZE := 3
 const STATUS_ARROW_CYCLE_INTERVAL := 1.0
 
+## 護盾條:疊在 HP 血條上的白色色塊,從目前 HP 比例的位置開始往右延伸,長度依
+## 「護盾值 / 最大 HP」的比例決定(見 _reposition_shield_overlay())——視覺上讀作
+## 「血條後面再多墊一截可以扛傷害的份量」,超出血條右緣的部分直接截斷顯示,不會另外
+## 撐開血條寬度。
+const SHIELD_BAR_COLOR := Color(0.95, 0.95, 1.0, 0.95)
+
+## 特殊狀態文字(恐懼/封印/嘲諷/降治療/全隊限時破防&必定暴擊):疊在頭像左上角、
+## 素質增益/減益箭頭下方那一排,同時中好幾種狀態就用「/」接起來,不另外做顏色輪流
+## (機制狀態通常只有 1~2 種同時生效,文字本身已經夠清楚,不像素質箭頭要區分六種顏色)。
+const MECHANIC_LABEL_HEIGHT := 14.0
+const MECHANIC_LABEL_FONT_SIZE := 10
+const MECHANIC_LABEL_COLOR := Color(1.0, 0.75, 0.25, 1.0)
+const MECHANIC_LABEL_OUTLINE_COLOR := Color(0.0, 0.0, 0.0, 0.9)
+const MECHANIC_LABEL_OUTLINE_SIZE := 3
+
 class RosterSlot:
 	var slot: VBoxContainer
 	var portrait_frame: PanelContainer
 	var frame_style: StyleBoxFlat
 	var base_border_color: Color
 	var bar: ProgressBar
+	var shield_overlay: Panel
+	var current_shield: float = 0.0
 	var max_count: int
 	var active_tween: Tween
 	var skill_tween: Tween
@@ -83,6 +100,8 @@ class RosterSlot:
 	var debuff_arrow_label: Label
 	var buff_types: Array[int] = []
 	var debuff_types: Array[int] = []
+	var mechanic_label: Label
+	var mechanic_types: Array[int] = []
 
 var _is_enemy := false
 var _slots: Dictionary = {} # BattleCharacter -> RosterSlot
@@ -202,6 +221,20 @@ func _spawn_slot(battle_character: BattleCharacter, is_enemy: bool, fallback_por
 	portrait_row.add_child(buff_arrow_label)
 	portrait_row.add_child(debuff_arrow_label)
 
+	# 特殊狀態文字:疊在箭頭角標正下方,同樣是頭像左上角這塊區域,見上面
+	# MECHANIC_LABEL_* 常數說明。
+	var mechanic_label := Label.new()
+	mechanic_label.position = Vector2(0, STATUS_ARROW_HEIGHT)
+	mechanic_label.size = Vector2(PORTRAIT_SIZE.x, MECHANIC_LABEL_HEIGHT)
+	mechanic_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	mechanic_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mechanic_label.add_theme_font_size_override("font_size", MECHANIC_LABEL_FONT_SIZE)
+	mechanic_label.add_theme_color_override("font_color", MECHANIC_LABEL_COLOR)
+	mechanic_label.add_theme_color_override("font_outline_color", MECHANIC_LABEL_OUTLINE_COLOR)
+	mechanic_label.add_theme_constant_override("outline_size", MECHANIC_LABEL_OUTLINE_SIZE)
+	mechanic_label.visible = false
+	portrait_row.add_child(mechanic_label)
+
 	var name_label := Label.new()
 	name_label.text = battle_character.name
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -228,15 +261,30 @@ func _spawn_slot(battle_character: BattleCharacter, is_enemy: bool, fallback_por
 	bar.add_theme_stylebox_override("background", bar_bg)
 	slot.add_child(bar)
 
+	# 護盾條:疊在 HP 血條上面的白色色塊(bar 的子節點,用 anchor 對齊 bar 目前的寬度,
+	# 見 _reposition_shield_overlay()),預設不可見,有護盾時才顯示。
+	var shield_overlay := Panel.new()
+	shield_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	shield_overlay.anchor_top = 0.0
+	shield_overlay.anchor_bottom = 1.0
+	var shield_style := StyleBoxFlat.new()
+	shield_style.bg_color = SHIELD_BAR_COLOR
+	shield_style.set_corner_radius_all(HP_BAR_CORNER_RADIUS)
+	shield_overlay.add_theme_stylebox_override("panel", shield_style)
+	shield_overlay.visible = false
+	bar.add_child(shield_overlay)
+
 	var s := RosterSlot.new()
 	s.slot = slot
 	s.portrait_frame = portrait_frame
 	s.frame_style = frame_style
 	s.base_border_color = border_color
 	s.bar = bar
+	s.shield_overlay = shield_overlay
 	s.max_count = max_count
 	s.buff_arrow_label = buff_arrow_label
 	s.debuff_arrow_label = debuff_arrow_label
+	s.mechanic_label = mechanic_label
 	_slots[battle_character] = s
 
 
@@ -259,25 +307,97 @@ func _build_status_arrow_label(arrow_text: String, arrow_pos: Vector2) -> Label:
 	return label
 
 
-## 更新某隊伍的血條(remaining 為目前 HP)
+## 更新某隊伍的血條(remaining 為目前 HP)。HP 變動會連帶影響護盾條的起始位置
+## (見 _reposition_shield_overlay()),不管這次變動是不是因為護盾被消耗,都要重新
+## 對齊一次,避免治療/扣血後護盾條的位置跟血條脫節。
 func update_hp(battle_character: BattleCharacter, remaining: int) -> void:
 	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
 		return
 
 	s.bar.value = remaining
+	_reposition_shield_overlay(s)
 
 
-## 戰敗時血條歸零,順便把還沒到期的增益/減益箭頭一起清掉(人都倒了,不用再顯示)
-func mark_defeated(battle_character: BattleCharacter) -> void:
-	update_hp(battle_character, 0)
+## 更新護盾條:shield_points 是目前剩餘護盾值,疊在血條上、從目前 HP 比例的位置開始
+## 往右延伸(見 _reposition_shield_overlay()),護盾歸零就隱藏。
+func update_shield(battle_character: BattleCharacter, shield_points: float) -> void:
 	var s: RosterSlot = _slots.get(battle_character)
+	if s == null:
+		return
+
+	s.current_shield = shield_points
+	_reposition_shield_overlay(s)
+
+
+## 護盾條的起訖位置都用 anchor(0~1 的比例)表示,自動跟著血條寬度縮放,不需要監聽
+## resize 事件手動重算像素——起點是目前 HP 佔最大 HP 的比例,終點再往右延伸「護盾值
+## 佔最大 HP」的比例,超過血條右緣(>1.0)直接截斷,不會撐開血條本身的寬度。
+func _reposition_shield_overlay(s: RosterSlot) -> void:
+	if s.current_shield <= 0.0 or s.max_count <= 0:
+		s.shield_overlay.visible = false
+		return
+
+	var hp_fraction := clampf(s.bar.value / s.max_count, 0.0, 1.0)
+	var shield_fraction := s.current_shield / s.max_count
+	var end_fraction := clampf(hp_fraction + shield_fraction, 0.0, 1.0)
+
+	s.shield_overlay.anchor_left = hp_fraction
+	s.shield_overlay.anchor_right = maxf(end_fraction, hp_fraction)
+	s.shield_overlay.offset_left = 0.0
+	s.shield_overlay.offset_right = 0.0
+	s.shield_overlay.visible = end_fraction > hp_fraction
+
+
+## 戰敗時血條歸零,順便把還沒到期的增益/減益箭頭、護盾條、特殊狀態文字一起清掉
+## (人都倒了,不用再顯示)
+func mark_defeated(battle_character: BattleCharacter) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
+	if s != null:
+		s.current_shield = 0.0
+		s.mechanic_types.clear()
+		s.mechanic_label.visible = false
+	update_hp(battle_character, 0)
 	if s == null:
 		return
 	s.buff_types.clear()
 	s.debuff_types.clear()
 	s.buff_arrow_label.visible = false
 	s.debuff_arrow_label.visible = false
+
+
+## 特殊狀態機制生效(恐懼/封印/嘲諷/降治療/全隊限時破防&必定暴擊):記錄目前生效中的
+## 機制清單,同時中好幾種就用「/」接起來顯示在同一個 Label(見 _refresh_mechanic_label())。
+func add_status_mechanic(battle_character: BattleCharacter, mechanic: int) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
+	if s == null:
+		return
+
+	if not s.mechanic_types.has(mechanic):
+		s.mechanic_types.append(mechanic)
+	_refresh_mechanic_label(s)
+
+
+## 特殊狀態機制到期/被淨化解除:從清單移除,清單清空時文字跟著藏起來。
+func remove_status_mechanic(battle_character: BattleCharacter, mechanic: int) -> void:
+	var s: RosterSlot = _slots.get(battle_character)
+	if s == null:
+		return
+
+	s.mechanic_types.erase(mechanic)
+	_refresh_mechanic_label(s)
+
+
+func _refresh_mechanic_label(s: RosterSlot) -> void:
+	if s.mechanic_types.is_empty():
+		s.mechanic_label.visible = false
+		return
+
+	var labels: Array[String] = []
+	for mechanic in s.mechanic_types:
+		labels.append(GameEnums.mechanic_status_label(mechanic))
+	s.mechanic_label.text = "/".join(labels)
+	s.mechanic_label.visible = true
 
 
 ## 增益/減益生效:記錄這個方向(增益/減益)目前生效中的素質清單,箭頭本身固定佔用

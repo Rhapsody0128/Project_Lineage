@@ -1,0 +1,90 @@
+class_name SkillLibraryWeaponPassive
+extends RefCounted
+
+## 六武器被動技,每武器一支,不分階級(對應網站「武器被動技:你的戰鬥人格」——
+## 描述「持有這把武器的人,戰鬥中會有什麼本能反應」,不吃行動骰選,效果全部是反應式,
+## 見 GameEnums.SkillMechanic 對應的機制旗標與 SkillEffectLibrary 的 maybe_*()/check_*()
+## 系列函式。rank 統一填 F(不影響任何數值,只是 Skill.rank 欄位需要一個值)。
+
+static func build() -> Array[Skill]:
+	var skills: Array[Skill] = []
+
+	skills.append(SkillBuilder.new()
+		.name("捨身掩護") # 既有(原「守護」),沿用 guard_skill(),效果在 CombatResolver.resolve_guard()
+		.description("盾系角色的本能反應:友軍受到單體物理攻擊時,自己可能飛身頂替承受,傷害再減 30%")
+		.rank(GameEnums.RankType.F)
+		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
+		.effect_stat(GameEnums.PotentialType.VITALITY)
+		.skill_type(GameEnums.SkillType.DEFEND)
+		.bind_weapon(GameEnums.WeaponType.SHIELD)
+		.guard_skill()
+		.base_chance(0.0).skill_ratio(0.0)
+		.action(Callable(SkillEffectLibrary, "reactive_passive_noop"))
+		.build())
+
+	skills.append(SkillBuilder.new()
+		.name("剛烈反擊")
+		.description("受到攻擊後,一定機率立即對攻擊者發動一次反擊")
+		.rank(GameEnums.RankType.F)
+		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
+		.effect_stat(GameEnums.PotentialType.STRENGTH)
+		.skill_type(GameEnums.SkillType.ATTACK)
+		.bind_weapon(GameEnums.WeaponType.SWORD)
+		.passive().base_chance(25.0).skill_ratio(0.0)
+		.mechanics([GameEnums.SkillMechanic.COUNTER])
+		.action(Callable(SkillEffectLibrary, "reactive_passive_noop"))
+		.build())
+
+	skills.append(SkillBuilder.new()
+		.name("連珠射術")
+		.description("普通攻擊命中後,一定機率立即對同一目標追加一次普通攻擊(只作用於普通攻擊,不會讓武器主動技一併二連擊)")
+		.rank(GameEnums.RankType.F)
+		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
+		.effect_stat(GameEnums.PotentialType.DEXTERITY)
+		.skill_type(GameEnums.SkillType.ATTACK)
+		.bind_weapon(GameEnums.WeaponType.BOW)
+		.passive().base_chance(25.0).skill_ratio(0.0)
+		.mechanics([GameEnums.SkillMechanic.EXTRA_HIT_ON_ATTACK])
+		.action(Callable(SkillEffectLibrary, "reactive_passive_noop"))
+		.build())
+
+	skills.append(SkillBuilder.new()
+		.name("絕影迴避")
+		.description("獨立於一般迴避判定之外,額外有一定機率完全免疫本次攻擊")
+		.rank(GameEnums.RankType.F)
+		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
+		.effect_stat(GameEnums.PotentialType.AGILITY)
+		.skill_type(GameEnums.SkillType.DEFEND)
+		.bind_weapon(GameEnums.WeaponType.DAGGER)
+		.passive().base_chance(20.0).skill_ratio(0.0)
+		.mechanics([GameEnums.SkillMechanic.PERFECT_DODGE])
+		.action(Callable(SkillEffectLibrary, "reactive_passive_noop"))
+		.build())
+
+	skills.append(SkillBuilder.new()
+		.name("共鳴擴散")
+		.description("使用普通攻擊時,一定機率讓本次普通攻擊自動擴大為範圍 1 格(只作用於普通攻擊,不會讓武器主動技一併擴大範圍)")
+		.rank(GameEnums.RankType.F)
+		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
+		.effect_stat(GameEnums.PotentialType.INTELLIGENCE)
+		.skill_type(GameEnums.SkillType.ATTACK)
+		.bind_weapon(GameEnums.WeaponType.STAFF)
+		.passive().base_chance(20.0).skill_ratio(0.0)
+		.mechanics([GameEnums.SkillMechanic.AREA_EXPAND_ON_ATTACK])
+		.action(Callable(SkillEffectLibrary, "reactive_passive_noop"))
+		.build())
+
+	skills.append(SkillBuilder.new()
+		.name("守夢低語")
+		.description("以自身為中心一定範圍內,友軍受到攻擊時一定機率使其獲得少量治療")
+		.rank(GameEnums.RankType.F)
+		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
+		.effect_stat(GameEnums.PotentialType.MENTALITY)
+		.skill_type(GameEnums.SkillType.HEAL)
+		.bind_weapon(GameEnums.WeaponType.DREAMCATCHER)
+		.passive().base_chance(25.0).skill_ratio(0.8)
+		.mechanics([GameEnums.SkillMechanic.REACTIVE_HEAL])
+		.action(Callable(SkillEffectLibrary, "reactive_passive_noop"))
+		.build())
+
+	return skills

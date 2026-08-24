@@ -34,6 +34,41 @@ var action: Callable
 ## 打得到的人是不是已經生效同一組修正了」,兩邊共用同一份資料,不會各自維護一份清單
 ## 兜到不一致。非 BUFF/DEBUFF 技能留空即可。
 var buffed_potential_types: Array[int] = []
+## 技能造成的特殊效果標記(GameEnums.SkillMechanic),一個技能可以掛多個——BattleAi/
+## SkillEffectLibrary/CombatResolver 一律只看這些旗標,不看技能叫什麼名字,見
+## GameEnums.SkillMechanic 各項註解。
+var mechanics: Array[int] = []
+## 必中:無視迴避判定,直接視為命中,見 CombatResolver.judge_dodge() 的呼叫端。
+var true_hit: bool = false
+## 二/三連擊:>1 時這個技能會連續判定這麼多次獨立的閃避/暴擊/傷害,不是傷害直接乘上
+## 這個倍數,見 SkillEffectLibrary._cast_attack_skill()。
+var multi_strike_count: int = 1
+## 這個技能造成的增益/減益/異常狀態要持續幾回合:0 代表瞬間生效無殘留(單純攻擊/治療/
+## 護盾/清除類);>0 代表套用時要連同這個回合數一起交給 BattleCharacter.add_stat_modifier()
+## 或 apply_fear()/apply_taunt()/apply_seal() 等對應方法。被動技能的「整場戰鬥」效果不
+## 使用這個欄位,持續走既有的永久修正(rounds=-1)慣例。
+var duration_rounds: int = 0
+## 雙屬性乘區:secondary_stat(GameEnums.PotentialType,-1 代表沒有第二屬性)+
+## secondary_ratio 是疊加在 effect_stat/skill_ratio(主屬性)之外的第二項係數,給血統
+## 覺醒技這類「刻意換一個素質展現血統另一種可能性」的技能用,見
+## SkillEffectLibrary._generic_attack_value()。
+var secondary_stat: int = -1
+var secondary_ratio: float = 0.0
+## 血統限定:required_bloodline_nation(GameEnums.BloodlineNation,-1 代表不限血統)+
+## required_bloodline_rank(GameEnums.BloodlineRank,只在有指定血統時才有意義)——
+## Character.can_use_skill() 會額外檢查角色是否持有這個血統,避免血統覺醒技被派給
+## 沒有對應血統的角色。
+var required_bloodline_nation: int = -1
+var required_bloodline_rank: int = -1
+## AI 個性掛勾:被動技能可以宣告「持有我的人,打起仗來對某個技能類型(GameEnums.SkillType,
+## 用 int 存)特別偏好/排斥」,key 是 SkillType,value 是權重乘數——BattleAi 骰選技能時,
+## 在情境加權(見 _heal_skill_weight()/_stat_skill_weight()/_attack_skill_weight())之後
+## 再乘上這個。空字典代表這個被動不影響 AI 行為(目前大多數被動都是如此)。這個欄位刻意
+## 獨立於 skill_type 之外——「這支被動本身是什麼類型」跟「它想讓角色對什麼類型的技能有
+## 偏好」是兩件事(例如一個 BUFF 類的狂戰被動,可以讓角色更愛用 ATTACK),呼應「技能決定
+## 角色是誰」的設計核心:不是另外做一張 AI 性格數值表,而是讓角色裝備的被動技能反過來
+## 定義他打起仗來的風格。
+var ai_weight_multipliers: Dictionary = {}
 
 func _init() -> void:
 	id = Util.generate_uuid()
@@ -51,13 +86,15 @@ func apply_passive(self_character: BattleCharacter) -> void:
 		action.call(self_character, self)
 
 ## 依 area_shape/area_size 算出這次技能實際命中的目標(至少包含 primary_target 本身,
-## ALL_ALLIES 除外)。候選名單依 skill_type 決定打誰(見 _candidate_pool()):
-## ATTACK/DEBUFF 從敵方挑,BUFF/HEAL/DEFEND 從我方挑。
+## ALL_ALLIES/ALL_ENEMIES 除外)。候選名單依 skill_type 決定打誰(見 _candidate_pool()):
+## ATTACK/DEBUFF 從敵方挑,BUFF/HEAL/DEFEND/SHIELD 從我方挑。
 func resolve_targets(caster: BattleCharacter, primary_target: BattleCharacter) -> Array[BattleCharacter]:
 	if area_shape == GameEnums.AreaShape.ALL_ALLIES:
 		var result: Array[BattleCharacter] = caster.allies.duplicate()
 		result.append(caster)
 		return result
+	if area_shape == GameEnums.AreaShape.ALL_ENEMIES:
+		return caster.enemies.duplicate()
 
 	var candidates: Array[BattleCharacter] = _candidate_pool(caster)
 	match area_shape:
@@ -70,12 +107,12 @@ func resolve_targets(caster: BattleCharacter, primary_target: BattleCharacter) -
 		_: # SINGLE
 			return [primary_target]
 
-## ATTACK/DEBUFF 打敵方(caster.enemies);BUFF/HEAL/DEFEND 打我方(caster.allies,
-## 不含施法者自己——ALL_ALLIES 那種「連自己也算」的全隊技能不會走到這裡,
-## 上面 resolve_targets() 已經另外處理)。
+## ATTACK/DEBUFF 打敵方(caster.enemies);BUFF/HEAL/DEFEND/SHIELD 打我方(caster.allies,
+## 不含施法者自己——ALL_ALLIES/ALL_ENEMIES 那種「連自己也算/無視距離」的全體技能不會
+## 走到這裡,上面 resolve_targets() 已經另外處理)。
 func _candidate_pool(caster: BattleCharacter) -> Array[BattleCharacter]:
 	match skill_type:
-		GameEnums.SkillType.BUFF, GameEnums.SkillType.HEAL, GameEnums.SkillType.DEFEND:
+		GameEnums.SkillType.BUFF, GameEnums.SkillType.HEAL, GameEnums.SkillType.DEFEND, GameEnums.SkillType.SHIELD:
 			return caster.allies
 		_: # ATTACK, DEBUFF
 			return caster.enemies

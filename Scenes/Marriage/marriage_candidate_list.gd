@@ -8,14 +8,12 @@ extends VBoxContainer
 # 情境刻意不同。塞進共用的 Scenes/ActionPanel/action_panel.gd(autoload)顯示(見
 # System/event/base/base_marriage_event.gd 的 _open_candidate_picker()),不是獨立場景。
 #
-# 只有兩個結果:candidate_picked(candidate) 選了某位候選人;declined() 都不合適(呼叫端的
-# ActionPanel × 鈕也接到同一個 declined 處理,見呼叫端寫法)——兩者是完全不同的收尾
-# 分支(前者接候選人反應 Dialogue,後者直接播聯姻角色婉拒獨白),呼叫端不要合併成同一個
-# callback 用 null 判斷。
+# 只有 candidate_picked(candidate) 一個訊號:選了某位候選人。沒有另外的「都沒有中意的
+# 人選」按鈕——ActionPanel 標題列的 × 本來就等同婉拒(見呼叫端 base_marriage_event.gd 的
+# _open_candidate_picker()/_on_candidate_declined()),重複放一顆按鈕沒有意義。
 # =========================================================
 
 signal candidate_picked(candidate: Character)
-signal declined()
 
 const AVATAR_SIZE := Vector2(64, 64)
 
@@ -36,14 +34,6 @@ func _ready() -> void:
 	_list = VBoxContainer.new()
 	_list.add_theme_constant_override("separation", 10)
 	add_child(_list)
-
-	var decline_button := Button.new()
-	decline_button.text = "都沒有中意的人選"
-	UiStyle.apply_wood_plaque_button(decline_button, 16.0, 8.0)
-	decline_button.add_theme_font_size_override("font_size", 16)
-	decline_button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	decline_button.pressed.connect(func() -> void: declined.emit())
-	add_child(decline_button)
 
 
 func setup(candidates: Array[Character]) -> void:

@@ -15,9 +15,9 @@ extends CanvasLayer
 
 @onready var root: Control = $Root
 @onready var panel_box: PanelContainer = $Root/CenterContainer/PanelBox
-@onready var question_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/QuestionLabel
-@onready var yes_button: Button = $Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/YesButton
-@onready var no_button: Button = $Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/NoButton
+@onready var question_label: Label = $Root/CenterContainer/PanelBox/Content/QuestionLabel
+@onready var yes_button: Button = $Root/CenterContainer/PanelBox/Content/ButtonRow/YesButton
+@onready var no_button: Button = $Root/CenterContainer/PanelBox/Content/ButtonRow/NoButton
 
 var _on_yes: Callable
 var _on_no: Callable

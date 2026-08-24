@@ -27,6 +27,14 @@ extends Control
 @onready var choices_container: VBoxContainer = $TextBox/Margin/Content/ChoicesContainer
 @onready var click_catcher: Control = $ClickCatcher
 
+## 對話框預設高度(對應 dialogue_box.tscn 原本的 TextBox 高度,180 = -20 -
+## (-200))。一般台詞維持這個高度不動;文案太長塞不下時 _resize_text_box_for_content()
+## 才會動態往上撐高——所以這裡不是寫死的最終高度,是「最矮」下限,兩側頭像框的底邊
+## 每次都跟著算出來的 TextBox 頂邊即時對齊,不再各自寫死位置。
+const DEFAULT_TEXT_BOX_HEIGHT := 180.0
+const TEXT_BOX_BOTTOM_OFFSET := -20.0
+const PORTRAIT_HEIGHT := 220.0
+
 var dialogue: Dialogue = null
 var _next_scene_path: String = ""
 ## 對話播完時執行一次的選填 callback,見 LocationEvent.goto_dialogue() 的 on_finished
@@ -35,7 +43,7 @@ var _on_finished: Callable = Callable()
 
 
 func _ready() -> void:
-	UiStyle.apply_parchment_panel(text_box, 1520.0, 180.0)
+	UiStyle.apply_parchment_panel(text_box, 1520.0, DEFAULT_TEXT_BOX_HEIGHT)
 	click_catcher.gui_input.connect(_on_click_catcher_gui_input)
 
 	# peek() 不清空——DialogueLine.choices 裡可能嵌著捕捉呼叫端 self 的 lambda,提早
@@ -109,6 +117,25 @@ func _refresh() -> void:
 	right_mask.visible = right_portrait.visible and not dialogue.is_speaking(GameEnums.DialogueSide.RIGHT)
 
 	_refresh_choices(line)
+	_resize_text_box_for_content()
+
+
+## 文案（含選項按鈕撐開的高度)超過預設高度時才會撐高 TextBox,不需要就維持原本高度,
+## 不是每句都寫死同一個尺寸。等一幀讓 DialogueLabel 依目前寬度重新算好自動換行後的
+## 高度,再用 PanelContainer.get_combined_minimum_size() 量出這句話實際需要多高
+## (含羊皮紙面板留白與選項按鈕),取跟預設高度的較大值。兩側頭像框底邊每次都直接對齊
+## 算出來的 TextBox 頂邊、維持原本 220 高度往上長,而不是各自存一份寫死的位置。
+func _resize_text_box_for_content() -> void:
+	await get_tree().process_frame
+
+	var required_height := maxf(DEFAULT_TEXT_BOX_HEIGHT, text_box.get_combined_minimum_size().y)
+	var top_offset := TEXT_BOX_BOTTOM_OFFSET - required_height
+
+	text_box.offset_top = top_offset
+	left_portrait.offset_bottom = top_offset
+	left_portrait.offset_top = top_offset - PORTRAIT_HEIGHT
+	right_portrait.offset_bottom = top_offset
+	right_portrait.offset_top = top_offset - PORTRAIT_HEIGHT
 
 
 ## 選擇題:清掉上一次的選項按鈕、依 line.choices 重新生成。ClickCatcher 蓋滿全螢幕,

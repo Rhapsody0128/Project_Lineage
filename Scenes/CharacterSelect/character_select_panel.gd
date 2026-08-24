@@ -8,8 +8,9 @@ extends HBoxContainer
 # 疊加在目前畫面最上層,不是取代/關閉底下的面板。
 #
 # 版面三塊:左側 CharacterDetailView 顯示目前聚焦角色的完整情報(素質/血統/家族全分頁,
-# 跟 CharacterPanel/CharacterRoster 共用同一顆元件)——只鎖寬度(DETAIL_PANEL_WIDTH),
-# 高度用 SIZE_EXPAND_FILL 撐滿 CharacterSelectOverlay 給的整個面板高度,不留空白;右上
+# 跟 CharacterPanel/CharacterRoster 共用同一顆元件)——寬度是這顆元件自己攜帶的
+# PANEL_WIDTH,這裡不用也不該再設一次,高度用 SIZE_EXPAND_FILL 撐滿
+# CharacterSelectOverlay 給的整個面板高度,不留空白;右上
 # context_box 是彈性空間,呼叫端依情境自行塞說明文字/額外資訊,不需要就留空;右下
 # CharacterSelectBar 是排序/篩選 + 卡片網格(card_factory 一律回傳
 # CharacterAvatarCard,完整素質已經在左側,卡片只需要負責「選中/不可選」,見該檔案的
@@ -26,7 +27,6 @@ extends HBoxContainer
 signal character_confirmed(character: Character)
 signal cancelled()
 
-const DETAIL_PANEL_WIDTH := 180.0
 const DEFAULT_CONFIRM_LABEL := "確認選擇"
 
 var context_box: VBoxContainer
@@ -42,15 +42,20 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 
 	var detail_panel := PanelContainer.new()
-	detail_panel.custom_minimum_size = Vector2(DETAIL_PANEL_WIDTH, 0)
-	detail_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	UiStyle.apply_parchment_panel(detail_panel, DETAIL_PANEL_WIDTH, 600.0)
 	add_child(detail_panel)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail_panel.add_child(_detail_view)
+
+	# detail_panel 的寬度來自剛掛進去的 _detail_view 自己宣告的 custom_minimum_size.x
+	# (CharacterDetailView.PANEL_WIDTH)——用 get_combined_minimum_size() 現場問出來當
+	# 第一次套用的猜測值,一定要等 _detail_view 已經掛進樹裡再呼叫,不然問到的還是 0。
+	# 高度撐滿 CharacterSelectOverlay 給的高度,先用目前的自然內容高度墊著,交給
+	# apply_parchment_panel() 內建的 resized 訊號自動補正。
+	var panel_size := detail_panel.get_combined_minimum_size()
+	UiStyle.apply_parchment_panel(detail_panel, panel_size.x, panel_size.y)
 
 	_right_column = VBoxContainer.new()
 	_right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL

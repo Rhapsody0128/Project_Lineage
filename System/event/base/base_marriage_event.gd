@@ -82,16 +82,14 @@ func _build_self_request_dialogue(leader: Character) -> Dialogue:
 ## 情報選人畫面——MarriageCandidateList(Scenes/Marriage/marriage_candidate_list.gd)塞進
 ## 共用的 ActionPanel(autoload),疊在目前 Dialogue 畫面背景上,不切場景。此時 ActionPanel
 ## 已經在 _open_stronghold_marriage_panel() 那步被 close(false) 空出來,可以直接沿用。
-## candidate_picked/declined 兩個訊號接到不同分支(見 _on_candidate_picked()/
-## _on_candidate_declined()),ActionPanel 的 × 鈕(on_close)也接到 declined 分支——都不選
-## 一律視同婉拒。
+## 沒有另外的「都沒有中意的人選」按鈕——ActionPanel 的 × 鈕(on_close)就是唯一的婉拒
+## 入口,選了候選人走 candidate_picked,不選就是婉拒,兩條分支不會搶著跑。
 func _open_candidate_picker() -> void:
 	var candidates := MarriageCandidateGenerator.generate_candidates(_proposer, _nation)
 	var list := MarriageCandidateList.new()
 	ActionPanel.open_custom(CANDIDATE_PANEL_TITLE, list, func(): _on_candidate_declined())
 	list.setup(candidates)
 	list.candidate_picked.connect(_on_candidate_picked)
-	list.declined.connect(_on_candidate_declined)
 
 
 ## 選了候選人:是否接受在這裡就骰定(_accepted),不是播到那句才骰——這樣接下來的 Dialogue
@@ -122,9 +120,9 @@ func _candidate_background_path() -> String:
 	return GameEnums.TOWN_RESIDENTIAL_BACKGROUND_PATH
 
 
-## 沒選任何候選人:聯姻角色自己回絕領導人的好意,不進候選人反應那段對話,直接收尾。這裡
-## 同時是 ActionPanel 的 on_close(× 鈕)跟 list.declined 訊號(清單按鈕)兩條路徑共用的
-## handler——close(false) 避免 × 觸發時 on_close 再呼叫一次自己形成無謂的重入。
+## 沒選任何候選人:聯姻角色自己回絕領導人的好意,不進候選人反應那段對話,直接收尾。這裡是
+## ActionPanel 的 on_close(× 鈕)handler——close(false) 避免 on_close 被觸發時自己又呼叫一次
+## 形成無謂的重入。
 func _on_candidate_declined() -> void:
 	ActionPanel.close(false)
 	goto_dialogue(_build_decline_dialogue(), "", func(): _finish())

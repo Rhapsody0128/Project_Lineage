@@ -1,10 +1,10 @@
 extends Control
 
 # =========================================================
-# 角色列表畫面:左側固定寬度(DetailPanel custom_minimum_size,跟
-# character_panel.tscn 的 PanelBox 同寬,兩處視覺尺寸一致)顯示目前選取
-# 角色的詳細資訊(CharacterDetailView,直式排版,跟彈出式 CharacterPanel
-# 共用同一顆元件),右側 RosterPanel 自動撐滿剩餘寬度,是
+# 角色列表畫面:左側欄(DetailColumn)顯示目前選取角色的詳細資訊
+# (CharacterDetailView,直式排版,跟彈出式 CharacterPanel 共用同一顆元件)——欄寬固定
+# 是 CharacterDetailView 自己攜帶的 PANEL_WIDTH,不是這個場景設的,右側 RosterPanel
+# (size_flags_horizontal=EXPAND_FILL)自動撐滿剩餘寬度,是
 # CharacterRosterStore.all_characteres(玩家擁有的全部角色,不是 PartyStore 的
 # 隊伍編成)的頭像卡片網格,排序/篩選比照 PartyEdit 候補清單共用
 # CharacterSortFilterBar + System 層的 CharacterSortFilter。點卡片切換左側顯示。
@@ -16,13 +16,13 @@ extends Control
 # =========================================================
 
 @onready var detail_panel: PanelContainer = $MainRow/DetailColumn/DetailPanel
-@onready var detail_vbox: VBoxContainer = $MainRow/DetailColumn/DetailPanel/DetailMargin/DetailVBox
+@onready var detail_vbox: VBoxContainer = $MainRow/DetailColumn/DetailPanel/DetailVBox
 @onready var dismiss_button: Button = $MainRow/DetailColumn/ActionButtonRow/DismissButton
 @onready var view_family_tree_button: Button = $MainRow/DetailColumn/ActionButtonRow/ViewFamilyTreeButton
 @onready var roster_panel: PanelContainer = $MainRow/RosterPanel
-@onready var roster_scroll_container: ScrollContainer = $MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer
-@onready var sort_filter_bar: CharacterSortFilterBar = $MainRow/RosterPanel/RosterMargin/RosterVBox/SortFilterBar
-@onready var roster_grid: HFlowContainer = $MainRow/RosterPanel/RosterMargin/RosterVBox/ScrollContainer/RosterGrid
+@onready var roster_scroll_container: ScrollContainer = $MainRow/RosterPanel/RosterVBox/ScrollContainer
+@onready var sort_filter_bar: CharacterSortFilterBar = $MainRow/RosterPanel/RosterVBox/SortFilterBar
+@onready var roster_grid: HFlowContainer = $MainRow/RosterPanel/RosterVBox/ScrollContainer/RosterGrid
 @onready var back_button: Button = $TopBar/BackButton
 
 var _detail_view: CharacterDetailView
@@ -37,12 +37,19 @@ func _ready() -> void:
 		button.add_theme_font_size_override("font_size", 16)
 	UiStyle.apply_parchment_panel(roster_panel, 1120.0, 792.0)
 	UiStyle.apply_parchment_scrollbar(roster_scroll_container)
-	UiStyle.apply_parchment_panel(detail_panel, 400.0, 792.0)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail_vbox.add_child(_detail_view)
+
+	# DetailPanel 的寬度來自剛掛進去的 _detail_view 自己宣告的 custom_minimum_size.x
+	# (CharacterDetailView.PANEL_WIDTH),高度是它目前的自然內容高度,還沒被 MainRow
+	# 的 EXPAND_FILL 撐到跟 RosterPanel 同高——用 get_combined_minimum_size() 現場問出來
+	# 當第一次套用的猜測值,一定要等 _detail_view 已經掛進樹裡再呼叫,不然問到的還是 0。
+	# 之後撐高的部分交給 apply_parchment_panel() 內建的 resized 訊號自動補正。
+	var panel_size := detail_panel.get_combined_minimum_size()
+	UiStyle.apply_parchment_panel(detail_panel, panel_size.x, panel_size.y)
 
 	sort_filter_bar.changed.connect(_refresh_grid)
 	_refresh_grid()

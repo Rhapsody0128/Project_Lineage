@@ -14,10 +14,13 @@ extends VBoxContainer
 # 聯姻角色預設聚焦清單第一位(呼叫端 setup() 傳入的 characters 已經是 MarriageRule.
 # eligible_proposers() 篩過的結果)。
 #
-# 取消/× 都走 ActionPanel.close()(trigger_callback 預設 true),觸發呼叫端傳給
-# open_custom() 的 on_close——重新呼叫 BaseBuildingEvent.open_action_panel() 開一份全新的
-# 城鎮中心建築面板(這份面板本身已經在換掉 ActionPanel 內容的當下被釋放,回不去了,見
-# _open_stronghold_marriage_panel() 註解)。確認聯姻只需要呼叫 setup() 傳入的
+# 沒有獨立的取消鈕——× 本來就走 ActionPanel.close()(trigger_callback 預設 true),觸發
+# 呼叫端傳給 open_custom() 的 on_close,重新呼叫 BaseBuildingEvent.open_action_panel() 開
+# 一份全新的城鎮中心建築面板(這份面板本身已經在換掉 ActionPanel 內容的當下被釋放,回不去
+# 了,見 _open_stronghold_marriage_panel() 註解),再放一顆「取消」鈕只是重複同一個動作。
+# 「確認聯姻」改塞進 ActionPanel 標題列(ActionPanel.set_title_action_button(),見
+# _ready()),跟 × 同一行,不再另外佔一整排——比照 BaseBuildingPanelContent 的
+# 建造/升級鈕擺法(見 base_action_panel.gd 開頭註解)。確認聯姻只需要呼叫 setup() 傳入的
 # on_confirmed(proposer, nation)——ActionPanel.close(false) 交給呼叫端的 on_confirmed
 # callback 自己處理(要接著切場景去 BaseMarriageEvent,trigger_callback 必須是 false,
 # 不能讓 on_close 又跑一次重開面板)。
@@ -34,6 +37,7 @@ var _on_confirmed: Callable
 
 
 func _ready() -> void:
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
 	add_theme_constant_override("separation", 16)
 
 	var main_row := HBoxContainer.new()
@@ -42,15 +46,20 @@ func _ready() -> void:
 	add_child(main_row)
 
 	var detail_panel := PanelContainer.new()
-	detail_panel.custom_minimum_size = Vector2(400, 0)
-	detail_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	UiStyle.apply_parchment_panel(detail_panel, 400.0, 700.0)
 	main_row.add_child(detail_panel)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	detail_panel.add_child(_detail_view)
+
+	# detail_panel 的寬度來自剛掛進去的 _detail_view 自己宣告的 custom_minimum_size.x
+	# (CharacterDetailView.PANEL_WIDTH)——用 get_combined_minimum_size() 現場問出來當
+	# 第一次套用的猜測值,一定要等 _detail_view 已經掛進樹裡再呼叫,不然問到的還是 0。
+	# 高度撐滿 main_row,先用目前的自然內容高度墊著,交給 apply_parchment_panel() 內建的
+	# resized 訊號自動補正。
+	var panel_size := detail_panel.get_combined_minimum_size()
+	UiStyle.apply_parchment_panel(detail_panel, panel_size.x, panel_size.y)
 
 	var right_column := VBoxContainer.new()
 	right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -61,25 +70,15 @@ func _ready() -> void:
 	right_column.add_child(_build_nation_panel())
 	right_column.add_child(_build_proposer_panel())
 
-	var action_row := HBoxContainer.new()
-	action_row.alignment = BoxContainer.ALIGNMENT_END
-	action_row.add_theme_constant_override("separation", 16)
-	add_child(action_row)
-
-	var cancel_button := Button.new()
-	cancel_button.text = "取消"
-	UiStyle.apply_wood_plaque_button(cancel_button, 16.0, 8.0)
-	cancel_button.add_theme_font_size_override("font_size", 18)
-	cancel_button.pressed.connect(func() -> void: ActionPanel.close())
-	action_row.add_child(cancel_button)
-
+	# 「確認聯姻」跟 ActionPanel 標題列的 × 放同一行,不再另外占一整排——沒有取消鈕,
+	# × 本來就是同樣的「放棄、回到建築面板」效果。
 	_confirm_button = Button.new()
 	_confirm_button.text = "確認聯姻"
-	UiStyle.apply_wood_plaque_button(_confirm_button, 16.0, 8.0)
-	_confirm_button.add_theme_font_size_override("font_size", 18)
+	UiStyle.apply_wood_plaque_button(_confirm_button, 16.0, 6.0)
+	_confirm_button.add_theme_font_size_override("font_size", 16)
 	_confirm_button.disabled = true
 	_confirm_button.pressed.connect(_on_confirm_pressed)
-	action_row.add_child(_confirm_button)
+	ActionPanel.set_title_action_button(_confirm_button)
 
 
 ## 上方「寄信國家」區塊:獨立木框羊皮紙面板,固定高度,六國按鈕排成一列 grid,附好感度
@@ -109,7 +108,11 @@ func _build_nation_panel() -> Control:
 	grid.columns = 3
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
-	column.add_child(grid)
+
+	# 六國固定放得下 210 高度,但包一層捲動框防呆——之後國家數量變多也只會在這個框內部
+	# 自己捲動,不會把整包 StrongholdMarriagePanel 撐高、拖累外層 ActionPanel 一起捲(見
+	# action_panel.gd 的 wrap_scrollable())。
+	column.add_child(ActionPanel.wrap_scrollable(grid))
 
 	_nation_button_group = ButtonGroup.new()
 	for nation in GameEnums.BloodlineNation.values():
@@ -149,9 +152,12 @@ func _build_proposer_panel() -> Control:
 	column.add_child(title)
 
 	_proposer_bar = CharacterSelectBar.new()
-	_proposer_bar.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_proposer_bar.character_selected.connect(_on_proposer_selected)
-	column.add_child(_proposer_bar)
+
+	# 角色數量一多,CharacterSelectBar 的卡片網格會長得比這個框(380 高)還高——包一層
+	# 捲動框讓超出的部分自己捲動,不要讓外層 ActionPanel 的 ItemsList 整包一起被撐高、
+	# 變成捲動整個聯姻面板(見 action_panel.gd 的 wrap_scrollable())。
+	column.add_child(ActionPanel.wrap_scrollable(_proposer_bar))
 
 	return panel
 

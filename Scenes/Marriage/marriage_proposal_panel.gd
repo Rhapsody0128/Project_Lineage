@@ -11,6 +11,9 @@ extends VBoxContainer
 # 呼叫端傳給 ActionPanel.open_custom() 的 title 顯示,這裡不重複畫一次(比照
 # base_action_panel.gd 的 BaseBuildingPanelContent 既有做法)。
 #
+# 只有「接受」一顆按鈕,塞進 ActionPanel 標題列跟 × 同一行(ActionPanel.
+# set_title_action_button(),見 _ready()),不再另外佔一整排——沒有獨立的「婉拒/取消」鈕,
+# × 本身就會呼叫 decline()(見下方),效果跟按婉拒/取消完全一樣,重複放一顆沒有意義。
 # 接受/婉拒/取消一律呼叫 ActionPanel.close(false)(trigger_callback=false,避免額外觸發
 # open_custom() 傳入的 on_close——那個 callback 是給 × 鈕走的預設路徑,這裡已經自己決定
 # 好接下來要做什麼,不需要再讓 on_close 跑一次),再把結果丟回呼叫端傳入的 on_result
@@ -33,16 +36,15 @@ extends VBoxContainer
 # =========================================================
 
 @onready var detail_panel: PanelContainer = $MainRow/DetailPanel
-@onready var detail_margin: MarginContainer = $MainRow/DetailPanel/DetailMargin
 @onready var face_off_panel: PanelContainer = $MainRow/RightPanel/FaceOffPanel
 @onready var picker_panel: PanelContainer = $MainRow/RightPanel/PickerPanel
-@onready var self_row: HBoxContainer = $MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/SelfSlot/SelfRow
-@onready var self_info_label: Label = $MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/SelfSlot/SelfRow/SelfInfo
-@onready var target_row: HBoxContainer = $MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/TargetSlot/TargetRow
-@onready var target_info_label: Label = $MainRow/RightPanel/FaceOffPanel/FaceOffMargin/FaceOffRow/TargetSlot/TargetRow/TargetInfo
-@onready var accept_button: Button = $ActionRow/AcceptButton
-@onready var second_button: Button = $ActionRow/SecondButton
-@onready var picker_vbox: VBoxContainer = $MainRow/RightPanel/PickerPanel/PickerMargin/PickerVBox
+@onready var self_row: HBoxContainer = $MainRow/RightPanel/FaceOffPanel/FaceOffRow/SelfSlot/SelfRow
+@onready var self_info_label: Label = $MainRow/RightPanel/FaceOffPanel/FaceOffRow/SelfSlot/SelfRow/SelfInfo
+@onready var target_row: HBoxContainer = $MainRow/RightPanel/FaceOffPanel/FaceOffRow/TargetSlot/TargetRow
+@onready var target_info_label: Label = $MainRow/RightPanel/FaceOffPanel/FaceOffRow/TargetSlot/TargetRow/TargetInfo
+@onready var picker_vbox: VBoxContainer = $MainRow/RightPanel/PickerPanel/PickerVBox
+
+var accept_button: Button
 
 var _detail_view: CharacterDetailView
 var _select_bar: CharacterSelectBar
@@ -58,20 +60,30 @@ var _self_card: CharacterAvatarCard
 
 
 func _ready() -> void:
-	for button in [accept_button, second_button]:
-		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
-		button.add_theme_font_size_override("font_size", 18)
 	UiStyle.apply_parchment_panel(face_off_panel, 760.0, 220.0)
 	UiStyle.apply_parchment_panel(picker_panel, 760.0, 480.0)
-	UiStyle.apply_parchment_panel(detail_panel, 400.0, 716.0)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	detail_margin.add_child(_detail_view)
+	detail_panel.add_child(_detail_view)
 
+	# detail_panel 的寬度來自剛掛進去的 _detail_view 自己宣告的 custom_minimum_size.x
+	# (CharacterDetailView.PANEL_WIDTH)——用 get_combined_minimum_size() 現場問出來當
+	# 第一次套用的猜測值,一定要等 _detail_view 已經掛進樹裡再呼叫,不然問到的還是 0。
+	# 高度撐滿 MainRow,先用目前的自然內容高度墊著,交給 apply_parchment_panel() 內建的
+	# resized 訊號自動補正。
+	var panel_size := detail_panel.get_combined_minimum_size()
+	UiStyle.apply_parchment_panel(detail_panel, panel_size.x, panel_size.y)
+
+	# 「接受」跟 ActionPanel 標題列的 × 放同一行,不再另外占一整排——沒有獨立的婉拒/取消鈕,
+	# × 本身就會呼叫 decline(),效果完全一樣。
+	accept_button = Button.new()
+	accept_button.text = "接受"
+	UiStyle.apply_wood_plaque_button(accept_button, 16.0, 6.0)
+	accept_button.add_theme_font_size_override("font_size", 16)
 	accept_button.pressed.connect(_on_accept_pressed)
-	second_button.pressed.connect(_on_second_pressed)
+	ActionPanel.set_title_action_button(accept_button)
 
 
 ## 呼叫端(town_tavern_event.gd)在 instantiate() 之後立刻呼叫一次,取代原本靠
@@ -91,7 +103,10 @@ func setup(target_character: Character, self_character: Character, mode: GameEnu
 	_set_self_card(_self_character)
 
 	_select_bar = CharacterSelectBar.new()
-	picker_vbox.add_child(_select_bar)
+	# 角色數量一多,卡片網格會長得比 PickerPanel 還高——包一層捲動框讓超出的部分自己
+	# 捲動,不要讓外層 ActionPanel 的 ItemsList 整包一起被撐高、變成捲動整個告白面板
+	# (見 action_panel.gd 的 wrap_scrollable())。
+	picker_vbox.add_child(ActionPanel.wrap_scrollable(_select_bar))
 	_select_bar.character_selected.connect(_on_picker_character_selected)
 
 	var eligible: Array[Character] = []
@@ -103,10 +118,8 @@ func setup(target_character: Character, self_character: Character, mode: GameEnu
 
 	match _mode:
 		GameEnums.ProposalMode.INCOMING:
-			second_button.text = "婉拒"
 			accept_button.disabled = false
 		GameEnums.ProposalMode.OUTGOING:
-			second_button.text = "取消"
 			accept_button.disabled = _self_character == null
 
 	# 左側預設顯示「被告白的人」:INCOMING 是我方(對方主動找上門的那位),OUTGOING 是
@@ -167,10 +180,6 @@ func _focus_character(character: Character) -> void:
 
 func _on_accept_pressed() -> void:
 	_resolve(true)
-
-
-func _on_second_pressed() -> void:
-	_resolve(false)
 
 
 ## × 按鈕(ActionPanel 標題列的關閉鍵,見 _open_marriage_panel() 傳給

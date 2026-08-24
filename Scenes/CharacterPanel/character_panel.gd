@@ -11,13 +11,20 @@ extends CanvasLayer
 
 @onready var root: Control = $Root
 @onready var panel_box: PanelContainer = $Root/CenterContainer/PanelBox
-@onready var close_button: Button = $Root/CenterContainer/PanelBox/Margin/Content/TopBar/CloseButton
-@onready var detail_view: CharacterDetailView = $Root/CenterContainer/PanelBox/Margin/Content/DetailView
+@onready var close_button: Button = $Root/CenterContainer/PanelBox/Content/TopBar/CloseButton
+@onready var detail_view: CharacterDetailView = $Root/CenterContainer/PanelBox/Content/DetailView
 
 
 func _ready() -> void:
 	root.visible = false
-	UiStyle.apply_parchment_panel(panel_box, 400.0, 700.0)
+	# PanelBox 的寬度來自子節點 DetailView 自己宣告的 custom_minimum_size.x
+	# (CharacterDetailView.PANEL_WIDTH),高度來自 character_panel.tscn 寫死在 PanelBox 上
+	# 的 custom_minimum_size.y——用 get_combined_minimum_size() 現場問出這個「已經確定、
+	# 不用猜」的尺寸當第一次套用值,面板還沒顯示過也能立刻套對羊皮紙裁切比例,不用賭
+	# resized 訊號會不會在打開前就先觸發過(root 這裡預設隱藏,傳 0,0 會直接跳過套用,
+	# 開啟時可能整個沒有背景樣式)。
+	var panel_size := panel_box.get_combined_minimum_size()
+	UiStyle.apply_parchment_panel(panel_box, panel_size.x, panel_size.y)
 	UiStyle.apply_wood_plaque_button(close_button, 10.0, 4.0)
 	close_button.add_theme_font_size_override("font_size", 18)
 

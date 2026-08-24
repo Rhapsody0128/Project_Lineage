@@ -25,6 +25,17 @@ extends VBoxContainer
 # CharacterPotentialRadar.set_character() 一致(戰場即時數值)。
 # =========================================================
 
+## 這顆元件自己攜帶的最小寬度,在 _ready() 套進自己的 custom_minimum_size.x——寬度是這顆
+## 元件的規格,不是呼叫端的事。CharacterPanel(彈出面板)、CharacterRoster、
+## CharacterSelectPanel、StrongholdMarriagePanel、MarriageProposalPanel 五處呼叫端只需要
+## 把這顆元件塞進自己的版面,不要再各自寫 custom_minimum_size = Vector2(PANEL_WIDTH, 0)
+## 或任何其他寫死的寬度數字撐出同一個寬度——那是在重複宣告這顆元件已經自己攜帶的規格,
+## 之後要調寬度只改這裡一處就好。高度刻意不設下限:這顆元件常被塞進高度不一的彈窗/欄位
+## (固定 840 高的 CharacterPanel、跟 RosterPanel 同高的 CharacterRoster 欄位、
+## ActionPanel 內容區塊……),固定最小高度會在比較矮的容器裡把外層撐爆,交給父層
+## Container(搭配 SIZE_EXPAND_FILL)決定實際高度才對。
+const PANEL_WIDTH := 320.0
+
 ## 技能格 2*2 排列,GridContainer columns=2。
 const SKILL_SLOT_COUNT := 4
 const SKILL_GRID_COLUMNS := 2
@@ -92,6 +103,8 @@ var current_character: Character
 
 
 func _ready() -> void:
+	# 寬度是這顆元件自己的規格,見上面 PANEL_WIDTH 註解——呼叫端不用也不該再設。
+	custom_minimum_size.x = PANEL_WIDTH
 	add_theme_constant_override("separation", 10)
 
 	add_child(_build_identity_header())

@@ -10,10 +10,24 @@ extends CanvasLayer
 # 不要另開新的彈出面板。面板底圖固定用 UiStyle.apply_parchment_panel()(木框+羊皮紙,見
 # Scripts/UI/ui_style.gd),清單/標題文字顏色跟著改成暖色系配色
 # (_TEXT_COLOR/_SUBTITLE_COLOR),不是任意場景都能沿用深色底金字那一套。
+#
+# 內容溢出時「誰負責捲動」統一由這裡決定,呼叫端(open_custom() 傳入的 content)不要
+# 自己各自組一份 ScrollContainer:ItemsList(open_custom() 塞內容的地方)本身
+# size_flags_vertical=EXPAND_FILL(見 action_panel.tscn),外層 ScrollContainer 才會把整個
+# PanelBox 給的高度交給它,而不是只給它自己算出來的最小高度——所以 open_custom() 傳入的
+# content 也要自己設 size_flags_vertical=EXPAND_FILL(見 StrongholdMarriagePanel/
+# MarriageProposalPanel 的 _ready()),不然版面會被壓縮成一小條。這層 ScrollContainer
+# 是給「整個 content 天生就比面板還高」這種例外情況的最後防線,不是常態捲動機制——
+# content 內部任何可能超出自己那個框的子區塊(固定高度的子面板/清單/網格,例如角色選人
+# 清單、國家按鈕網格)要呼叫下面的 wrap_scrollable() 換一個已經設好樣式/方向限制的
+# ScrollContainer 包住那個子區塊,吃掉超出的部分,不要放著讓外層 ItemsList 的
+# ScrollContainer 整包一起被撐高、變成捲動整個面板(見 stronghold_marriage_panel.gd 的
+# _build_nation_panel()/_build_proposer_panel()、marriage_proposal_panel.gd 的 setup()
+# 三個實例)。
 # =========================================================
 
-## 視窗固定 1600x820(見 project.godot),預設面板大約佔 7/8 畫面。
-const DEFAULT_MIN_SIZE := Vector2(1600, 820)
+## 視窗固定 1400x720(見 project.godot),預設面板大約佔 3/4 畫面。
+const DEFAULT_MIN_SIZE := Vector2(1400, 720)
 const ICON_SIZE := Vector2(64, 64)
 
 ## 面板背景換成羊皮紙木框(UiStyle.apply_parchment_panel())之後,列跟文字改用暖色系
@@ -24,11 +38,11 @@ const _SUBTITLE_COLOR := UiStyle.PARCHMENT_SUBTITLE_COLOR
 
 @onready var root: Control = $Root
 @onready var panel_box: PanelContainer = $Root/CenterContainer/PanelBox
-@onready var title_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/TopBar/TitleLabel
-@onready var close_button: Button = $Root/CenterContainer/PanelBox/Margin/Content/TopBar/CloseButton
-@onready var scroll_container: ScrollContainer = $Root/CenterContainer/PanelBox/Margin/Content/ScrollContainer
-@onready var items_list: VBoxContainer = $Root/CenterContainer/PanelBox/Margin/Content/ScrollContainer/ItemsList
-@onready var empty_label: Label = $Root/CenterContainer/PanelBox/Margin/Content/EmptyLabel
+@onready var title_label: Label = $Root/CenterContainer/PanelBox/Content/TopBar/TitleLabel
+@onready var close_button: Button = $Root/CenterContainer/PanelBox/Content/TopBar/CloseButton
+@onready var scroll_container: ScrollContainer = $Root/CenterContainer/PanelBox/Content/ScrollContainer
+@onready var items_list: VBoxContainer = $Root/CenterContainer/PanelBox/Content/ScrollContainer/ItemsList
+@onready var empty_label: Label = $Root/CenterContainer/PanelBox/Content/EmptyLabel
 
 ## 面板關閉時(不管是按 × 還是清單項目自己的 on_selected 呼叫 close())執行一次,
 ## 呼叫端用來接續「關掉面板之後要去哪」(例如 TownTavernEvent 招募完/不招募都要切回
@@ -44,7 +58,7 @@ var _title_action_button: Control = null
 
 func _ready() -> void:
 	root.visible = false
-	UiStyle.apply_parchment_panel(panel_box, 1600.0, 720.0)
+	UiStyle.apply_parchment_panel(panel_box, 1400.0, 720.0)
 	UiStyle.apply_wood_plaque_button(close_button, 10.0, 4.0)
 	close_button.add_theme_font_size_override("font_size", 18)
 	close_button.pressed.connect(close)
@@ -63,10 +77,10 @@ func open(title: String, items: Array[ActionPanelItem], on_close: Callable = Cal
 	root.visible = true
 
 
-## 跟 open() 共用同一個外框(背景遮罩/PanelBox/Margin/TopBar/關閉鍵位置全部一樣),差別
+## 跟 open() 共用同一個外框(背景遮罩/PanelBox/TopBar/關閉鍵位置全部一樣),差別
 ## 是內容區塊不是靠 ActionPanelItem 清單自動排版列出來,而是呼叫端自己組好一整個 Control
 ## 直接塞進來——例如 System/event/base/base_building_event.gd 的根據地建築面板,內容
-## (等級/升級/派遣角色等)因事件而異,但外殼(離開鈕位置、Margin、面板大小)要保持
+## (等級/升級/派遣角色等)因事件而異,但外殼(離開鈕位置、內距、面板大小)要保持
 ## 跟這裡列清單的用途一致,不要另外開一個長相不同的面板。content 的生命週期跟著這次
 ## 顯示走,下次 open()/open_custom() 呼叫或整包場景關閉都會被清掉,呼叫端不用自己管理。
 func open_custom(title: String, content: Control, on_close: Callable = Callable(), min_size: Vector2 = DEFAULT_MIN_SIZE) -> void:
@@ -111,6 +125,23 @@ func close(trigger_callback: bool = true) -> void:
 	_on_close = Callable()
 	if trigger_callback and callback.is_valid():
 		callback.call()
+
+
+## open_custom() 傳入的 content 內部,任何可能超出自己那個框的子區塊(見上方「內容溢出」
+## 註解)呼叫這裡換一個已經套好樣式的 ScrollContainer 包住它,取代自己重複組裝
+## ScrollContainer + apply_parchment_scrollbar + size_flags 這一整組設定——集中在這裡改,
+## 之後全部呼叫端一起套用,不會各自兜出不一致的捲動手感。回傳的 ScrollContainer 還沒掛進
+## 場景樹,呼叫端自己 add_child() 到想放的位置。
+func wrap_scrollable(content: Control) -> ScrollContainer:
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiStyle.apply_parchment_scrollbar(scroll)
+	scroll.add_child(content)
+	return scroll
 
 
 func _rebuild_items(items: Array[ActionPanelItem]) -> void:

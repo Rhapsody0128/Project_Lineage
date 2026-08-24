@@ -47,6 +47,9 @@ func _ready() -> void:
 	# 用 ActionPanel 既有的 DEFAULT_MIN_SIZE 當固定彈窗尺寸,不再依 viewport 現場算近全螢幕
 	# 大小——選人畫面內容量比 ActionPanel 的清單少,沿用同一組「預設彈窗大小」慣例即可,
 	# 不需要另外調一組數字。
+	# apply_parchment_panel() 的 stylebox 本身就帶內距,跟 ActionPanel 的 PanelBox 一樣不用
+	# 額外參數、全部吃預設值——不要另外疊一層 MarginContainer,單一內距來源,才不會跟
+	# ActionPanel 內容的距離兜不起來。
 	var box := PanelContainer.new()
 	box.custom_minimum_size = ActionPanel.DEFAULT_MIN_SIZE
 	UiStyle.apply_parchment_panel(box, ActionPanel.DEFAULT_MIN_SIZE.x, ActionPanel.DEFAULT_MIN_SIZE.y)

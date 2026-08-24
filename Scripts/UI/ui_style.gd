@@ -118,48 +118,41 @@ static func parchment_row_style(
 ## 內嵌一份 StyleBoxTexture SubResource)。panel_width/panel_height 是呼叫端面板的設計
 ## 寬高(讀 .tscn 的 offset/custom_minimum_size 算出來,不是拿 Control.size 在 _ready()
 ## 現場量——版面在容器裡的最終大小要等排版跑完才確定,_ready() 當下不保證正確),用來
-## 從原圖裁出對應比例的區域(見 _panel_crop_region())。content_margin(面板內容跟邊框的
-## 留白)每個用途大小差很多(彈出清單面板 vs 對話框窄長條 vs 小型詢問彈窗),留給呼叫端
-## 依面板尺寸傳入。
+## 從原圖裁出對應比例的區域(見 _panel_crop_region())。面板內容跟邊框的留白固定用
+## _CONTENT_MARGIN(全專案唯一一處定義),呼叫端不能個別傳值覆寫——之前開放四邊各自
+## 傳參數,結果各面板各自兜出一組數字(有的還在外面另包一層 MarginContainer 疊加),
+## 同一顆元件在不同畫面內距不一致還很難追。內容需要比這個留白更寬鬆的呼吸空間,一律在
+## 面板「內部」自己疊 MarginContainer/PADDING 常數(見 character_detail_view.gd 的
+## TAB_CONTENT_PADDING),不要回頭改這裡的簽名。
 ##
-## panel_width/panel_height 只是「第一次套用」時的猜測值,對有固定 custom_minimum_size
-## 的面板通常夠準;但對用 size_flags_*=EXPAND_FILL 撐滿容器剩餘空間的面板(例如
-## marriage_proposal_panel.gd 的 PickerPanel,實際寬高由 RightPanel 扣掉 DetailPanel
-## 固定寬度後才算得出來,跟呼叫端隨手傳的設計值可能差一大截),裁切比例對不上實際顯示
-## 比例,九宮格中段會被非等比拉伸去填滿剩餘空間,肉眼看就是背景花紋被「壓縮」變形。
-## 因此這裡多接一手 panel.resized——排版跑完、面板真正定案的大小出來之後,用
-## panel.size(而不是呼叫端猜的值)重新套一次,裁切永遠跟顯示框同比例,不管容器怎麼排版
-## 都不會走樣;呼叫端不用自己去反推正確的設計寬高。
+## panel_width/panel_height 純粹是「第一次套用」時的裁切比例猜測值,只影響背景貼圖好不好
+## 看,這個函式永遠不會、也不該去讀寫 panel 的 custom_minimum_size 或任何 layout 屬性——
+## 決定面板實際尺寸是呼叫端/面板內容自己的責任(例如 CharacterDetailView 自己在 _ready()
+## 套 custom_minimum_size.x,見該檔案 PANEL_WIDTH 註解),這裡只管羊皮紙視覺,不能拿來當
+## 「順便設定大小」的手段。呼叫端不知道最終尺寸時(例如高度交給父層 Container 決定,實際
+## 高度要等排版跑完才確定)可以直接傳 0.0,_set_parchment_style() 會直接跳過第一次套用,
+## 純等下面的 panel.resized 用真實尺寸補上——不用勉強猜一個數字。傳了猜測值但跟實際顯示
+## 比例差很多也沒關係(例如 marriage_proposal_panel.gd 的 PickerPanel,實際寬高由
+## RightPanel 扣掉 DetailPanel 寬度後才算得出來,猜測值必然不準):這裡多接一手
+## panel.resized——排版跑完、面板真正定案的大小出來之後,用 panel.size(而不是呼叫端猜的
+## 值)重新套一次,裁切永遠跟顯示框同比例,不管容器怎麼排版都不會走樣;呼叫端不用自己去
+## 反推正確的設計寬高。
 
 const _TEXTURE_MARGIN_LEFT := 5.0
 const _TEXTURE_MARGIN_TOP := 5.0
 const _TEXTURE_MARGIN_RIGHT := 5.0
 const _TEXTURE_MARGIN_BOTTOM := 5.0
 
-static func apply_parchment_panel(
-	panel: Control,
-	panel_width: float,
-	panel_height: float,
-	content_margin_left: float = 20.0,
-	content_margin_top: float = 20.0,
-	content_margin_right: float = 20.0,
-	content_margin_bottom: float = 20.0
-) -> void:
-	_set_parchment_style(panel, panel_width, panel_height, content_margin_left, content_margin_top, content_margin_right, content_margin_bottom)
+const _CONTENT_MARGIN := 30.0
+
+static func apply_parchment_panel(panel: Control, panel_width: float, panel_height: float) -> void:
+	_set_parchment_style(panel, panel_width, panel_height)
 	panel.resized.connect(func():
-		_set_parchment_style(panel, panel.size.x, panel.size.y, content_margin_left, content_margin_top, content_margin_right, content_margin_bottom)
+		_set_parchment_style(panel, panel.size.x, panel.size.y)
 	)
 
 
-static func _set_parchment_style(
-	panel: Control,
-	panel_width: float,
-	panel_height: float,
-	content_margin_left: float,
-	content_margin_top: float,
-	content_margin_right: float,
-	content_margin_bottom: float
-) -> void:
+static func _set_parchment_style(panel: Control, panel_width: float, panel_height: float) -> void:
 	if panel_width <= 0.0 or panel_height <= 0.0:
 		return
 
@@ -179,10 +172,10 @@ static func _set_parchment_style(
 	style.texture_margin_top = _TEXTURE_MARGIN_TOP * margin_scale_v
 	style.texture_margin_bottom = _TEXTURE_MARGIN_BOTTOM * margin_scale_v
 
-	style.content_margin_left = content_margin_left
-	style.content_margin_top = content_margin_top
-	style.content_margin_right = content_margin_right
-	style.content_margin_bottom = content_margin_bottom
+	style.content_margin_left = _CONTENT_MARGIN
+	style.content_margin_top = _CONTENT_MARGIN
+	style.content_margin_right = _CONTENT_MARGIN
+	style.content_margin_bottom = _CONTENT_MARGIN
 	panel.add_theme_stylebox_override("panel", style)
 
 

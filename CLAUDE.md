@@ -194,6 +194,30 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 呼叫端已經自己決定好下一步,要傳 `false` 蓋掉預設的 `on_close` 續接,避免兩條後續流程
 搶著跑。
 
+`open_custom()` 塞內容的 `ItemsList` 本身 `size_flags_vertical=EXPAND_FILL`,外層
+`ScrollContainer` 才會把整個 `PanelBox` 給的高度交給它,所以傳入的 content 也要自己設
+`size_flags_vertical=EXPAND_FILL`(見 `StrongholdMarriagePanel`/`MarriageProposalPanel`
+的 `_ready()`),不然版面會被壓縮成一小條。這層 `ScrollContainer` 是給「整個 content
+天生就比面板還高」這種例外情況的最後防線,不是常態捲動機制——content 內部任何可能超出
+自己那個框的子面板/清單/網格(例如角色選人清單、國家按鈕網格)要呼叫
+`ActionPanel.wrap_scrollable(control)` 換一個已經套好樣式/方向限制的 `ScrollContainer`
+包住它,吃掉超出的部分,不要放著讓外層 `ItemsList` 的 `ScrollContainer` 整包一起被撐高、
+變成捲動整個面板,也不要各自重新手刻一份 `ScrollContainer` 設定——集中寫在
+`ActionPanel` 這一份,呼叫端只負責標記「這個子區塊需要自己捲動」,見
+`stronghold_marriage_panel.gd` 的 `_build_nation_panel()`/`_build_proposer_panel()`、
+`marriage_proposal_panel.gd` 的 `setup()` 三個實例。
+
+`open_custom()` 內容的操作按鈕一律比照「建造」「升級」鈕的既有做法(見上方「建造」
+「升級」段落),用 `ActionPanel.set_title_action_button()` 塞進標題列跟 × 同一行,不要
+另外在內容底部排一整排——`StrongholdMarriagePanel` 的「確認聯姻」、`MarriageProposalPanel`
+的「接受」都在各自 `_ready()` 呼叫這個 API。跟 × 功能重複的「取消」/「婉拒」鈕直接刪掉,
+不要保留:× 本來就會觸發 `open_custom()` 傳入的 `on_close`(或 `MarriageProposalPanel`
+的 `decline()`/`MarriageCandidateList` 收尾用的 `_on_candidate_declined()`),再放一顆
+按鈕做同一件事只是多占一排空間。只有「取消當前多步驟操作、回到同一個 content 裡的前一步」
+這種**不**等同關閉整個 ActionPanel 的取消鈕才保留在內容區塊裡,例如
+`BaseBuildingPanelContent._build_skill_picker()` 的取消鈕只是清空 `_training_character`
+再 `_rebuild_body()`,面板本身沒有關閉,跟 × 的「離開整個面板」不是同一件事。
+
 `Scenes/CharacterSelect/character_select_overlay.gd` 的 `CharacterSelectOverlay` 是唯一
 的例外——選人情境專用外殼,`extends CanvasLayer`(自成一層,layer 比 `ActionPanel` 高),
 不借用 `ActionPanel`,因為它經常需要疊加在「目前已經開著的 `ActionPanel` 內容之上」而不

@@ -21,12 +21,12 @@ const DRAW_COLOR := Color(0.0, 0.0, 0.0)
 
 @onready var root: Control = $Root
 @onready var panel_box: PanelContainer = $Root/CenterContainer/PanelBox
-@onready var skip_button: Button = $Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/SkipButton
-@onready var fight_button: Button = $Root/CenterContainer/PanelBox/Margin/Content/ButtonRow/FightButton
+@onready var skip_button: Button = $Root/CenterContainer/PanelBox/Content/ButtonRow/SkipButton
+@onready var fight_button: Button = $Root/CenterContainer/PanelBox/Content/ButtonRow/FightButton
 @onready var report_prompt_box: PanelContainer = $Root/CenterContainer/ReportPromptBox
-@onready var report_result_label: Label = $Root/CenterContainer/ReportPromptBox/Margin/Content/ResultLabel
-@onready var view_report_button: Button = $Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow/ViewReportButton
-@onready var skip_report_button: Button = $Root/CenterContainer/ReportPromptBox/Margin/Content/ButtonRow/SkipReportButton
+@onready var report_result_label: Label = $Root/CenterContainer/ReportPromptBox/Content/ResultLabel
+@onready var view_report_button: Button = $Root/CenterContainer/ReportPromptBox/Content/ButtonRow/ViewReportButton
+@onready var skip_report_button: Button = $Root/CenterContainer/ReportPromptBox/Content/ButtonRow/SkipReportButton
 
 var _self_party: Party
 var _enemy_party: Party

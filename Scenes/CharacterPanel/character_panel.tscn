@@ -37,40 +37,33 @@ grow_vertical = 2
 mouse_filter = 2
 
 [node name="PanelBox" type="PanelContainer" parent="Root/CenterContainer" unique_id=150913479]
-custom_minimum_size = Vector2(400, 700)
+custom_minimum_size = Vector2(0, 840)
 layout_mode = 2
 
-[node name="Margin" type="MarginContainer" parent="Root/CenterContainer/PanelBox" unique_id=1963797733]
-layout_mode = 2
-theme_override_constants/margin_left = 20
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 20
-theme_override_constants/margin_bottom = 20
-
-[node name="Content" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin" unique_id=2113729888]
+[node name="Content" type="VBoxContainer" parent="Root/CenterContainer/PanelBox" unique_id=2113729888]
 layout_mode = 2
 theme_override_constants/separation = 14
 
-[node name="TopBar" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content" unique_id=791987666]
+[node name="TopBar" type="HBoxContainer" parent="Root/CenterContainer/PanelBox/Content" unique_id=791987666]
 layout_mode = 2
 
-[node name="TitleLabel" type="Label" parent="Root/CenterContainer/PanelBox/Margin/Content/TopBar" unique_id=1453385879]
+[node name="TitleLabel" type="Label" parent="Root/CenterContainer/PanelBox/Content/TopBar" unique_id=1453385879]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 theme_override_font_sizes/font_size = 22
 text = "角色資料"
 
-[node name="CloseButton" type="Button" parent="Root/CenterContainer/PanelBox/Margin/Content/TopBar" unique_id=951460201]
+[node name="CloseButton" type="Button" parent="Root/CenterContainer/PanelBox/Content/TopBar" unique_id=951460201]
 custom_minimum_size = Vector2(36, 36)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "×"
 
-[node name="DetailView" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Margin/Content" unique_id=1535416995]
+[node name="DetailView" type="VBoxContainer" parent="Root/CenterContainer/PanelBox/Content" unique_id=1535416995]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("2")
 
-[connection signal="pressed" from="Root/CenterContainer/PanelBox/Margin/Content/TopBar/CloseButton" to="." method="close"]
+[connection signal="pressed" from="Root/CenterContainer/PanelBox/Content/TopBar/CloseButton" to="." method="close"]

@@ -31,7 +31,7 @@ static func _age_up() -> void:
 			continue
 		character.age_up()
 		if character.age == CharacterController.MIN_AGE and CharacterRosterStore.try_add(character):
-			NewsController.post("%s 成年了。" % character.full_name)
+			NewsController.post("%s 成年了。" % character.full_name, GameEnums.NewsCategory.MAJOR)
 		_process_aging(character)
 
 
@@ -39,14 +39,19 @@ static func _age_up() -> void:
 ## (全素質 -30%,見 AgingRule.create_aging_trait());之後每年只要還在衰老線以上,
 ## 都依 AgingRule.get_death_chance_percent() 骰一次是否過世
 ## (CharacterDeathController.kill() 負責清乾淨小隊/根據地派遣再移出角色列)。
+##
+## 素質特性一律照套用,但只有目前還在 CharacterRosterStore(玩家可操控池)裡的角色才發
+## NEWS/MessageBar 通知——配偶/小孩本來就不在 roster 裡也一樣要正常衰老,但玩家不會操控
+## 他們,不需要被這些通知打擾(見 CLAUDE.md「老年與死亡」)。
 static func _process_aging(character: Character) -> void:
 	if not AgingRule.is_aged(character):
 		return
 	if not AgingRule.has_aging_trait(character):
 		character.traits.append(AgingRule.create_aging_trait())
-		var aging_text := "%s 已進入衰老期，各項素質開始衰退。" % character.full_name
-		NewsController.post(aging_text)
-		MessageBar.show_message(aging_text)
+		if CharacterRosterStore.all_characteres.has(character):
+			var aging_text := "%s 已進入衰老期，各項素質開始衰退。" % character.full_name
+			NewsController.post(aging_text, GameEnums.NewsCategory.MAJOR)
+			MessageBar.show_message(aging_text)
 	if AgingRule.roll_death(character):
 		CharacterDeathController.kill(character)
 
@@ -67,7 +72,7 @@ static func _roll_new_pregnancies() -> void:
 		if PregnancyRule.is_eligible(wife) and PregnancyRule.roll_pregnancy(wife):
 			wife.start_pregnancy()
 			var pregnancy_text := "%s 懷孕了。" % wife.full_name
-			NewsController.post(pregnancy_text)
+			NewsController.post(pregnancy_text, GameEnums.NewsCategory.MAJOR)
 			MessageBar.show_message(pregnancy_text)
 
 
@@ -96,10 +101,12 @@ static func _advance_pregnancies() -> void:
 ## 隨世界時間長大),不直接進 CharacterRosterStore——小孩未滿 MIN_AGE 前不能操控/
 ## 上場,要等 _age_up() 偵測到年紀跨過 MIN_AGE 才會補進 roster。並寫入 NEWS。呼叫端已經
 ## 確認過角色總容量還有空位(見 _advance_pregnancies()),這裡的 register() 必定成功。
+## 同時排隊切去命名+留學國家場景(見 CLAUDE.md「新生兒命名與留學」),不擋 register() 本身。
 static func _deliver_child(mother: Character) -> void:
 	var child := mother.give_birth()
 	AllCharacterStore.register(child)
-	NewsController.post("%s 誕下了孩子 %s。" % [mother.full_name, child.full_name])
+	NewsController.post("%s 誕下了孩子 %s。" % [mother.full_name, child.full_name], GameEnums.NewsCategory.MAJOR)
+	LifeEventQueueStore.queue_child(child)
 
 
 ## 每天:玩家擁有的所有角色 HP 回復(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、

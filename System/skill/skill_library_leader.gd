@@ -41,7 +41,7 @@ static func _support_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("統帥威儀") # 既有(原「大將之風」)
-		.description("隊長沉穩的威儀安定軍心,全隊活力與精神同時提升")
+		.description("隊長沉穩的威儀安定軍心,全隊體質與精神同時提升")
 		.rank(GameEnums.RankType.E)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -93,7 +93,7 @@ static func _support_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("鐵血統帥")
-		.description("鐵一般的意志統率全軍,小量治療全隊並提升活力")
+		.description("鐵一般的意志統率全軍,小量治療全隊並提升體質")
 		.rank(GameEnums.RankType.A)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -233,7 +233,7 @@ static func _debuff_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("破陣長嘯")
-		.description("聲勢驚人的長嘯震碎敵人防線,全體敵人活力下降")
+		.description("聲勢驚人的長嘯震碎敵人防線,全體敵人體質下降")
 		.rank(GameEnums.RankType.S)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ENEMIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -259,7 +259,7 @@ static func _debuff_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("天譴降臨")
-		.description("載入史冊的滅軍號令,全體敵人活力重挫並遭到封印")
+		.description("載入史冊的滅軍號令,全體敵體質重挫並遭到封印")
 		.rank(GameEnums.RankType.SSS)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ENEMIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)

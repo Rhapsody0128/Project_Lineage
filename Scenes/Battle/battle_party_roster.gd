@@ -69,11 +69,14 @@ const STATUS_ARROW_OUTLINE_COLOR := Color(0.0, 0.0, 0.0, 0.9)
 const STATUS_ARROW_OUTLINE_SIZE := 3
 const STATUS_ARROW_CYCLE_INTERVAL := 1.0
 
-## 護盾條:疊在 HP 血條上的白色色塊,從目前 HP 比例的位置開始往右延伸,長度依
-## 「護盾值 / 最大 HP」的比例決定(見 _reposition_shield_overlay())——視覺上讀作
-## 「血條後面再多墊一截可以扛傷害的份量」,超出血條右緣的部分直接截斷顯示,不會另外
-## 撐開血條寬度。
-const SHIELD_BAR_COLOR := Color(0.95, 0.95, 1.0, 0.95)
+## 護盾條:不是另外疊一條血條之外的長條,而是接在 HP 血條右緣、視覺上同一條的延伸
+## 段落——從目前 HP 比例的位置開始往右延伸,長度依「護盾值 / 最大 HP」的比例決定
+## (見 _reposition_shield_overlay()),用漸層從「跟 HP 血條同一個顏色」平滑過渡到
+## 白色(SHIELD_BAR_END_COLOR),銜接處顏色相同所以看起來是同一條血條自然變化,不是
+## 突兀多出來的色塊。漸層佔的長度就是護盾佔血量+護盾總量的比例,超出血條右緣的部分
+## 直接截斷顯示,不會另外撐開血條寬度。
+const SHIELD_BAR_END_COLOR := Color(1.0, 1.0, 1.0, 0.95)
+const SHIELD_GRADIENT_TEXTURE_WIDTH := 64
 
 ## 特殊狀態文字(恐懼/封印/嘲諷/降治療/全隊限時破防&必定暴擊):疊在頭像左上角、
 ## 素質增益/減益箭頭下方那一排,同時中好幾種狀態就用「/」接起來,不另外做顏色輪流
@@ -90,7 +93,7 @@ class RosterSlot:
 	var frame_style: StyleBoxFlat
 	var base_border_color: Color
 	var bar: ProgressBar
-	var shield_overlay: Panel
+	var shield_overlay: TextureRect
 	var current_shield: float = 0.0
 	var max_count: int
 	var active_tween: Tween
@@ -261,16 +264,24 @@ func _spawn_slot(battle_character: BattleCharacter, is_enemy: bool, fallback_por
 	bar.add_theme_stylebox_override("background", bar_bg)
 	slot.add_child(bar)
 
-	# 護盾條:疊在 HP 血條上面的白色色塊(bar 的子節點,用 anchor 對齊 bar 目前的寬度,
-	# 見 _reposition_shield_overlay()),預設不可見,有護盾時才顯示。
-	var shield_overlay := Panel.new()
+	# 護盾條:接在 HP 血條右緣的漸層延伸段(bar 的子節點,用 anchor 對齊 bar 目前的
+	# 寬度,見 _reposition_shield_overlay()),漸層起點固定用這個角色血條的填色
+	# (bar_fill.bg_color)當第一個色標,銜接處顏色跟血條一致、不會看起來是額外的一條;
+	# 終點是 SHIELD_BAR_END_COLOR。預設不可見,有護盾時才顯示。
+	var shield_gradient := Gradient.new()
+	shield_gradient.colors = PackedColorArray([bar_fill.bg_color, SHIELD_BAR_END_COLOR])
+	shield_gradient.offsets = PackedFloat32Array([0.0, 1.0])
+	var shield_gradient_texture := GradientTexture1D.new()
+	shield_gradient_texture.gradient = shield_gradient
+	shield_gradient_texture.width = SHIELD_GRADIENT_TEXTURE_WIDTH
+
+	var shield_overlay := TextureRect.new()
 	shield_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shield_overlay.anchor_top = 0.0
 	shield_overlay.anchor_bottom = 1.0
-	var shield_style := StyleBoxFlat.new()
-	shield_style.bg_color = SHIELD_BAR_COLOR
-	shield_style.set_corner_radius_all(HP_BAR_CORNER_RADIUS)
-	shield_overlay.add_theme_stylebox_override("panel", shield_style)
+	shield_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shield_overlay.stretch_mode = TextureRect.STRETCH_SCALE
+	shield_overlay.texture = shield_gradient_texture
 	shield_overlay.visible = false
 	bar.add_child(shield_overlay)
 
@@ -319,8 +330,8 @@ func update_hp(battle_character: BattleCharacter, remaining: int) -> void:
 	_reposition_shield_overlay(s)
 
 
-## 更新護盾條:shield_points 是目前剩餘護盾值,疊在血條上、從目前 HP 比例的位置開始
-## 往右延伸(見 _reposition_shield_overlay()),護盾歸零就隱藏。
+## 更新護盾條:shield_points 是目前剩餘護盾值,接在血條右緣、從目前 HP 比例的位置開始
+## 往右延伸的漸層延伸段(見 _reposition_shield_overlay()),護盾歸零就隱藏。
 func update_shield(battle_character: BattleCharacter, shield_points: float) -> void:
 	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
@@ -331,15 +342,22 @@ func update_shield(battle_character: BattleCharacter, shield_points: float) -> v
 
 
 ## 護盾條的起訖位置都用 anchor(0~1 的比例)表示,自動跟著血條寬度縮放,不需要監聽
-## resize 事件手動重算像素——起點是目前 HP 佔最大 HP 的比例,終點再往右延伸「護盾值
-## 佔最大 HP」的比例,超過血條右緣(>1.0)直接截斷,不會撐開血條本身的寬度。
+## resize 事件手動重算像素——起點是目前 HP 佔「顯示用滿血基準」的比例,終點再往右延伸
+## 「護盾值佔同一基準」的比例。滿血時直接沒有右側空間可延伸,所以「顯示用滿血基準」
+## 平常就是 max_count,但 HP+護盾超過 max_count(最常見就是滿血時中護盾)才動態放大
+## 這個基準到 hp+shield,連帶讓 bar.max_value 用同一個基準,使 HP 血條本身的填色比例
+## 跟著等比縮一點,騰出空間讓護盾條有地方顯示——不是撐開血條的像素寬度,只是重新
+## 分配同一條寬度裡 HP/護盾各自佔的比例。護盾消失時基準立刻退回 max_count,血條補滿。
 func _reposition_shield_overlay(s: RosterSlot) -> void:
 	if s.current_shield <= 0.0 or s.max_count <= 0:
+		s.bar.max_value = s.max_count
 		s.shield_overlay.visible = false
 		return
 
-	var hp_fraction := clampf(s.bar.value / s.max_count, 0.0, 1.0)
-	var shield_fraction := s.current_shield / s.max_count
+	var display_max := maxf(float(s.max_count), s.bar.value + s.current_shield)
+	s.bar.max_value = display_max
+	var hp_fraction := clampf(s.bar.value / display_max, 0.0, 1.0)
+	var shield_fraction := s.current_shield / display_max
 	var end_fraction := clampf(hp_fraction + shield_fraction, 0.0, 1.0)
 
 	s.shield_overlay.anchor_left = hp_fraction

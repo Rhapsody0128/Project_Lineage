@@ -326,19 +326,17 @@ static func _attack_skill_weight(actor: BattleCharacter, skill: Skill, base_weig
 
 ## 目標價值評分:命中人數(get_hit_count 算出來的,單體攻擊/單體技能固定是 1)乘上
 ## TARGET_HIT_COUNT_WEIGHT 之後分數差距很大,是壓倒性的主要因素——多打中一個人就是
-## +100 分,幾乎不可能被其他因素翻盤;低 HP(越接近戰敗分數越高)、是否為敵方大將、
-## 距離遠近只在命中人數接近時才決定挑哪一個。大將的加成刻意壓低(遠低於命中人數的
-## 影響力,大約跟 3~5 格距離差不多),避免每次出手都優先鎖大將導致大將很容易被秒殺——
-## 大將只有在剛好也符合「離得近/血量低」時才會明顯被優先鎖定,不是無條件的頭號目標。
+## +100 分,幾乎不可能被其他因素翻盤;低 HP(越接近戰敗分數越高)、距離遠近只在命中
+## 人數接近時才決定挑哪一個。刻意不吃是否為敵方大將——大將沒有任何選中加成,跟其他
+## 目標公平競爭,避免 AI 集火秒殺大將。
 const TARGET_HIT_COUNT_WEIGHT := 100.0
 const TARGET_LOW_HP_WEIGHT := 30.0
-const TARGET_LEADER_BONUS := 10.0
 const TARGET_DISTANCE_PENALTY := 2.0
 
-## 從存活敵人中選出這次攻擊/施法的主要目標,依「命中人數／血量／是否為大將／距離」
-## 綜合評分——單體攻擊/單體技能(get_hit_count 對每個候選都回傳 1)等於只看血量/大將/
-## 距離這三項,範圍技(get_hit_count 讀 skill.resolve_targets() 算實際命中數)則以命中
-## 人數為壓倒性主因,其餘三項只在命中人數接近時才發揮影響力。回傳值是
+## 從存活敵人中選出這次攻擊/施法的主要目標,依「命中人數／血量／距離」綜合評分——
+## 單體攻擊/單體技能(get_hit_count 對每個候選都回傳 1)等於只看血量/距離這兩項,
+## 範圍技(get_hit_count 讀 skill.resolve_targets() 算實際命中數)則以命中人數為壓倒性
+## 主因,其餘兩項只在命中人數接近時才發揮影響力。回傳值是
 ## {"target": BattleCharacter, "detail": String},沒有存活敵人時 target 為 null。
 static func _pick_primary_target(actor: BattleCharacter, get_hit_count: Callable) -> Dictionary:
 	var candidates := actor.enemies
@@ -358,16 +356,15 @@ static func _pick_primary_target(actor: BattleCharacter, get_hit_count: Callable
 		var hit_count: int = get_hit_count.call(candidate)
 		var dist := _manhattan(actor.grid_pos, candidate.grid_pos)
 		var low_hp_bonus := (1.0 - candidate.hp_ratio) * TARGET_LOW_HP_WEIGHT
-		var leader_bonus := TARGET_LEADER_BONUS if candidate.is_leader else 0.0
-		var score: float = hit_count * TARGET_HIT_COUNT_WEIGHT + low_hp_bonus + leader_bonus - dist * TARGET_DISTANCE_PENALTY
-		breakdown.append("%s(命中%d人/HP%.0f%%%s/距離%d→%.1f分)" % [
-			candidate.name, hit_count, candidate.hp_ratio * 100.0, ("・大將" if candidate.is_leader else ""), dist, score,
+		var score: float = hit_count * TARGET_HIT_COUNT_WEIGHT + low_hp_bonus - dist * TARGET_DISTANCE_PENALTY
+		breakdown.append("%s(命中%d人/HP%.0f%%/距離%d→%.1f分)" % [
+			candidate.name, hit_count, candidate.hp_ratio * 100.0, dist, score,
 		])
 		if best == null or score > best_score:
 			best = candidate
 			best_score = score
 
-	var detail := "%s 綜合比較命中人數／血量／是否為大將／距離:%s → 選擇 %s" % [
+	var detail := "%s 綜合比較命中人數／血量／距離:%s → 選擇 %s" % [
 		actor.name, "、".join(breakdown), best.name,
 	]
 	return {"target": best, "detail": detail}

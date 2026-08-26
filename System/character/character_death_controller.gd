@@ -12,11 +12,17 @@ extends RefCounted
 ## Scenes/GameOver/game_over.gd)——跟 System/event/ 底下的 LocationEvent 一樣,
 ## RefCounted 規則物件本來就會在需要時直接呼叫 NavigationStore.go_to() 驅動場景轉換,
 ## 不是只有 Scenes 層按鈕處理常式才能切場景。
+##
+## NEWS/MessageBar 死亡通知只在角色死亡當下還在 CharacterRosterStore(玩家可操控池)裡
+## 才發——配偶/小孩本來就不在 roster 裡也一樣要正常判定死亡(is_dead 照樣標記,祖譜照樣
+## 顯示「已故」),只是玩家不操控他們,不需要被這則通知打擾(見 CLAUDE.md「老年與死亡」)。
 
 static func kill(character: Character) -> void:
 	if character.is_dead:
 		return
 	character.is_dead = true
+
+	var was_in_roster := CharacterRosterStore.all_characteres.has(character)
 
 	BaseDispatchStore.undispatch_character(character.id)
 
@@ -34,6 +40,9 @@ static func kill(character: Character) -> void:
 
 	CharacterRosterStore.all_characteres.erase(character)
 
+	if not was_in_roster:
+		return
+
 	var death_text := "%s 因年邁過世了。" % character.full_name
-	NewsController.post(death_text)
+	NewsController.post(death_text, GameEnums.NewsCategory.MAJOR)
 	MessageBar.show_message(death_text)

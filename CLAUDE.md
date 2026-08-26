@@ -35,20 +35,14 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 ## System/ 資料夾對照
 
-| 資料夾 | 內容 |
-|---|---|
-| `character/` | 角色(騎士本人),含 `face_path`/`age`/`traits`/`hp`(目前固定上限 600);`aging_rule.gd`/`character_death_controller.gd` 是老年/死亡規則,見下方「老年與死亡」 |
-| `potential/` | 六大素質(STRENGTH/VITALITY/AGILITY/DEXTERITY/INTELLIGENCE/MENTALITY) |
-| `skill/` | 技能池(120 條)與效果,見下方「技能系統」 |
-| `trait/` | 角色個性/特質(`CharacterTrait`+`TraitController`,資料模型,機制未接) |
-| `party/` | 小隊,由多個 `Character` 組成(`Party.characteres`) |
-| `battle/` | 自動戰鬥流程與戰報,見下方拆解 |
-| `util/` | `GameEnums`(所有列舉+label 靜態函式)、`Util`(隨機/UUID/棋盤距離)、`level_system.gd` |
-| `event/` | 大地圖地點事件(酒館搭訕/城門挑戰/閒聊等),共用基底 `LocationEvent`,見下方「事件與跨場景資料交接」 |
-| `marriage/` | 聯姻規則(`MarriageRule`:告白資格/成功率判定) |
-| `time/` | 世界時間曆法(`WorldTime`)與推進/固定事件派發規則(`WorldTimeController`),見下方「世界時間」 |
-| `family_tree/` | 從任一角色出發,沿 `Character.parent`/`mate`/`children` 邊做世代分組,產出祖譜樹狀結構(`FamilyTreeBuilder`/`FamilyTreeUnit`),見下方「祖譜」 |
-| `nation/` | 六大國家(對應 `GameEnums.BloodlineNation`)的靜態身分資料:國家名稱、低血/高血稱呼(`Nation`/`NationLibrary`),見下方「國家好感度」 |
+大部分資料夾內容從名稱/檔名即可推知,不重複列舉,只記容易搞混的例外:
+
+- `trait/`:角色個性/特質資料模型(`CharacterTrait`+`TraitController`),機制目前**未接**,不要假設已生效。
+- `nation/`:國家的靜態身分資料(名稱、稱呼),是資料定義層;玩家對各國好感度是動態資料,存在
+  autoload `NationFavorStore`,不在這裡——見下方「國家好感度」。
+- `academy/`:留學規則(`AcademyRule`)——出生當下選國家留學,含國家↔武器對照表,見下方
+  「新生兒命名與留學」。
+- `time/`/`family_tree/`/`event/`/`battle/`/`skill/`/`character/` 各自的規則細節見下方對應章節。
 
 `battle/` 內部依職責拆成多個檔案,而不是全部塞進單一 `BattleCharacter`:`Battle`(回合迴圈/
 佈陣/勝負判定)、`BattleCharacter`(戰場上一個角色的狀態容器:HP/座標/buff/技能表,方法多是
@@ -126,41 +120,27 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 ## 戰鬥 AI 決策(System/battle/battle_ai.gd)
 
-`BattleAi.take_turn()` 是單一層級的情境權重骰選,不是「先骰行動類型、骰到技能才在技能間
-再骰一次」的兩層架構:普通攻擊/發呆/撤退(HP 低於 `ESCAPE_HP_THRESHOLD` 才列入)這三個
-固定選項,加上角色已學會的每一個技能,全部攤平進同一張候選表(`_build_action_chance_map()`)
-依戰場需求即時算權重、一起比大小。普通攻擊、撤退都是「真正的戰術選項」,權重(各 25)
-跟技能公平比大小;發呆的權重刻意壓得很低(`DAZE_BASE_WEIGHT` = 5)——它不是戰術選項,
-是「找不到任何值得做的事」時才浮上來的 AI 最低行動意願保底值,不該常態性搶進候選。撤退
-沒有寫成「HP 低於門檻就強制撤退」,而是跟其他候選一起進池子公平競爭——HP 49% 代表「開始
-認真考慮撤退」,不是「馬上逃跑」,行為才不會太機械。技能各自的情境加權沿用同一套邏輯:HEAL 不吃自身
-`base_chance`,改依「治得到的隊友」受傷程度動態給權重(沒人受傷 0、有人受傷普通、有人
-半血以下優先);BUFF/DEBUFF 如果打得到的目標已經全數生效同一組修正,權重打折
-(`STAT_SKILL_ACTIVE_DISCOUNT`),避免對著已經生效的隊友/敵人重複施放;ATTACK 類技能
-依「以最划算的敵人為中心實際上打得到幾個人」(`_best_aoe_hit_count()`)加權,不是看存活
-敵人總數——敵人再多但分散在地圖各處,AOE 實際可能只打得到 1 個,不該白白加權;敵人不多
-但剛好擠在一起,一樣算得出真正的命中數。範圍技(RADIUS/LINE/SQUARE)命中數夠多時大幅
-加權、只打得到一人時打折,單體技不受影響。算完情境加權後,統一乘上角色目前持有的被動
-技能宣告的 AI 個性乘數
-(`BattleCharacter.ai_personality_multiplier()` 讀 `Skill.ai_weight_multipliers`,
-key 是 `GameEnums.SkillType`、value 是乘數,空字典就是不影響任何行為)——普通攻擊也比照
-`SkillType.ATTACK` 一起吃這個乘數,一個「好戰」被動同時影響普攻跟攻擊技能的偏好,不必
-分開處理。目前沒有任何實際被動技能會填這個欄位,之後設計「狂戰」「醫療」這類影響 AI
-傾向的被動時,在對應的 `SkillLibrary*` 子檔案用 `SkillBuilder.ai_weight_multiplier()`
-掛上去就會生效。
+`BattleAi.take_turn()` 是單一層級的情境權重骰選(`_build_action_chance_map()`),不是
+「先骰行動類型、骰到技能才再骰一次」的兩層架構:普通攻擊/發呆/撤退(HP 低於
+`ESCAPE_HP_THRESHOLD` 才列入)加上已學會的每個技能,全部攤平進同一張候選表一起比權重。
+非顯而易見的規則:
 
-骰選前用 `_shortlist_top_candidates()` 收斂候選:只留權重最高的前 `ACTION_SHORTLIST_SIZE`
-個選項(權重 <= 0 的直接排除,例如沒人受傷的治療技不占候選名額),再對縮小後的名單做
-加權隨機——數值最高的選項不會每次都被選中,但也不會被「明明用不上的技能」稀釋掉整體
-機率。行動順序(誰先思考)由 `Battle.action_order`(依 `BattleCharacter.action_speed`,
-目前暫以敏捷計算)在每回合開始時排一次,跟「這一刻該做什麼」是分開的兩層——順序排定後,
-每個角色真正輪到自己時才呼叫 `take_turn()`,讀的是「當下」戰場狀態(HP/敵我陣容/buff),
-不是回合開始時就預先決定好、寫死不能改的行動。
-
-`_build_action_chance_map()` 同時回傳 `weights`(給 `Util.get_random_chance_item_detailed()`
-抽選用)與 `notes`(每個候選這次權重怎麼算出來的一行說明),兩份資料同一個迴圈算出來,
-不會各自維護一份導致跟實際骰選邏輯兜不起來;`take_turn()` 把這份說明併進 `action_detail`,
-戰報 UI 滑鼠懸停就能看到「這一招為什麼被選中/為什麼權重特別高」,不需要另外重算一次。
+- 普通攻擊、撤退是跟技能公平競爭的戰術選項;發呆權重刻意壓得很低(`DAZE_BASE_WEIGHT`),
+  只是「找不到任何值得做的事」時的保底值,不是常態選項。撤退同理不是「HP 低於門檻就強制
+  撤退」,而是跟其他候選一起進池子公平競爭,避免行為太機械。
+- HEAL 不吃自身 `base_chance`,改依隊友受傷程度動態給權重;BUFF/DEBUFF 對已生效同一組
+  修正的目標打折(`STAT_SKILL_ACTIVE_DISCOUNT`)避免重複施放;ATTACK 類依
+  `_best_aoe_hit_count()`(以最划算敵人為中心實際打得到幾人)加權,不是看存活敵人總數——
+  敵人分散時 AOE 也可能只打到 1 個。
+- 被動技能可用 `Skill.ai_weight_multipliers`(key 是 `SkillType`)對普攻+攻擊技能一起套
+  AI 個性乘數(`BattleCharacter.ai_personality_multiplier()`),目前無技能使用此欄位,
+  之後設計「狂戰」「醫療」類被動可直接掛 `SkillBuilder.ai_weight_multiplier()`。
+- 骰選前用 `_shortlist_top_candidates()` 只留權重最高的前 `ACTION_SHORTLIST_SIZE` 個做
+  加權隨機,避免用不上的技能稀釋機率。
+- 行動順序(`Battle.action_order`,依 action_speed)在回合開始排一次,跟「這一刻該做
+  什麼」是分開的兩層——真正輪到時才讀「當下」戰場狀態,不是回合開始就寫死的行動。
+- `_build_action_chance_map()` 同一迴圈回傳 `weights`(骰選用)與 `notes`(權重成因,
+  併入 `action_detail` 供戰報 UI 懸停顯示),兩者保證同步,不會分開算導致兜不起來。
 
 ## 共用 UI
 
@@ -178,97 +158,49 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 屬性跟 `character_selected` 訊號(`CharacterAvatarCard` 頭像卡就符合這個形狀)。這個元件
 不含自己的 `ScrollContainer`,設計上配合下方彈出面板殼使用,一律不切場景。
 
-近全螢幕/近大彈窗的內容一律走同一層共用外殼——`Scenes/ActionPanel/action_panel.gd`
-(`ActionPanel`,autoload,見「共用彈出式操作面板」段落開頭)。不管是清單式的 `open()`
-還是任意版面的 `open_custom(title, content, on_close, min_size)`,寬度/外框/標題列/×
-關閉鈕全部只由這一層控制,不疊多層 CanvasLayer 互相影響(先前的 `FullscreenOverlay` 已
-整個移除)。`open_custom()` 是**取代**而不是疊加——換內容時原本顯示中的 content 會被
-`queue_free()`,呼叫端如果之後要「取消/關閉」回到前一個畫面,不是簡單 `close()` 就能復原,
-要在 `on_close` callback 裡重新呼叫建構前一個內容的入口(例如
-`System/event/base/base_building_event.gd` 的 `open_action_panel()`,重開一份全新的
-`BaseBuildingPanelContent`),不要嘗試復用已經被釋放的舊 content——見
-`Scenes/Marriage/stronghold_marriage_panel.gd`(聯姻選人選國家,取代掉城鎮中心建築面板)、
-`Scenes/Marriage/marriage_proposal_panel.gd`(告白)、
-`System/event/base/base_marriage_event.gd` 的 `_open_candidate_picker()`(候選人盲選)
-三個 `open_custom()` 實例,以及 `close(trigger_callback)` 的 `false` 用法——確認/選定時
-呼叫端已經自己決定好下一步,要傳 `false` 蓋掉預設的 `on_close` 續接,避免兩條後續流程
-搶著跑。
+近全螢幕/近大彈窗的內容一律走同一層共用外殼——`ActionPanel`(autoload,
+`Scenes/ActionPanel/action_panel.gd`)。寬度/外框/標題列/× 關閉鈕全部只由這一層控制,
+不疊多層 CanvasLayer 互相影響(舊版 `FullscreenOverlay` 已移除)。非顯而易見的規則:
 
-`open_custom()` 塞內容的 `ItemsList` 本身 `size_flags_vertical=EXPAND_FILL`,外層
-`ScrollContainer` 才會把整個 `PanelBox` 給的高度交給它,所以傳入的 content 也要自己設
-`size_flags_vertical=EXPAND_FILL`(見 `StrongholdMarriagePanel`/`MarriageProposalPanel`
-的 `_ready()`),不然版面會被壓縮成一小條。這層 `ScrollContainer` 是給「整個 content
-天生就比面板還高」這種例外情況的最後防線,不是常態捲動機制——content 內部任何可能超出
-自己那個框的子面板/清單/網格(例如角色選人清單、國家按鈕網格)要呼叫
-`ActionPanel.wrap_scrollable(control)` 換一個已經套好樣式/方向限制的 `ScrollContainer`
-包住它,吃掉超出的部分,不要放著讓外層 `ItemsList` 的 `ScrollContainer` 整包一起被撐高、
-變成捲動整個面板,也不要各自重新手刻一份 `ScrollContainer` 設定——集中寫在
-`ActionPanel` 這一份,呼叫端只負責標記「這個子區塊需要自己捲動」,見
-`stronghold_marriage_panel.gd` 的 `_build_nation_panel()`/`_build_proposer_panel()`、
-`marriage_proposal_panel.gd` 的 `setup()` 三個實例。
+- `open_custom(title, content, on_close, min_size)` 是**取代**而不是疊加——換內容時舊
+  content 會被 `queue_free()`。呼叫端要「取消回到前一步」不能單純 `close()` 復原,要在
+  `on_close` 裡重新呼叫建構前一步內容的入口,重開一份全新 content,不能復用已釋放的舊
+  content。`close(trigger_callback)` 傳 `false` 表示呼叫端已自行決定好下一步,蓋掉預設
+  `on_close` 續接,避免兩條後續流程搶著跑。
+- content 內部任何可能超出自身框架的子區塊(清單/網格)要呼叫
+  `ActionPanel.wrap_scrollable(control)` 取得已設好樣式的 `ScrollContainer`,不要各自
+  手刻,也不要放著讓外層 `ItemsList` 的 `ScrollContainer` 整包被撐高變成捲動整個面板。
+  content 本身要設 `size_flags_vertical=EXPAND_FILL`,否則版面會被壓縮成一小條。
+- 內容的操作按鈕一律用 `ActionPanel.set_title_action_button()` 塞進標題列跟 × 同一行,
+  不要在內容底部另排一排。跟 × 功能重複的「取消/婉拒」鈕直接刪除(× 本來就觸發
+  `on_close`);只有「取消當前多步驟操作、回到同一個 content 的前一步」這種**不**等同
+  關閉整個 ActionPanel 的取消鈕才保留在內容區塊裡。
 
-`open_custom()` 內容的操作按鈕一律比照「建造」「升級」鈕的既有做法(見上方「建造」
-「升級」段落),用 `ActionPanel.set_title_action_button()` 塞進標題列跟 × 同一行,不要
-另外在內容底部排一整排——`StrongholdMarriagePanel` 的「確認聯姻」、`MarriageProposalPanel`
-的「接受」都在各自 `_ready()` 呼叫這個 API。跟 × 功能重複的「取消」/「婉拒」鈕直接刪掉,
-不要保留:× 本來就會觸發 `open_custom()` 傳入的 `on_close`(或 `MarriageProposalPanel`
-的 `decline()`/`MarriageCandidateList` 收尾用的 `_on_candidate_declined()`),再放一顆
-按鈕做同一件事只是多占一排空間。只有「取消當前多步驟操作、回到同一個 content 裡的前一步」
-這種**不**等同關閉整個 ActionPanel 的取消鈕才保留在內容區塊裡,例如
-`BaseBuildingPanelContent._build_skill_picker()` 的取消鈕只是清空 `_training_character`
-再 `_rebuild_body()`,面板本身沒有關閉,跟 × 的「離開整個面板」不是同一件事。
-
-`Scenes/CharacterSelect/character_select_overlay.gd` 的 `CharacterSelectOverlay` 是唯一
-的例外——選人情境專用外殼,`extends CanvasLayer`(自成一層,layer 比 `ActionPanel` 高),
-不借用 `ActionPanel`,因為它經常需要疊加在「目前已經開著的 `ActionPanel` 內容之上」而不
-取代它(例如根據地建築面板還開著時彈出的派遣/受訓/領導人選人清單)。外觀比照
-`ActionPanel` 的既有彈出視覺語言(半透明黑幕 + `CenterContainer` 置中 + 固定
-`custom_minimum_size` 的 `PanelBox`,尺寸直接沿用 `ActionPanel.DEFAULT_MIN_SIZE`,不再
-另外調一組數字),內部塞一個 `CharacterSelectPanel`(左側 `CharacterDetailView` + 右側
-`CharacterSelectBar`,見 `Scenes/CharacterSelect/character_select_panel.gd`)。呼叫端
-`CharacterSelectOverlay.new()` 塞進場景樹、呼叫 `open_picker(title, characters,
-card_factory, initial_sort_key, on_confirmed, ...)`——見 `Scenes/Base/base_action_panel.gd`
-的 `_open_dispatch_picker()`/`_open_trainee_picker()`/`_open_leader_picker()` 三個實例,
-`close()` 時自己 `queue_free()`,不是 autoload 單例,疊上來的當下底下的 `ActionPanel`
-內容完全不受影響、不會被取代/釋放。
+`CharacterSelectOverlay`(`Scenes/CharacterSelect/character_select_overlay.gd`)是唯一
+例外——`extends CanvasLayer` 自成一層(layer 比 ActionPanel 高),不借用 ActionPanel,
+因為它經常需要疊加在「目前已開著的 ActionPanel 內容之上」而不取代它(例如根據地建築
+面板開著時彈出的派遣/受訓/領導人選人清單)。外觀沿用 ActionPanel 的視覺語言與
+`DEFAULT_MIN_SIZE`,內部塞 `CharacterSelectPanel`(左側 `CharacterDetailView` + 右側
+`CharacterSelectBar`)。呼叫端 `new()` 塞進場景樹、呼叫 `open_picker(...)`,`close()`
+時自己 `queue_free()`——不是 autoload 單例,疊上來時底下的 ActionPanel 內容不受影響。
 
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
-入口只有一處:`Scenes/CharacterRoster/character_roster.gd` 最上方「觀看祖譜」按鈕,對
-目前在角色列表選取的那一張卡片開啟(不是隊伍角色、也不是全部角色的清單)。走
-`SceneHandoffStore.queue(FamilyTree.FOCUS_MAILBOX_KEY, character)` 交接起點角色,再
-`NavigationStore.go_to("res://Scenes/FamilyTree/family_tree.tscn")` 切場景,`family_tree.gd`
-的 `_ready()` 用 `take()` 一次性讀出(不是 Dialogue 那種需要撐住 lambda 生命週期的用途)。
+入口只有一處:角色列表最上方「觀看祖譜」按鈕,對目前選取的那張卡片開啟,走
+`SceneHandoffStore` 交接起點角色後切場景,`take()` 一次性讀出。
 
-`FamilyTreeBuilder.build(focus)`(`System/family_tree/family_tree_builder.gd`)沿
-`children`(世代 +1)/`parent`(世代 -1)/`mate`(世代不變)三種邊做 BFS,把 `focus` 所在的
-整個連通「親族圖」全部走過一輪——父母、祖父母、配偶、子女、孫子女……只要沿血緣/婚姻邊
-連得到都會出現在樹上,不是只往下長。BFS 算出來的世代是相對 `focus`(=0)的值,可能是
-負數(祖先),走完後整體平移(減去最小值、+1)讓最上層那一代變成世代 1(樹頂)——`focus`
-不一定落在世代 1,要看它在整個親族圖裡的實際位置。走完後分組成 `FamilyTreeUnit`(一對
-夫妻或一個單身角色)。已知限制:若某個子孫的配偶本身也是樹內已出現的血親(表親聯姻),
-理論上會有兩條血親線可以連到上一代,`_find_parent_unit()` 只認第一個找到的,不畫第二條線,
-避免變成非樹狀的蜘蛛網(遊戲企劃設定總整理.md 二十三節已列為已知的未來問題,
-`family_tree` 這版不處理)。
+`FamilyTreeBuilder.build(focus)` 沿 `children`/`parent`/`mate` 三種邊做 BFS,走完整個
+連通親族圖(不是只往下長)。世代是相對 `focus`(=0)的值,走完整體平移讓最上層變世代
+1——`focus` 不一定落在世代 1。已知限制:表親聯姻會讓某節點理論上有兩條血親線連到上一代,
+`_find_parent_unit()` 只認第一條,不畫第二條,避免樹變蜘蛛網(遊戲企劃設定總整理.md
+二十三節已列為已知問題,這版不處理)。死亡角色一樣出現在樹上,不反灰,只在年齡後綴
+「(已故)」,跟 `CharacterDetailView` 呈現方式統一。
 
-死亡角色(`Character.is_dead`,見「老年與死亡」)一樣會出現在樹上(死亡不影響
-`parent`/`mate`/`children` 參照),卡片不特別反灰,只在「年齡」那一列數值後綴
-「(已故)」(`FamilyTreeCanvas._build_person_column()`),跟 `CharacterDetailView`
-彈出面板的年齡欄呈現方式統一。
-
-`Scenes/FamilyTree/family_tree_canvas.gd` 的 `FamilyTreeCanvas` 拿到 `FamilyTreeUnit` 陣列後
-自己算版面座標(後序遞迴分配 x slot、`generation` 決定 y)手動 `position`/`size` 每張卡片、
-覆寫 `_draw()` 畫世代間的直角連接線——這一層是純版面/像素計算,不是規則邏輯,所以留在
-Scenes 而不是 System(比照 `battle_board.gd` 的格線/座標換算)。卡片沒有配偶時只留一欄,
-不留空欄佔位——所以卡片寬度分 `CARD_WIDTH_SINGLE`/`CARD_WIDTH_COUPLE` 兩種,但排版仍統一
-用較寬那個當 slot 間距置中對齊,卡片幾何中心永遠等於「本人與配偶之間的中線」(單人卡就是
-那一欄的中線),連接線直接讀這個中心點。卡片內容(頭像/姓名/年齡/性別/血統清單+計量表)
-跟 `CharacterDetailView._populate_bloodline()` 同一套資料來源/配色(`Bloodline.
-get_nonzero_entries()` + `GameEnums.bloodline_full_label`/`bloodline_nation_color`),血統
-清單固定只留約 3~4 條的高度,超過用內部 `ScrollContainer` 捲動、不撐高卡片。整欄
-(不只小頭像)都能點擊開 `CharacterPanel`,且 `ScrollContainer` 範圍內按住可拖曳平移
-(`FamilyTreeCanvas._input()`,不受卡片 `mouse_filter=STOP` 影響;拖曳距離超過門檻才算
-「有拖曳」,放開時才不會被誤判成點擊開錯面板)。
+`FamilyTreeCanvas` 自己算版面座標、手動擺放每張卡片、`_draw()` 畫連接線——純版面計算,
+留在 Scenes 而非 System(比照 `battle_board.gd`)。卡片無配偶時只留一欄不佔空欄,但排版
+統一用較寬的雙人欄位當 slot 間距置中對齊,幾何中心永遠是「本人與配偶的中線」,連接線讀
+這個中心點。`ScrollContainer` 範圍內可拖曳平移(拖曳距離超過門檻才算拖曳,避免放開時被
+誤判成點擊開錯面板)。
 
 ## 國家好感度(System/nation + NationFavorStore)
 
@@ -296,144 +228,156 @@ battle_reward.gd` 的 `grant_victory_favor(battle)` 依 `enemy_rank_type` 查
 `RANK_NATION_FAVOR` 表發好感度給該國家——只有贏才加,戰敗/平手不倒扣,呼叫點跟
 `grant_victory_exp`/`settle_money` 是同一組(見「戰鬥系統」節)。
 
+## 消息(System/news + NewsStore)
+
+`NewsEntry`(`System/news/news_entry.gd`)是一則永久留存的消息紀錄(遊戲內時間文字 +
+系統時間文字 + 內容 + 分類 + 已讀旗標),`NewsController.post(content, category)`
+(`System/news/news_controller.gd`)是唯一寫入端,一步到位建立 `NewsEntry` 存進
+`NewsStore`(autoload,`Scripts/Autoload/news_store.gd`)——其他系統要發布消息一律呼叫
+這支,不直接碰 `NewsStore`。`category` 是 `GameEnums.NewsCategory`(`MAJOR`/`DAILY`,
+對應 `Scenes/News/news_list.gd` 的「重大」/「日常」分頁),呼叫端一律要明確指定,故意不給
+預設值——目前 `MAJOR` 是角色生老病死等重大人生事件(成年/衰老/懷孕/生產/結婚/死亡,見
+`WorldTimeEventLibrary`/`CharacterDeathController`/`BaseMarriageEvent`/
+`TownTavernEvent`),`DAILY` 目前只有學會技能(`BarracksTrainingStore`),之後會陸續加入
+更多瑣碎事件。委託完成(`QuestStore._grant_reward_and_complete()`)只跳 `MessageBar`
+提示,刻意不寫進 `NewsController`——不算重大事件,也不想讓「日常」分頁被委託洗版。
+
+未讀機制:`NewsEntry.is_read` 新建時預設 `false`,`NewsStore.mark_category_read(category)`
+把該分類目前所有消息一次標記已讀。`news_list.gd` 打開分頁畫面時,先讀每則消息當下的
+`is_read` 狀態決定要不要在列尾畫紅色未讀圓點,清單建完才呼叫 `mark_category_read()`——
+不能反過來,不然圓點畫出來當下就被自己清掉。只標記「目前看得到的那個分頁」(`_tabs.
+current_tab`),切到另一個分頁時才由 `tab_changed` 訊號補標記——沒點開過的分頁不會被
+悄悄標成已讀。存檔沿用既有慣例(見下方「世界時間」等節),`category`/`is_read` 都寫進
+`to_save_data()`/`load_save_data()`;讀取舊存檔(沒有這兩個欄位)時 `category` 預設當
+`MAJOR`、`is_read` 預設當 `true`,避免舊存檔一次跳出一大堆補標的未讀消息。
+
 ## 世界時間(System/time + WorldTimeStore)
 
-`WorldTime`(`System/time/world_time.gd`)是純曆法算式(12 個月/每月 30 天/全年 360 天,
-架空紀年、不對應真實西元/BC,遊戲開始固定是 `START_YEAR` 年 1 月 1 日,年份只會往上加不會
-往回推算,見檔案內註解),`WorldTimeController`(`System/time/world_time_controller.gd`)
-包一層「推進後跨過幾天邊界」的偵測,逐天派發已註冊的 day/month/year 固定事件——不是每
-frame 觸發,是每跨過一天才觸發一次,快轉一次跳好幾天一樣會逐天觸發,不會漏掉中間的月/
-年事件。兩者都是 `RefCounted`,不自己跑迴圈。
+`WorldTime`(架空曆法算式,見檔案內註解)與 `WorldTimeController`(推進後偵測跨過幾天
+邊界、逐天派發已註冊的 day/month/year 事件——不是每 frame 觸發,快轉跳好幾天也會逐天
+補發,不漏中間的月/年事件)都是 `RefCounted`,不自己跑迴圈,由 `WorldTimeStore`
+(autoload)全程持有,取代舊版進出地圖手動存讀 `day_accumulator` 的作法——世界時間不會
+因為離開/返回大地圖而重置。
 
-`WorldTimeStore`(autoload,`Scripts/Autoload/world_time_store.gd`)是這個 controller 唯一
-的持有者,應用程式全程存活,取代舊版「`WorldTime` 由 `Scenes/Map/map.gd` 自己 `new`、進出
-地圖手動把 `day_accumulator`/`is_playing` 存進 `MapSessionStore` 再讀出來還原」的作法——
-現在世界時間不會因為玩家離開/返回大地圖而重置。實際推進(`advance(delta)`)綁在
-`HeaderBar._process()`(見下方 HeaderBar 說明),不是綁在個別場景腳本:只要場景掛了
-`HeaderBar`,`is_playing` 為真時世界時間就會走;沒掛 `HeaderBar` 的場景(例如 MapLocation
-的地點選單)本來就把 `is_playing` 停在 `false`,不需要推進。這樣任何掛了 `HeaderBar` 的
-新場景會自動獲得走時間的能力,不用自己再持有一份 `WorldTime` 或手動呼叫 `advance()`。
+推進(`advance(delta)`)綁在 `HeaderBar._process()`,不綁個別場景腳本:場景只要掛了
+`HeaderBar` 就自動獲得走時間能力,不用自己持有 `WorldTime` 或手動呼叫 `advance()`;沒掛
+`HeaderBar` 的場景(例如 MapLocation 選單)`is_playing` 本來就停在 `false`。
 
-其他系統要在「跨過一天/月/年邊界」時收到通知,兩種管道擇一:
+其他系統要在跨日/月/年邊界收到通知,兩種管道擇一:System 層呼叫
+`WorldTimeStore.controller.register_day_event()`/`_month_event()`/`_year_event()`(傳入
+`Callable` 永久保存,注意下方「RefCounted 生命週期陷阱」——裸方法參照撐不住引用計數);
+Scenes 層直接接 `day_passed`/`month_passed`/`year_passed` 訊號(隨場景節點釋放自動斷開,
+不會越存越多)。
 
-- System 層(RefCounted 規則邏輯):直接呼叫
-  `WorldTimeStore.controller.register_day_event()`/`register_month_event()`/
-  `register_year_event()`,傳入的 `Callable` 會被永久保存,注意下方「RefCounted 生命週期
-  陷阱」——裸方法參照撐不住呼叫端物件的引用計數。
-- Scenes 層(場景腳本):接 `WorldTimeStore` 的 `day_passed`/`month_passed`/`year_passed`
-  訊號即可(見 `map.gd` 用 `day_passed` 驅動小隊 HP 自然回復,`Character.advance_hp_regen()`),
-  Node 的訊號連線會在場景節點釋放時自動斷開,不會殘留、也不會像上面 Callable 陣列那樣
-  越存越多。
-
-`HeaderBar`(`Scripts/UI/header_bar.gd`)是完全自給自足的共用頂部列,呼叫端只要
-`HeaderBar.new()` 掛進場景的 CanvasLayer 就好,不需要接訊號或每幀同步任何狀態——倍速
-按鈕(`▶️1x`/`▶️2x`/`▶️3x`/`⏩DEMO` 四顆互斥單選按鈕,`ButtonGroup` 確保同時只有一顆
-按下)點下去、或鍵盤 1/2/3/4,都在 `HeaderBar` 內部直接呼叫
-`WorldTimeStore.set_speed_level(level)`;Space 鍵直接呼叫 `WorldTimeStore.toggle_playing()`。
-`HeaderBar` 是全域唯一的倍速/暫停控制入口,場景腳本(`map.gd`/`base.gd`)不用再各自寫一份
-鍵盤 `_unhandled_input()`。四個等級都寫進同一個 `play_speed_multiplier`(1.0/2.0/3.0/100.0,
-`SPEED_MULTIPLIERS`)——DEMO(4)只是數字比較大,跟 1x/2x/3x 走同一條路、一樣受
-`is_playing` 控管,沒有另開 `Timer` 或繞過暫停的特殊通道。`HeaderBar._process()` 自己拿
-這個倍率乘 `delta` 呼叫 `WorldTimeStore.controller.advance()` 推進世界時間、再更新時間
-文字,用 `⏩`(播放中且倍速等級是 DEMO)/`▶️`(播放中)/`⏸️`(暫停)三個圖示跟倍速按鈕的
-視覺語言呼應。`Scenes/Map/map.gd._process()` 額外拿同一份 `play_speed_multiplier` 套用在
-地圖移動速度上(`HeaderBar` 不知道地圖移動這件事,只管世界時間本身),讓走路跟時間流逝
-維持同一套加速比例。`HeaderBar` 是全新節點(每次進場景都重新 `HeaderBar.new()`),
-`_ready()` 建立按鈕時直接讀 `WorldTimeStore.speed_level` 同步外觀,不需要呼叫端額外同步。
+`HeaderBar` 是自給自足的共用頂部列,只要 `new()` 掛進場景就好,不需接訊號或每幀同步。
+倍速按鈕(1x/2x/3x/DEMO,`ButtonGroup` 互斥)與 Space(暫停)都直接呼叫
+`WorldTimeStore.set_speed_level()`/`toggle_playing()`,是全域唯一的倍速/暫停入口,場景
+腳本不用各自寫鍵盤輸入處理。DEMO 只是 `play_speed_multiplier` 數字比較大,跟 1x/2x/3x
+走同一條路、一樣受 `is_playing` 控管,沒有另開 Timer 或繞過暫停的特殊通道。
+`Scenes/Map/map.gd._process()` 額外拿同一份倍率套用在地圖移動速度上(HeaderBar 本身不知道
+地圖移動,只管世界時間),讓走路跟時間流逝維持同一套加速比例。
 
 ## 老年與死亡(System/character + WorldTimeEventLibrary)
 
-`AgingRule`(`System/character/aging_rule.gd`,`RefCounted`)集中管理兩條隨年齡變化的門檻,
-全部是可調常數,方便之後調整/角色差異化(見檔案內註解):`BASE_AGING_LINE`(衰老線,預設
-50 歲)、`BASE_DEATH_LINE`(死亡線,預設 80 歲)、`CLINIC_LINE_BONUS_PER_LEVEL`(醫療所
-每升一級兩條線各自 +5,不是漸增)。實際門檻 `get_aging_line()`/`get_death_line()` = 基礎值
-+ `BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC) * 5`——CLINIC 最高
-9 級時是 95 歲/125 歲,沒有刻意湊整數到 100/130,維持「每級 +5」這個規則本身最單純。死亡
-機率 `get_death_chance_percent()` 是加速型曲線(`DEATH_CHANCE_CURVE_EXPONENT`,預設
-2 次方):未達衰老線 0%,死亡線以上 100%,中間依比例的平方內插,前期低、接近死亡線才
-陡升。
+`AgingRule`(`System/character/aging_rule.gd`)集中管理衰老線/死亡線兩條門檻,兩者都會隨
+CLINIC 建築等級提升而後退(數值見檔案內常數)。死亡機率曲線是加速型(前期低、接近死亡線
+才陡升),不是線性內插。
 
-`WorldTimeEventLibrary._age_up()`(每年觸發,見「世界時間」)在幫每個角色 `age_up()` 之後
-呼叫 `_process_aging(character)`:年齡跨過衰老線第一次會掛上 `AgingRule.create_aging_trait()`
-建立的衰老特性(全素質固定打七折,見下段),之後每年只要還在衰老線以上就
-`AgingRule.roll_death()` 骰一次是否過世。玩家固定主角(`Character.is_protagonist`)**不**
-豁免——跟角色列表解雇功能特別擋掉主角/隊長是兩回事(解雇是怕玩家手滑卡死流程,老死是
-機率自動觸發)。衰老特性一旦掛上不會因為 CLINIC 之後升級、衰老線後退而被摘除,是刻意的
-簡化行為(不做「回春」),之後如果要改可以在 `_process_aging()` 加對稱的移除邏輯。
+`WorldTimeEventLibrary._age_up()`(每年觸發)幫角色 `age_up()` 後呼叫 `_process_aging()`:
+跨過衰老線第一次掛上衰老特性(全素質打折),之後每年在衰老線以上就骰一次死亡。玩家固定
+主角**不**豁免老死——跟角色列表解雇功能特別擋掉主角/隊長是兩回事(解雇是防手滑卡流程,
+老死是機率自動觸發)。衰老特性掛上後不會因 CLINIC 升級、衰老線後退而摘除,是刻意的簡化
+(不做「回春」)。
 
-衰老特性透過 `CharacterTrait.stat_multiplier`(預設 1.0,`is_aging` 旗標標記——不比對
-`name` 字串,比照 `Character.knows_guard_skill()` 用旗標而非顯示名稱字串比對的既有慣例)
-套用:`Character._get_real_potential()` 乘上全部特性 `stat_multiplier` 的連乘
-(`_trait_stat_multiplier()`),`strength`/`agility`/...等既有 getter 全部自動套用,不用
-另外修改 `CombatResolver`/`BaseProduction`。這個欄位是通用機制,之後其他特性要做類似的
-素質加成/減益效果可以直接重用,不必只綁死給衰老特性。
+衰老特性透過 `CharacterTrait.stat_multiplier`(通用欄位,`is_aging` 旗標標記,不比對
+name 字串)套用,`Character._get_real_potential()` 乘上全部特性的 `stat_multiplier` 連乘
+——之後其他特性做類似素質加成/減益都可直接重用這個欄位,不必只綁死給衰老特性。
 
-角色死亡的唯一入口是 `CharacterDeathController.kill()`(`System/character/`):依序清掉
-`BaseDispatchStore` 的根據地派遣、`PartyStore.grid`/`PartyStore.party`(小隊編成/戰場站位,
-含隊長 fallback),確認清乾淨「需要角色實際在場」的地方後才把角色從
-`CharacterRosterStore`(可操控池)移除。跟解雇不同的是**不**從 `AllCharacterStore` 移除,
-只標記 `Character.is_dead = true`——祖譜(`FamilyTreeBuilder`)是沿 `AllCharacterStore`
-裡還存在的 Character 物件走 `children`/`parent`/`mate` 邊,拔掉物件會讓親族圖斷線;死亡
-角色仍會出現在祖譜裡與 `CharacterDetailView`(`CharacterPanel`/`CharacterRoster` 共用)的
-家族分頁,兩處都不反灰、不改姓名,統一只在「年齡」數值後面加「(已故)」(例如
-「64(已故)」),點擊一樣能開 `CharacterPanel` 查看完整資料。`is_dead` 的角色
-`Character.age_up()` 直接跳過,不再隨世界時間增齡。
+角色死亡的唯一入口是 `CharacterDeathController.kill()`:依序清掉根據地派遣、小隊編成/
+戰場站位(含隊長 fallback)後才把角色從 `CharacterRosterStore`(可操控池)移除。跟解雇
+不同的是**不**從 `AllCharacterStore` 移除,只標記 `is_dead = true`——祖譜沿
+`AllCharacterStore` 裡的 Character 物件走親緣邊,拔掉物件會讓親族圖斷線。死亡角色仍會
+出現在祖譜與角色詳情的家族分頁,不反灰、不改名,只在年齡後綴「(已故)」。
 
-死亡把角色從 `PartyStore.party.characteres` 清掉之後,如果整隊死到淨空(玩家固定主角
-不豁免老死,見上方決策),`kill()` 直接 `NavigationStore.go_to("res://Scenes/GameOver/
-game_over.tscn")` 切去 GAME OVER 畫面——跟 `System/event/` 底下的 `LocationEvent` 一樣,
-RefCounted 規則物件本來就會在需要時直接驅動場景轉換,不是只有 Scenes 層按鈕處理常式才
-能切場景。`game_over.gd` 只有兩個出口:「讀取存檔」共用 `SaveSlotPicker.open_load_menu()`
-(跟 `HeaderBar`/`Scenes/Base/base.gd` 的讀檔入口同一份邏輯,讀檔成功會自動切去大地圖)、
-「回到主選單」`NavigationStore.go_to("res://Scenes/main.tscn")`。GAME OVER 畫面沒有
-`HeaderBar`,世界時間本來就不會在這裡繼續推進,不需要額外暫停。
+衰老/死亡的狀態變化(掛衰老特性、`is_dead` 標記)對 `AllCharacterStore` 裡所有角色一律
+照跑,但 NEWS/MessageBar 通知(`WorldTimeEventLibrary._process_aging()` 的衰老文案、
+`CharacterDeathController.kill()` 的死亡文案)只在角色死亡/衰老當下**還在**
+`CharacterRosterStore` 裡才發——配偶、未成年小孩本來就不在 roster 裡也要正常衰老/死亡,
+但玩家不操控他們,不需要被這些通知打擾;解雇的角色（`is_dismissed`）本來就已經連
+`AllCharacterStore` 都被移除,自然也不會再進這兩個函式。
+
+死亡把角色清出小隊後,如果整隊死到淨空(主角不豁免,見上方),`kill()` 直接切去 GAME
+OVER 畫面——跟 `LocationEvent` 一樣,RefCounted 規則物件本來就會在需要時直接驅動場景轉換,
+不是只有 Scenes 層按鈕才能切場景。GAME OVER 畫面沒有 `HeaderBar`,世界時間本來就不會
+在這裡繼續推進。
+
+## 新生兒命名與留學(System/academy + LifeEventQueueStore)
+
+小孩出生(`WorldTimeEventLibrary._deliver_child()`)當下觸發一個全螢幕場景
+(`Scenes/LifeEvent/life_event_scene.tscn`),命名跟決定未來留學國家合併在同一個畫面
+(不分兩次彈窗,也不用等到 7 歲——出生當下就決定成長方向,是刻意的簡化)。System 層
+RefCounted 規則(`_deliver_child()`)直接驅動 Scenes 層切場景,沿用「老年與死亡」一節
+`CharacterDeathController.kill()` 直接切場景的同一套慣例。
+
+`LifeEventQueueStore`(autoload,`Scripts/Autoload/life_event_queue_store.gd`)是這個場景
+唯一的觸發入口:`queue_child(child)` 把待顯示的小孩塞進內部佇列。第一個小孩用
+`NavigationStore.go_to()` 切過去——這個場景沒有 `HeaderBar`,世界時間依既有慣例自動停止
+推進,不用另外手動暫停。同一個月有好幾個小孩同時出生時,`_busy` 旗標擋下重複切場景,
+場景這邊按下確認後呼叫 `LifeEventQueueStore.finish_current()`:還有排隊中的小孩就用
+`get_tree().reload_current_scene()` 原地換下一個小孩重來一輪(不會多推一層
+`NavigationStore` 歷史),全部處理完才 `NavigationStore.go_back()` 回到觸發當下玩家原本
+所在的場景。這個場景沒有「稍後再決定」的略過機制,只有一顆「確認」鈕,選了留學國家
+才能按。
+
+留學選定當下立即生效:`AcademyRule.enroll(character, nation)` 把 `character.weapon`
+換成該國對應武器,並用 `SkillController.get_random_initial_skill_list(weapon, noble_rank,
+bloodline)`——跟 `CharacterController.get_random_character()` 生成一般角色同一套抽選
+邏輯——重骰一次技能表,不是固定塞一支技能。國家↔武器對照(`AcademyRule.NATION_WEAPON`)
+沿用《遊戲企劃設定總整理.md》既有企劃表(獅→大劍/鷹→弓/豹→匕首/熊→大盾/龍→法仗/
+鹿→捕夢網),跟 `GameEnums.WeaponType`/`BloodlineNation` 兩個 enum 各自的宣告順序不同
+(豹/熊對調),查表而非用 enum 值互轉。六國按鈕的說明文字(`AcademyRule.NATION_FLAVOR`)
+刻意精簡,是給玩家讀的風味敘述,不是機制說明。
+
+`life_event_scene.gd`(`Scenes/LifeEvent/`)結構比照 `FamilyTree`:固定外框(背景/標題)
+寫在 `.tscn`,動態內容(左側 `CharacterDetailView` + 右側命名/選國家)在 `_ready()`
+程式化建構;跟 `FamilyTree` 一樣透過 `SceneHandoffStore` 一次性 `take()` 讀入要顯示的
+角色(mailbox key 是 `LifeEventQueueStore.MAILBOX_KEY`)。命名輸入框打字當下只更新
+`CharacterDetailView` 的姓名文字做即時預覽,真正寫回 `Character.name` 要等按下確認。
 
 ## 事件與跨場景資料交接(LocationEvent + SceneHandoffStore)
 
-大地圖地點事件(`System/event/town/*Event.gd`,例如 `TownTavernEvent`/`TownGateEvent`/
-`TownChatEvent`;`System/event/base/*Event.gd`,例如 `/`BaseBuildingEvent`——
-「進入根據地」沒有對應事件,`map_location.gd` 直接切場景)共用基底 `LocationEvent`
-(`RefCounted`,不是 Node):呼叫端(Scenes 層,
-例如 `map_location.gd`/`base.gd` 的按鈕)只呼叫一次子類別的 `trigger(...)`,接下來對話/
-戰鬥怎麼串、播完要回哪裡,全部交給事件物件自己接管,文案常數跟流程方法集中寫在同一個
-class 裡。事件是 `RefCounted` 而非 `Node`,因為整段流程常橫跨好幾次場景切換(例如
+大地圖地點事件(`System/event/town/*Event.gd`、`System/event/base/*Event.gd`;「進入根據地」
+沒有對應事件,`map_location.gd` 直接切場景)共用基底 `LocationEvent`(`RefCounted`,不是
+Node):呼叫端只呼叫一次子類別的 `trigger(...)`,接下來對話/戰鬥怎麼串、播完回哪裡全部
+交給事件物件自己接管。是 `RefCounted` 而非 `Node`,因為流程常橫跨好幾次場景切換(例如
 `MapLocation → Dialogue → Battle → Dialogue → MapLocation`),中途發起事件的場景節點早就
 被釋放了。
 
-**跨場景資料轉手一律走 `SceneHandoffStore`**(autoload,`Scripts/Autoload/scene_handoff_store.gd`)
-這個通用信箱,不要再為每個新情境各開一支 `pending_xxx` 欄位 + Autoload .gd(舊的
-`DialogueStore`/`ProposalStore` 已合併掉,不要再新增類似的專用 autoload)。用字串 key
-分流不同用途,同一時間可以有好幾筆資料同時待處理(例如 `LocationEvent.goto_dialogue()`
-queue `DIALOGUE_MAILBOX_KEY` 給下一個場景播 `Dialogue`,跟同時待處理的其他 key 不會
-互相覆蓋)。這一套只在**真的要切場景**時才需要——不切場景、只是疊加彈出面板的情境
-(見下方「共用 UI」的 `ActionPanel.open_custom()`/`CharacterSelectOverlay` 模式)直接用 closure
-傳資料/callback 即可,不要為了套用這套 mailbox 模式硬切一次場景。
+**跨場景資料轉手一律走 `SceneHandoffStore`**(autoload)這個通用信箱,不要再為每個新情境
+各開一支 `pending_xxx` 欄位 + Autoload .gd。用字串 key 分流不同用途,同一時間可以有好幾筆
+資料同時待處理、互不覆蓋。這一套只在**真的要切場景**時才需要——不切場景、只是疊加彈出
+面板的情境(見「共用 UI」的 `ActionPanel.open_custom()`/`CharacterSelectOverlay`)直接用
+closure 傳資料/callback 即可,不要為了套這套 mailbox 模式硬切一次場景。
 
-- `queue(key, payload, next_scene_path, result_callback)` 存資料,再自己切場景。
-- `take(key)` 讀取後立刻清空——一次性用途(例如 `FamilyTree.FOCUS_MAILBOX_KEY`)。
-- `peek(key)` 讀取後保留不清——目前只有對話系統用,見下方生命週期陷阱。
-- payload 型別不限定,呼叫端跟接收端自己約定;單一欄位可以直接傳現成物件(例如
-  `FamilyTree.FOCUS_MAILBOX_KEY` 直接傳一個 `Character`),資料不只一個欄位時另外寫一個
-  小型 `RefCounted` 資料類別,裡面放一個 `const MAILBOX_KEY` 讓兩端共用同一把 key,不要
-  去改 `SceneHandoffStore`/`SceneHandoff`(`Scripts/scene_handoff.gd`,純資料信封,不是
-  autoload)這兩支通用檔案本身。
+- `queue(key, payload, next_scene_path, result_callback)` 存資料再自己切場景。
+- `take(key)` 讀取後立刻清空,一次性用途;`peek(key)` 讀取後保留不清,目前只有對話系統用
+  (見下方生命週期陷阱)。
+- payload 型別不限定;資料不只一個欄位時寫一個小型 `RefCounted` 資料類別,放一個
+  `const MAILBOX_KEY` 讓兩端共用,不要去改 `SceneHandoffStore`/`SceneHandoff` 這兩支通用
+  檔案本身。
 
-**對話系統**(`Scenes/Dialogue/dialogue_box.gd`)是最大宗的使用者:`LocationEvent.goto_dialogue()`
-把 `Dialogue` 塞進 key `"dialogue"`(常數 `LocationEvent.DIALOGUE_MAILBOX_KEY`)、切去
-`dialogue_box.tscn`,`dialogue_box.gd` 讀取時用 `peek()` 而不是 `take()`——因為
-`DialogueLine.choices` 裡可能嵌著捕捉呼叫端 `self` 的 lambda(例如 `TownGateEvent`
-「闖進去」選項接 `AskBattle.ask(...)`),提早清掉這份參照會讓觸發事件的 `RefCounted`
-物件提早被釋放,導致後續 callback 悄悄失效。
+**對話系統**(`Scenes/Dialogue/dialogue_box.gd`)讀取時用 `peek()` 而不是 `take()`——因為
+`DialogueLine.choices` 裡可能嵌著捕捉呼叫端 `self` 的 lambda,提早清掉參照會讓觸發事件的
+`RefCounted` 物件提早被釋放,導致後續 callback 悄悄失效。
 
-**RefCounted 生命週期陷阱(容易踩雷,務必注意)**:`Callable` 綁在方法上時(例如
-`SceneHandoffStore.queue(..., _on_result)` 直接傳裸方法名稱)底層只存 `ObjectID`,不會讓
-`RefCounted` 的引用計數增加——事件物件沒有其他地方被強參照時,`trigger()`/`_start()`
-一返回就會立刻被釋放,`callback` 到了該被呼叫的時候早已失效(`Callable.is_valid()` 悄悄
-回傳 `false`,不會報錯,呼叫端多半會 fallback 成別的預設行為,例如直接跳回上一頁、跳過
-原本該播的反應對話——非常難察覺,只能靠實際跑一輪整段流程才會發現)。要讓事件物件撐到
-callback 真正被呼叫的那一刻,必須包一層 lambda 讓它捕捉 `self`(例如
-`func(accepted, a, b): _on_result(accepted, a, b)` 或 `func(): AskBattle.ask(..., _on_result)`),
-靠 Variant 對 `RefCounted` 的 `Ref<>` 語意撐住,不能直接傳裸方法參照當 callback。
+**RefCounted 生命週期陷阱(容易踩雷,務必注意)**:`Callable` 綁在裸方法上(例如
+`SceneHandoffStore.queue(..., _on_result)` 直接傳方法名稱)底層只存 `ObjectID`,不會讓
+`RefCounted` 引用計數增加——事件物件沒有其他強參照時,`trigger()` 一返回就會被釋放,
+`callback` 到了該被呼叫時早已失效(`Callable.is_valid()` 悄悄回傳 `false`,不會報錯,
+呼叫端多半 fallback 成預設行為,例如跳過原本該播的反應對話——非常難察覺,只能靠實際跑
+一輪整段流程才會發現)。要讓事件物件撐到 callback 真正被呼叫,必須包一層 lambda 讓它捕捉
+`self`(例如 `func(): AskBattle.ask(..., _on_result)`),靠 Variant 對 `RefCounted` 的
+`Ref<>` 語意撐住,不能直接傳裸方法參照當 callback。
 
 ## Unity → Godot 移植備忘
 

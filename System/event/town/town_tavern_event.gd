@@ -179,7 +179,7 @@ func _resolve_acceptance(picked: Character, stranger_character: Character) -> vo
 		# (不可操控/上場),所以只註冊進 AllCharacterStore。
 		AllCharacterStore.register(stranger_character)
 		var marriage_text := "%s 與 %s 結婚了。" % [picked.full_name, stranger_character.full_name]
-		NewsController.post(marriage_text)
+		NewsController.post(marriage_text, GameEnums.NewsCategory.MAJOR)
 		MessageBar.show_message(marriage_text)
 		var reaction := _build_accepted_reaction(picked, stranger_character) if picked == courted else _build_change_but_accept_reaction(picked, stranger_character)
 		_play_marriage_reaction(reaction, stranger_character)

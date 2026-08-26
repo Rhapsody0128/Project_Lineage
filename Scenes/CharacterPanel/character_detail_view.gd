@@ -159,12 +159,17 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 
 	level_value_label.text = "%d" % character.level_system.level
 	_update_exp_bar(character.level_system)
-	weapon_icon.texture = load(GameEnums.weapon_icon_path(character.weapon)) as Texture2D
-	weapon_icon.tooltip_text = GameEnums.weapon_label(character.weapon)
+	# 新生兒出生當下武器刻意留空(GameEnums.NO_WEAPON_BINDING),要等命名+留學國家場景
+	# 選定才會有值(見 AcademyRule.enroll())——武器 enum 陣列查表對負數索引會從陣列尾端
+	# 繞回去(GDScript 陣列語意),不特判會顯示成一個看起來合法但錯誤的武器,而不是報錯。
+	var has_weapon := character.weapon != GameEnums.NO_WEAPON_BINDING
+	weapon_icon.texture = load(GameEnums.weapon_icon_path(character.weapon)) as Texture2D if has_weapon else null
+	weapon_icon.tooltip_text = GameEnums.weapon_label(character.weapon) if has_weapon else "尚未決定"
 
 	var is_leader := battle_character != null and battle_character.is_leader
 
-	battle_cost_view.weapon = character.weapon
+	if has_weapon:
+		battle_cost_view.weapon = character.weapon
 	battle_cost_view.is_leader = is_leader
 	battle_cost_view.battle_cost = character.battle_cost
 
@@ -569,12 +574,12 @@ func _populate_skills(character: Character) -> void:
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if i < skill_list.size():
 			var skill: Skill = skill_list[i]
-			label.text = skill.name
+			label.text = "[%s] %s" % [GameEnums.rank_label(skill.rank), skill.name]
 			if character.can_use_skill(skill):
-				slot.tooltip_text = skill.description
+				slot.tooltip_text = "【%s】\n%s" % [skill.tag_label(), skill.description]
 				slot.modulate = SKILL_ENABLED_MODULATE
 			else:
-				slot.tooltip_text = "%s\n（需裝備：%s）" % [skill.description, GameEnums.weapon_label(skill.bind_weapon)]
+				slot.tooltip_text = "【%s】\n%s\n（需裝備：%s）" % [skill.tag_label(), skill.description, GameEnums.weapon_label(skill.bind_weapon)]
 				slot.modulate = SKILL_DISABLED_MODULATE
 		slot.add_child(label)
 

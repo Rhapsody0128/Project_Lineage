@@ -2,7 +2,7 @@ class_name CharacterController
 extends RefCounted
 
 const MIN_AGE := 16
-const MAX_AGE := 60
+const MAX_AGE := 40
 
 ## 隨機發放的武器池:角色一定會持有武器,涵蓋所有 WeaponType。並列最高素質時
 ## get_weapon_for_potential() 從這個池子篩出的並列項目裡抽一個。
@@ -61,14 +61,13 @@ static func get_random_character(rank_type: int = -1, nation: int = -1, gender: 
 	var face_path := FaceController.get_random_face_path(gender)
 
 	var last_name: String = Util.get_random_from_array(GameEnums.CHARACTER_LAST_NAMES)
-	var age := Util.get_random_int(MIN_AGE, MAX_AGE + 1)
+	var age := Util.get_random_int(MIN_AGE, MAX_AGE)
 	var traits := TraitController.get_random_traits(2)
 	var potential := PotentialController.get_random_potential(resolved_rank)
 	var bloodline := BloodlineController.get_random_bloodline(resolved_rank, nation)
 	var weapon: int = get_weapon_for_potential(potential)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
-	var skill_count := SkillCountDrawTable.roll(noble_rank)
-	var skill_list := SkillController.get_skill_list_by_weapon(weapon, skill_count)
+	var skill_list := SkillController.get_random_initial_skill_list(weapon, noble_rank, bloodline)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))
 	# 加上男女抽池子了
 	return Character.new(character_name, last_name, age, gender, face_path, traits, potential, bloodline, weapon, skill_list, LevelSystem.new(), battle_cost)
@@ -89,8 +88,7 @@ static func get_fixed_protagonist() -> Character:
 	var potential := PotentialController.get_random_potential(GameEnums.RankType.F)
 	var bloodline := BloodlineController.get_random_bloodline(GameEnums.RankType.F)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
-	var skill_count := SkillCountDrawTable.roll(noble_rank)
-	var skill_list := SkillController.get_skill_list_by_weapon(PROTAGONIST_WEAPON, skill_count)
+	var skill_list := SkillController.get_random_initial_skill_list(PROTAGONIST_WEAPON, noble_rank, bloodline)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))
 	var protagonist := Character.new(PROTAGONIST_NAME, PROTAGONIST_LAST_NAME, PROTAGONIST_AGE, PROTAGONIST_GENDER, face_path, traits, potential, bloodline, PROTAGONIST_WEAPON, skill_list, LevelSystem.new(), battle_cost)
 	protagonist.is_protagonist = true

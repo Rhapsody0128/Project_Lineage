@@ -146,7 +146,7 @@ func _finish() -> void:
 		_proposer.marry(_candidate)
 		AllCharacterStore.register(_candidate)
 		result_text = "%s 向%s國聯姻成功,與 %s 結婚了。" % [_proposer.full_name, nation_label, _candidate.full_name]
-		NewsController.post(result_text)
+		NewsController.post(result_text, GameEnums.NewsCategory.MAJOR)
 		MessageBar.show_message(result_text)
 	else:
 		result_text = "%s 向%s國寄出的聯姻信被拒絕了。" % [_proposer.full_name, nation_label]

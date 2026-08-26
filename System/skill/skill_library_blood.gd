@@ -71,7 +71,7 @@ static func _lion_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("獅心庇護")
-		.description("獅族庇護幼獸的本能延伸至戰場,以活力與精神雙重灌注治癒全軍,效果遠超一般單一素質的治療技")
+		.description("獅族庇護幼獸的本能延伸至戰場,以體質與精神雙重灌注治癒全軍,效果遠超一般單一素質的治療技")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -131,7 +131,7 @@ static func _eagle_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("振翅齊心")
-		.description("鷹群振翅盤旋,力量與活力隨氣流一同匯聚全身")
+		.description("鷹群振翅盤旋,力量與體質隨氣流一同匯聚全身")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.STRENGTH)
@@ -193,7 +193,7 @@ static func _leopard_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("豹魂堅韌")
-		.description("看似輕盈的豹族血脈,其實也繼承了荒野求生的堅韌,同時強化活力與敏捷")
+		.description("看似輕盈的豹族血脈,其實也繼承了荒野求生的堅韌,同時強化體質與敏捷")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -213,7 +213,7 @@ static func _bear_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("熊霸碎地")
-		.description("揮動蠻力十足的臂膀重重砸下,使周遭敵人活力下降")
+		.description("揮動蠻力十足的臂膀重重砸下,使周遭敵人體質下降")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.RADIUS).area_size(2)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -228,7 +228,7 @@ static func _bear_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("熊魂不倒")
-		.description("血脈中沉睡的熊魂甦醒,提升全隊活力")
+		.description("血脈中沉睡的熊魂甦醒,提升全隊體質")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -364,7 +364,7 @@ static func _deer_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("鹿蹄疾行")
-		.description("看似溫馴的鹿群,奔跑速度與旺盛生命力絲毫不輸猛獸,同時強化敏捷與活力")
+		.description("看似溫馴的鹿群,奔跑速度與旺盛生命力絲毫不輸猛獸,同時強化敏捷與體質")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.AGILITY)
@@ -377,8 +377,8 @@ static func _deer_skills() -> Array[Skill]:
 		.build())
 
 	skills.append(SkillBuilder.new()
-		.name("山林活力")
-		.description("高原生機盎然的活力與靈性一同灌注全軍,雙修者的治癒效果遠超一般治療技")
+		.name("山林體力")
+		.description("高原生機盎然的體質與靈性一同灌注全軍,雙修者的治癒效果遠超一般治療技")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)

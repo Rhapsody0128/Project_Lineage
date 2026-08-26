@@ -143,6 +143,11 @@ enum QuestCategory {MAIN, SIDE, COMMISSION}
 ## 改變邦交,一律回傳 PEACE,先開這個欄位讓 Scenes/NationRelations 有型別可用。
 enum NationWarStatus {PEACE, WAR}
 
+## 消息分類,對應 Scenes/News/news_list.gd 的「重大」/「日常」分頁。MAJOR 是角色生老病死
+## 等重大人生事件(成年/衰老/懷孕/生產/結婚/死亡),DAILY 留給之後陸續加入的瑣碎事件
+## (例如學會技能)。呼叫 NewsController.post() 一律要明確指定分類,不給預設值。
+enum NewsCategory {MAJOR, DAILY}
+
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
 
@@ -212,6 +217,9 @@ const QUEST_CATEGORY_LABELS: Array[String] = ["主線任務", "支線任務", "�
 ## 邦交狀態 UI 顯示用中文標籤,順序對應 NationWarStatus enum
 const NATION_WAR_STATUS_LABELS: Array[String] = ["停戰中", "交戰中"]
 
+## 消息分類 UI 顯示用中文標籤,順序對應 NewsCategory enum
+const NEWS_CATEGORY_LABELS: Array[String] = ["重大", "日常"]
+
 ## 以下四個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
 ## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
 ## 不會有任何編譯期或執行期警告,悄悄對應錯標籤;呼叫函式至少能在這裡集中防呆。
@@ -241,6 +249,9 @@ static func quest_category_label(quest_category: int) -> String:
 
 static func nation_war_status_label(war_status: int) -> String:
 	return NATION_WAR_STATUS_LABELS[war_status]
+
+static func news_category_label(news_category: int) -> String:
+	return NEWS_CATEGORY_LABELS[news_category]
 
 static func building_type_label(building_type: int) -> String:
 	return BUILDING_TYPE_LABELS[building_type]

@@ -82,7 +82,7 @@ func _on_day_passed() -> void:
 			var character := BaseDispatchStore.find_character(character_id)
 			if character != null:
 				character.skill_list.append(entry["skill"])
-				NewsController.post("%s 學會了技能「%s」。" % [character.full_name, entry["skill"].name])
+				NewsController.post("%s 學會了技能「%s」。" % [character.full_name, entry["skill"].name], GameEnums.NewsCategory.DAILY)
 			_training.erase(character_id)
 			changed.emit()
 		else:

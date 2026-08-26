@@ -185,8 +185,10 @@ static func _resolve_attack_hit(self_character: BattleCharacter, enemy_character
 ## COUNTER 機制的武器被動,依該技能的 base_chance(武器被動不吃行動骰選,這個欄位當純
 ## 觸發機率用)骰一次,觸發就對原攻擊者(original_attacker)造成一次普通攻擊等值的反擊
 ## 傷害——反擊本身不再判定閃避/暴擊,單純用普通攻擊公式算傷害,避免無限連鎖(反擊觸發
-## 反擊)。
+## 反擊)。defender 若剛好被這次攻擊打死(is_disabled),直接不觸發——人都死了不會反擊。
 static func maybe_counter_attack(original_attacker: BattleCharacter, defender: BattleCharacter) -> void:
+	if defender.is_disabled:
+		return
 	var counter_skill := defender.character.find_skill_with_mechanic(GameEnums.SkillMechanic.COUNTER)
 	if counter_skill == null:
 		return
@@ -200,10 +202,13 @@ static func maybe_counter_attack(original_attacker: BattleCharacter, defender: B
 ## 反應治療:受擊者(target)身邊(以 target 自身為中心找,範圍固定 2 格,對應設計上的
 ## 「以自身為中心 2 格內」)如果有友軍持有掛 REACTIVE_HEAL 機制的武器被動,依該技能的
 ## base_chance 骰一次,觸發就對受擊的 target 施放一次小量治療(治療量吃該持有者的
-## effect_stat/skill_ratio,沿用一般攻擊/技能同一套素質公式)。
+## effect_stat/skill_ratio,沿用一般攻擊/技能同一套素質公式)。target 若剛好被這次攻擊
+## 打死(is_disabled),直接不觸發——已陣亡不該被救回來。
 const REACTIVE_HEAL_RANGE := 2
 
 static func maybe_reactive_heal(target: BattleCharacter) -> void:
+	if target.is_disabled:
+		return
 	for ally in target.allies:
 		var heal_skill := ally.character.find_skill_with_mechanic(GameEnums.SkillMechanic.REACTIVE_HEAL)
 		if heal_skill == null:
@@ -460,7 +465,7 @@ static func stat_debuff(self_character: BattleCharacter, primary_target: BattleC
 	var targets := skill.resolve_targets(self_character, primary_target)
 	_apply_stat_effect(targets, skill.buffed_potential_types, skill.skill_ratio, skill.duration_rounds)
 
-## 減益 + 機制(天譴降臨:活力削弱之餘一併封印):傷害/減益結算用 stat_debuff() 同一套,
+## 減益 + 機制(天譴降臨:體質削弱之餘一併封印):傷害/減益結算用 stat_debuff() 同一套,
 ## 結束後再對同一批目標套用機制型異常狀態,各自判定抵抗。
 static func stat_debuff_with_mechanic(self_character: BattleCharacter, primary_target: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
 	stat_debuff(self_character, primary_target, skill, cast_detail)

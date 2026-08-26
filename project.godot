@@ -45,6 +45,7 @@ SaveLoadStore="*res://Scripts/Autoload/save_load_store.gd"
 TavernStore="*res://Scripts/Autoload/tavern_store.gd"
 QuestStore="*res://Scripts/Autoload/quest_store.gd"
 MarriageQuotaStore="*res://Scripts/Autoload/marriage_quota_store.gd"
+LifeEventQueueStore="*res://Scripts/Autoload/life_event_queue_store.gd"
 
 [display]
 

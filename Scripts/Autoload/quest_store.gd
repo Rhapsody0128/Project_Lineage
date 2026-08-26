@@ -86,14 +86,14 @@ func notify_courier_arrived(destination_nation: int) -> void:
 ## 三種委託共用的完成收尾:標記 COMPLETED(不從清單移除,永久留著當完成紀錄——任務列表
 ## 對 COMPLETED 不提供任何按鈕,玩家沒有主動清除的管道)、依評級發錢+好感度(跟
 ## QuestLibrary.description_for() 顯示的數字用同一組 BattleReward 函式,兩邊保證對得上)、
-## 發新聞/訊息通知。標記成 COMPLETED 之後 _find_active_quest()/_find_active_courier_quest_to()
+## MessageBar 跳一則提示。委託完成不算重大事件,不寫進 NewsController(見 CLAUDE.md「消息」
+## 節)。標記成 COMPLETED 之後 _find_active_quest()/_find_active_courier_quest_to()
 ## 不會再比對到它,同一張任務不會被重複發獎勵。
 func _grant_reward_and_complete(quest: Quest) -> void:
 	quest.status = GameEnums.QuestStatus.COMPLETED
 	BaseResourceStore.add(GameEnums.ResourceType.GOLD, BattleReward.money_reward_for_rank(quest.rank))
 	NationFavorStore.add_favor(quest.nation, BattleReward.favor_for_rank(quest.rank))
 	var text := "完成了「%s」委託。" % QuestLibrary.title_for(quest)
-	NewsController.post(text)
 	MessageBar.show_message(text)
 	changed.emit()
 

@@ -89,7 +89,7 @@ static func build() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("不屈之軀")
-		.description("千錘百鍊的軀體,提升活力與力量")
+		.description("千錘百鍊的軀體,提升體質與力量")
 		.rank(GameEnums.RankType.C)
 		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
 		.effect_stat(GameEnums.PotentialType.VITALITY)
@@ -193,7 +193,7 @@ static func build() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("戰神附體")
-		.description("彷彿戰神親臨的氣勢,提升力量與活力")
+		.description("彷彿戰神親臨的氣勢,提升力量與體質")
 		.rank(GameEnums.RankType.SS)
 		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)
 		.effect_stat(GameEnums.PotentialType.STRENGTH)

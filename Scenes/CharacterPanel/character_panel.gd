@@ -10,6 +10,7 @@ extends CanvasLayer
 # =========================================================
 
 @onready var root: Control = $Root
+@onready var dim_bg: ColorRect = $Root/DimBg
 @onready var panel_box: PanelContainer = $Root/CenterContainer/PanelBox
 @onready var close_button: Button = $Root/CenterContainer/PanelBox/Content/TopBar/CloseButton
 @onready var detail_view: CharacterDetailView = $Root/CenterContainer/PanelBox/Content/DetailView
@@ -17,6 +18,8 @@ extends CanvasLayer
 
 func _ready() -> void:
 	root.visible = false
+	# PanelBox 擋在 DimBg 之上,點面板內容不會傳到這裡;只有點面板外的遮罩區域才會觸發。
+	dim_bg.gui_input.connect(_on_dim_bg_gui_input)
 	# PanelBox 的寬度來自子節點 DetailView 自己宣告的 custom_minimum_size.x
 	# (CharacterDetailView.PANEL_WIDTH),高度來自 character_panel.tscn 寫死在 PanelBox 上
 	# 的 custom_minimum_size.y——用 get_combined_minimum_size() 現場問出這個「已經確定、
@@ -38,6 +41,11 @@ func open_for_character(character: Character, battle_character: BattleCharacter 
 		return
 	detail_view.set_character(character, battle_character)
 	root.visible = true
+
+
+func _on_dim_bg_gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		close()
 
 
 func close() -> void:

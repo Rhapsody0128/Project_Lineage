@@ -20,9 +20,15 @@ extends Node
 # 手動存讀。
 #
 # rest_requested 是 Scenes/MapLocation/map_location.gd 的「休息」按鈕切回 map.tscn 前
-# 設的一次性旗標,map.gd._ready() 讀到後轉成場景內部的 _is_resting 狀態(把玩家頭像
-# 藏起來、暫停撞遊蕩敵人判定),讀完立刻清成 false——跟 has_saved_state 不同,這個
-# 旗標不需要「有沒有存過」的概念,預設 false 本身就是合法的「沒有要休息」狀態。
+# 設的一次性旗標,map.gd._ready() 讀到後轉成 is_resting 狀態(把玩家頭像藏起來、暫停
+# 撞遊蕩敵人判定),讀完立刻清成 false——跟 has_saved_state 不同,這個旗標不需要
+# 「有沒有存過」的概念,預設 false 本身就是合法的「沒有要休息」狀態。
+#
+# is_resting 則是持續有效的「目前是否正在休息」狀態,map.gd 醒來時(玩家主動點地圖
+# 移動,見 _end_resting())會改回 false。放在這裡而不是 map.gd 的場景私有變數,是因為
+# System/time/world_time_event_library.gd 的每日回血結算需要讀這個值(休息中額外加成,
+# 見 Character.RESTING_HP_REGEN_BONUS)——比照 AgingRule 呼叫 BaseBuildingProgressStore
+# 的既有慣例,System 不直接碰 Scenes 節點,只讀 autoload 暴露的狀態。
 # =========================================================
 
 var has_saved_state: bool = false
@@ -34,6 +40,7 @@ var camera_zoom: Vector2
 var entered_map_object_id: String
 var traveling_to_map_object_id: String
 var rest_requested: bool = false
+var is_resting: bool = false
 
 
 func save_map_state(

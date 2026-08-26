@@ -111,8 +111,12 @@ static func _deliver_child(mother: Character) -> void:
 
 ## 每天:玩家擁有的所有角色 HP 回復(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、
 ## 大地圖移動時逐幀累積回 30/天」機制)。回復量 = 基準值 3 + 醫療所目前等級(未建醫療所
-## 時等同 Lv0,回復量維持原本的 3,不會讓沒蓋醫療所的玩家倒退)。
+## 時等同 Lv0,回復量維持原本的 3,不會讓沒蓋醫療所的玩家倒退)+ 休息中額外加成 10
+## (MapSessionStore.is_resting,見 Scenes/Map/map.gd 的「休息」機制——離開休息狀態
+## 當天就立刻退回沒有加成的回復量,不是「休息當天結算完才生效」)。
 static func _regen_hp() -> void:
 	var amount := Character.DAILY_HP_REGEN + BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
+	if MapSessionStore.is_resting:
+		amount += Character.RESTING_HP_REGEN_BONUS
 	for character in CharacterRosterStore.all_characteres:
 		character.regen_daily_hp(amount)

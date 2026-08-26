@@ -371,6 +371,13 @@ static func bloodline_nation_terrain(nation: int) -> int:
 static func town_background_path(terrain_type: int) -> String:
 	return "res://Images/Dialogue/Map/Town/town_%s.png" % TerrainType.keys()[terrain_type]
 
+## 城堡外觀背景圖(Images/Dialogue/Map/Castle/castle_<TERRAIN>.png),命名規則同
+## town_background_path()——也是 Scenes/MapLocation/map_location.gd 進到 CASTLE
+## 地點選單時的整頁背景圖。跟大地圖圖示 castle_map_icon_path() 是不同資料夾/不同美術
+## (那份檔名沿用 CASTLE_DESSERT 等既有拼字,這份是正確拼字 DESERT),不要混用。
+static func castle_background_path(terrain_type: int) -> String:
+	return "res://Images/Dialogue/Map/Castle/castle_%s.png" % TerrainType.keys()[terrain_type]
+
 static func terrain_background_path(terrain_type: int) -> String:
 	return "res://Images/Dialogue/Map/Terrain/%s.png" % TerrainType.keys()[terrain_type]
 

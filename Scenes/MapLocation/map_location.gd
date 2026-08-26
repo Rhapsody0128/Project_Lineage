@@ -66,9 +66,10 @@ func _ready() -> void:
 		sub_locations_container.add_child(button)
 
 
-## 整頁背景圖:TOWN 依 _map_object.terrain_type() 挑對應地形的城鎮圖(每座城鎮代表
-## 各自文明的地形特色),BASE 固定用同一張(玩家還沒有可選的自身國家血統)。跟
-## TownChatEvent 的 Dialogue 背景是同一張圖、不同用途,共用 GameEnums 的路徑組字函式。
+## 整頁背景圖:TOWN/CASTLE 都依 _map_object.terrain_type() 挑對應地形的圖(城堡借代表
+## 地形的 nation 查表,不代表效忠關係,見 MapObject.nation 註解),BASE 固定用同一張
+## (玩家還沒有可選的自身國家血統)。跟 TownChatEvent 的 Dialogue 背景是同一張圖、
+## 不同用途,共用 GameEnums 的路徑組字函式。
 func _style_sub_location_button(button: Button) -> void:
 	button.custom_minimum_size = SUB_LOCATION_BUTTON_MIN_SIZE
 	UiStyle.apply_wood_plaque_button(button, SUB_LOCATION_CONTENT_MARGIN_H, SUB_LOCATION_CONTENT_MARGIN_V)
@@ -81,6 +82,8 @@ func _update_background() -> void:
 			path = GameEnums.town_background_path(_map_object.terrain_type())
 		GameEnums.MapObjectType.BASE:
 			path = GameEnums.BASE_LOCATION_BACKGROUND_PATH
+		GameEnums.MapObjectType.CASTLE:
+			path = GameEnums.castle_background_path(_map_object.terrain_type())
 		_:
 			return
 	background.texture = load(path) as Texture2D

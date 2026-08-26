@@ -68,12 +68,6 @@ var _traveling_to: MapObject = null
 ## 互斥,同一時間只會有一個非 null。
 var _traveling_to_enemy: RoamingEnemy = null
 
-## 「休息」中:玩家頭像藏起來、_check_roaming_encounters() 整段跳過,避免站在城鎮/
-## 根據地座標上被路過的遊蕩敵人撞上觸發戰鬥(見 MapSessionStore.rest_requested 的
-## 註解)。玩家主動點地圖移動(_handle_click_to_move() 的移動分支)視為醒來,恢復
-## 正常曝露在地圖上的風險。
-var _is_resting := false
-
 ## 城鎮血統國家 → map.tscn 裡手動擺放的 Town 場景節點名稱,見 _sync_map_object_positions()。
 const TOWN_NODE_NAMES: Dictionary = {
 	GameEnums.BloodlineNation.LION: "Town_Lion",
@@ -157,7 +151,7 @@ func _ready() -> void:
 
 	if MapSessionStore.rest_requested:
 		MapSessionStore.rest_requested = false
-		_is_resting = true
+		MapSessionStore.is_resting = true
 		player_avatar.visible = false
 
 	header_bar.add_status_button()
@@ -271,9 +265,10 @@ func _process(delta: float) -> void:
 
 		# 遊蕩敵人的生成/遊蕩/消失獨立於玩家是否正在走路(敵人可能自己晃進站著不動的
 		# 玩家),所以放在 is_moving 判斷之外,只要世界時間在流動就推進。休息中跳過
-		# 撞敵判定(見 _is_resting 註解),敵人資料仍照常模擬,只是不會撞上玩家。
+		# 撞敵判定(見 MapSessionStore.is_resting 註解),敵人資料仍照常模擬,只是不會
+		# 撞上玩家。
 		_update_roaming_enemies(move_delta)
-		if not _is_resting and _check_roaming_encounters():
+		if not MapSessionStore.is_resting and _check_roaming_encounters():
 			return
 
 	_update_wasd_pan(delta)
@@ -565,11 +560,12 @@ func _handle_click_to_move() -> void:
 	WorldTimeStore.controller.is_playing = true
 
 
-## 玩家主動點地圖移動視為「醒來」——恢復頭像顯示與撞遊蕩敵人判定,見 _is_resting 註解。
+## 玩家主動點地圖移動視為「醒來」——恢復頭像顯示與撞遊蕩敵人判定,見
+## MapSessionStore.is_resting 註解。
 func _end_resting() -> void:
-	if not _is_resting:
+	if not MapSessionStore.is_resting:
 		return
-	_is_resting = false
+	MapSessionStore.is_resting = false
 	player_avatar.visible = true
 
 

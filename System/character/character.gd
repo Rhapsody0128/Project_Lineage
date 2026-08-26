@@ -150,8 +150,13 @@ func heal(amount: int) -> void:
 	hp = mini(hp + amount, hp_max)
 
 ## 世界時間每跨過一天,角色回復的血量基準值(未建醫療所時的量,見 WorldTimeEventLibrary
-## ._regen_hp()——實際回復量是這個基準值 + 醫療所目前等級,呼叫端算好了才傳進來)。
+## ._regen_hp()——實際回復量是這個基準值 + 醫療所目前等級 + 休息中額外加成,呼叫端算好了
+## 才傳進來)。
 const DAILY_HP_REGEN := 3
+
+## 玩家在城鎮/根據地選擇「休息」時(MapSessionStore.is_resting),額外疊加的每日回血量,
+## 見 WorldTimeEventLibrary._regen_hp()。
+const RESTING_HP_REGEN_BONUS := 10
 
 func regen_daily_hp(amount: int = DAILY_HP_REGEN) -> void:
 	heal(amount)

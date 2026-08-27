@@ -171,19 +171,19 @@ static func resolve_guard(original_target: BattleCharacter, attacker: BattleChar
 		var triggered := roll < guard_rate
 
 		var detail := (
-			"%s 骰出 %.2f,需要小於守護機率 %.2f%% 才會頂替 %s 承受這次攻擊\n" +
-			"公式:守護方(%s)VIT %.1f×%.2f,封頂 %.0f%%\n" +
+			"%s 骰出 %.2f,需要小於捨身掩護機率 %.2f%% 才會頂替 %s 承受這次攻擊\n" +
+			"公式:捨身掩護方(%s)VIT %.1f×%.2f,封頂 %.0f%%\n" +
 			"結果:%s"
 		) % [
 			guardian.name, roll, guard_rate, original_target.name,
 			guardian.name, guardian.vitality, GUARD_RATE_PER_VIT, GUARD_RATE_MAX,
-			("守護成功！" if triggered else "守護失敗"),
+			("捨身掩護成功！" if triggered else "捨身掩護失敗"),
 		]
 
 		if not triggered:
 			continue
 
-		guardian.battle.log_event(GuardEvent.new(guardian, original_target, attacker, "守護", detail))
+		guardian.battle.log_event(GuardEvent.new(guardian, original_target, attacker, "捨身掩護", detail))
 		return GuardResult.new(guardian, detail, GUARD_DAMAGE_MULTIPLIER)
 
 	return no_guard

@@ -270,6 +270,11 @@ func _process(delta: float) -> void:
 		_update_roaming_enemies(move_delta)
 		if not MapSessionStore.is_resting and _check_roaming_encounters():
 			return
+		# 旅行事件(見 System/event/map/travel/)只在玩家實際移動中才骰,不像遊蕩敵人連
+		# 站著不動都可能被敵人晃過來撞上——沒有視覺實體可以主動避開,純粹是「走著走著
+		# 遇到事」,所以額外限定 map_system.is_moving。
+		if map_system.is_moving and not MapSessionStore.is_resting and _check_travel_events():
+			return
 
 	_update_wasd_pan(delta)
 	_update_hover_cursor()
@@ -339,6 +344,24 @@ func _trigger_roaming_encounter(enemy: RoamingEnemy) -> void:
 		_enemy_visuals.erase(enemy.id)
 
 	RoamingEnemyEvent.trigger(enemy)
+
+
+## TravelEventRoller(見 System/map/travel_event_roller.gd)骰到要觸發旅行事件時呼叫,
+## 回傳 true 讓呼叫端跟 _check_roaming_encounters() 一樣同一幀不再繼續處理移動。停止移動/
+## 時間比照撞上遊蕩敵人的既有作法,剩下的對話/效果全部交給 TravelEventLibrary 挑到的
+## 事件物件自己接管。
+func _check_travel_events() -> bool:
+	if not TravelEventStore.roller.check(map_system.position):
+		return false
+
+	map_system.is_moving = false
+	destination_line.visible = false
+	_traveling_to = null
+	_traveling_to_enemy = null
+	WorldTimeStore.controller.is_playing = false
+
+	TravelEventLibrary.trigger_random(map_system.position)
+	return true
 
 
 ## 抵達地圖物件後的進入流程:切去泛用的地點選單場景——顯示哪個地點、有哪些子選項

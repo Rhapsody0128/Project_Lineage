@@ -99,7 +99,14 @@ const TYPE_SUB_LOCATIONS: Dictionary = {
 }
 
 
-static func get_sub_locations(type: int) -> Array[String]:
+## castle_conquered 只在 type == CASTLE 時有意義:城堡還沒被玩家攻下時,子選單只留
+## 「聊天」(觸發 System/event/castle/castle_siege_event.gd 的攻城流程),駐軍/休息要等
+## 攻下後才開放,呼叫端(Scenes/MapLocation/map_location.gd)依 CastleStore.is_conquered()
+## 決定要傳 true 還是 false,這裡不直接依賴 CastleStore(System/ 不碰 Scripts/Autoload
+## 的 session 狀態,比照 NationFavorRank 只吃參數的慣例)。
+static func get_sub_locations(type: int, castle_conquered: bool = true) -> Array[String]:
+	if type == GameEnums.MapObjectType.CASTLE and not castle_conquered:
+		return ["聊天"]
 	var labels: Array[String] = []
 	labels.assign(TYPE_SUB_LOCATIONS.get(type, []))
 	return labels

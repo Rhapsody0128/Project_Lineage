@@ -44,7 +44,12 @@ func _ready() -> void:
 		# 目的地城鎮——每次進到 TOWN 地點選單都檢查一次有沒有以這座城鎮為目的地、進行中的
 		# 送信委託,找不到的話 notify_courier_arrived() 自己什麼都不做,呼叫端不用先判斷。
 		QuestStore.notify_courier_arrived(_map_object.nation)
-	for sub_location_label in MapObject.get_sub_locations(_map_object.type):
+	var castle_conquered := (
+		CastleStore.is_conquered(_map_object.id)
+		if _map_object.type == GameEnums.MapObjectType.CASTLE
+		else true
+	)
+	for sub_location_label in MapObject.get_sub_locations(_map_object.type, castle_conquered):
 		var button := Button.new()
 		button.text = sub_location_label
 		_style_sub_location_button(button)
@@ -52,9 +57,11 @@ func _ready() -> void:
 			button.pressed.connect(_on_town_button_pressed)
 		elif sub_location_label == CHAT_LABEL and _map_object.type == GameEnums.MapObjectType.TOWN:
 			# CASTLE 子地點清單也有一顆同樣文字的「聊天」按鈕(見 System/map/map_object.gd
-			# 的 TYPE_SUB_LOCATIONS),但故意不接 TownChatEvent——城堡的聊天內容還沒設計,
-			# 先維持空按鈕,不能只靠文字比對,否則會被這裡誤接成村民閒聊。
+			# 的 TYPE_SUB_LOCATIONS),但故意不共用 TownChatEvent——城堡的聊天走
+			# CastleSiegeEvent(攻城/管家報告),見下面 CASTLE 分支。
 			button.pressed.connect(_on_chat_button_pressed)
+		elif sub_location_label == CHAT_LABEL and _map_object.type == GameEnums.MapObjectType.CASTLE:
+			button.pressed.connect(_on_castle_chat_button_pressed)
 		elif sub_location_label == TAVERN_LABEL:
 			button.pressed.connect(_on_tavern_button_pressed)
 		elif sub_location_label == MARKET_LABEL:
@@ -109,6 +116,13 @@ func _on_town_button_pressed() -> void:
 ## System/event/town/town_tavern_event.gd)。
 func _on_chat_button_pressed() -> void:
 	TownChatEvent.trigger("res://Scenes/MapLocation/map_location.tscn")
+
+
+## 城堡「聊天」:未攻下時是擋門對話→連續三場戰鬥的攻城流程,攻下後是管家報告本月產出,
+## 整段交給 System/event/castle/castle_siege_event.gd 的 CastleSiegeEvent 接管,結束後
+## 回到這個地點選單本身。
+func _on_castle_chat_button_pressed() -> void:
+	CastleSiegeEvent.trigger(_map_object, "res://Scenes/MapLocation/map_location.tscn")
 
 
 ## 酒館搭訕,整段交給 System/event/town/town_tavern_event.gd 的 TownTavernEvent

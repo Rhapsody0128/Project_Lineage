@@ -71,12 +71,11 @@ const STATUS_ARROW_CYCLE_INTERVAL := 1.0
 
 ## 護盾條:不是另外疊一條血條之外的長條,而是接在 HP 血條右緣、視覺上同一條的延伸
 ## 段落——從目前 HP 比例的位置開始往右延伸,長度依「護盾值 / 最大 HP」的比例決定
-## (見 _reposition_shield_overlay()),用漸層從「跟 HP 血條同一個顏色」平滑過渡到
-## 白色(SHIELD_BAR_END_COLOR),銜接處顏色相同所以看起來是同一條血條自然變化,不是
-## 突兀多出來的色塊。漸層佔的長度就是護盾佔血量+護盾總量的比例,超出血條右緣的部分
-## 直接截斷顯示,不會另外撐開血條寬度。
-const SHIELD_BAR_END_COLOR := Color(1.0, 1.0, 1.0, 0.95)
-const SHIELD_GRADIENT_TEXTURE_WIDTH := 64
+## (見 _reposition_shield_overlay())。整條血條(HP 填色 + 護盾延伸段)要看起來是
+## 「同一條」而不是兩條各自帶圓角的短條,所以圓角只留在血條最左緣跟護盾/HP 的最右緣,
+## 兩段交界處一律方角銜接;顏色在交界處直接切換(SHIELD_BAR_COLOR 純色),不做漸層
+## 過渡。
+const SHIELD_BAR_COLOR := Color(1.0, 1.0, 1.0, 0.95)
 
 ## 特殊狀態文字(恐懼/封印/嘲諷/降治療/全隊限時破防&必定暴擊):疊在頭像左上角、
 ## 素質增益/減益箭頭下方那一排,同時中好幾種狀態就用「/」接起來,不另外做顏色輪流
@@ -93,7 +92,9 @@ class RosterSlot:
 	var frame_style: StyleBoxFlat
 	var base_border_color: Color
 	var bar: ProgressBar
-	var shield_overlay: TextureRect
+	var bar_fill_style: StyleBoxFlat
+	var shield_overlay: Panel
+	var shield_style: StyleBoxFlat
 	var current_shield: float = 0.0
 	var max_count: int
 	var active_tween: Tween
@@ -264,24 +265,24 @@ func _spawn_slot(battle_character: BattleCharacter, is_enemy: bool, fallback_por
 	bar.add_theme_stylebox_override("background", bar_bg)
 	slot.add_child(bar)
 
-	# 護盾條:接在 HP 血條右緣的漸層延伸段(bar 的子節點,用 anchor 對齊 bar 目前的
-	# 寬度,見 _reposition_shield_overlay()),漸層起點固定用這個角色血條的填色
-	# (bar_fill.bg_color)當第一個色標,銜接處顏色跟血條一致、不會看起來是額外的一條;
-	# 終點是 SHIELD_BAR_END_COLOR。預設不可見,有護盾時才顯示。
-	var shield_gradient := Gradient.new()
-	shield_gradient.colors = PackedColorArray([bar_fill.bg_color, SHIELD_BAR_END_COLOR])
-	shield_gradient.offsets = PackedFloat32Array([0.0, 1.0])
-	var shield_gradient_texture := GradientTexture1D.new()
-	shield_gradient_texture.gradient = shield_gradient
-	shield_gradient_texture.width = SHIELD_GRADIENT_TEXTURE_WIDTH
+	# 護盾條:接在 HP 血條右緣的純色延伸段(bar 的子節點,用 anchor 對齊 bar 目前的
+	# 寬度,見 _reposition_shield_overlay())。跟 HP 填色交界處一律方角銜接、顏色直接
+	# 切換(不做漸層過渡),只有血條最右緣維持圓角,讓整條血條讀起來是「一條」而不是
+	# 兩條疊在一起。預設不可見,有護盾時才顯示。
+	var shield_style := StyleBoxFlat.new()
+	shield_style.bg_color = SHIELD_BAR_COLOR
+	shield_style.corner_radius_top_left = 0
+	shield_style.corner_radius_bottom_left = 0
+	shield_style.corner_radius_top_right = HP_BAR_CORNER_RADIUS
+	shield_style.corner_radius_bottom_right = HP_BAR_CORNER_RADIUS
 
-	var shield_overlay := TextureRect.new()
+	var shield_overlay := Panel.new()
 	shield_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	shield_overlay.anchor_top = 0.0
 	shield_overlay.anchor_bottom = 1.0
-	shield_overlay.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	shield_overlay.stretch_mode = TextureRect.STRETCH_SCALE
-	shield_overlay.texture = shield_gradient_texture
+	shield_overlay.offset_top = 0.0
+	shield_overlay.offset_bottom = 0.0
+	shield_overlay.add_theme_stylebox_override("panel", shield_style)
 	shield_overlay.visible = false
 	bar.add_child(shield_overlay)
 
@@ -291,7 +292,9 @@ func _spawn_slot(battle_character: BattleCharacter, is_enemy: bool, fallback_por
 	s.frame_style = frame_style
 	s.base_border_color = border_color
 	s.bar = bar
+	s.bar_fill_style = bar_fill
 	s.shield_overlay = shield_overlay
+	s.shield_style = shield_style
 	s.max_count = max_count
 	s.buff_arrow_label = buff_arrow_label
 	s.debuff_arrow_label = debuff_arrow_label
@@ -331,7 +334,7 @@ func update_hp(battle_character: BattleCharacter, remaining: int) -> void:
 
 
 ## 更新護盾條:shield_points 是目前剩餘護盾值,接在血條右緣、從目前 HP 比例的位置開始
-## 往右延伸的漸層延伸段(見 _reposition_shield_overlay()),護盾歸零就隱藏。
+## 往右延伸的純色延伸段(見 _reposition_shield_overlay()),護盾歸零就隱藏。
 func update_shield(battle_character: BattleCharacter, shield_points: float) -> void:
 	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
@@ -352,6 +355,7 @@ func _reposition_shield_overlay(s: RosterSlot) -> void:
 	if s.current_shield <= 0.0 or s.max_count <= 0:
 		s.bar.max_value = s.max_count
 		s.shield_overlay.visible = false
+		s.bar_fill_style.set_corner_radius_all(HP_BAR_CORNER_RADIUS)
 		return
 
 	var display_max := maxf(float(s.max_count), s.bar.value + s.current_shield)
@@ -359,12 +363,21 @@ func _reposition_shield_overlay(s: RosterSlot) -> void:
 	var hp_fraction := clampf(s.bar.value / display_max, 0.0, 1.0)
 	var shield_fraction := s.current_shield / display_max
 	var end_fraction := clampf(hp_fraction + shield_fraction, 0.0, 1.0)
+	var shield_visible := end_fraction > hp_fraction
 
 	s.shield_overlay.anchor_left = hp_fraction
 	s.shield_overlay.anchor_right = maxf(end_fraction, hp_fraction)
 	s.shield_overlay.offset_left = 0.0
 	s.shield_overlay.offset_right = 0.0
-	s.shield_overlay.visible = end_fraction > hp_fraction
+	s.shield_overlay.visible = shield_visible
+
+	# 護盾段接在 HP 填色右緣時,兩段交界要方角銜接才看起來是同一條血條,只有整條血條
+	# 最右緣(護盾段自己的右緣,已在 shield_style 固定設圓角)維持圓角。
+	if shield_visible:
+		s.bar_fill_style.corner_radius_top_right = 0
+		s.bar_fill_style.corner_radius_bottom_right = 0
+	else:
+		s.bar_fill_style.set_corner_radius_all(HP_BAR_CORNER_RADIUS)
 
 
 ## 戰敗時血條歸零,順便把還沒到期的增益/減益箭頭、護盾條、特殊狀態文字一起清掉

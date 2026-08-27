@@ -551,6 +551,9 @@ func _compute_projected_delta() -> Dictionary:
 	var exchange_delta := BaseExchangeStore.get_projected_monthly_delta()
 	for resource_type in exchange_delta:
 		delta[resource_type] = delta.get(resource_type, 0) + exchange_delta[resource_type]
+	var castle_delta := CastleStore.get_projected_monthly_delta()
+	for resource_type in castle_delta:
+		delta[resource_type] = delta.get(resource_type, 0) + castle_delta[resource_type]
 	return delta
 
 

@@ -22,14 +22,19 @@ const STAT_FONT_SIZE := 13
 
 var character: Character
 
-## 角色已上陣或已派駐根據地生產時為 true:卡片反灰、不能再拖去網格(_get_drag_data()
-## 直接擋掉),但仍可點擊開 CharacterPanel 查看素質——玩家只是想確認場上角色的數值,不是要
-## 重新放置,見 party_edit.gd._refresh_roster()。
+## 角色已上陣時為 true:卡片反灰、不能再拖去網格(_get_drag_data() 直接擋掉),但仍可點擊
+## 開 CharacterPanel 查看素質——玩家只是想確認場上角色的數值,不是要重新放置,見
+## party_edit.gd._refresh_roster()。
 var _disabled := false
+
+## 角色已派駐根據地生產時為 true:卡片視覺上跟 _disabled 一樣反灰,但仍可拖去網格——拖放後
+## party_edit_availability_layer.gd 的 _drop_data() 會先跳 ConfirmDialog 問玩家是否要召回
+## 改編入小隊,不是這裡直接擋掉,見 party_edit.gd._refresh_roster()。
+var _force_dim := false
 
 ## 反灰原因(選填):非空字串時設成 tooltip_text,呼應 CharacterStatCard 的
 ## unavailable_reason 慣例——已上陣(靠格子位置本來就看得出來)不需要額外說明,
-## 已派駐根據地生產則需要提示玩家原因。
+## 已派駐根據地生產則需要提示玩家原因/拖放後會發生什麼事。
 var _disabled_reason := ""
 
 ## 拖曳門檻觸發後 _get_drag_data() 會先設 true,擋掉隨後那次放開滑鼠的
@@ -37,10 +42,11 @@ var _disabled_reason := ""
 ## 多彈出一個 CharacterPanel。NOTIFICATION_DRAG_END 統一重置回 false。
 var _dragging := false
 
-func _init(p_character: Character = null, p_disabled: bool = false, p_disabled_reason: String = "") -> void:
+func _init(p_character: Character = null, p_disabled: bool = false, p_disabled_reason: String = "", p_force_dim: bool = false) -> void:
 	character = p_character
 	_disabled = p_disabled
 	_disabled_reason = p_disabled_reason
+	_force_dim = p_force_dim
 
 
 func _ready() -> void:
@@ -49,10 +55,10 @@ func _ready() -> void:
 	add_theme_stylebox_override("panel", UiStyle.parchment_row_style(
 		UiStyle.PARCHMENT_ROW_BORDER, 2, 8, 10.0, 4.0
 	))
-	if _disabled:
+	if _disabled or _force_dim:
 		modulate.a = 0.45
-		if not _disabled_reason.is_empty():
-			tooltip_text = _disabled_reason
+	if not _disabled_reason.is_empty():
+		tooltip_text = _disabled_reason
 
 	var content := HBoxContainer.new()
 	content.add_theme_constant_override("separation", 12)
@@ -163,5 +169,5 @@ func _gui_input(event: InputEvent) -> void:
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_END:
-		modulate.a = 0.45 if _disabled else 1.0
+		modulate.a = 0.45 if (_disabled or _force_dim) else 1.0
 		_dragging = false

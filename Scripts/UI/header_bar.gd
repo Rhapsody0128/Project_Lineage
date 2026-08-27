@@ -33,6 +33,7 @@ const _BUTTON_HOVER_BG := Color(0.27, 0.32, 0.46, 1)
 const _BUTTON_HOVER_BORDER := Color(0.55, 0.62, 0.85, 1)
 const _BUTTON_PRESSED_BG := Color(0.16, 0.19, 0.28, 1)
 const _TIME_FONT_COLOR := Color(0.95, 0.9, 0.72, 1)
+const _MORALE_FONT_COLOR := Color(0.78, 0.92, 0.8, 1)
 
 const _ID_REPORTS := 0
 const _ID_PARTY := 1
@@ -87,6 +88,11 @@ const _STATUS_FLOW_SEPARATION := 10
 const _KEY_TO_SPEED_LEVEL := {KEY_1: 1, KEY_2: 2, KEY_3: 3, KEY_4: 4}
 
 var time_label: Label
+## 士氣顯示鈕(Scripts/UI/morale_status_button.gd),存成成員變數而非局部變數捕捉進
+## lambda——理由跟下方 _status_button 註解一致:MoraleStore.changed 是全域訊號,
+## HeaderBar 卻是每次進場景就整顆重建,連進全域訊號要接 self 的具名方法才能在 HeaderBar
+## 被釋放時自動斷線。
+var _morale_button: MoraleStatusButton
 ## 時間播放列的顯示用貼圖(隨狀態切換 AtlasTexture.region,見 _update_time_player_display()),
 ## 疊在上面的 4 個透明點擊區只在建構時用一次,不需要存成員變數。
 var _time_player_atlas: AtlasTexture
@@ -173,6 +179,23 @@ func _ready() -> void:
 	popup.add_item("讀檔", _ID_LOAD)
 	popup.add_item("主選單", _ID_MAIN_MENU)
 	popup.id_pressed.connect(_on_menu_id_pressed)
+
+
+## 只顯示目前士氣百分比,塞在「詳細」面板最上方(見 add_status_button())——詳細計算
+## 全部塞進 hover 自訂 tooltip,見 MoraleStatusButton._make_custom_tooltip()。flat=true
+## 蓋掉 Button 預設外觀,看起來就是一段文字,但保留 Button 才能吃 hover 事件顯示自訂
+## tooltip(純 Label 沒有 _make_custom_tooltip() 這個 override 點)。文字本身在
+## _refresh_status() 裡跟其他內容一起刷新,這裡只負責建立跟外觀。
+func _build_morale_display() -> MoraleStatusButton:
+	var button := MoraleStatusButton.new()
+	button.flat = true
+	button.focus_mode = Control.FOCUS_NONE
+	button.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	button.add_theme_font_size_override("font_size", 18)
+	button.add_theme_color_override("font_color", _MORALE_FONT_COLOR)
+	button.add_theme_color_override("font_color_hover", _MORALE_FONT_COLOR)
+	_morale_button = button
+	return button
 
 
 ## 建一個固定尺寸(_TIME_PLAYER_DISPLAY_SIZE)的容器:底層 TextureRect 顯示 TIMEPLAYER
@@ -333,14 +356,15 @@ func _style_header_button(button: BaseButton, min_width: float = 64.0) -> void:
 ## 是普通 Control,沒設 clip_contents);疊層順序上晚於 bg 加入,畫面上蓋在 bg 之上,
 ## 而整個 HeaderBar 又是掛在呼叫端場景的 CanvasLayer 裡,天生蓋在場景內容之上。呼叫端
 ## (add_status_button())自己接 toggled 訊號決定何時呼叫 _reposition_status_panel()
-## 重新定位——面板本身寬高固定(見 add_status_button()),不需要每次重新量測。
+## 重新定位——面板本身寬高固定(見 add_status_button()),不需要每次重新量測。按鈕故意
+## 不像 add_menu_button() 那樣塞到漢堡選單前面——「詳細」要放在 HEADER 最右邊,直接
+## add_child() 留在 _row 最後一個位置即可,不用再 move_child() 往前挪。
 func _add_status_toggle(button_text: String, panel_min_width: float) -> Dictionary:
 	var button := Button.new()
 	button.text = button_text
 	button.toggle_mode = true
 	_style_header_button(button)
 	_row.add_child(button)
-	_row.move_child(button, _row.get_child_count() - 2)
 
 	var panel := PanelContainer.new()
 	panel.visible = false
@@ -371,11 +395,18 @@ func _reposition_status_panel(button: Control, panel: Control) -> void:
 ## 中文品項名稱,省版面),各自包一層固定高度的 ScrollContainer、超出用內部捲動——
 ## 筆數變動(隊員增減/資源種類變化)只會改變可捲動範圍,不會改變面板整體高度,避免
 ## DEMO 倍速下世界時間每天觸發一次 _on_status_data_changed() 重建內容時面板高度
-## 跟著抖動。展開面板時才重建內容,面板開著時資源存量變動(BaseResourceStore.changed)
-## 或跨天 HP 自然回復(WorldTimeStore.day_passed)都要即時刷新,不能只在重新展開時才
-## 刷新——否則數字早就變了,畫面卻停在打開當下那一刻的舊值。戰鬥造成的 HP 變動不需要
-## 另外接訊號更新——戰鬥發生在 Battle 場景,離開/返回 Map、Base 時 HeaderBar 都是
-## 全新節點,面板本來就是收合狀態,下次展開會自然重建成最新數值。
+## 跟著抖動。展開面板時才重建內容,面板開著時資源存量變動(BaseResourceStore.changed)、
+## 跨天 HP 自然回復(WorldTimeStore.day_passed),或任何會影響「下月預估增減量」的狀態
+## 異動(派遣名單/兌換訂單/建築等級解鎖/工匠坊選用配方/城堡佔領,見 add_status_button()
+## 底下那組 changed 訊號連線)都要即時刷新,不能只在重新展開時才刷新——否則數字早就
+## 變了,畫面卻停在打開當下那一刻的舊值。戰鬥造成的 HP 變動不需要另外接訊號更新——
+## 戰鬥發生在 Battle 場景,離開/返回 Map、Base 時 HeaderBar 都是全新節點,面板本來就是
+## 收合狀態,下次展開會自然重建成最新數值。
+##
+## 內容最上方多一行軍隊士氣(MoraleStore,見 Scripts/UI/morale_status_button.gd),
+## hover 可看完整成因明細,排在隊伍血條清單之上——士氣是 CHARACTER_ROSTER 整體狀態,
+## 順序上比個別角色血量更「上位」。面板預設就是展開狀態(_expand_status_panel_by_default()),
+## 玩家不用手動點「詳細」才看得到,呼叫端不需要額外處理。
 func add_status_button() -> void:
 	var parts := _add_status_toggle("詳細", 260.0)
 	_status_button = parts["button"]
@@ -384,6 +415,9 @@ func add_status_button() -> void:
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 6)
 	_status_panel.add_child(content)
+
+	content.add_child(_build_morale_display())
+	content.add_child(HSeparator.new())
 
 	var party_scroll := ScrollContainer.new()
 	party_scroll.custom_minimum_size = Vector2(0, _STATUS_PARTY_HEIGHT)
@@ -409,6 +443,27 @@ func add_status_button() -> void:
 	_status_button.toggled.connect(_on_status_button_toggled)
 	BaseResourceStore.changed.connect(_on_status_data_changed)
 	WorldTimeStore.day_passed.connect(_on_status_data_changed)
+	MoraleStore.changed.connect(_on_status_data_changed)
+	## 下月預估增減量(_compute_projected_delta())還吃派遣名單/兌換訂單/建築等級解鎖/
+	## 工匠坊選用配方/城堡佔領狀態,這五者任何一個異動都要讓面板即時重算,不能只在
+	## BaseResourceStore 實際存量變動(那要等到月結算才會發生)時才刷新,否則玩家剛
+	## 派工、剛改兌換單、剛升級建築,面板顯示的還是異動前的舊預估。
+	BaseDispatchStore.changed.connect(_on_status_data_changed)
+	BaseExchangeStore.changed.connect(_on_status_data_changed)
+	BaseBuildingProgressStore.changed.connect(_on_status_data_changed)
+	WorkshopRecipeStore.changed.connect(_on_status_data_changed)
+	CastleStore.changed.connect(_on_status_data_changed)
+
+	## 面板預設展開:_row(HBoxContainer)要等這一幀排版跑完,button.get_global_rect()
+	## (_reposition_status_panel() 用來定位面板)才讀得到正確座標,call_deferred() 讓
+	## 這段排到當前 idle frame 排版結束之後才執行,避免面板疊在按鈕位置算錯的地方。
+	## 直接改 button_pressed 會照常觸發 toggled 訊號(等同玩家自己點開),不用另外呼叫
+	## _refresh_status()。
+	_expand_status_panel_by_default.call_deferred()
+
+
+func _expand_status_panel_by_default() -> void:
+	_status_button.button_pressed = true
 
 
 func _on_status_button_toggled(pressed: bool) -> void:
@@ -423,6 +478,7 @@ func _on_status_data_changed() -> void:
 
 
 func _refresh_status() -> void:
+	_morale_button.text = "士氣 %d%%" % roundi(MoraleStore.value)
 	_clear_children(_status_party_list)
 	_build_party_rows(_status_party_list)
 	_clear_children(_status_resource_flow)
@@ -524,16 +580,20 @@ func _on_party_avatar_gui_input(input_event: InputEvent, character: Character) -
 ## HFlowContainer 排版:預設由左往右排,單項寬度超出容器剩餘空間就自動換到下一行,
 ## 不用像過去那樣手動兩兩配對成列。數量後面用括號附上「下月預估增減量」
 ## (BaseDispatchStore/BaseExchangeStore 的月結算預覽,見 _compute_projected_delta()),
+## 例如 236(+4)。現有 0 但下月會生出來的資材(delta 不為 0)不能因為現在是 0 就整項連
+## 圖示一起跳過不顯示,不然玩家看不到「這項下個月要開始有了」這個重要資訊(見
+## _build_resource_icon_label());沒有任何存量、下月也不會變動的資源才真的整項略過。
 ## 正值綠色、負值紅色,方便玩家不用真的跨月就能看出目前派遣/兌換設定的淨效果。
 func _build_resource_entries(flow: HFlowContainer) -> void:
 	var has_any := false
 	var delta := _compute_projected_delta()
 	for resource_type in GameEnums.ResourceType.values():
 		var amount := BaseResourceStore.get_amount(resource_type)
-		if amount == 0:
+		var resource_delta: float = delta.get(resource_type, 0.0)
+		if amount == 0.0 and resource_delta == 0.0:
 			continue
 		has_any = true
-		flow.add_child(_build_resource_icon_label(resource_type, amount, delta.get(resource_type, 0)))
+		flow.add_child(_build_resource_icon_label(resource_type, amount, resource_delta))
 
 	if not has_any:
 		var label := Label.new()
@@ -542,22 +602,24 @@ func _build_resource_entries(flow: HFlowContainer) -> void:
 		flow.add_child(label)
 
 
-## 合併「派駐生產(含工匠坊配方消耗)」跟「商隊站/黑市每月自動兌換」兩份月結算預覽,
-## 給資源清單顯示用。兩份預覽算法各自跟真正的 _on_month_passed() 一致,見
-## Scripts/Autoload/base_dispatch_store.gd / base_exchange_store.gd 的
-## get_projected_monthly_delta()。
+## 「如果現在跨過月結算」的淨變動量,給資源清單顯示用——一律透過
+## MonthlySettlementStore.get_projected_monthly_delta() 取得,不在這裡自己合併各 store
+## 的預覽:派駐生產/商隊站兌換/CHARACTER_ROSTER 維持費/城堡收入同一個月會搶同一份
+## BaseResourceStore 庫存,只有共用同一份「本月尚未動用庫存」快照依序試算,才能保證這裡
+## 顯示的數字跟月底實際結算完全一致(見 Scripts/Autoload/monthly_settlement_store.gd
+## 開頭註解)。回傳值是 float(工匠坊/固定消耗建築原料不足時部分生產換算出來的量常帶
+## 小數,見 System/base/workshop_production.gd),這裡只用來排版,不影響任何規則判定。
 func _compute_projected_delta() -> Dictionary:
-	var delta := BaseDispatchStore.get_projected_monthly_delta()
-	var exchange_delta := BaseExchangeStore.get_projected_monthly_delta()
-	for resource_type in exchange_delta:
-		delta[resource_type] = delta.get(resource_type, 0) + exchange_delta[resource_type]
-	var castle_delta := CastleStore.get_projected_monthly_delta()
-	for resource_type in castle_delta:
-		delta[resource_type] = delta.get(resource_type, 0) + castle_delta[resource_type]
-	return delta
+	return MonthlySettlementStore.get_projected_monthly_delta()
 
 
-func _build_resource_icon_label(resource_type: int, amount: int, delta: int) -> Control:
+## amount/delta 都是原始浮點數(BaseResourceStore.amounts 可能帶小數零頭,見該檔案開頭
+## 註解)。畫面一律無條件捨去成整數,但捨去要先對「目前」「目前+delta(下月預估)」各自
+## 捨去一次,顯示的差額(display_delta)用這兩個捨去後的整數相減反推,不能拿捨去前的浮點
+## delta 直接四捨五入——不然兩個獨立捨去的數字兜不起來,可能出現「236(+0)」這種明明有
+## 變動卻顯示沒變的情況(0.6 現值捨去成 0、0.6 的 delta 捨去也是 0,但兩者加總 1.2 捨去
+## 其實是 1);這裡保證畫面上「目前」+「差額」永遠精確等於「下月預估」捨去後的值。
+func _build_resource_icon_label(resource_type: int, amount: float, delta: float) -> Control:
 	var label := RichTextLabel.new()
 	label.bbcode_enabled = true
 	label.fit_content = true
@@ -569,13 +631,14 @@ func _build_resource_icon_label(resource_type: int, amount: int, delta: int) -> 
 	label.scroll_active = false
 	label.add_theme_font_size_override("normal_font_size", 16)
 	var icon_tag := "[img=26x26]%s[/img]" % GameEnums.resource_type_icon_path(resource_type)
-	var base_text := "%s %d" % [icon_tag, amount]
-	if delta == 0:
-		label.text = base_text
+	var display_amount := floori(amount)
+	var display_delta := floori(amount + delta) - display_amount
+	if display_delta == 0:
+		label.text = "%s %d" % [icon_tag, display_amount]
 	else:
-		var color_hex := "5FE05F" if delta > 0 else "F05C5C"
-		var sign_text := "+%d" % delta if delta > 0 else str(delta)
-		label.text = "%s[color=#%s](%s)[/color]" % [base_text, color_hex, sign_text]
+		var color_hex := "5FE05F" if display_delta > 0 else "F05C5C"
+		var sign_text := "+%d" % display_delta if display_delta > 0 else str(display_delta)
+		label.text = "%s %d[color=#%s](%s)[/color]" % [icon_tag, display_amount, color_hex, sign_text]
 	return label
 
 

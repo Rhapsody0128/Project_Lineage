@@ -12,6 +12,7 @@ static func register_all(controller: WorldTimeController) -> void:
 
 	controller.register_month_event(func(): _roll_new_pregnancies())
 	controller.register_month_event(func(): _advance_pregnancies())
+	controller.register_month_event(func(): _advance_postpartum_recovery())
 
 	controller.register_year_event(func(): _age_up())
 
@@ -64,6 +65,7 @@ static func _process_aging(character: Character) -> void:
 ## processed_ids 避免雙方剛好都在 roster 時,同一對配偶被兩個迴圈疊代各骰一次。
 static func _roll_new_pregnancies() -> void:
 	var processed_ids: Dictionary = {}
+	var new_pregnancy_count := 0
 	for character in CharacterRosterStore.all_characteres:
 		var wife := PregnancyRule.resolve_pregnancy_candidate(character)
 		if wife == null or processed_ids.has(wife.id):
@@ -74,6 +76,21 @@ static func _roll_new_pregnancies() -> void:
 			var pregnancy_text := "%s 懷孕了。" % wife.full_name
 			NewsController.post(pregnancy_text, GameEnums.NewsCategory.MAJOR)
 			MessageBar.show_message(pregnancy_text)
+			new_pregnancy_count += 1
+	_record_pregnancy_morale(new_pregnancy_count)
+
+
+## 同一個月可能好幾名角色一起懷孕(角色數一多,機率湊在一起很常見)——士氣只加總算
+## 一筆、套 MoraleStore.MAX_PREGNANCY_DELTA_PER_BATCH 封頂,不逐筆各自計入。label 固定
+## 用同一個字串,不附加「x 幾人」——Header tooltip 按 label 分組加總顯示(見
+## MoraleStatusButton._group_by_label()),同一個字串才會跟其他月份的懷孕事件合併成同一
+## 行,不會因為這個月是 1 人、上個月是 3 人而變成 label 不同、拆成兩行。count 為 0
+## (這個月沒有新懷孕)時不記錄,不留一筆 +0 的空事件。
+static func _record_pregnancy_morale(count: int) -> void:
+	if count <= 0:
+		return
+	var delta := minf(count * MoraleStore.PREGNANCY_DELTA, MoraleStore.MAX_PREGNANCY_DELTA_PER_BATCH)
+	MoraleStore.record_event("角色懷孕", delta)
 
 
 ## 每月:懷孕中的角色累積月數(見 Character.advance_pregnancy()),滿了就產下孩子。
@@ -86,6 +103,7 @@ static func _roll_new_pregnancies() -> void:
 ## 就不會重置 is_pregnant/pregnancy_months,下個月會再檢查一次容量,直到住宅騰出空間為止。
 static func _advance_pregnancies() -> void:
 	var processed_ids: Dictionary = {}
+	var newborn_count := 0
 	for character in CharacterRosterStore.all_characteres:
 		var wife := PregnancyRule.resolve_pregnancy_candidate(character)
 		if wife == null or processed_ids.has(wife.id):
@@ -95,6 +113,17 @@ static func _advance_pregnancies() -> void:
 			continue
 		if AllCharacterStore.all_characteres.size() < BaseBuildingProgressStore.get_character_capacity():
 			_deliver_child(wife)
+			newborn_count += 1
+	_record_child_born_morale(newborn_count)
+
+
+## 每月:剛生產角色的休產期(見 PregnancyRule.POSTPARTUM_MONTHS)倒數,滿了才恢復懷孕
+## 資格(見 PregnancyRule.is_eligible())。走 AllCharacterStore 而非
+## CharacterRosterStore——理由同 _age_up(),生產的一方可能不在 roster 裡(見
+## PregnancyRule.resolve_pregnancy_candidate() 註解)也要正常倒數。
+static func _advance_postpartum_recovery() -> void:
+	for character in AllCharacterStore.all_characteres:
+		character.advance_postpartum_recovery()
 
 
 ## 產下孩子(見 Character.give_birth()),只註冊進 AllCharacterStore(讓孩子開始
@@ -102,11 +131,23 @@ static func _advance_pregnancies() -> void:
 ## 上場,要等 _age_up() 偵測到年紀跨過 MIN_AGE 才會補進 roster。並寫入 NEWS。呼叫端已經
 ## 確認過角色總容量還有空位(見 _advance_pregnancies()),這裡的 register() 必定成功。
 ## 同時排隊切去命名+留學國家場景(見 CLAUDE.md「新生兒命名與留學」),不擋 register() 本身。
+## 士氣不在這裡逐筆計入——同一個月可能一次誕生好幾個孩子,要加總成一筆,見呼叫端
+## _record_child_born_morale()。
 static func _deliver_child(mother: Character) -> void:
 	var child := mother.give_birth()
 	AllCharacterStore.register(child)
 	NewsController.post("%s 誕下了孩子 %s。" % [mother.full_name, child.full_name], GameEnums.NewsCategory.MAJOR)
 	LifeEventQueueStore.queue_child(child)
+
+
+## 同一個月可能好幾名角色一起生產——士氣只加總算一筆、套
+## MoraleStore.MAX_CHILD_BORN_DELTA_PER_BATCH 封頂,label 同樣固定不附加人數,理由同
+## _record_pregnancy_morale()。
+static func _record_child_born_morale(count: int) -> void:
+	if count <= 0:
+		return
+	var delta := minf(count * MoraleStore.CHILD_BORN_DELTA, MoraleStore.MAX_CHILD_BORN_DELTA_PER_BATCH)
+	MoraleStore.record_event("角色誕下新生兒", delta)
 
 
 ## 每天:玩家擁有的所有角色 HP 回復(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、

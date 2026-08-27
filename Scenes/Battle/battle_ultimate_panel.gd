@@ -10,12 +10,18 @@ extends PanelContainer
 # 不會逐回合暫停詢問——面板從戰鬥開始就一直開著,戰鬥照樣自動連續播放,玩家隨時想放
 # 就直接按(還放得出來的話),按下去只是把這次施放排進佇列,下一回合開始才生效
 # (見 Ultimate.delay_rounds/Battle.cast_ultimate()),不影響戰鬥本身的播放節奏。
+#
+# 最多可能同時有 18 個奧義(祭壇 9 個「祝福」+ 禁忌祭壇 9 個「災厄」),擠在同一列會爆版,
+# 所以依 Ultimate.category(GameEnums.UltimateCategory)分兩列呈現,各自最多 9 個。
 # =========================================================
 
 signal ultimate_selected(ultimate: Ultimate)
 
-@onready var hint_label: Label = $HBox/HintLabel
-@onready var button_row: HBoxContainer = $HBox/ButtonRow
+@onready var blessing_button_row: HBoxContainer = $VBox/BlessingRow/BlessingButtonRow
+@onready var calamity_button_row: HBoxContainer = $VBox/CalamityRow/CalamityButtonRow
+
+const BUTTON_SIZE := Vector2(112, 22)
+const BUTTON_FONT_SIZE := 12
 
 var _buttons: Dictionary = {} # Ultimate -> Button
 
@@ -24,20 +30,22 @@ var _buttons: Dictionary = {} # Ultimate -> Button
 ## 變的只是「還能不能放」,見 refresh_button())。面板貼在戰場下緣一條窄帶(跟左右
 ## 頭像列、BoardCanvas/UnitsLayer 一起收在 battle.tscn 的 BattlefieldPanel 底下),
 ## 寬度由 battle.gd 的 _apply_log_layout() 隨戰場縮放同步調整、左緣固定貼齊戰場左緣,
-## 按鈕尺寸配合這條窄帶縮小。
+## 按鈕尺寸配合這條窄帶縮小。依 ultimate.category 分別塞進「祝福」/「災厄」兩列。
 func setup(ultimates: Array[Ultimate]) -> void:
-	for child in button_row.get_children():
-		child.queue_free()
+	for row in [blessing_button_row, calamity_button_row]:
+		for child in row.get_children():
+			child.queue_free()
 	_buttons.clear()
 
 	for ultimate in ultimates:
+		var row := calamity_button_row if ultimate.category == GameEnums.UltimateCategory.CALAMITY else blessing_button_row
 		var button := Button.new()
-		button.custom_minimum_size = Vector2(150, 24)
-		button.add_theme_font_size_override("font_size", 13)
+		button.custom_minimum_size = BUTTON_SIZE
+		button.add_theme_font_size_override("font_size", BUTTON_FONT_SIZE)
 		button.text = ultimate.name
 		button.tooltip_text = ultimate.description
 		button.pressed.connect(_on_ultimate_button_pressed.bind(ultimate))
-		button_row.add_child(button)
+		row.add_child(button)
 		_buttons[ultimate] = button
 
 

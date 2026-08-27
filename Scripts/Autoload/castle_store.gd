@@ -7,10 +7,10 @@ extends Node
 #
 # 每座城堡對應一種根據地生產建築(見 CASTLE_BUILDING_BY_ID),月產出直接查 BuildingLibrary
 # 拿 base_yield/fixed_recipe,固定套用 Lv4 建築效率、不吃角色素質(城堡不用派人力),見
-# _monthly_yield_amount()。_ready() 向 WorldTimeStore.controller 註冊每月結算,寫法比照
-# base_dispatch_store.gd——這支 autoload 是 Node、應用程式全程存活,直接傳裸方法參照給
-# register_month_event() 不會踩 System/time/world_time_controller.gd 開頭提到的 RefCounted
-# 生命週期陷阱(那是 RefCounted 事件物件才會遇到的問題)。
+# _monthly_yield_amount()。純產出、不消耗任何資源,不會跟 BaseDispatchStore/
+# BaseExchangeStore/MoraleStore 搶同一份庫存,所以不需要那三者共用的 available 快照;
+# 每月結算改由 MonthlySettlementStore 統一協調(見該檔案開頭註解),這裡不再自己註冊
+# WorldTimeController。
 # =========================================================
 
 ## 佔領狀態變動時發出,讓已經開著的地點選單/HeaderBar 能即時反映。
@@ -63,10 +63,6 @@ const RECIPE_BUILDING_PENALTY := 0.5
 var conquered_ids: Dictionary = {}
 
 
-func _ready() -> void:
-	WorldTimeStore.controller.register_month_event(_on_month_passed)
-
-
 func rank_for(castle_id: String) -> int:
 	return CASTLE_RANK_BY_ID.get(castle_id, GameEnums.RankType.C)
 
@@ -110,24 +106,20 @@ func monthly_yield_for(castle_id: String) -> Dictionary:
 	return {"resource_type": building.produces, "amount": _monthly_yield_amount(building)}
 
 
-## 預覽「如果現在跨過月結算」各種資源的淨變動量,供 Scripts/UI/header_bar.gd 的「詳細」
-## 面板整合進「本月+多少」預覽——算法跟 _on_month_passed() 一致,但不真的加值,純預覽。
-func get_projected_monthly_delta() -> Dictionary:
+## 共用結算迴圈:`apply == true` 時真的加值(MonthlySettlementStore._run() 的
+## _on_month_passed() 分支),否則只回傳淨變動量給 Scripts/UI/header_bar.gd 的「詳細」
+## 面板整合進「本月+多少」預覽,純預覽、不會真的執行。純產出不吃 available 快照(見檔頭
+## 註解),所以不需要那個參數。
+func settle(apply: bool) -> Dictionary:
 	var delta: Dictionary = {}
 	for castle_id in conquered_ids:
 		var info := monthly_yield_for(castle_id)
 		if info.is_empty():
 			continue
 		delta[info.resource_type] = delta.get(info.resource_type, 0) + info.amount
+		if apply:
+			BaseResourceStore.add(info.resource_type, info.amount)
 	return delta
-
-
-func _on_month_passed() -> void:
-	for castle_id in conquered_ids:
-		var info := monthly_yield_for(castle_id)
-		if info.is_empty():
-			continue
-		BaseResourceStore.add(info.resource_type, info.amount)
 
 
 func to_save_data() -> Dictionary:

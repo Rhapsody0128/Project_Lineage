@@ -8,7 +8,8 @@ extends Control
 # PlacedLayer(已放置角色圖示)之下。
 #
 # 佔用規則/合法性一律問 System 層的 PartyEditGrid,這裡只管畫面
-# 與輸入轉發。
+# 與輸入轉發;放置已派駐根據地生產的角色需要先跳 ConfirmDialog 問玩家(見 _drop_data()),
+# 這類「非佔用規則」的使用者提示留在這裡處理,不下放給 PartyEditGrid。
 # =========================================================
 
 signal placement_changed
@@ -120,11 +121,28 @@ func _can_drop_data(at_position: Vector2, data) -> bool:
 	return _hover_valid
 
 
+## 拖放的角色目前若派駐在根據地某棟建築生產,不直接搶過來——先跳 ConfirmDialog 問玩家是否
+## 要召回改編入小隊,確定才真的 undispatch 舊建築、place() 到網格上(比照
+## Scenes/Base/worker_dispatch_panel.gd 的 _confirm_reassign() 同一套「跳確認才生效」寫法),
+## 取消的話網格維持原樣,不會出現角色卡在畫面上但資料沒真的放置的中間態。
 func _drop_data(at_position: Vector2, data) -> void:
 	var shape: Array[Vector2i] = data["shape"]
-	grid.place(data["character"], shape, _anchor_cell_for(at_position, shape))
+	var anchor := _anchor_cell_for(at_position, shape)
+	var character: Character = data["character"]
 	_hover_active = false
 	queue_redraw()
+
+	var dispatched_building_type := BaseDispatchStore.get_dispatched_building_type(character.id)
+	if dispatched_building_type != -1:
+		var building_name := GameEnums.building_type_label(dispatched_building_type)
+		ConfirmDialog.ask("%s 目前在%s工作，是否改安排到隊伍中？" % [character.full_name, building_name], func() -> void:
+			BaseDispatchStore.undispatch_character(character.id)
+			grid.place(character, shape, anchor)
+			placement_changed.emit()
+		, Callable(), "確定", "取消")
+		return
+
+	grid.place(character, shape, anchor)
 	placement_changed.emit()
 
 

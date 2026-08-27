@@ -30,10 +30,26 @@ func _init(p_character: Character, p_battle: Battle, p_is_enemy: bool, p_is_lead
 	is_leader = p_is_leader
 	_set_action_chance()
 	_apply_passive_skills()
+	_apply_morale_stat_modifier()
 	# 永久被動(rounds_remaining < 0)從開戰第一刻就生效、整場不會被移除,兩份清單
 	# 直接同步一次即可;之後的限時 buff/debuff 才需要靠重播事件逐步增減(見上方
 	# _replay_stat_modifiers 註解)。
 	_replay_stat_modifiers = _stat_modifiers.duplicate()
+
+## 開戰當下把 MoraleStore 目前的士氣換算成全素質永久加成/減益(rounds=-1,整場戰鬥
+## 不會過期),跟被動技能的永久 buff 走同一套 StatModifier 機制(見 strength/agility/…
+## getter 讀的 _stat_modifier_multiplier())。只套用在玩家自己這一側——士氣是
+## CHARACTER_ROSTER 整體狀態,不代表敵方小隊,見 Scripts/Autoload/morale_store.gd。
+## 乘數為 0(士氣「普通」40~59 區間)時不寫入任何 StatModifier,維持跟沒有這個系統時
+## 完全一致的行為。
+func _apply_morale_stat_modifier() -> void:
+	if _is_enemy:
+		return
+	var multiplier := MoraleRule.combat_stat_multiplier(MoraleStore.value)
+	if is_equal_approx(multiplier, 0.0):
+		return
+	for potential_type in GameEnums.PotentialType.values():
+		add_stat_modifier(potential_type, multiplier, -1)
 
 ## 只有手持武器與技能相符(或技能沒綁武器)、不是被動技能、且不是「不是隊長卻鎖 LEADER
 ## 技能」的情況,才能被抽到,權重直接採技能本身的基礎機率。

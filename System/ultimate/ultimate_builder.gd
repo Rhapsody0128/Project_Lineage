@@ -34,6 +34,18 @@ func effect_ratio(value: float) -> UltimateBuilder:
 	_ultimate.effect_ratio = value
 	return self
 
+func secondary_ratio(value: float) -> UltimateBuilder:
+	_ultimate.secondary_ratio = value
+	return self
+
+func buffed_potential_types(value: Array[int]) -> UltimateBuilder:
+	_ultimate.buffed_potential_types = value
+	return self
+
+func duration_rounds(value: int) -> UltimateBuilder:
+	_ultimate.duration_rounds = value
+	return self
+
 func cast_action(value: Callable) -> UltimateBuilder:
 	_ultimate.cast_action = value
 	return self

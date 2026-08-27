@@ -1,9 +1,9 @@
 extends Control
 
 # =========================================================
-# 國家關係:TabContainer 切「友好度」/「邦交狀態」兩分頁(比照
-# Scenes/CharacterPanel/character_detail_view.gd 的 TabContainer 樣式,同一組
-# tab_selected/tab_unselected/tab_hovered stylebox 配色)。
+# 國家關係:左側 Sidebar 兩顆互斥按鈕(見 nation_relations.tscn 共用的 ButtonGroup)切換
+# 「友好度」/「邦交狀態」,比照 Scenes/QuestList/quest_list.gd 左側分頁按鈕的做法——不用
+# TabContainer,MainPanel 內容依 _current_view 整包重建(_refresh_content())。
 #
 # 「友好度」列出六國對玩家的好感度(NationFavorStore)換算成 GameEnums.RankType 等級,
 # 進度條顯示「本階段進度/本階段全距」(比照角色 EXP 進度條的呈現方式,不是總好感度/
@@ -14,7 +14,12 @@ extends Control
 # 機制會改變邦交,一律停戰)。
 #
 # TopBar 測試按鈕一次把六國好感度全部 +10,方便不用真的打贏戰鬥就能測試等級/進度條變化。
+# NationFavorStore.changed 只在目前停留在「友好度」畫面時即時刷新那份清單,停留在
+# 「邦交狀態」畫面時不動——切回「友好度」時 _refresh_content() 本來就會重建成最新資料。
 # =========================================================
+
+const VIEW_FAVOR := 0
+const VIEW_WAR := 1
 
 const FAVOR_TEST_AMOUNT := 10
 
@@ -36,50 +41,54 @@ const WAR_STATUS_COLORS := {
 @onready var main_margin: MarginContainer = $MainPanel/Margin
 @onready var test_favor_button: Button = $TopBar/TestFavorButton
 @onready var back_button: Button = $TopBar/BackButton
+@onready var sidebar: PanelContainer = $Sidebar
+@onready var favor_button: Button = $Sidebar/Margin/VBox/FavorButton
+@onready var war_button: Button = $Sidebar/Margin/VBox/WarButton
 
+## 目前選中的畫面,預設「友好度」,對應 nation_relations.tscn 的 FavorButton button_pressed = true。
+var _current_view: int = VIEW_FAVOR
+## 只在 VIEW_FAVOR 畫面存在,VIEW_WAR 畫面時為 null——見 _on_favor_store_changed()。
 var favor_list: VBoxContainer
 
 
 func _ready() -> void:
-	UiStyle.apply_parchment_panel(main_panel, 1352.0, 760.0)
+	UiStyle.apply_parchment_panel(main_panel, 1132.0, 760.0)
 	UiStyle.apply_wood_plaque_button(test_favor_button, 20.0, 10.0)
 	test_favor_button.add_theme_font_size_override("font_size", 16)
 	UiStyle.apply_wood_plaque_button(back_button, 30.0, 10.0)
 	back_button.add_theme_font_size_override("font_size", 16)
+	UiStyle.apply_parchment_panel(sidebar, 200.0, 760.0)
+	for button in [favor_button, war_button]:
+		UiStyle.apply_wood_plaque_button(button, 20.0, 10.0)
+		button.add_theme_font_size_override("font_size", 18)
 
-	var tabs := TabContainer.new()
-	tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tabs.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_style_tabs(tabs)
-	main_margin.add_child(tabs)
-
-	tabs.add_child(_build_favor_tab())
-	tabs.add_child(_build_war_tab())
-
-	NationFavorStore.changed.connect(_refresh_favor_list)
-	_refresh_favor_list()
+	NationFavorStore.changed.connect(_on_favor_store_changed)
+	_refresh_content()
 
 
-## 分頁樣式沿用 character_detail_view.gd 同一組羊皮紙配色,兩處分頁視覺要一致。
-func _style_tabs(tabs: TabContainer) -> void:
-	tabs.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-	tabs.add_theme_stylebox_override("tab_selected", UiStyle.bordered_panel(
-		Color(0.85, 0.72, 0.5, 0.6), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
-	))
-	tabs.add_theme_stylebox_override("tab_unselected", UiStyle.bordered_panel(
-		Color(0.55, 0.42, 0.26, 0.12), Color(0, 0, 0, 0), 0, 8, 10.0, 6.0
-	))
-	tabs.add_theme_stylebox_override("tab_hovered", UiStyle.bordered_panel(
-		Color(0.7, 0.55, 0.35, 0.35), UiStyle.PARCHMENT_ROW_BORDER, 1, 8, 10.0, 6.0
-	))
-	tabs.add_theme_color_override("font_selected_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	tabs.add_theme_color_override("font_unselected_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
-	tabs.add_theme_color_override("font_hovered_color", UiStyle.PARCHMENT_TEXT_COLOR)
+func _on_view_button_pressed(view: int) -> void:
+	_current_view = view
+	_refresh_content()
 
 
-func _build_favor_tab() -> Control:
+func _refresh_content() -> void:
+	for child in main_margin.get_children():
+		child.queue_free()
+	favor_list = null
+
+	if _current_view == VIEW_FAVOR:
+		main_margin.add_child(_build_favor_view())
+	else:
+		main_margin.add_child(_build_war_view())
+
+
+func _on_favor_store_changed() -> void:
+	if _current_view == VIEW_FAVOR:
+		_refresh_favor_list()
+
+
+func _build_favor_view() -> Control:
 	var column := VBoxContainer.new()
-	column.name = "友好度"
 	column.add_theme_constant_override("separation", 10)
 
 	var header_row := MarginContainer.new()
@@ -102,6 +111,7 @@ func _build_favor_tab() -> Control:
 	favor_list.add_theme_constant_override("separation", 8)
 	column.add_child(favor_list)
 
+	_refresh_favor_list()
 	return column
 
 
@@ -202,9 +212,10 @@ func _build_favor_bar(nation_id: int, stage: Dictionary) -> Control:
 	return bar
 
 
-func _build_war_tab() -> Control:
+func _build_war_view() -> Control:
 	var center := CenterContainer.new()
-	center.name = "邦交狀態"
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
 	var nations := NationLibrary.get_all()
 	var grid := GridContainer.new()

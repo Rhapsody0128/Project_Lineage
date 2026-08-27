@@ -4,6 +4,13 @@ extends Node
 # 根據地資源庫存(autoload,見 project.godot)。跟 PartyStore/MapSessionStore 同一套
 # 慣例:這是 Scenes 層的 session 狀態(玩家目前存量),不是規則邏輯,規則(產量怎麼算)
 # 在 System/base/base_production.gd,這裡只負責存取。
+#
+# amounts 存的是 float,不是 int——原料不足時工匠坊/固定消耗建築改成按比例部分生產
+# (見 System/base/workshop_production.gd),換算出來的產出/消耗量常常帶小數,沒做完的
+# 零頭要留在庫存裡才能累積到下個月湊出下一個整數,不能在寫回庫存這一步就先捨去,不然
+# 零頭每個月都會被吃掉、永遠湊不滿。get_amount() 回傳的是這個「有小數的真實庫存」,規則
+## 判定(can_afford()/is_full() 等)一律讀這個原始值;需要顯示給玩家看的地方一律改呼叫
+## get_display_amount(),不要直接把 get_amount() 的結果塞進 %d 格式化。
 # =========================================================
 
 ## 存量變動時發出(add()/spend() 都會觸發),讓已經開著的資源 UI(例如
@@ -12,13 +19,21 @@ signal changed
 
 ## 玩家預設起始資源,根據地剛開局就有這些可用來建造第一批建築。
 var amounts: Dictionary = {
-	GameEnums.ResourceType.WOOD: 300,
-	GameEnums.ResourceType.GOLD: 500,
+	GameEnums.ResourceType.WOOD: 300.0,
+	GameEnums.ResourceType.GOLD: 500.0,
 }
 
 
-func get_amount(resource_type: int) -> int:
-	return amounts.get(resource_type, 0)
+func get_amount(resource_type: int) -> float:
+	return amounts.get(resource_type, 0.0)
+
+
+## 畫面顯示專用:無條件捨去成整數,玩家看不到小數點,但這只影響顯示——can_afford()/
+## is_full() 等規則判定一律讀 get_amount() 的原始浮點值,不會因為畫面捨去精度而連帶影響
+## 「到底夠不夠」的判定(捨去後的數字有可能比實際存量小,拿去判定會太保守而非太寬鬆,
+## 兩者都不該發生,所以規則判定不該用這個函式)。
+func get_display_amount(resource_type: int) -> int:
+	return floori(get_amount(resource_type))
 
 
 ## 存量是否已達倉庫上限——月結算的自動兌換(見 Scripts/Autoload/base_exchange_store.gd)
@@ -35,25 +50,27 @@ func is_full(resource_type: int) -> bool:
 ## 直接累加不封頂。存量在呼叫前就已經超過上限時(例如開局預設 WOOD 300 高於未建倉庫的
 ## Lv0 上限 200),結果取跟目前存量的較大值,不會因為呼叫 add() 反而把既有存量砍到上限
 ## ——「超過上限」只代表新增的量進不去,不代表既有存量要被沒收。
-func add(resource_type: int, quantity: int) -> void:
+func add(resource_type: int, quantity: float) -> void:
 	var warehouse_level := BaseBuildingProgressStore.get_level(GameEnums.BuildingType.WAREHOUSE)
 	var capacity := BaseWarehouse.get_capacity(resource_type, warehouse_level)
 	var current := get_amount(resource_type)
 	var new_amount := current + quantity
-	amounts[resource_type] = new_amount if capacity < 0 else maxi(current, mini(new_amount, capacity))
+	amounts[resource_type] = new_amount if capacity < 0 else maxf(current, minf(new_amount, capacity))
 	changed.emit()
 
 
 ## 倉庫還放得下多少這個資源——呼叫端(例如市集購買)可以用這個判斷「這筆數量塞不塞得下」,
 ## 買之前就擋下來,不要真的呼叫 add() 之後才發現多花的錢換到的資材被倉庫上限吃掉。
 ## 回傳 -1 代表無上限(比照 BaseWarehouse.get_capacity())。存量已經超過上限時回傳 0
-## (放不下任何一點),不會是負數。
+## (放不下任何一點),不會是負數;無條件捨去成整數——呼叫端(市集購買按鈕)拿這個跟
+## 「要買的整數個數量」比大小,捨去後偏保守(寧可少算空間也不會多算),不會讓玩家買完後
+## 才發現多出來的零頭其實塞不下。
 func remaining_capacity(resource_type: int) -> int:
 	var warehouse_level := BaseBuildingProgressStore.get_level(GameEnums.BuildingType.WAREHOUSE)
 	var capacity := BaseWarehouse.get_capacity(resource_type, warehouse_level)
 	if capacity < 0:
 		return -1
-	return maxi(0, capacity - get_amount(resource_type))
+	return maxi(0, floori(capacity - get_amount(resource_type)))
 
 
 func can_afford(costs: Dictionary) -> bool:

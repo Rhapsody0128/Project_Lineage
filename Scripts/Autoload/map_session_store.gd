@@ -29,6 +29,13 @@ extends Node
 # System/time/world_time_event_library.gd 的每日回血結算需要讀這個值(休息中額外加成,
 # 見 Character.RESTING_HP_REGEN_BONUS)——比照 AgingRule 呼叫 BaseBuildingProgressStore
 # 的既有慣例,System 不直接碰 Scenes 節點,只讀 autoload 暴露的狀態。
+#
+# long_rest_target_day 是「長休」(BASE 專屬,見 Scenes/MapLocation/map_location.gd 的
+# LONG_REST_LABEL)專用的一次性目標:玩家在長休面板指定天數後,這裡存下
+# WorldTimeController.world_time.get_day_count() 的目標值(-1 代表目前沒有長休倒數中)。
+# map.gd 接 WorldTimeStore.day_passed 訊號逐日比對,天數到達時跟玩家提早移動
+# (_end_resting())一樣把倍速還原成 1 倍、清回 -1——長休倒數的「目前正在休息」畫面效果
+# (頭像隱藏/跳過撞遊蕩敵人判定)仍是共用同一個 is_resting,不需要另開一套。
 # =========================================================
 
 var has_saved_state: bool = false
@@ -41,6 +48,7 @@ var entered_map_object_id: String
 var traveling_to_map_object_id: String
 var rest_requested: bool = false
 var is_resting: bool = false
+var long_rest_target_day: int = -1
 
 
 func save_map_state(

@@ -26,6 +26,7 @@ const LAYER := 30
 var panel: CharacterSelectPanel
 
 var _title_label: Label
+var _content_box: VBoxContainer
 
 
 func _init() -> void:
@@ -55,12 +56,12 @@ func _ready() -> void:
 	UiStyle.apply_parchment_panel(box, ActionPanel.DEFAULT_MIN_SIZE.x, ActionPanel.DEFAULT_MIN_SIZE.y)
 	center.add_child(box)
 
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 12)
-	box.add_child(content)
+	_content_box = VBoxContainer.new()
+	_content_box.add_theme_constant_override("separation", 12)
+	box.add_child(_content_box)
 
 	var top_bar := HBoxContainer.new()
-	content.add_child(top_bar)
+	_content_box.add_child(top_bar)
 
 	_title_label = Label.new()
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -75,25 +76,36 @@ func _ready() -> void:
 	close_button.pressed.connect(close)
 	top_bar.add_child(close_button)
 
-	panel = CharacterSelectPanel.new()
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	content.add_child(panel)
-	panel.cancelled.connect(close)
-
 
 ## title/characters/card_factory/initial_sort_key/on_confirmed/confirm_label/initial_focus
 ## 直接轉呼叫 CharacterSelectPanel.setup()。確認選擇時先 close() 掉自己再呼叫
 ## on_confirmed——呼叫端接下來通常會呼叫 self._rebuild_body() 更新底下的建築面板,疊加
 ## 面板要先讓開,不要讓兩層同時疊在畫面上。initial_focus 選填:一開始就聚焦顯示某人,
 ## 不用玩家先點一次才看得到資料、按得下確認鈕(見 base_action_panel.gd 的
-## _open_proposer_picker() 預設聚焦第一位未婚角色)。
+## _open_proposer_picker() 預設聚焦第一位未婚角色)。panel 延到這裡才建立(而不是
+## _ready()),因為「選一個/確認」不是這層外殼唯一支援的情境——見下方 open_content()。
 func open_picker(title: String, characters: Array[Character], card_factory: Callable, initial_sort_key: int, on_confirmed: Callable, confirm_label: String = CharacterSelectPanel.DEFAULT_CONFIRM_LABEL, initial_focus: Character = null) -> void:
 	_title_label.text = title
+	panel = CharacterSelectPanel.new()
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content_box.add_child(panel)
+	panel.cancelled.connect(close)
 	panel.character_confirmed.connect(func(character: Character) -> void:
 		close()
 		on_confirmed.call(character)
 	)
 	panel.setup(characters, card_factory, initial_sort_key, false, initial_focus, confirm_label)
+
+
+## 給不是「選一個然後確認」的情境用(例如根據地生產建築的指派工作角色面板——選人跟
+## 召回都是點下去立即生效,沒有單一結果可以 confirm,見 Scenes/Base/
+## worker_dispatch_panel.gd)。這裡只負責塞內容 + 換標題,不像 open_picker() 那樣連
+## character_confirmed/cancelled 訊號——呼叫端要監聽關閉時機,接 tree_exiting(見
+## base_action_panel.gd 的 _open_dispatch_picker())。
+func open_content(title: String, content: Control) -> void:
+	_title_label.text = title
+	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_content_box.add_child(content)
 
 
 func close() -> void:

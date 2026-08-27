@@ -26,6 +26,7 @@ const MAX_NAME_WIDTH := 8
 var _detail_view: CharacterDetailView
 var _name_edit: LineEdit
 var _confirm_button: Button
+var _discard_button: Button
 var _nation_button_group: ButtonGroup
 
 var _character: Character
@@ -75,7 +76,15 @@ func _build_layout() -> void:
 
 	var confirm_row := HBoxContainer.new()
 	confirm_row.alignment = BoxContainer.ALIGNMENT_END
+	confirm_row.add_theme_constant_override("separation", 12)
 	right_column.add_child(confirm_row)
+
+	_discard_button = Button.new()
+	_discard_button.text = "丟棄"
+	UiStyle.apply_wood_plaque_button(_discard_button, 24.0, 10.0)
+	_discard_button.add_theme_font_size_override("font_size", 18)
+	_discard_button.pressed.connect(_on_discard_pressed)
+	confirm_row.add_child(_discard_button)
 
 	_confirm_button = Button.new()
 	_confirm_button.text = "確認"
@@ -202,4 +211,18 @@ func _on_confirm_pressed() -> void:
 	if not new_name.is_empty():
 		_character.name = new_name
 	AcademyRule.enroll(_character, _selected_nation)
+	LifeEventQueueStore.finish_current()
+
+
+## 丟棄新生兒:先跳確認彈窗(不可逆——小孩會被刪除,不進祖譜也不進角色池,見
+## NewbornDiscardController.discard()),確認後才真的執行,避免手滑誤刪。
+func _on_discard_pressed() -> void:
+	ConfirmDialog.ask(
+		"確定要丟棄 %s 嗎？這個孩子將不會被記錄下來。" % _character.full_name,
+		_on_discard_confirmed
+	)
+
+
+func _on_discard_confirmed() -> void:
+	NewbornDiscardController.discard(_character)
 	LifeEventQueueStore.finish_current()

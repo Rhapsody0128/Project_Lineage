@@ -69,6 +69,7 @@ static func encode_character(character: Character) -> Dictionary:
 		"is_protagonist": character.is_protagonist,
 		"is_pregnant": character.is_pregnant,
 		"pregnancy_months": character.pregnancy_months,
+		"postpartum_months_remaining": character.postpartum_months_remaining,
 		"is_dead": character.is_dead,
 		"parent_ids": parent_ids,
 		"mate_id": character.mate.id if character.mate != null else "",
@@ -136,6 +137,7 @@ static func decode_character_base(data: Dictionary) -> Character:
 	character.is_protagonist = data.get("is_protagonist", false)
 	character.is_pregnant = data.get("is_pregnant", false)
 	character.pregnancy_months = int(data.get("pregnancy_months", 0))
+	character.postpartum_months_remaining = int(data.get("postpartum_months_remaining", 0))
 	character.is_dead = data.get("is_dead", false)
 	return character
 

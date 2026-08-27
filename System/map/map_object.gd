@@ -88,13 +88,17 @@ static func get_all() -> Array[MapObject]:
 ## map_location.gd)。BASE(玩家根據地)除了「進入根據地」(切去 Scenes/Base/base.tscn,
 ## 建築內政系統的實際邏輯在那個場景裡,不在這個地點選單)之外,也共用同一個「休息」
 ## 按鈕邏輯——按鈕文字字串相同,map_location.gd 用文字比對接同一支
-## _on_rest_button_pressed(),不需要分 TOWN/BASE 另外寫一份。CASTLE:駐軍是佔位按鈕;
+## _on_rest_button_pressed(),不需要分 TOWN/BASE 另外寫一份。BASE 專屬多一顆「長休」:
+## 彈出面板讓玩家指定 1~365 天,確定後一樣退回大地圖播放時間,但額外把倍速直接調到
+## DEMO(100 倍),直到指定天數到達或玩家提早移動/操作(視同一般休息醒來)才把倍速還原
+## 成 1 倍——實際到站判定/倍速還原都在 Scenes/Map/map.gd(MapSessionStore.
+## long_rest_target_day),這裡只負責在子選單多列一顆按鈕。CASTLE:駐軍是佔位按鈕;
 ## 聊天跟 TOWN 同名但故意不共用 TownChatEvent(map_location.gd 的 CHAT_LABEL 分支額外
 ## 檢查 type == TOWN 才接,見該檔案註解),先當佔位按鈕,城堡專屬聊天內容之後再設計;
 ## 休息比照 TOWN/BASE 共用同一支 _on_rest_button_pressed()。
 const TYPE_SUB_LOCATIONS: Dictionary = {
 	GameEnums.MapObjectType.TOWN: ["城門", "酒館", "市集", "聊天", "休息"],
-	GameEnums.MapObjectType.BASE: ["進入根據地", "休息"],
+	GameEnums.MapObjectType.BASE: ["進入根據地", "休息", "長休"],
 	GameEnums.MapObjectType.CASTLE: ["聊天", "駐軍", "休息"],
 }
 

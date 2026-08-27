@@ -154,6 +154,8 @@ func _ready() -> void:
 		MapSessionStore.is_resting = true
 		player_avatar.visible = false
 
+	WorldTimeStore.day_passed.connect(_on_day_passed)
+
 	header_bar.add_status_button()
 
 	_clamp_camera_position()
@@ -230,7 +232,9 @@ func _process(delta: float) -> void:
 	# HeaderBar 按鈕切換,4 是 DEMO 用的 100 倍速)套用在這裡的 delta 上,移動速度跟
 	# 時間流逝維持同一套加速比例。
 	if WorldTimeStore.controller.is_playing:
-		var move_delta := delta * WorldTimeStore.play_speed_multiplier
+		# 士氣(MoraleStore)額外套用在移動速度上,跟世界時間倍速疊乘——高士氣走得快、
+		# 低士氣走得慢,見 System/morale/morale_rule.gd 的 map_move_speed_multiplier()。
+		var move_delta := delta * WorldTimeStore.play_speed_multiplier * (1.0 + MoraleRule.map_move_speed_multiplier(MoraleStore.value))
 
 		if map_system.is_moving:
 			# 追蹤中的敵人每幀都在自己遊蕩,目的地要跟著重新瞄準牠目前的位置,不能只在
@@ -584,12 +588,31 @@ func _handle_click_to_move() -> void:
 
 
 ## 玩家主動點地圖移動視為「醒來」——恢復頭像顯示與撞遊蕩敵人判定,見
-## MapSessionStore.is_resting 註解。
+## MapSessionStore.is_resting 註解。長休倒數中提早醒來,額外把倍速還原成 1 倍、清掉
+## 目標天數(見 MapSessionStore.long_rest_target_day 註解),跟天數到達的
+## _on_day_passed() 共用同一段還原邏輯,不用各自重複寫一次。
 func _end_resting() -> void:
 	if not MapSessionStore.is_resting:
 		return
 	MapSessionStore.is_resting = false
 	player_avatar.visible = true
+	if MapSessionStore.long_rest_target_day >= 0:
+		MapSessionStore.long_rest_target_day = -1
+		WorldTimeStore.set_speed_level(1)
+
+
+## 長休天數到達:比照抵達目的地的既有作法直接暫停時間,交還操作權給玩家,再借用
+## _end_resting() 統一還原倍速/頭像/撞敵判定(見上方註解)。跨天推進(高倍速一次推進
+## 好幾天)靠 WorldTimeController.advance() 逐天觸發 day_passed,不會跳過目標天數那一天,
+## 見 System/time/world_time_controller.gd。
+func _on_day_passed() -> void:
+	if MapSessionStore.long_rest_target_day < 0:
+		return
+	if WorldTimeStore.controller.world_time.get_day_count() < MapSessionStore.long_rest_target_day:
+		return
+	WorldTimeStore.set_playing(false)
+	_end_resting()
+	MessageBar.show_message("長休結束")
 
 
 ## 找出滑鼠點在哪隻看得見的遊蕩敵人身上,取範圍內離滑鼠最近的一隻;沒點中回傳 null。

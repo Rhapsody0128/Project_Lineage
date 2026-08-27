@@ -8,9 +8,11 @@ extends CanvasLayer
 # CanvasLayer 彈窗。目前唯一的呼叫端是 System/event/town/town_tavern_event.gd
 # 角色列已滿時問玩家要不要去角色列表解雇一位角色騰位置。
 #
-# CanvasLayer.layer=15,介於 ActionPanel/AskBattle(10)跟 CharacterPanel(20)之間——
-# 這顆彈窗常常疊在 ActionPanel 之上彈出(例如酒館招募清單開著時跳出來問),
-# 所以要蓋過 10,但不需要蓋過全域最上層的 CharacterPanel。
+# CanvasLayer.layer=35,蓋過 ActionPanel/AskBattle(10)、CharacterPanel(20)、
+# Scenes/CharacterSelect/character_select_overlay.gd 的 CharacterSelectOverlay(30)——
+# 這是全域最後一道「你確定嗎」提示,不管玩家當下疊了幾層彈窗(例如根據地指派工作角色的
+# CharacterSelectOverlay 開著時跳出來問是否把某人從別的建築改調過來,見
+# Scenes/Base/worker_dispatch_panel.gd),都要蓋在最上面才點得到,所以固定取全專案最高。
 # =========================================================
 
 @onready var root: Control = $Root

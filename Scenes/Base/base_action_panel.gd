@@ -36,10 +36,11 @@ extends VBoxContainer
 const AVATAR_SLOT_SIZE := Vector2(64, 64)
 
 var _building: Building
-## 升級/建造/派遣失敗後單次顯示一行提示,顯示完就消耗掉,不跨 rebuild 保留。
+## 升級/建造失敗後單次顯示一行提示,顯示完就消耗掉,不跨 rebuild 保留。指派工作角色
+## 已經改走 Scenes/Base/worker_dispatch_panel.gd 的即時指派/召回(滿額時 dispatch() 直接
+## 無聲不做事),不再需要對應的錯誤旗標。
 var _upgrade_error: bool = false
 var _build_error: bool = false
-var _dispatch_error: bool = false
 
 ## 兵營:選定要受訓的角色後存這裡,接著展開技能清單(_build_skill_picker())。
 var _training_character: Character = null
@@ -93,9 +94,6 @@ func _rebuild_body() -> void:
 	if _upgrade_error:
 		_add_label("資材不足")
 		_upgrade_error = false
-	if _dispatch_error:
-		_add_label("已滿額")
-		_dispatch_error = false
 
 	if not BaseBuildingProgressStore.is_unlocked(_building.type):
 		return
@@ -261,7 +259,7 @@ func _build_upgrade_button() -> Button:
 func _build_cost_tooltip(cost: Dictionary, days: int, extra_lines: Array[String] = []) -> String:
 	var lines: Array[String] = []
 	for resource_type in cost:
-		var owned := BaseResourceStore.get_amount(resource_type)
+		var owned: int = BaseResourceStore.get_display_amount(resource_type)
 		var required: int = cost[resource_type]
 		lines.append("%s 現有%d / 需要%d" % [GameEnums.resource_string_label(resource_type), owned, required])
 	lines.append("天數：%d 天" % days)
@@ -280,7 +278,7 @@ func _build_warehouse_section() -> void:
 	grid.add_theme_constant_override("v_separation", 4)
 	for resource_type in GameEnums.ResourceType.values():
 		var capacity := BaseWarehouse.get_capacity(resource_type, level)
-		var amount := BaseResourceStore.get_amount(resource_type)
+		var amount: int = BaseResourceStore.get_display_amount(resource_type)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 4)
 		row.add_child(_build_resource_icon(resource_type))
@@ -409,7 +407,12 @@ func _open_stronghold_marriage_panel(eligible: Array[Character]) -> void:
 	)
 
 
+## 有配方(fixed_recipe 或工匠坊)的建築不重複顯示這行——那些建築的「理論上限」已經改成
+## 「最大產能」顯示在配方預覽區塊(_build_recipe_preview_row()),跟「本月產能」(原料實際
+## 夠用、可能因為原料不足而低於最大產能的量)並排,不需要這裡再顯示一次同一個數字。
 func _build_efficiency_label() -> void:
+	if _building.fixed_recipe != null or _building.type == GameEnums.BuildingType.WORKSHOP:
+		return
 	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
 	var level := BaseBuildingProgressStore.get_level(_building.type)
 	var monthly_yield := BaseProduction.compute_monthly_yield(_building, characters, level)
@@ -419,6 +422,10 @@ func _build_efficiency_label() -> void:
 	row.add_child(_build_resource_icon(_building.produces))
 	row.add_child(_build_plain_text("/月"))
 	add_child(row)
+	## 倉庫已滿時月結算(BaseDispatchStore.settle())整棟跳過、不生產(見該檔案),這裡
+	## 額外補一行提示,不然玩家看著「目前效率：X」的數字卻怎麼等都等不到入庫,一頭霧水。
+	if BaseResourceStore.is_full(_building.produces):
+		_add_label("倉庫已滿,本月不會生產")
 
 
 func _build_plain_text(text: String) -> Label:
@@ -471,42 +478,16 @@ func _build_worker_slot(character: Character) -> Control:
 	return slot
 
 
-## 顯示全部未禁用角色(不只是可指派的人)——已在此工作/在別處工作的人一樣列出來,
-## 靠 CharacterAvatarCard 的 available/unavailable_reason 反灰純視覺區分,召回維持在
-## _build_worker_slot() 點頭像格處理。排序預設依建築適應性素質(見 CharacterSelectBar.
-## setup() 的 initial_sort_key,3 + PotentialType 剛好對應 GameEnums.CharacterSortKey 的
-## STRENGTH..MENTALITY,見該檔案註解)。
+## 開啟 Scenes/Base/worker_dispatch_panel.gd 的三塊版面(左側角色詳情/右上工作安排列/
+## 右下角色清單),點列表卡片即時指派、點安排列頭像即時召回,沒有單一結果可以 confirm,
+## 所以不走 CharacterSelectOverlay.open_picker() 那條「選一個再確認」的路,改用
+## open_content() 塞內容——疊加視窗開著時可以連續調整好幾個人,關閉時(接 tree_exiting)
+## 才重建這份建築面板,反映最新的工作角色列/效率數字。
 func _open_dispatch_picker() -> void:
-	var characters: Array[Character] = []
-	for character in CharacterRosterStore.all_characteres:
-		if not character.is_disabled:
-			characters.append(character)
-
 	var overlay := CharacterSelectOverlay.new()
 	get_tree().root.add_child(overlay)
-	overlay.open_picker(
-		"指派工作角色", characters, _make_dispatch_card,
-		3 + _building.potential_type, _on_dispatch_confirmed, "確認指派"
-	)
-
-
-## 完整素質資訊已經在 CharacterSelectPanel 左側的 CharacterDetailView 顯示,卡片只需要
-## 負責「已在此工作/在別處工作/已編入小隊」這三種不可指派狀態(CharacterAvatarCard 自己
-## 處理反灰+tooltip)。
-func _make_dispatch_card(character: Character) -> Control:
-	var is_here := BaseDispatchStore.get_dispatched_character_ids(_building.type).has(character.id)
-	var is_elsewhere := not is_here and BaseDispatchStore.is_character_dispatched(character.id)
-	var is_in_party := PartyStore.party != null and PartyStore.party.characteres.has(character)
-	var assignable := not is_here and not is_elsewhere and not is_in_party
-	var unavailable_reason := "在此工作" if is_here else ("在其他地方工作" if is_elsewhere else "已編入小隊")
-	return CharacterAvatarCard.new(character, assignable, unavailable_reason)
-
-
-func _on_dispatch_confirmed(character: Character) -> void:
-	var success := BaseDispatchStore.dispatch(_building.type, character.id)
-	if not success:
-		_dispatch_error = true
-	_rebuild_body()
+	overlay.open_content("指派工作角色", WorkerDispatchPanel.new(_building))
+	overlay.tree_exiting.connect(_rebuild_body)
 
 
 ## 兩個「選一個純頭像卡就好」的選人情境(兵營受訓/更換整團領導人)共用這顆最簡單的
@@ -627,12 +608,13 @@ func _build_skill_row(skill: Skill) -> Control:
 
 
 ## 工匠坊:三種配方任選一種,月結算時依 WorkshopRecipeStore 目前選定的配方換算實際產出
-## (見 Scripts/Autoload/base_dispatch_store.gd 的 _resolve_recipe())。原料不夠時整個月
-## 不生產、不消耗(不是部分打折),選中的配方下面直接列出本月預計消耗/取得量,讓玩家換
-## 配方前先看得到會不會白忙一場。沒派工作角色時是另一回事(沒人做事,不是原料不足),
-## 分開判斷、分開顯示,見 _build_recipe_preview_row() 的 has_workers。
+## (見 Scripts/Autoload/base_dispatch_store.gd 的 _resolve_recipe())。原料不夠時按比例
+## 部分生產,不是整個月掛零(見 System/base/workshop_production.gd),選中的配方下面直接
+## 列出「最大產能」跟本月實際能做到的「本月產能」,讓玩家換配方前先看得到原料夠不夠撐滿。
+## 沒派工作角色時是另一回事(沒人做事,不是原料不足),分開判斷、分開顯示,見
+## _build_recipe_preview_row() 的 has_workers。
 func _build_recipe_section() -> void:
-	_add_label("配方（資源不足時整個月不生產）：")
+	_add_label("配方（原料不足時按比例部分生產）：")
 	var selected_id := WorkshopRecipeStore.get_selected().id
 	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
 	var level := BaseBuildingProgressStore.get_level(_building.type)
@@ -675,10 +657,10 @@ func _build_recipe_row(recipe: WorkshopRecipe, is_selected: bool, theoretical_ou
 
 
 ## 6 棟高階內政建築(Building.fixed_recipe 不為 null)共用:配方固定、玩家不能選,直接
-## 顯示本月預計消耗/取得量,邏輯跟工匠坊配方預覽(_build_recipe_row() 的 is_selected 分支)
+## 顯示最大產能/本月產能,邏輯跟工匠坊配方預覽(_build_recipe_row() 的 is_selected 分支)
 ## 一致,見 _build_recipe_preview_row()。
 func _build_fixed_recipe_section() -> void:
-	_add_label("固定消耗（資源不足時整個月不生產）：")
+	_add_label("固定消耗（原料不足時按比例部分生產）：")
 	var characters := BaseDispatchStore.get_dispatched_characters(_building.type)
 	var level := BaseBuildingProgressStore.get_level(_building.type)
 	var theoretical_output := BaseProduction.compute_monthly_yield(_building, characters, level)
@@ -686,8 +668,15 @@ func _build_fixed_recipe_section() -> void:
 	add_child(_build_recipe_preview_row(_building.fixed_recipe, _building.produces, theoretical_output, has_workers))
 
 
-## 「本月將消耗 [圖示]x數量...，取得 [圖示]x數量」這行預覽,工匠坊配方(_build_recipe_row())
-## 跟固定消耗建築(_build_fixed_recipe_section())共用同一套邏輯跟排版。
+## 「最大產能 [圖示]xZ，本月產能 [圖示]xY（消耗 [圖示]xX...）」這行預覽,工匠坊配方
+## (_build_recipe_row())跟固定消耗建築(_build_fixed_recipe_section())共用同一套邏輯跟
+## 排版。最大產能(theoretical_output)是工作角色能做到的理論上限,不受原料夠不夠影響;
+## 本月產能是原料實際夠用的量,原料不足時會按比例小於最大產能(見
+## System/base/workshop_production.gd 的 resolve()),兩個數字分開顯示才看得出是不是被
+## 原料卡住。result.output/consumed 都是可能帶小數的 float(零頭留在 BaseResourceStore
+## 裡累積到下個月),這裡無條件捨去成整數顯示,不影響底下真正入庫的精確值。產物倉庫已滿
+## 時月結算(BaseDispatchStore.settle())整棟跳過、不生產也不消耗(見該檔案),這裡要用
+## 同一條件先擋掉,不然預覽會說「本月產能 X」卻實際上一滴都不會生產,跟真正結算兜不起來。
 func _build_recipe_preview_row(recipe: WorkshopRecipe, output_resource: int, theoretical_output: int, has_workers: bool) -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
@@ -696,19 +685,28 @@ func _build_recipe_preview_row(recipe: WorkshopRecipe, output_resource: int, the
 		row.add_child(_build_preview_text("尚未指派工作角色,本月不會生產"))
 		return row
 
+	if BaseResourceStore.is_full(output_resource):
+		row.add_child(_build_preview_text("倉庫已滿,本月不會生產"))
+		return row
+
 	var available: Dictionary = {}
 	for resource_type in recipe.inputs:
 		available[resource_type] = BaseResourceStore.get_amount(resource_type)
 	var result := WorkshopProduction.resolve(recipe, theoretical_output, available)
-	if result.output <= 0:
-		row.add_child(_build_preview_text("本月原料不足,將不會生產"))
+
+	row.add_child(_build_preview_text("最大產能"))
+	row.add_child(_build_resource_amount_chip(output_resource, theoretical_output))
+
+	if result.output <= 0.0:
+		row.add_child(_build_preview_text("，原料枯竭，本月無法生產"))
 		return row
 
-	row.add_child(_build_preview_text("本月將消耗"))
+	row.add_child(_build_preview_text("，本月產能"))
+	row.add_child(_build_resource_amount_chip(output_resource, floori(result.output)))
+	row.add_child(_build_preview_text("（消耗"))
 	for resource_type in result.consumed:
-		row.add_child(_build_resource_amount_chip(resource_type, result.consumed[resource_type]))
-	row.add_child(_build_preview_text("，取得"))
-	row.add_child(_build_resource_amount_chip(output_resource, result.output))
+		row.add_child(_build_resource_amount_chip(resource_type, floori(result.consumed[resource_type])))
+	row.add_child(_build_preview_text("）"))
 	return row
 
 
@@ -778,8 +776,11 @@ func _build_exchange_section() -> void:
 
 	var resource_dropdown := OptionButton.new()
 	## 來源 PNG 是 512x512(見 Images/ResourceType/),OptionButton 預設不會自動縮小 icon,
-	## 這裡明確設 icon_max_width 限制顯示尺寸,不然下拉選單會被巨大圖示撐爆。
+	## 這裡明確設 icon_max_width 限制顯示尺寸,不然下拉選單會被巨大圖示撐爆。下拉展開的
+	## 清單其實是獨立的 PopupMenu 子節點(get_popup()),不會繼承設在 OptionButton 本體上的
+	## instance override,兩邊都要設,否則按鈕本身圖示正常、點開清單卻整包被撐爆。
 	resource_dropdown.add_theme_constant_override("icon_max_width", 26)
+	resource_dropdown.get_popup().add_theme_constant_override("icon_max_width", 26)
 	for option in options:
 		var icon := load(GameEnums.resource_type_icon_path(option.resource)) as Texture2D
 		resource_dropdown.add_icon_item(icon, GameEnums.resource_string_label(option.resource), option.resource)
@@ -838,10 +839,14 @@ func _build_exchange_section() -> void:
 
 
 ## 祭壇/禁忌祭壇:購買奧義直接對接既有 UltimateStore 的次數系統,消耗資源用
-## _building.produces(祭壇=信仰、禁忌祭壇=詛咒),不用另外分流。畫面分兩段:上面
-## 「目前擁有的奧義」是唯讀的次數總覽(獨立於下面的購買列,不用在每次點購買前先找到
-## 「目前剩餘 X 次」那行字),下面「可購買」每顆按鈕按一下就是買一次,沒有數量選擇;
-## 兩段都把長版效果說明改成滑鼠移過去的 tooltip(tooltip_text),不佔版面。
+## _building.produces(祭壇=信仰、禁忌祭壇=詛咒),不用另外分流。9 個奧義(F~SSS)固定
+## 全部列出一張表(名稱/Rank/價格/持有/購買鈕),不是「已擁有」「可購買」拆兩段各自列——
+## 建築等級不足、還買不到的 Rank 照樣留一行在表裡,價格欄改顯示「等級不足」、購買鈕
+## disabled,讓玩家一眼看到整條奧義階梯還差幾級解鎖,不用切換 tooltip 才看得到說明,長版
+## 效果說明直接開一欄顯示(Rank 跟價格之間),不用再靠 tooltip 才看得到。價格欄跟最上方的倉庫存量一律用
+## _build_resource_icon() 的資源圖示取代文字資源名,比照 _build_warehouse_section() 既有
+## 寫法。最上方顯示的是「倉庫裡的信仰/詛咒庫存」(BaseResourceStore.get_amount()),
+## 不是奧義持有次數——奧義持有次數已經在表格「持有」欄逐行顯示了,不用在最上面重複。
 func _build_altar_section() -> void:
 	var rank_cap := BaseBuildingProgressStore.get_rank(_building.type)
 	var ultimates := (
@@ -849,56 +854,83 @@ func _build_altar_section() -> void:
 		else UltimateLibrary.enemy_ultimates()
 	)
 
-	_add_label("目前已擁有的奧義：")
+	var stock_row := HBoxContainer.new()
+	stock_row.add_theme_constant_override("separation", 6)
+	stock_row.add_child(_build_resource_icon(_building.produces))
+	var stock_label := Label.new()
+	stock_label.text = "目前總共%s：%d" % [
+		GameEnums.resource_string_label(_building.produces), BaseResourceStore.get_display_amount(_building.produces)
+	]
+	stock_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	stock_row.add_child(stock_label)
+	add_child(stock_row)
+
+	var grid := GridContainer.new()
+	grid.columns = 6
+	grid.add_theme_constant_override("h_separation", 20)
+	grid.add_theme_constant_override("v_separation", 6)
+	for header_text in ["奧義", "Rank", "描述", "價格", "持有", ""]:
+		var header := Label.new()
+		header.text = header_text
+		header.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
+		grid.add_child(header)
+
 	for ultimate in ultimates:
-		add_child(_build_owned_ultimate_label(ultimate))
-
-	_add_label("可兌換奧義：")
-
-	var eligible: Array[Ultimate] = []
-	for ultimate in ultimates:
-		if ultimate.rank <= rank_cap:
-			eligible.append(ultimate)
-
-	if eligible.is_empty():
-		_add_label("建築等級不足,尚無可購買的奧義")
-	else:
-		for ultimate in eligible:
-			add_child(_build_ultimate_row(ultimate))
+		_add_ultimate_row(grid, ultimate, rank_cap)
+	add_child(grid)
 
 	if _altar_error:
 		_add_label("資源不足")
 		_altar_error = false
 
 
-func _build_owned_ultimate_label(ultimate: Ultimate) -> Control:
-	var label := Label.new()
-	label.text = "%s（%s）：剩餘 %d 次" % [
-		ultimate.name, GameEnums.rank_label(ultimate.rank), UltimateStore.uses_remaining(ultimate)
-	]
-	label.tooltip_text = ultimate.description
-	label.mouse_filter = Control.MOUSE_FILTER_STOP
-	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	return label
+func _add_ultimate_row(grid: GridContainer, ultimate: Ultimate, rank_cap: GameEnums.RankType) -> void:
+	var unlocked := ultimate.rank <= rank_cap
+	var cost := BaseAltar.cost_for_rank(ultimate.rank, _building.type)
+	var resource_type := _building.produces
 
+	var name_label := Label.new()
+	name_label.text = ultimate.name
+	name_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	grid.add_child(name_label)
 
-func _build_ultimate_row(ultimate: Ultimate) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	var rank_label := Label.new()
+	rank_label.text = GameEnums.rank_label(ultimate.rank)
+	rank_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	grid.add_child(rank_label)
 
-	var cost := BaseAltar.cost_for_rank(ultimate.rank)
-	var label := Label.new()
-	label.text = "%s (%s) ：消耗 %s %s" % [ultimate.name, GameEnums.rank_label(ultimate.rank), GameEnums.resource_string_label(_building.produces), cost]
-	label.tooltip_text = ultimate.description
-	label.mouse_filter = Control.MOUSE_FILTER_STOP
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	row.add_child(label)
+	var description_label := Label.new()
+	description_label.text = ultimate.description
+	description_label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	description_label.custom_minimum_size = Vector2(320, 0)
+	description_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	description_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	grid.add_child(description_label)
+
+	var price_box := HBoxContainer.new()
+	price_box.add_theme_constant_override("separation", 4)
+	if unlocked:
+		price_box.add_child(_build_resource_icon(resource_type, Vector2(20, 20)))
+		var price_label := Label.new()
+		price_label.text = str(cost)
+		price_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+		price_box.add_child(price_label)
+	else:
+		var locked_label := Label.new()
+		locked_label.text = "等級不足"
+		locked_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+		price_box.add_child(locked_label)
+	grid.add_child(price_box)
+
+	var owned_label := Label.new()
+	owned_label.text = str(UltimateStore.uses_remaining(ultimate))
+	owned_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	grid.add_child(owned_label)
 
 	var button := Button.new()
 	button.text = "購買"
 	_style_button(button)
-	var resource_type := _building.produces
+	button.disabled = not unlocked
 	button.pressed.connect(func() -> void:
 		if BaseResourceStore.can_afford({resource_type: cost}):
 			BaseResourceStore.spend({resource_type: cost})
@@ -908,9 +940,7 @@ func _build_ultimate_row(ultimate: Ultimate) -> Control:
 			_altar_error = true
 			_rebuild_body()
 	)
-	row.add_child(button)
-
-	return row
+	grid.add_child(button)
 
 
 ## 科學研究所:15 格科技樹,依分類分組顯示,門檻/科研消耗見 TechLibrary。效果本身

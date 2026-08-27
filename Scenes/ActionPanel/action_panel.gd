@@ -26,8 +26,8 @@ extends CanvasLayer
 # 三個實例)。
 # =========================================================
 
-## 視窗固定 1400x720(見 project.godot),預設面板大約佔 3/4 畫面。
-const DEFAULT_MIN_SIZE := Vector2(1400, 720)
+## 視窗固定 1500x750(見 project.godot),預設面板大約佔 3/4 畫面。
+const DEFAULT_MIN_SIZE := Vector2(1500, 750)
 const ICON_SIZE := Vector2(64, 64)
 
 ## 面板背景換成羊皮紙木框(UiStyle.apply_parchment_panel())之後,列跟文字改用暖色系
@@ -58,7 +58,7 @@ var _title_action_button: Control = null
 
 func _ready() -> void:
 	root.visible = false
-	UiStyle.apply_parchment_panel(panel_box, 1400.0, 720.0)
+	UiStyle.apply_parchment_panel(panel_box, 1500.0, 750.0)
 	UiStyle.apply_wood_plaque_button(close_button, 10.0, 4.0)
 	close_button.add_theme_font_size_override("font_size", 18)
 	close_button.pressed.connect(close)

@@ -16,6 +16,9 @@ var description: String
 ## 祭壇/禁忌祭壇購買門檻(GameEnums.RankType),見 System/base/base_altar.gd——
 ## 建築等級 N 對應可購買到 Rank N-1(0-indexed)以下的奧義。
 var rank: GameEnums.RankType
+## 祝福/災厄分類(GameEnums.UltimateCategory),由 UltimateLibrary 依 self_ultimates()/
+## enemy_ultimates() 歸屬統一標記,只給 BattleUltimatePanel 分兩列呈現用。
+var category: GameEnums.UltimateCategory
 ## 生效當下顯示的天象/特效描述(戰場中央浮字,見 Scenes/Battle/battle.gd 的
 ## _apply_ultimate_resolve()),例如「詭異龍捲風攻擊敵人」——這時候數值效果才真的套用,
 ## 施放的當下不會顯示任何東西。
@@ -27,6 +30,16 @@ var max_uses_per_battle: int
 ## 效果數值比例,不同奧義各自解讀這個欄位的意義(天降甘霖是回復生命上限的比例、
 ## 龍捲風是造成傷害的比例)。
 var effect_ratio: float
+## 第二段效果數值比例,只有雙效果組合奧義(例如安寢祝禱的護盾比例、業火焚天的體質減益
+## 比例)才會用到,單一效果奧義留 0.0 不用管。
+var secondary_ratio: float = 0.0
+## 素質增益/減益奧義(戰意昂揚/凋零詛咒)專用:要增減的 PotentialType 清單,其餘效果
+## 類型的奧義不用設定。
+var buffed_potential_types: Array[int] = []
+## 狀態/素質效果生效後持續幾回合(恐懼/封印/降治療/素質增減),跟 delay_rounds(施放到
+## 生效的延遲)是兩回事——這個欄位是「生效那一刻開始算」的持續時間。單純治療/傷害/護盾
+## 這類瞬間生效的奧義不用設定。
+var duration_rounds: int = 0
 ## 施放當下呼叫,簽名 (caster: BattleCharacter, ultimate: Ultimate, resolve_round: int),
 ## 給需要在施放當下就套用額外效果的奧義用(目前兩個內建奧義都不需要,留空即可)。
 var cast_action: Callable

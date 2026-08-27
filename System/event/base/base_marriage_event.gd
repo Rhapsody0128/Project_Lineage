@@ -148,6 +148,7 @@ func _finish() -> void:
 		result_text = "%s 向%s國聯姻成功,與 %s 結婚了。" % [_proposer.full_name, nation_label, _candidate.full_name]
 		NewsController.post(result_text, GameEnums.NewsCategory.MAJOR)
 		MessageBar.show_message(result_text)
+		MoraleStore.record_event("角色結婚", MoraleStore.MARRIAGE_DELTA)
 	else:
 		result_text = "%s 向%s國寄出的聯姻信被拒絕了。" % [_proposer.full_name, nation_label]
 

@@ -163,18 +163,22 @@ func _refresh_all() -> void:
 	_update_finish_button_state()
 
 
-## 候補清單列出全部角色,包含已上陣的、已派駐根據地生產的——這幾種都反灰、不能再拖去
-## 網格(只能點開看素質),讓玩家能在同一份清單裡確認「誰已經在場上/在工作」,不用切去
-## 網格或根據地面板對照。實際「能不能放置」規則仍在 PartyEditGrid,這裡只轉發
-## is_placed()/BaseDispatchStore 的查詢結果給 CharacterCard 決定要不要反灰/擋拖曳。
+## 候補清單列出全部角色,包含已上陣的、已派駐根據地生產的——已上陣的整卡反灰、不能再拖去
+## 網格(只能點開看素質,人已經在場上了);已派駐根據地生產的視覺上一樣反灰示意非「直接可用」
+## 狀態,但仍可拖去網格,拖放後 party_edit_availability_layer.gd 的 _drop_data() 會先跳
+## ConfirmDialog 問玩家是否要召回改編入小隊(見該檔案),不是這裡直接擋掉。實際「能不能
+## 放置」規則仍在 PartyEditGrid,這裡只轉發 is_placed()/BaseDispatchStore 的查詢結果給
+## CharacterCard 決定要不要反灰/擋拖曳。
 func _refresh_roster() -> void:
 	for child in roster_list.get_children():
 		child.queue_free()
 	var candidates: Array[Character] = CharacterRosterStore.all_characteres.duplicate()
 	for character in sort_filter_bar.filter.apply(candidates):
-		var is_dispatched := BaseDispatchStore.is_character_dispatched(character.id)
-		var disabled_reason := "已派駐根據地工作,無法上陣" if is_dispatched else ""
-		roster_list.add_child(CharacterCard.new(character, grid.is_placed(character) or is_dispatched, disabled_reason))
+		var is_placed := grid.is_placed(character)
+		var dispatched_building_type := BaseDispatchStore.get_dispatched_building_type(character.id)
+		var is_dispatched := dispatched_building_type != -1
+		var disabled_reason := "在%s工作，拖曳可改編入隊伍" % GameEnums.building_type_label(dispatched_building_type) if is_dispatched else ""
+		roster_list.add_child(CharacterCard.new(character, is_placed, disabled_reason, is_dispatched))
 
 
 func _refresh_placed_layer() -> void:

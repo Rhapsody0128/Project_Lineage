@@ -318,7 +318,10 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.STONE: 330, GameEnums.ResourceType.FUR: 345},
 			],
 			UPGRADE_DAYS,                                     ## 升級天數表
-			WorkshopRecipe.new("scriptorium_fur", "抄書耗材", {GameEnums.ResourceType.FUR: 1}, 1) ## 固定消耗配方:1 毛皮→1 書本(書本價值點數 8 跟毛皮 7 相近)
+			WorkshopRecipe.new("scriptorium_fur", "抄書耗材", {GameEnums.ResourceType.FUR: 2}, 1) ## 固定消耗配方:2 毛皮→1 書本。書本價值點數 8 跟毛皮 7 相近,round(8÷7)=1 會變成沒有
+			## 實質成本的 1:1 直接置換(產出多少毛皮就能全數換成等量書本,等同跟商隊站
+			## 1:1 兌幣沒兩樣);比照其餘配方(工具/科研/贓物/詛咒)一律要求輸入方「價值
+			## 划不來」的最低門檻,手動訂為 2 毛皮才能拆一批書本,書本因此確實比毛皮更難產。
 		),
 		Building.new(
 			GameEnums.BuildingType.RESEARCH_INSTITUTE,        ## 建築類型(同時也是識別碼)

@@ -97,11 +97,12 @@ func can_place(shape: Array[Vector2i], anchor: Vector2i, excluding_character: Ch
 			return false
 	return true
 
-## 已派駐根據地生產的角色不能放上小隊網格——跟 BaseDispatchStore.dispatch() 互為
-## 對稱防線(見 CLAUDE.md 這次新增的互斥規則)。
+## 已派駐根據地生產的角色也可以放上小隊網格——呼叫端(Scenes/PartyEdit/
+## party_edit_availability_layer.gd 的 _drop_data())要先跳 ConfirmDialog 問玩家是否把人從
+## 原本的建築召回,確定才呼叫 BaseDispatchStore.undispatch_character() 再放這裡,這裡本身
+## 不擋、也不負責召回(佔用規則以外的事一律留給 Scenes 層),跟 BaseDispatchStore.dispatch()
+## 允許把小隊成員(非隊長)改派去工作是同一組雙向轉換,不再是完全互斥。
 func place(character: Character, shape: Array[Vector2i], anchor: Vector2i) -> bool:
-	if BaseDispatchStore.is_character_dispatched(character.id):
-		return false
 	if not can_place(shape, anchor, character):
 		return false
 	if is_placed(character):

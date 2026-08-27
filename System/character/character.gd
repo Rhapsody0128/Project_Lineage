@@ -39,6 +39,10 @@ var children: Array[Character] = []
 ## PregnancyRule.MONTHS_TO_BIRTH 個月產下孩子後歸零。
 var is_pregnant: bool = false
 var pregnancy_months: int = 0
+## 休產期剩餘月數(見 PregnancyRule.POSTPARTUM_MONTHS),give_birth() 時設定初始值,
+## advance_postpartum_recovery() 每月倒數歸零前 PregnancyRule.is_eligible() 一律視為不
+## 符合懷孕資格。
+var postpartum_months_remaining: int = 0
 ## 戰場佔位形狀(俄羅斯方塊式多格圖形),用於 PartyEdit 編成畫面的格子佔用判斷
 var battle_cost: BattleCost
 ## 是否為玩家固定主角(CharacterController.get_fixed_protagonist() 建立時設為 true,
@@ -204,7 +208,14 @@ func give_birth() -> Character:
 	mate.children.append(child)
 	is_pregnant = false
 	pregnancy_months = 0
+	postpartum_months_remaining = PregnancyRule.POSTPARTUM_MONTHS
 	return child
+
+## 休產期每月倒數(見 WorldTimeEventLibrary._advance_postpartum_recovery()),歸零後不再
+## 繼續遞減負值。
+func advance_postpartum_recovery() -> void:
+	if postpartum_months_remaining > 0:
+		postpartum_months_remaining -= 1
 
 func gain_exp(exp_amount: int) -> void:
 	level_system.gain_exp(exp_amount)

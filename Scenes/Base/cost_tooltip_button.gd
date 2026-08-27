@@ -62,7 +62,7 @@ func _make_custom_tooltip(_for_text: String) -> Object:
 		icon.texture = load(GameEnums.resource_type_icon_path(resource_type)) as Texture2D
 		row.add_child(icon)
 
-		var owned := BaseResourceStore.get_amount(resource_type)
+		var owned: int = BaseResourceStore.get_display_amount(resource_type)
 		var required: int = _cost[resource_type]
 		var label := Label.new()
 		label.text = "%s 現有%d / 需要%d" % [GameEnums.resource_string_label(resource_type), owned, required]

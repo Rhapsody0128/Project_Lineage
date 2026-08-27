@@ -357,6 +357,7 @@ func _run_battle_playback(should_simulate: bool) -> void:
 		BattleReward.grant_victory_exp(battle)
 		BattleReward.settle_money(battle)
 		BattleReward.grant_victory_favor(battle)
+		BattleReward.settle_morale(battle)
 		_record_battle_report()
 
 
@@ -425,6 +426,7 @@ func _run_battle_realtime() -> void:
 	BattleReward.grant_victory_exp(battle)
 	BattleReward.settle_money(battle)
 	BattleReward.grant_victory_favor(battle)
+	BattleReward.settle_morale(battle)
 	_record_battle_report()
 	_stop_realtime()
 
@@ -491,6 +493,7 @@ func _on_skip_pressed() -> void:
 	BattleReward.grant_victory_exp(battle)
 	BattleReward.settle_money(battle)
 	BattleReward.grant_victory_favor(battle)
+	BattleReward.settle_morale(battle)
 	_record_battle_report()
 
 

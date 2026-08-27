@@ -10,7 +10,7 @@ extends RefCounted
 ## 「攏絡」(魅惑倒戈)尚未實作戰場狀態轉換本身(只有抵抗判定,見
 ## CombatResolver.judge_status_resist()),亂軍之聲原本設計是攏絡,這裡先用恐懼代替,
 ## 等攏絡的實際效果做出來後再換掉(見 Spec.md 已知待辦)。
-## 「破陣先鋒」(全隊下一擊無視防禦)、「常勝威名」(全隊下一擊必定暴擊,取代原本設計的
+## 「破陣先鋒」(全隊一回合內無視防禦)、「常勝威名」(全隊一回合內必定暴擊,取代原本設計的
 ## 「必中」——必中對武器角色早已是常態,改成必定暴擊才夠格當 S 階獨占效果)靠
 ## GameEnums.SkillMechanic.GRANT_ARMOR_PIERCE/GRANT_GUARANTEED_CRIT 實作:duration_rounds
 ## 回合內持有者的攻擊一律視為破防/必定暴擊,不是機率觸發,1 回合的時限天然對應「每個角色
@@ -67,7 +67,7 @@ static func _support_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("破陣先鋒")
-		.description("身先士卒衝鋒陷陣,自身力量提升,並讓全隊下一擊無視防禦")
+		.description("身先士卒衝鋒陷陣,自身力量提升,並讓全隊一回合內無視防禦")
 		.rank(GameEnums.RankType.C)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.STRENGTH)
@@ -106,7 +106,7 @@ static func _support_skills() -> Array[Skill]:
 
 	skills.append(SkillBuilder.new()
 		.name("常勝威名")
-		.description("百戰百勝累積下的威名,使全隊下一擊必定暴擊")
+		.description("百戰百勝累積下的威名,使全隊一回合內必定暴擊")
 		.rank(GameEnums.RankType.S)
 		.skill_range(0).area_shape(GameEnums.AreaShape.ALL_ALLIES).area_size(1)
 		.effect_stat(GameEnums.PotentialType.DEXTERITY)

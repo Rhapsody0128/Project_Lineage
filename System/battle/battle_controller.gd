@@ -36,4 +36,5 @@ static func generate_report_for_parties(title: String, self_party: Party, enemy_
 	BattleReward.grant_victory_exp(battle)
 	BattleReward.settle_money(battle)
 	BattleReward.grant_victory_favor(battle)
+	BattleReward.settle_morale(battle)
 	return BattleReport.new(title, battle)

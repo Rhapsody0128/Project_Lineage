@@ -181,6 +181,7 @@ func _resolve_acceptance(picked: Character, stranger_character: Character) -> vo
 		var marriage_text := "%s 與 %s 結婚了。" % [picked.full_name, stranger_character.full_name]
 		NewsController.post(marriage_text, GameEnums.NewsCategory.MAJOR)
 		MessageBar.show_message(marriage_text)
+		MoraleStore.record_event("角色結婚", MoraleStore.MARRIAGE_DELTA)
 		var reaction := _build_accepted_reaction(picked, stranger_character) if picked == courted else _build_change_but_accept_reaction(picked, stranger_character)
 		_play_marriage_reaction(reaction, stranger_character)
 	else:

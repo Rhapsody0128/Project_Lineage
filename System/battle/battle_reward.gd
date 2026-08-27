@@ -43,7 +43,7 @@ static func settle_money(battle: Battle) -> void:
 	if battle.result == GameEnums.BattleResultType.SELF_WIN:
 		BaseResourceStore.add(GameEnums.ResourceType.GOLD, money_reward_for_rank(battle.enemy_rank_type))
 	elif battle.result == GameEnums.BattleResultType.ENEMY_WIN:
-		var penalty := mini(money_penalty_for_rank(battle.enemy_rank_type), BaseResourceStore.get_amount(GameEnums.ResourceType.GOLD))
+		var penalty := mini(money_penalty_for_rank(battle.enemy_rank_type), BaseResourceStore.get_display_amount(GameEnums.ResourceType.GOLD))
 		BaseResourceStore.spend({GameEnums.ResourceType.GOLD: penalty})
 
 ## RankType(F..SSS)分別對應的戰鬥勝利國家好感度獎勵(見 System/event/map/
@@ -64,3 +64,9 @@ static func grant_victory_favor(battle: Battle) -> void:
 	if battle.enemy_nation_type == -1:
 		return
 	NationFavorStore.add_favor(battle.enemy_nation_type, favor_for_rank(battle.enemy_rank_type))
+
+## 戰鬥結束(勝/敗/平手)一律呼叫,跟 grant_victory_exp/settle_money 是同一組(見呼叫點)。
+## 不看敵方 RankType 強弱,固定幅度直接轉發給 MoraleStore(見該檔案「五、戰鬥對士氣的
+## 影響」設計),數值集中在 MoraleStore 的常數,這裡不重複維護一份。
+static func settle_morale(battle: Battle) -> void:
+	MoraleStore.record_battle_result(battle.result)

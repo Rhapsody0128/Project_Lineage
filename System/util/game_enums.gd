@@ -15,12 +15,13 @@ enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, A
 enum MapObjectType {TOWN, BASE, CASTLE}
 
 ## 角色目前狀態,見 System/character/character_status_rule.gd(唯一判定/顯示入口)。
-## ACTIVE 服役中(在角色池,沒有派遣/離隊/死亡以外的特殊狀態);STATIONED 駐守中
-## (未來城鎮駐守機制預留,目前沒有任何流程會產生這個值);WORKING 派駐在根據地建築
-## 生產中(顯示文字要內插建築名稱,不吃靜態 label,見 CharacterStatusRule);DISMISSED
-## 已被玩家解雇離隊;DEAD 已老死。祖譜/角色面板統一顯示這個狀態,取代舊版「年齡欄位
-## 加註(已故)」的寫法。
-enum CharacterStatus {ACTIVE, STATIONED, WORKING, DISMISSED, DEAD}
+## ACTIVE 服役中(在角色池,沒有派遣/離隊/死亡/編隊以外的特殊狀態);STATIONED 駐守中
+## (未來城鎮駐守機制預留,目前沒有任何流程會產生這個值);IN_PARTY 編隊中(已編入
+## PartyStore.party,跟 WORKING 互斥,見 BaseDispatchStore.dispatch());WORKING 派駐在
+## 根據地建築生產中(顯示文字要內插建築名稱,不吃靜態 label,見 CharacterStatusRule);
+## DISMISSED 已被玩家解雇離隊;DEAD 已老死。祖譜/角色面板統一顯示這個狀態,取代舊版
+## 「年齡欄位加註(已故)」的寫法。
+enum CharacterStatus {ACTIVE, STATIONED, IN_PARTY, WORKING, DISMISSED, DEAD}
 
 
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND/SHIELD 對我方(含自己)生效,
@@ -29,6 +30,14 @@ enum CharacterStatus {ACTIVE, STATIONED, WORKING, DISMISSED, DEAD}
 ## (BattleCharacter.shield_points),倍率格式比照 HEAL,但不直接回復 HP,傷害結算時
 ## 先扣護盾再扣 HP,見 CombatResolver.apply_damage()。
 enum SkillType {ATTACK, BUFF, DEBUFF, HEAL, DEFEND, SHIELD}
+
+## 奧義分類:BLESSING(祝福)是祭壇購買、對己方生效的奧義(UltimateLibrary.self_ultimates()),
+## CALAMITY(災厄)是禁忌祭壇購買、對敵方生效的奧義(UltimateLibrary.enemy_ultimates())。
+## 只用來讓 BattleUltimatePanel 分兩列呈現,不影響奧義本身的判定邏輯。
+enum UltimateCategory {BLESSING, CALAMITY}
+
+static func ultimate_category_label(category: UltimateCategory) -> String:
+	return "祝福" if category == UltimateCategory.BLESSING else "災厄"
 
 ## 技能造成的特殊效果標記,一個技能可以掛多個(Skill.mechanics),取代針對技能名稱的
 ## if/elif 特例判斷——BattleAi/SkillEffectLibrary/CombatResolver 一律只看這些旗標,

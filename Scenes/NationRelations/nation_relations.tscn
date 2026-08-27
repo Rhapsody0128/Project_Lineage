@@ -3,6 +3,8 @@
 [ext_resource type="Script" path="res://Scenes/NationRelations/nation_relations.gd" id="1"]
 [ext_resource type="Texture2D" path="res://Images/UI/system_background.png" id="2_bg"]
 
+[sub_resource type="ButtonGroup" id="ButtonGroup_nation_view"]
+
 [node name="NationRelations" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -51,9 +53,42 @@ custom_minimum_size = Vector2(170, 46)
 layout_mode = 2
 text = "返回"
 
-[node name="MainPanel" type="PanelContainer" parent="."]
+[node name="Sidebar" type="PanelContainer" parent="."]
 layout_mode = 0
 offset_left = 140.0
+offset_top = 100.0
+offset_right = 340.0
+offset_bottom = 860.0
+
+[node name="Margin" type="MarginContainer" parent="Sidebar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="Sidebar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="FavorButton" type="Button" parent="Sidebar/Margin/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_nation_view")
+text = "友好度"
+
+[node name="WarButton" type="Button" parent="Sidebar/Margin/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("ButtonGroup_nation_view")
+text = "邦交狀態"
+
+[node name="MainPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 360.0
 offset_top = 100.0
 offset_right = 1492.0
 offset_bottom = 860.0
@@ -67,3 +102,5 @@ theme_override_constants/margin_bottom = 16
 
 [connection signal="pressed" from="TopBar/TestFavorButton" to="." method="_on_test_favor_pressed"]
 [connection signal="pressed" from="TopBar/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="Sidebar/Margin/VBox/FavorButton" to="." method="_on_view_button_pressed" binds=[0]]
+[connection signal="pressed" from="Sidebar/Margin/VBox/WarButton" to="." method="_on_view_button_pressed" binds=[1]]

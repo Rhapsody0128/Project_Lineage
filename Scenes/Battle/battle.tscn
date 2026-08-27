@@ -155,26 +155,47 @@ mouse_filter = 2
 [node name="UltimatePanel" type="PanelContainer" parent="BattlefieldPanel" unique_id=1859439476]
 layout_mode = 0
 offset_left = 140.0
-offset_top = 848.0
+offset_top = 824.0
 offset_right = 968.0
-offset_bottom = 882.0
+offset_bottom = 892.0
 theme_override_styles/panel = SubResource("StyleBoxFlat_ultimate_bar")
 script = ExtResource("5")
 
-[node name="HBox" type="HBoxContainer" parent="BattlefieldPanel/UltimatePanel" unique_id=247580763]
+[node name="VBox" type="VBoxContainer" parent="BattlefieldPanel/UltimatePanel" unique_id=247580763]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 4
 
-[node name="HintLabel" type="Label" parent="BattlefieldPanel/UltimatePanel/HBox" unique_id=254046835]
+[node name="BlessingRow" type="HBoxContainer" parent="BattlefieldPanel/UltimatePanel/VBox" unique_id=254046835]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BlessingLabel" type="Label" parent="BattlefieldPanel/UltimatePanel/VBox/BlessingRow" unique_id=254046836]
+custom_minimum_size = Vector2(36, 0)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
 theme_override_font_sizes/font_size = 13
-text = "奧義"
+text = "祝福"
 
-[node name="ButtonRow" type="HBoxContainer" parent="BattlefieldPanel/UltimatePanel/HBox" unique_id=1336849991]
+[node name="BlessingButtonRow" type="HBoxContainer" parent="BattlefieldPanel/UltimatePanel/VBox/BlessingRow" unique_id=1336849991]
 layout_mode = 2
 size_flags_vertical = 4
-theme_override_constants/separation = 10
+theme_override_constants/separation = 6
+
+[node name="CalamityRow" type="HBoxContainer" parent="BattlefieldPanel/UltimatePanel/VBox" unique_id=1336849992]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="CalamityLabel" type="Label" parent="BattlefieldPanel/UltimatePanel/VBox/CalamityRow" unique_id=1336849993]
+custom_minimum_size = Vector2(36, 0)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+theme_override_font_sizes/font_size = 13
+text = "災厄"
+
+[node name="CalamityButtonRow" type="HBoxContainer" parent="BattlefieldPanel/UltimatePanel/VBox/CalamityRow" unique_id=1336849994]
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_constants/separation = 6
 
 [node name="UI" type="Control" parent="." unique_id=1745087818]
 layout_mode = 1

@@ -141,6 +141,31 @@ static func _describe_action_weight_reasons(actor: BattleCharacter, shortlisted_
 		lines.append("%s:%s" % [_action_label(actor, id), notes.get(id, "—")])
 	return "權重明細:\n%s" % "\n".join(lines)
 
+## 士氣(MoraleStore,整個 CHARACTER_ROSTER 的隊伍狀態,不代表敵方小隊)只調整 ATTACK/
+## DAZE/ESCAPE 這三個固定選項的權重「比例」,技能候選不受影響——最終仍交給既有的加權
+## 隨機骰選,不會讓士氣直接決定「一定攻擊」或「一定撤退」,見 CLAUDE.md「七、與 BattleAi
+## 整合」。乘數表集中在 MoraleRule,這裡只負責套用跟補一行 notes 說明。ESCAPE 這個 key
+## 不一定存在(只有 HP 過低或恐懼中才會列入候選,見上方),用 has() 判斷,不強迫塞進去。
+static func _apply_morale_weight_modifiers(actor: BattleCharacter, weights: Dictionary, notes: Dictionary) -> void:
+	if actor.is_enemy:
+		return
+	var morale := MoraleStore.value
+	var attack_mult := MoraleRule.ai_attack_weight_multiplier(morale)
+	var daze_mult := MoraleRule.ai_daze_weight_multiplier(morale)
+	weights[ACTION_ATTACK] *= attack_mult
+	if not is_equal_approx(attack_mult, 1.0):
+		notes[ACTION_ATTACK] += "\n士氣(%s)修正 ×%.2f" % [MoraleRule.tier_label(morale), attack_mult]
+
+	weights[ACTION_DAZE] *= daze_mult
+	if not is_equal_approx(daze_mult, 1.0):
+		notes[ACTION_DAZE] += "\n士氣(%s)修正 ×%.2f" % [MoraleRule.tier_label(morale), daze_mult]
+
+	if weights.has(ACTION_ESCAPE):
+		var escape_mult := MoraleRule.ai_escape_weight_multiplier(morale)
+		weights[ACTION_ESCAPE] *= escape_mult
+		if not is_equal_approx(escape_mult, 1.0):
+			notes[ACTION_ESCAPE] += "\n士氣(%s)修正 ×%.2f" % [MoraleRule.tier_label(morale), escape_mult]
+
 ## 這回合所有候選行動的權重與說明:普通攻擊/發呆/撤退(HP<50% 才列入)這三個固定選項,
 ## 加上角色已學會的每一個技能——全部攤平在同一張表裡一起比大小。技能各自的情境加權
 ## (HEAL 依隊友受傷程度、BUFF/DEBUFF 已生效打折、ATTACK 依敵人數量)沿用原本邏輯,最後
@@ -172,6 +197,8 @@ static func _build_action_chance_map(actor: BattleCharacter) -> Dictionary:
 		notes[ACTION_ESCAPE] = "%s,列入撤退選項,固定權重 %.1f" % [escape_reason, ESCAPE_BASE_WEIGHT]
 		if actor.is_feared:
 			notes[ACTION_ESCAPE] += "\n恐懼中,權重 ×%.1f" % FEAR_ESCAPE_WEIGHT_MULTIPLIER
+
+	_apply_morale_weight_modifiers(actor, weights, notes)
 
 	## 封印中:所有技能直接排除出候選(等同只剩普攻/發呆/撤退可選),不逐一計算權重。
 	if actor.is_sealed:

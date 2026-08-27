@@ -91,8 +91,8 @@ func _refresh_materials() -> void:
 
 	var balance_label := Label.new()
 	balance_label.text = "目前持有：金錢 %d　贓物 %d　（好感度等級 %s）" % [
-		BaseResourceStore.get_amount(GameEnums.ResourceType.GOLD),
-		BaseResourceStore.get_amount(GameEnums.ResourceType.CONTRABAND),
+		BaseResourceStore.get_display_amount(GameEnums.ResourceType.GOLD),
+		BaseResourceStore.get_display_amount(GameEnums.ResourceType.CONTRABAND),
 		GameEnums.rank_label(_favor_rank()),
 	]
 	balance_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
@@ -115,7 +115,7 @@ func _build_material_row(option: Market.MarketOption) -> Control:
 	row.add_child(name_label)
 
 	var owned_label := Label.new()
-	owned_label.text = "現有 %d" % BaseResourceStore.get_amount(option.resource)
+	owned_label.text = "現有 %d" % BaseResourceStore.get_display_amount(option.resource)
 	owned_label.custom_minimum_size = Vector2(70, 0)
 	owned_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
 	row.add_child(owned_label)

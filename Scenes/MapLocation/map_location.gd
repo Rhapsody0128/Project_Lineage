@@ -12,6 +12,7 @@ const TAVERN_LABEL := "酒館"
 const MARKET_LABEL := "市集"
 const REST_LABEL := "休息"
 const ENTER_BASE_LABEL := "進入根據地"
+const LONG_REST_LABEL := "長休"
 
 ## 地點選單按鈕統一套木牌鐵框樣式(UiStyle.apply_wood_plaque_button),margin 比
 ## main.tscn 的 Start 按鈕縮小一截——這裡最多要疊 5、6 顆按鈕,用 Start 那組大 margin
@@ -68,6 +69,8 @@ func _ready() -> void:
 			button.pressed.connect(_on_market_button_pressed)
 		elif sub_location_label == REST_LABEL:
 			button.pressed.connect(_on_rest_button_pressed)
+		elif sub_location_label == LONG_REST_LABEL:
+			button.pressed.connect(_on_long_rest_button_pressed)
 		elif sub_location_label == ENTER_BASE_LABEL:
 			button.pressed.connect(_on_enter_base_button_pressed)
 		sub_locations_container.add_child(button)
@@ -173,6 +176,32 @@ func _on_leave_button_pressed() -> void:
 func _on_rest_button_pressed() -> void:
 	WorldTimeStore.controller.is_playing = true
 	MapSessionStore.rest_requested = true
+	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
+	if error != OK:
+		printerr("Error changing scene to map: ", error)
+
+
+## 長休:先彈出 LongRestPanelContent 讓玩家用滑桿選 1~365 天,確定後才真的退回大地圖
+## (_on_long_rest_confirmed()),不是按下「長休」當下就直接切場景——跟其他一律先展開
+## ActionPanel 疊加面板、確認後才有實際效果的情境(例如市集購買前的清單)一致。
+func _on_long_rest_button_pressed() -> void:
+	var panel := LongRestPanelContent.new()
+	ActionPanel.open_custom(LONG_REST_LABEL, panel)
+	panel.setup(_on_long_rest_confirmed)
+
+
+## 跟「休息」共用同一套退回大地圖播放時間的路徑,額外把倍速直接調到 DEMO(100 倍,見
+## WorldTimeStore.SPEED_MULTIPLIERS)並算出目標天數存進 MapSessionStore.
+## long_rest_target_day——天數到達或玩家提早移動時把倍速還原成 1 倍,實際判斷邏輯在
+## Scenes/Map/map.gd(_on_day_passed()/_end_resting())。ActionPanel 是 autoload
+## CanvasLayer,不會跟著切場景消失,要先手動關掉,不然會一路疊在 Map 畫面最上層(比照
+## Scenes/Base/base_action_panel.gd 的 _open_stronghold_marriage_panel() 既有寫法)。
+func _on_long_rest_confirmed(days: int) -> void:
+	ActionPanel.close(false)
+	WorldTimeStore.set_speed_level(4)
+	WorldTimeStore.set_playing(true)
+	MapSessionStore.rest_requested = true
+	MapSessionStore.long_rest_target_day = WorldTimeStore.controller.world_time.get_day_count() + days
 	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)

@@ -35,6 +35,7 @@ BaseDispatchStore="*res://Scripts/Autoload/base_dispatch_store.gd"
 RoamingEnemyStore="*res://Scripts/Autoload/roaming_enemy_store.gd"
 TravelEventStore="*res://Scripts/Autoload/travel_event_store.gd"
 NationFavorStore="*res://Scripts/Autoload/nation_favor_store.gd"
+MoraleStore="*res://Scripts/Autoload/morale_store.gd"
 ActionPanel="*res://Scenes/ActionPanel/action_panel.tscn"
 ConfirmDialog="*res://Scenes/ConfirmDialog/confirm_dialog.tscn"
 MessageBar="*res://Scenes/MessageBar/message_bar.tscn"
@@ -48,6 +49,7 @@ QuestStore="*res://Scripts/Autoload/quest_store.gd"
 MarriageQuotaStore="*res://Scripts/Autoload/marriage_quota_store.gd"
 LifeEventQueueStore="*res://Scripts/Autoload/life_event_queue_store.gd"
 CastleStore="*res://Scripts/Autoload/castle_store.gd"
+MonthlySettlementStore="*res://Scripts/Autoload/monthly_settlement_store.gd"
 
 [display]
 

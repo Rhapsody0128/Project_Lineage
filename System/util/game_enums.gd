@@ -148,14 +148,33 @@ enum QuestStatus {IN_PROGRESS, COMPLETED, EXPIRED}
 ## (委託任務),MAIN(主線任務)/SIDE(支線任務)先開分頁佔位,還沒有對應的任務生成來源。
 enum QuestCategory {MAIN, SIDE, COMMISSION}
 
-## 國與國之間的邦交狀態,見 System/nation/nation_relation.gd。目前沒有任何機制會
-## 改變邦交,一律回傳 PEACE,先開這個欄位讓 Scenes/NationRelations 有型別可用。
+## 國與國之間的邦交狀態,見 System/nation/nation_relation.gd,實際資料存在
+## NationRelationStore(autoload)。
 enum NationWarStatus {PEACE, WAR}
 
-## 消息分類,對應 Scenes/News/news_list.gd 的「重大」/「日常」分頁。MAJOR 是角色生老病死
-## 等重大人生事件(成年/衰老/懷孕/生產/結婚/死亡),DAILY 留給之後陸續加入的瑣碎事件
-## (例如學會技能)。呼叫 NewsController.post() 一律要明確指定分類,不給預設值。
-enum NewsCategory {MAJOR, DAILY}
+## 單一 War(國家層級整場戰爭紀錄,見 System/war/war.gd)的生命週期狀態,ACTIVE 進行中/
+## ENDED 已停戰。跟上面 NationWarStatus(PEACE/WAR,邦交矩陣 UI 用)刻意分開兩個 enum:
+## War.status 描述「這筆戰爭紀錄」本身的狀態,NationWarStatus 描述「這兩國目前的外交
+## 關係」,兩者永遠同步但語意不同,由 NationRelationStore.get_war_status() 從前者推導。
+enum WarStatus {ACTIVE, ENDED}
+
+## 單一 WarBattle(地圖上的戰場物件,見 System/war/war_battle.gd)的生命週期狀態,
+## ACTIVE 進行中/ENDED 已結算移除。
+enum WarBattleStatus {ACTIVE, ENDED}
+
+## WarBattle 結算七級戰果,一律從 nation_a 視角判定(battle_progress 正值 = nation_a
+## 優勢),見 System/war/battle_result_grader.gd 的 grade_for()。
+enum BattleSettlementGrade {
+	DECISIVE_VICTORY, VICTORY, NARROW_VICTORY, STALEMATE,
+	NARROW_DEFEAT, DEFEAT, DECISIVE_DEFEAT,
+}
+
+## 消息分類,對應 Scenes/News/news_list.gd 的「重大」/「日常」/「戰爭」分頁。MAJOR 是
+## 角色生老病死等重大人生事件(成年/衰老/懷孕/生產/結婚/死亡),DAILY 留給之後陸續加入的
+## 瑣碎事件(例如學會技能),WAR 專屬國際戰爭的宣戰/停戰(見 NationRelationStore),個別
+## 戰場/個別戰鬥結算不算重大到需要進消息列表,不發這個分類。呼叫 NewsController.post()
+## 一律要明確指定分類,不給預設值。
+enum NewsCategory {MAJOR, DAILY, WAR}
 
 ## 六大素質 UI 顯示用中文標籤,順序對應 PotentialType enum
 const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
@@ -226,8 +245,19 @@ const QUEST_CATEGORY_LABELS: Array[String] = ["主線任務", "支線任務", "�
 ## 邦交狀態 UI 顯示用中文標籤,順序對應 NationWarStatus enum
 const NATION_WAR_STATUS_LABELS: Array[String] = ["停戰中", "交戰中"]
 
+## War 生命週期狀態 UI 顯示用中文標籤,順序對應 WarStatus enum
+const WAR_STATUS_LABELS: Array[String] = ["進行中", "已停戰"]
+
+## WarBattle 生命週期狀態 UI 顯示用中文標籤,順序對應 WarBattleStatus enum
+const WAR_BATTLE_STATUS_LABELS: Array[String] = ["進行中", "已結束"]
+
+## 戰場結算七級戰果 UI 顯示用中文標籤,順序對應 BattleSettlementGrade enum
+const BATTLE_SETTLEMENT_GRADE_LABELS: Array[String] = [
+	"決定性勝利", "勝利", "小勝", "僵持", "小敗", "戰敗", "決定性戰敗",
+]
+
 ## 消息分類 UI 顯示用中文標籤,順序對應 NewsCategory enum
-const NEWS_CATEGORY_LABELS: Array[String] = ["重大", "日常"]
+const NEWS_CATEGORY_LABELS: Array[String] = ["重大", "日常", "戰爭"]
 
 ## 以下四個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
 ## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
@@ -258,6 +288,15 @@ static func quest_category_label(quest_category: int) -> String:
 
 static func nation_war_status_label(war_status: int) -> String:
 	return NATION_WAR_STATUS_LABELS[war_status]
+
+static func war_status_label(war_status: int) -> String:
+	return WAR_STATUS_LABELS[war_status]
+
+static func war_battle_status_label(war_battle_status: int) -> String:
+	return WAR_BATTLE_STATUS_LABELS[war_battle_status]
+
+static func battle_settlement_grade_label(grade: int) -> String:
+	return BATTLE_SETTLEMENT_GRADE_LABELS[grade]
 
 static func news_category_label(news_category: int) -> String:
 	return NEWS_CATEGORY_LABELS[news_category]

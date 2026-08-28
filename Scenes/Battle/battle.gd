@@ -63,7 +63,7 @@ const ULTIMATE_BANNER_HOLD_TIME := 1.1
 # 結果 Dialog 的勝/敗/平文字顏色,跟 battle_report_list.gd/battle_report_stats.gd
 # 同一組配色,讀在羊皮紙底上都還夠亮——不要沿用舊版「yellow/red/white」字串,
 # 白色在淺色羊皮紙底上幾乎看不見。
-const WIN_COLOR := Color(0.1, 0.9, 0.1)
+const WIN_COLOR := Color(0.15, 0.5, 0.15)
 const LOSE_COLOR := Color(0.9, 0.1, 0.1)
 const DRAW_COLOR := Color(0.0, 0.0, 0.0)
 
@@ -356,7 +356,8 @@ func _run_battle_playback(should_simulate: bool) -> void:
 	if should_simulate:
 		BattleReward.grant_victory_exp(battle)
 		BattleReward.settle_money(battle)
-		BattleReward.grant_victory_favor(battle)
+		if BattleReportStore.pending_battle_grant_nation_favor:
+			BattleReward.grant_victory_favor(battle)
 		BattleReward.settle_morale(battle)
 		_record_battle_report()
 
@@ -367,7 +368,19 @@ func _run_battle_playback(should_simulate: bool) -> void:
 ## 戰報播放模式(_enter_playback_mode())跟結果 Dialog 的「重播」按鈕都是重播同一份
 ## 既有戰報(should_simulate=false),不會、也不該再記一次,否則戰報列表會出現重複項目。
 func _record_battle_report() -> void:
-	BattleReportStore.add_report(BattleReport.new(title_label.text, battle))
+	var record_in_report_list := BattleReportStore.pending_battle_record_in_report_list
+	var description := BattleReportStore.pending_battle_report_description
+	BattleReportStore.pending_battle_record_in_report_list = true
+	BattleReportStore.pending_battle_report_description = ""
+	BattleReportStore.pending_battle_grant_nation_favor = true
+
+	var new_report := BattleReport.new(title_label.text, battle, description)
+	if record_in_report_list:
+		BattleReportStore.add_report(new_report)
+	if BattleReportStore.pending_battle_report_callback.is_valid():
+		var callback := BattleReportStore.pending_battle_report_callback
+		BattleReportStore.pending_battle_report_callback = Callable()
+		callback.call(new_report)
 
 
 ## 即時戰鬥模式(GameEnums.BattleMode.REALTIME):跟 _run_battle_playback() 共用
@@ -425,7 +438,8 @@ func _run_battle_realtime() -> void:
 	_announce_result()
 	BattleReward.grant_victory_exp(battle)
 	BattleReward.settle_money(battle)
-	BattleReward.grant_victory_favor(battle)
+	if BattleReportStore.pending_battle_grant_nation_favor:
+		BattleReward.grant_victory_favor(battle)
 	BattleReward.settle_morale(battle)
 	_record_battle_report()
 	_stop_realtime()
@@ -492,7 +506,8 @@ func _on_skip_pressed() -> void:
 	_announce_result()
 	BattleReward.grant_victory_exp(battle)
 	BattleReward.settle_money(battle)
-	BattleReward.grant_victory_favor(battle)
+	if BattleReportStore.pending_battle_grant_nation_favor:
+		BattleReward.grant_victory_favor(battle)
 	BattleReward.settle_morale(battle)
 	_record_battle_report()
 

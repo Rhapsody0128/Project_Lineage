@@ -31,7 +31,7 @@ const VALUE_COLUMN_WIDTH := 120.0
 const FAVOR_BAR_HEIGHT := 18.0
 const FAVOR_BAR_BG := Color(0.25, 0.18, 0.1)
 
-const MATRIX_CELL_SIZE := Vector2(84.0, 44.0)
+const MATRIX_CELL_SIZE := Vector2(84.0, 56.0)
 const WAR_STATUS_COLORS := {
 	GameEnums.NationWarStatus.PEACE: Color(0.1, 0.6, 0.1),
 	GameEnums.NationWarStatus.WAR: Color(0.75, 0.1, 0.1),
@@ -260,14 +260,30 @@ func _build_matrix_header_cell(nation: Nation) -> Control:
 
 func _build_matrix_status_cell(nation_a: int, nation_b: int) -> Control:
 	var status := NationRelation.get_status(nation_a, nation_b)
+	var tension := NationRelation.get_tension(nation_a, nation_b)
 	var cell := _build_matrix_blank_cell()
-	var label := Label.new()
-	label.text = GameEnums.nation_war_status_label(status)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 14)
-	label.add_theme_color_override("font_color", WAR_STATUS_COLORS[status])
-	cell.add_child(label)
+
+	var column := VBoxContainer.new()
+	column.alignment = BoxContainer.ALIGNMENT_CENTER
+
+	var status_label := Label.new()
+	status_label.text = GameEnums.nation_war_status_label(status)
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	status_label.add_theme_font_size_override("font_size", 14)
+	status_label.add_theme_color_override("font_color", WAR_STATUS_COLORS[status])
+	column.add_child(status_label)
+
+	# 張力數字從白漸層到紅,不用等真的宣戰才看得出兩國關係正在惡化。
+	var tension_label := Label.new()
+	tension_label.text = "%.0f" % tension
+	tension_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tension_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tension_label.add_theme_font_size_override("font_size", 12)
+	tension_label.add_theme_color_override("font_color", Color.WHITE.lerp(Color(0.75, 0.1, 0.1), tension / 100.0))
+	column.add_child(tension_label)
+
+	cell.add_child(column)
 	return cell
 
 

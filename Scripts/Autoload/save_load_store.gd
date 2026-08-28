@@ -77,6 +77,7 @@ func save_game(slot: int) -> bool:
 		"quests": QuestStore.to_save_data(),
 		"marriage_quota": MarriageQuotaStore.to_save_data(),
 		"castles": CastleStore.to_save_data(),
+		"nation_relations": NationRelationStore.to_save_data(),
 	}
 
 	var file := FileAccess.open(_slot_path(slot), FileAccess.WRITE)
@@ -118,4 +119,5 @@ func load_game(slot: int) -> bool:
 	QuestStore.load_save_data(data.get("quests", []))
 	MarriageQuotaStore.load_save_data(data.get("marriage_quota", {}))
 	CastleStore.load_save_data(data.get("castles", {}))
+	NationRelationStore.load_save_data(data.get("nation_relations", {}))
 	return true

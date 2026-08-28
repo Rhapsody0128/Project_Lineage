@@ -742,24 +742,32 @@ func _build_resource_icon(resource_type: int, size: Vector2 = Vector2(26, 26)) -
 
 
 ## 商隊站/黑市:被動生產(AGI→金錢/贓物)維持不變,這裡是疊加上去的「每月自動兌換」——
-## 玩家設定方向(買入/賣出)/資源/數量(拉桿),每月結算時自動執行一次;資源不夠時整個月
-## 不換(不會部分兌換、不會扣成負數),沒有另外的每月額度上限。拉桿拖曳中只更新預覽
-## 文字跟即時寫回 BaseExchangeStore,不整包 _rebuild_body(),避免拖曳被打斷。
+## 玩家設定方向(買入/賣出)/資源/拉桿選的資材數量(1~200,買賣共用同一把尺,不像舊版
+## 拉桿選抽象「單位數」再乘上各資源不同的 buy_output,導致不同資源封頂能買到的量不一致,
+## 見 BaseExchangeStore 開頭註解),每月結算時自動執行一次;來源資源不夠時整個月不換
+## (不會部分兌換、不會扣成負數),目標資源倉庫快滿時改成只買/賣到剛好塞滿、花費跟著
+## 等比例減少(不會整月不換,也不會超買後被倉庫上限吃掉浪費的部分)。拉桿拖曳中只更新
+## 預覽跟即時寫回 BaseExchangeStore,不整包 _rebuild_body(),避免拖曳被打斷。
 func _build_exchange_section() -> void:
 	var building_type := _building.type
 	var currency := BaseExchange.currency_for(building_type)
+	var currency_icon := load(GameEnums.resource_type_icon_path(currency)) as Texture2D
 	var options := BaseExchange.options_for(building_type)
 	var order := BaseExchangeStore.get_order(building_type)
 
-	_add_label("每月自動兌換（資源不夠時該月不換,不會扣成負數,沒有每月額度上限）：")
+	_add_label("每月自動兌換（來源資源不夠時該月不換；目標倉庫快滿時只買/賣到剛好塞滿，花費等比例減少）：")
 
 	var direction_group := ButtonGroup.new()
 	var direction_row := HBoxContainer.new()
 	direction_row.add_theme_constant_override("separation", 8)
 	add_child(direction_row)
 
+	## 方向鈕改用貨幣圖示取代文字資源名(比照 _build_resource_icon() 既有寫法),箭頭文字
+	## 保留指示買賣方向,"資材"端由下方 resource_dropdown 的圖示表達。
 	var buy_button := Button.new()
-	buy_button.text = "買入（%s → 資材）" % GameEnums.resource_string_label(currency)
+	buy_button.text = "買入（→ 資材）"
+	buy_button.icon = currency_icon
+	buy_button.add_theme_constant_override("icon_max_width", 22)
 	buy_button.toggle_mode = true
 	buy_button.button_group = direction_group
 	buy_button.button_pressed = order.get("is_buy", true)
@@ -767,7 +775,9 @@ func _build_exchange_section() -> void:
 	direction_row.add_child(buy_button)
 
 	var sell_button := Button.new()
-	sell_button.text = "賣出（資材 → %s）" % GameEnums.resource_string_label(currency)
+	sell_button.text = "賣出（資材 →）"
+	sell_button.icon = currency_icon
+	sell_button.add_theme_constant_override("icon_max_width", 22)
 	sell_button.toggle_mode = true
 	sell_button.button_group = direction_group
 	sell_button.button_pressed = not order.get("is_buy", true)
@@ -810,10 +820,11 @@ func _build_exchange_section() -> void:
 	units_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	slider_row.add_child(units_label)
 
-	var preview_label := Label.new()
-	preview_label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	preview_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
-	add_child(preview_label)
+	## 預覽改用資源圖示+數量(_build_resource_amount_chip(),比照工匠坊產能預覽既有寫法),
+	## 取代原本純文字資源名。preview_row 每次拉桿異動就整包清空重建,不是原地改文字。
+	var preview_row := HBoxContainer.new()
+	preview_row.add_theme_constant_override("separation", 4)
+	add_child(preview_row)
 
 	var refresh_preview := func() -> void:
 		var is_buy := buy_button.button_pressed
@@ -821,14 +832,16 @@ func _build_exchange_section() -> void:
 		var units := int(slider.value)
 		units_label.text = "x%d" % units
 		BaseExchangeStore.set_order(building_type, is_buy, resource, units)
+		for child in preview_row.get_children():
+			child.queue_free()
 		var result := BaseExchangeStore.preview(building_type)
 		if result.source_amount <= 0:
-			preview_label.text = "尚未設定兌換數量"
-		else:
-			preview_label.text = "本月將消耗 %d %s，取得 %d %s" % [
-				result.source_amount, GameEnums.resource_string_label(result.source_resource),
-				result.target_amount, GameEnums.resource_string_label(result.target_resource)
-			]
+			preview_row.add_child(_build_preview_text("尚未設定兌換數量"))
+			return
+		preview_row.add_child(_build_preview_text("本月將消耗"))
+		preview_row.add_child(_build_resource_amount_chip(result.source_resource, result.source_amount))
+		preview_row.add_child(_build_preview_text("，取得"))
+		preview_row.add_child(_build_resource_amount_chip(result.target_resource, result.target_amount))
 
 	buy_button.toggled.connect(func(_pressed: bool) -> void: refresh_preview.call())
 	sell_button.toggled.connect(func(_pressed: bool) -> void: refresh_preview.call())

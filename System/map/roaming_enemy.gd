@@ -61,6 +61,9 @@ func advance_wander(delta: float) -> Vector2:
 				clamp(raw_target.x, 0.0, MapSystem.MAP_SIZE.x),
 				clamp(raw_target.y, 0.0, MapSystem.MAP_SIZE.y)
 			)
+			# 遊蕩目標卡在地圖色塊 mask 判定可行走的範圍內(見 MapTerrainMask),不讓敵人
+			# 遊蕩著遊蕩著就走進山岳鏤空或站到地圖畫的海面上。
+			_wander_target = MapTerrainMask.clamp_segment_to_walkable(anchor, _wander_target)
 		return Vector2.ZERO
 
 	var to_target := _wander_target - position

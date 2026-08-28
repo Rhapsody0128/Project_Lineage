@@ -50,6 +50,7 @@ MarriageQuotaStore="*res://Scripts/Autoload/marriage_quota_store.gd"
 LifeEventQueueStore="*res://Scripts/Autoload/life_event_queue_store.gd"
 CastleStore="*res://Scripts/Autoload/castle_store.gd"
 MonthlySettlementStore="*res://Scripts/Autoload/monthly_settlement_store.gd"
+NationRelationStore="*res://Scripts/Autoload/nation_relation_store.gd"
 
 [display]
 

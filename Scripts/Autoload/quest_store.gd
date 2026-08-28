@@ -44,7 +44,8 @@ func abandon_quest(quest: Quest) -> void:
 
 
 ## RoamingEnemyEvent 打贏遊蕩敵人(SELF_WIN)時呼叫,nation 傳那隻敵人的
-## party.nation_type(見 RoamingEnemySpawner._nearest_town_nation())。找不到該國進行中的
+## party.nation_type(見 System/map/map_terrain_mask.gd 的 MapTerrainMask.nation_at())。
+## 找不到該國進行中的
 ## 討伐任務時什麼都不做——一般擊退盜賊的金錢/好感度獎勵已經由 Scenes/Battle/battle.gd
 ## 呼叫 BattleReward.settle_money()/grant_victory_favor() 照常發放,這裡只補發任務額外
 ## 獎勵。

@@ -95,19 +95,25 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 	return Dialogue.new([bandit_speaker, player_speaker], lines, _background_path())
 
 
-## 遭遇對話背景圖沿用最近城鎮的地形對話背景(Images/Dialogue/Map/Town/
-## town_<TERRAIN>.png,見 GameEnums.town_background_path()/bloodline_nation_terrain()),
-## 讓「這附近的盜賊」連畫面地形都跟著在地化,不是全部共用同一張。nation_type == -1
-## (理論上不會發生,見 _build_stakes_text() 同樣的防呆)時退回 PLAINS 當中性預設值。
+## 遭遇對話背景圖優先看敵人目前座標在地圖色塊 mask(見 System/map/map_terrain_mask.gd)
+## 上屬於哪個地形——不管敵人 party 所屬國家是哪國(例如遊蕩到冰原範圍裡的其他國家盜賊,
+## 畫面也要顯示冰原,不是牠原本國家的地形)。查不到(理論上不會發生,敵人只會生成在
+## mask 判定可行走的地方)才 fallback 回舊版「依 party.nation_type 換算地形」
+## (Images/Dialogue/Map/Terrain/<TERRAIN>.png,見 GameEnums.bloodline_nation_terrain()),
+## nation_type == -1(理論上不會發生,見 _build_stakes_text() 同樣的防呆)時退回 PLAINS
+## 當中性預設值。
 func _background_path() -> String:
+	var mask_nation := MapTerrainMask.nation_at(_enemy.position)
+	if mask_nation != -1:
+		return GameEnums.terrain_background_path(GameEnums.bloodline_nation_terrain(mask_nation))
 	var nation_type := _enemy.party.nation_type
 	var terrain_type := GameEnums.bloodline_nation_terrain(nation_type) if nation_type != -1 else GameEnums.TerrainType.PLAINS
 	return GameEnums.terrain_background_path(terrain_type)
 
 
 ## 開戰前先告知玩家這場遭遇的評級/金錢與好感度利害關係(見 System/battle/battle_reward.gd
-## 的三張 RankType 查表)。_enemy.party.nation_type 一律由 RoamingEnemySpawner
-## ._nearest_town_nation() 依生成座標指派,理論上不會是 -1,但仍防呆處理。
+## 的三張 RankType 查表)。_enemy.party.nation_type 一律由 MapTerrainMask.nation_at()
+## 依生成座標指派,理論上不會是 -1,但仍防呆處理。
 func _build_stakes_text() -> String:
 	var rank_label := GameEnums.rank_label(_enemy.rank)
 	var reward := BattleReward.money_reward_for_rank(_enemy.rank)

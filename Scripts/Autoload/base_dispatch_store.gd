@@ -158,14 +158,18 @@ func _resolve_recipe(building: Building, theoretical_output: int, available: Dic
 ## 共用結算迴圈:`apply == true` 時真的扣款/加值/發經驗,否則只回傳淨變動量供預覽、不動
 ## BaseResourceStore。`available` 由呼叫端(MonthlySettlementStore)傳入並貫穿整場月結算
 ## 共用,不在這裡自建——才不會出現「這棟建築看不到別的 autoload 當月已經動用掉的庫存」
-## 的競態,詳見 _resolve_recipe() 開頭註解跟 MonthlySettlementStore 檔頭。`full_snapshot`
-## 同一份精神:產物倉庫已經滿了就整棟跳過,不生產也不消耗原料——不然做出來的量會被
-## BaseResourceStore.add() 直接捨棄(見該檔案倉庫上限說明),原料卻已經真的扣掉,等於拿
-## 珍貴的初階資材換了一堆進不了倉庫、平白蒸發的成品。判斷一律讀 full_snapshot 這份月初
-## 快照而非即時呼叫 BaseResourceStore.is_full(),原因跟 available 一樣(見
-## MonthlySettlementStore 檔頭註解)——固定不變,不會因為同一輪內別的建築先把倉庫填滿/
-## 騰空而跟著翻盤。
-func settle(apply: bool, available: Dictionary, full_snapshot: Dictionary) -> Dictionary:
+## 的競態,詳見 _resolve_recipe() 開頭註解跟 MonthlySettlementStore 檔頭。
+## `remaining_capacity` 同一份精神:產物倉庫已經沒有剩餘空間就整棟跳過,不生產也不消耗
+## 原料——不然做出來的量會被 BaseResourceStore.add() 直接捨棄(見該檔案倉庫上限說明),
+## 原料卻已經真的扣掉,等於拿珍貴的初階資材換了一堆進不了倉庫、平白蒸發的成品。判斷一律
+## 讀 remaining_capacity 這份月初快照而非即時呼叫 BaseResourceStore.remaining_capacity(),
+## 原因跟 available 一樣(見 MonthlySettlementStore 檔頭註解)——固定不變,不會因為同一輪
+## 內別的建築先把倉庫填滿/騰空而跟著翻盤。這裡刻意維持「整棟跳過、不生產」的簡化(不像
+## BaseExchangeStore 買入快頂到倉庫上限時會等比例砍量——生產沒有直接金錢成本,砍量的
+## 急迫性比兌換低,見 BaseExchangeStore 開頭註解),但仍會把這棟實際產出的量從
+## remaining_capacity 扣掉,讓排在後面的 BaseExchangeStore 看到正確的剩餘空間,不會誤以為
+## 倉庫還是滿的空的而超買。
+func settle(apply: bool, available: Dictionary, remaining_capacity: Dictionary) -> Dictionary:
 	var delta: Dictionary = {}
 	for building in BuildingLibrary.get_all():
 		if not building.is_production_building():
@@ -174,9 +178,9 @@ func settle(apply: bool, available: Dictionary, full_snapshot: Dictionary) -> Di
 			continue
 		if not BaseBuildingProgressStore.is_active(building.type):
 			continue
-		if not full_snapshot.has(building.produces):
-			full_snapshot[building.produces] = BaseResourceStore.is_full(building.produces)
-		if full_snapshot[building.produces]:
+		if not remaining_capacity.has(building.produces):
+			remaining_capacity[building.produces] = BaseResourceStore.remaining_capacity(building.produces)
+		if remaining_capacity[building.produces] <= 0:
 			continue
 		var characters: Array[Character] = get_dispatched_characters(building.type).filter(
 			func(character: Character) -> bool: return not character.is_disabled
@@ -187,6 +191,8 @@ func settle(apply: bool, available: Dictionary, full_snapshot: Dictionary) -> Di
 		var theoretical_output := BaseProduction.compute_monthly_yield(building, characters, level)
 		var result := _resolve_recipe(building, theoretical_output, available)
 		delta[building.produces] = delta.get(building.produces, 0) + result.output
+		if remaining_capacity[building.produces] >= 0:
+			remaining_capacity[building.produces] -= result.output
 		for resource_type in result.consumed:
 			delta[resource_type] = delta.get(resource_type, 0) - result.consumed[resource_type]
 		if apply:

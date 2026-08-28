@@ -16,6 +16,9 @@ static func register_all(controller: WorldTimeController) -> void:
 
 	controller.register_year_event(func(): _age_up())
 
+	controller.register_month_event(func(): WarWorldTimeEvents.monthly_tick())
+	controller.register_year_event(func(): WarWorldTimeEvents.yearly_tick())
+
 
 ## 每年 1/1:所有角色年紀 +1(見 Character.age_up())。要跑 AllCharacterStore 而不是
 ## CharacterRosterStore——後者只有「可操控」角色,小孩(_deliver_child() 只註冊進

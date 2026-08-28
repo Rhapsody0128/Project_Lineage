@@ -41,6 +41,10 @@ extends Node
 var has_saved_state: bool = false
 var player_position: Vector2
 var target_position: Vector2
+## target_position 之後接著要走的路徑點(見 System/map/map_pathfinder.gd 的繞路折線),
+## 鏡射 MapSystem.path_queue——沒有這份存檔,移動途中離開/返回或存讀檔會弄丟剩下的折線,
+## 玩家會卡在半路的中繼點就停下,走不到原本點擊的終點。
+var path_queue: Array[Vector2] = []
 var is_moving: bool
 var camera_position: Vector2
 var camera_zoom: Vector2
@@ -54,6 +58,7 @@ var long_rest_target_day: int = -1
 func save_map_state(
 	p_position: Vector2,
 	p_target_position: Vector2,
+	p_path_queue: Array[Vector2],
 	p_is_moving: bool,
 	p_camera_position: Vector2,
 	p_camera_zoom: Vector2,
@@ -62,6 +67,7 @@ func save_map_state(
 ) -> void:
 	player_position = p_position
 	target_position = p_target_position
+	path_queue = p_path_queue
 	is_moving = p_is_moving
 	camera_position = p_camera_position
 	camera_zoom = p_camera_zoom
@@ -78,9 +84,13 @@ func save_map_state(
 func to_save_data() -> Dictionary:
 	if not has_saved_state:
 		return {}
+	var path_queue_data: Array = []
+	for point in path_queue:
+		path_queue_data.append([point.x, point.y])
 	return {
 		"player_position": [player_position.x, player_position.y],
 		"target_position": [target_position.x, target_position.y],
+		"path_queue": path_queue_data,
 		"is_moving": is_moving,
 		"camera_position": [camera_position.x, camera_position.y],
 		"camera_zoom": [camera_zoom.x, camera_zoom.y],
@@ -97,9 +107,13 @@ func load_save_data(data: Dictionary) -> void:
 	var tp: Array = data["target_position"]
 	var cp: Array = data["camera_position"]
 	var cz: Array = data["camera_zoom"]
+	var pq: Array[Vector2] = []
+	for point in data.get("path_queue", []):
+		pq.append(Vector2(point[0], point[1]))
 	save_map_state(
 		Vector2(pp[0], pp[1]),
 		Vector2(tp[0], tp[1]),
+		pq,
 		data.get("is_moving", false),
 		Vector2(cp[0], cp[1]),
 		Vector2(cz[0], cz[1]),

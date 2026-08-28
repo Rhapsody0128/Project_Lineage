@@ -1,7 +1,9 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://Scenes/BattleReportList/battle_report_list.gd" id="1"]
 [ext_resource type="Texture2D" path="res://Images/UI/system_background.png" id="2_bg"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_report_category"]
 
 [node name="BattleReportList" type="Control"]
 layout_mode = 3
@@ -51,9 +53,42 @@ custom_minimum_size = Vector2(170, 46)
 layout_mode = 2
 text = "返回"
 
-[node name="MainPanel" type="PanelContainer" parent="."]
+[node name="Sidebar" type="PanelContainer" parent="."]
 layout_mode = 0
 offset_left = 140.0
+offset_top = 100.0
+offset_right = 340.0
+offset_bottom = 840.0
+
+[node name="Margin" type="MarginContainer" parent="Sidebar"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 20
+
+[node name="VBox" type="VBoxContainer" parent="Sidebar/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="NormalBattleButton" type="Button" parent="Sidebar/Margin/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+toggle_mode = true
+button_pressed = true
+button_group = SubResource("ButtonGroup_report_category")
+text = "一般戰鬥"
+
+[node name="WarReportButton" type="Button" parent="Sidebar/Margin/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+toggle_mode = true
+button_group = SubResource("ButtonGroup_report_category")
+text = "戰爭戰報"
+
+[node name="MainPanel" type="PanelContainer" parent="."]
+layout_mode = 0
+offset_left = 360.0
 offset_top = 100.0
 offset_right = 1460.0
 offset_bottom = 840.0
@@ -77,6 +112,14 @@ theme_override_constants/margin_right = 16
 [node name="HeaderContent" type="HBoxContainer" parent="MainPanel/Margin/VBox/HeaderRow"]
 layout_mode = 2
 theme_override_constants/separation = 20
+
+[node name="DescriptionHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.5
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(0.4, 0.29, 0.18, 1)
+text = "描述"
 
 [node name="GameTimeHeader" type="Label" parent="MainPanel/Margin/VBox/HeaderRow/HeaderContent"]
 layout_mode = 2
@@ -127,3 +170,5 @@ theme_override_constants/separation = 10
 
 [connection signal="pressed" from="TopBar/GenerateButton" to="." method="_on_generate_pressed"]
 [connection signal="pressed" from="TopBar/BackButton" to="." method="_on_back_pressed"]
+[connection signal="pressed" from="Sidebar/Margin/VBox/NormalBattleButton" to="." method="_on_category_button_pressed" binds=[0]]
+[connection signal="pressed" from="Sidebar/Margin/VBox/WarReportButton" to="." method="_on_category_button_pressed" binds=[1]]

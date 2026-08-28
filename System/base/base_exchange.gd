@@ -15,13 +15,17 @@ extends RefCounted
 ## 定價方法:每種資源依「月產量基準」(12 棟生產建築的 base_yield,見
 ## System/base/building/building_library.gd)反比換算出一個抽象「價值點數」——月產越少
 ## 越稀有,單位價值越高,呼應「依產出速率給高商品價值」。工藝品(黑市)額外再加倍,反映
-## 「耗費時間和資材」精製而成、價值高於單純稀缺度。買入價 = 價值點數 ÷ 貨幣價值點數 ×
-## 1.2(玩家多付兩成);賣出價固定是買入價的一半——同一棟建築內買了馬上賣一定虧 50%,
-## 跨兩棟建築組成的迴圈(例如金錢→贓物→金錢)也因為每一步都是「买贵卖贱」而必然虧損,
-## 見下方 get_rate_multiplier() 對迴圈安全性的說明。
+## 「耗費時間和資材」精製而成、價值高於單純稀缺度。Lv1 買入價 = 價值點數 ÷ 貨幣價值點數
+## × BUY_MARKUP_L1(玩家多付兩成);Lv1 賣出價固定是 Lv1 買入價的一半(× SELL_RATIO_L1)
+## ——同一棟建築內買了馬上賣一定虧 50%,跨兩棟建築組成的迴圈(例如金錢→贓物→金錢)也
+## 因為每一步都是「买贵卖贱」而必然虧損。
 ##
 ## 價值點數對照(K=60 ÷ base_yield,四捨五入):木材5、糧食5、毛皮7、書本8、信仰9、
 ## 石材10、鐵礦12、金錢6、工藝品20×2=40(額外拉高)、科研30、贓物15、詛咒60。
+##
+## 建築等級加成:見下方 LEVEL_FAIRNESS_SHRINK 開頭註解——不是直接灌到拿到的數量上,
+## 而是讓買賣價「朝公平價值比收斂」但永遠不會跨過那條線,保證不管等級多高,這些交易
+## 對玩家來說都必然是虧錢的(比照 Market.gd 的 MARKUP_BY_RANK 精神)。
 
 class ExchangeOption:
 	## GameEnums.ResourceType,兌換的另一端資源(商隊站的貨幣是金錢、黑市的貨幣是贓物,
@@ -43,9 +47,18 @@ class ExchangeOption:
 		sell_output = p_sell_output
 
 
-## index 0 = Lv1 ... index 8 = Lv9,套用在兌換拿到的那一端資源量上(買入時加成資材產出、
-## 賣出時加成貨幣收入),不影響花費量。
-const LEVEL_MULTIPLIER: Array[float] = [1.00, 1.05, 1.10, 1.15, 1.20, 1.27, 1.33, 1.40, 1.50]
+## index 0 = Lv1 ... index 8 = Lv9。舊版直接把這個數字乘在拿到的資源/貨幣數量上,結果
+## 某些資源(例如毛皮)滿級後買入單價會跌破「公平價值比」(fair,見 buy_unit_price()/
+## sell_unit_price()),等於玩家穩賺,不再是「买贵卖贱必虧」——已改掉。現在這個數字是
+## 「收斂比例」:1.00 代表 Lv1 原始價差全部保留,數字越小代表買賣價越靠近 fair,但
+## 只要 > 0 就永遠不會真正碰到 fair,買永遠比 fair 貴、賣永遠比 fair 賤。
+const LEVEL_FAIRNESS_SHRINK: Array[float] = [1.00, 0.94, 0.88, 0.82, 0.75, 0.65, 0.55, 0.45, 0.35]
+
+## Lv1 買入價相對「公平價值比」(fair)的固定加價倍率、Lv1 賣出價相對 fair 的固定折價
+## 比例——用來從 ExchangeOption 手動調過的整數 buy_cost/buy_output/sell_cost/sell_output
+## 反推出這個資源的 fair,見 buy_unit_price()/sell_unit_price()。
+const BUY_MARKUP_L1 := 1.2
+const SELL_RATIO_L1 := 0.6
 
 
 ## 商隊站:金錢↔5 種基礎資材 + 贓物(黑市貨幣,這裡當一般商品收購/賣出)。
@@ -89,9 +102,26 @@ static func currency_for(building_type: GameEnums.BuildingType) -> int:
 	return GameEnums.ResourceType.GOLD if building_type == GameEnums.BuildingType.CARAVAN else GameEnums.ResourceType.CONTRABAND
 
 
-## 「買貴賣賤」(賣出永遠是買入的一半價值)保證同一棟建築內來回兌換必虧 50%;金錢↔贓物
-## 這組跨商隊站/黑市的雙向迴圈(商隊站買贓物→黑市買金錢、或反過來兩邊都賣)也因為兩段
-## 各自都虧損而複合起來虧更多,不會出現無本套利無限堆疊——細節換算見設計討論,不在這裡
-## 重複列算式。
-static func get_rate_multiplier(level: int) -> float:
-	return LEVEL_MULTIPLIER[clampi(level, 1, LEVEL_MULTIPLIER.size()) - 1]
+## 「買貴賣賤」(Lv1 賣出永遠是 Lv1 買入的一半價值)保證同一棟建築內來回兌換必虧 50%;
+## 金錢↔贓物這組跨商隊站/黑市的雙向迴圈(商隊站買贓物→黑市買金錢、或反過來兩邊都賣)
+## 也因為兩段各自都虧損而複合起來虧更多,不會出現無本套利無限堆疊——買賣價隨等級朝 fair
+## 收斂但不會跨過(見下方兩個函式),這個「必虧」保證不管等級多高都成立。
+
+## 買入單價(每 1 個資材要付多少貨幣)。fair 是從 Lv1 的 buy_cost/buy_output 反推出的
+## 「公平價值比」(Lv1 買入價 = fair × BUY_MARKUP_L1);等級越高,實際單價越靠近 fair,
+## 但 LEVEL_FAIRNESS_SHRINK 只要 > 0 就保證恆 > fair,買永遠是虧的。
+static func buy_unit_price(option: ExchangeOption, level: int) -> float:
+	var base := float(option.buy_cost) / float(option.buy_output)
+	var fair := base / BUY_MARKUP_L1
+	var shrink := LEVEL_FAIRNESS_SHRINK[clampi(level, 1, LEVEL_FAIRNESS_SHRINK.size()) - 1]
+	return fair + (base - fair) * shrink
+
+
+## 賣出單價(每賣 1 個資材拿到多少貨幣)。fair 同樣是從 Lv1 的 sell_cost/sell_output
+## 反推(Lv1 賣出價 = fair × SELL_RATIO_L1);等級越高,實際單價越靠近 fair,但恆 < fair,
+## 賣永遠是虧的。
+static func sell_unit_price(option: ExchangeOption, level: int) -> float:
+	var base := float(option.sell_output) / float(option.sell_cost)
+	var fair := base / SELL_RATIO_L1
+	var shrink := LEVEL_FAIRNESS_SHRINK[clampi(level, 1, LEVEL_FAIRNESS_SHRINK.size()) - 1]
+	return fair - (fair - base) * shrink

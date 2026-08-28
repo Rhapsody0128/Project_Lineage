@@ -23,7 +23,9 @@ extends Control
 # 不需要呼叫端額外做任何同步——倍速/暫停是全域狀態,離開/返回場景不會重置。
 # =========================================================
 
-const _HEIGHT := 52.0
+## 對外公開(Scenes/Base/base.gd、Scenes/Map/map.gd 外層殼都要用這個高度讓自己的內容
+## 主動讓出 HEADER 佔用的空間,不要各自硬寫死 52.0 這個數字)。
+const HEIGHT := 52.0
 
 const _BG_COLOR := Color(0.13, 0.15, 0.21, 0.95)
 const _BORDER_COLOR := Color(0.36, 0.4, 0.56, 1)
@@ -125,7 +127,7 @@ func _ready() -> void:
 	offset_left = 0.0
 	offset_right = 0.0
 	offset_top = 0.0
-	offset_bottom = _HEIGHT
+	offset_bottom = HEIGHT
 	grow_horizontal = Control.GROW_DIRECTION_BOTH
 
 	var bg := PanelContainer.new()

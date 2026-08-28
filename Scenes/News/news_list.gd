@@ -1,8 +1,8 @@
 extends Control
 
 # =========================================================
-# 消息列表分「重大」/「日常」兩個分類(GameEnums.NewsCategory),左側 Sidebar 兩顆互斥
-# 按鈕(見 news_list.tscn 共用的 ButtonGroup)切換,比照 Scenes/QuestList/quest_list.gd
+# 消息列表分「重大」/「日常」/「戰爭」三個分類(GameEnums.NewsCategory),左側 Sidebar
+# 三顆互斥按鈕(見 news_list.tscn 共用的 ButtonGroup)切換,比照 Scenes/QuestList/quest_list.gd
 # 左側分頁按鈕的做法——不用 TabContainer,主清單依 _current_category 篩選重建。
 #
 # 未讀標示:NewsEntry.is_read 預設 false。_refresh_list() 在「標記已讀之前」先讀一次
@@ -25,6 +25,7 @@ const UNREAD_DOT_COLOR := Color(0.85, 0.25, 0.2, 1)
 @onready var sidebar: PanelContainer = $Sidebar
 @onready var major_button: Button = $Sidebar/Margin/VBox/MajorButton
 @onready var daily_button: Button = $Sidebar/Margin/VBox/DailyButton
+@onready var war_button: Button = $Sidebar/Margin/VBox/WarButton
 
 ## 目前選中的分類,預設「重大」,對應 news_list.tscn 的 MajorButton button_pressed = true。
 var _current_category: GameEnums.NewsCategory = GameEnums.NewsCategory.MAJOR
@@ -37,7 +38,7 @@ func _ready() -> void:
 	UiStyle.apply_parchment_panel(main_panel, 1100.0, 740.0)
 	UiStyle.apply_parchment_scrollbar(scroll_container)
 	UiStyle.apply_parchment_panel(sidebar, 200.0, 740.0)
-	for button in [major_button, daily_button]:
+	for button in [major_button, daily_button, war_button]:
 		UiStyle.apply_wood_plaque_button(button, 20.0, 10.0)
 		button.add_theme_font_size_override("font_size", 18)
 

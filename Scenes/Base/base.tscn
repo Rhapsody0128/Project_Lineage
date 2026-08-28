@@ -1,26 +1,27 @@
 [gd_scene format=3 uid="uid://cfttrlgdhuqbf"]
 
 [ext_resource type="Script" uid="uid://cayuoa57r3nyb" path="res://Scenes/Base/base.gd" id="1_base"]
-[ext_resource type="Texture2D" uid="uid://brshvytyolmhu" path="res://Images/Base/base.jpg" id="3_background"]
+[ext_resource type="PackedScene" path="res://Scenes/Base/base_inner.tscn" id="2_inner"]
 
-[node name="Base" type="Node2D" unique_id=1967325294]
+[node name="Base" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 script = ExtResource("1_base")
 
-[node name="Background" type="TextureRect" parent="." unique_id=1016420332]
-offset_right = 1024.0
-offset_bottom = 559.0
-mouse_filter = 2
-texture = ExtResource("3_background")
+[node name="SubViewportContainer" type="SubViewportContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch = true
 
-[node name="UI" type="CanvasLayer" parent="." unique_id=1151972042]
+[node name="BASE_VIEWPORT" type="SubViewport" parent="SubViewportContainer"]
+size = Vector2i(1600, 848)
 
-[node name="LeaveButton" type="Button" parent="UI" unique_id=1448660459]
-offset_left = 1465.0
-offset_top = 825.0
-offset_right = 1605.0
-offset_bottom = 885.0
-text = "離開"
-
-[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1241627064]
-
-[connection signal="pressed" from="UI/LeaveButton" to="." method="_on_leave_button_pressed"]
+[node name="BASE_INNER" parent="SubViewportContainer/BASE_VIEWPORT" instance=ExtResource("2_inner")]

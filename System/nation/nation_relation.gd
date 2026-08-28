@@ -1,9 +1,13 @@
 class_name NationRelation
 extends RefCounted
 
-## 國與國之間的邦交狀態查詢。目前遊戲裡沒有任何機制會改變邦交(宣戰/停戰之類的玩法
-## 還沒設計),六國兩兩之間一律回傳 GameEnums.NationWarStatus.PEACE——之後如果要做
-## 可變的邦交系統,再比照 NationFavorStore 加一個 autoload 存實際狀態,這裡改成查表。
+## 國與國之間的邦交狀態/WarTension 查詢入口。實際資料在 NationRelationStore
+## (autoload),這裡維持一層薄的 System/ 查詢介面,呼叫端(NationRelations UI 等)
+## 透過這裡取用,不直接碰 autoload,比照 System/nation/ 其餘檔案的查表慣例。
 
-static func get_status(_nation_a: int, _nation_b: int) -> int:
-	return GameEnums.NationWarStatus.PEACE
+static func get_status(nation_a: int, nation_b: int) -> int:
+	return NationRelationStore.get_war_status(nation_a, nation_b)
+
+
+static func get_tension(nation_a: int, nation_b: int) -> float:
+	return NationRelationStore.get_war_tension(nation_a, nation_b)

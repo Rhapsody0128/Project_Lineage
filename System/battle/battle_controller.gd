@@ -29,12 +29,19 @@ static func generate_random_report(title: String) -> BattleReport:
 ## 包成戰報,不進 Battle 場景播放動畫。這條路徑不會經過 Scenes/Battle/battle.gd 的
 ## _run_battle_playback()/_run_battle_realtime(),所以勝利 EXP/金錢獎懲要在這裡自己
 ## 補發一次,否則玩家選「跳過戰鬥」打贏也不會有 EXP/金錢(戰報照樣顯示勝利,容易
-## 誤以為是 bug)。
-static func generate_report_for_parties(title: String, self_party: Party, enemy_party: Party) -> BattleReport:
+## 誤以為是 bug)。grant_nation_favor 預設 true(維持原本行為);戰爭連續作戰
+## (WarBattleEvent)傳 false——enemy_party.nation_type 在那裡代表「正在打的敵對國」,
+## 跟 grant_victory_favor 原本「敵方是佔地盤盜賊,打贏替失地國家加好感度」的語意相反,
+## 見 System/war/war_contribution_rule.gd:戰爭的好感度只在停戰時依戰功一次結算。
+static func generate_report_for_parties(
+		title: String, self_party: Party, enemy_party: Party, description: String = "",
+		grant_nation_favor: bool = true
+) -> BattleReport:
 	var battle := get_battle(self_party, enemy_party)
 	battle.start()
 	BattleReward.grant_victory_exp(battle)
 	BattleReward.settle_money(battle)
-	BattleReward.grant_victory_favor(battle)
+	if grant_nation_favor:
+		BattleReward.grant_victory_favor(battle)
 	BattleReward.settle_morale(battle)
-	return BattleReport.new(title, battle)
+	return BattleReport.new(title, battle, description)

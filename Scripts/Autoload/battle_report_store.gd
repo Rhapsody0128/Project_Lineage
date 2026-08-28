@@ -22,6 +22,10 @@ extends Node
 
 var reports: Array[BattleReport] = []
 var pending_report: BattleReport = null
+## 戰爭戰報(WarCampaignController 連續作戰打完的結果集合)——跟 reports 分開存放,戰報
+## 列表的「戰爭戰報」分類讀這裡,展開手風琴直接內嵌顯示 fight_reports,見
+## Scenes/BattleReportList/battle_report_list.gd。比照 reports 不存檔。
+var war_campaign_reports: Array[WarCampaignReport] = []
 ## 跟 pending_report 同一套交接模式,給戰報列表「戰報」按鈕用:切去
 ## Scenes/BattleReportStats 顯示這場戰鬥的統計面板,不重播戰場畫面。
 var pending_stats_report: BattleReport = null
@@ -48,6 +52,37 @@ var pending_battle_mode: GameEnums.BattleMode = GameEnums.BattleMode.AUTO
 ## 讀完立刻清空,不會遺留到下一場沒有指定 callback 的一般戰鬥。
 var pending_battle_result_callback: Callable = Callable()
 
+## AskBattle 的加碼交接欄位(選「否」進即時戰鬥時用):跟 pending_battle_result_callback
+## 同一套模式,但傳的是完整 BattleReport(簽章 func(report: BattleReport))而不是只有
+## 勝負結果——給需要保留這場戰鬥完整戰報的呼叫端用(例如 WarBattleEvent 連續作戰要把每
+## 一場的 BattleReport 收進 WarCampaignReport.fight_reports)。battle.gd 的
+## _record_battle_report() 讀到有效 Callable 就順便呼叫一次,讀完立刻清空,不會遺留到
+## 下一場沒有指定 callback 的一般戰鬥。
+var pending_battle_report_callback: Callable = Callable()
+
+## 跟 pending_battle_report_callback 同一套交接模式(AskBattle 選「否」進即時戰鬥時用):
+## 這場戰鬥打完要不要寫進 reports(「一般戰鬥」清單)、BattleReport.description 要用什麼
+## 文字——分別對應 AskBattle.ask() 的 record_in_report_list/report_description 參數,見
+## 該處欄位註解。battle.gd 的 _record_battle_report() 讀完立刻重設回預設值(true/""),
+## 不會遺留到下一場沒有指定的一般戰鬥。
+var pending_battle_record_in_report_list: bool = true
+var pending_battle_report_description: String = ""
+
+## 同一套交接模式,對應 AskBattle.ask() 的 grant_nation_favor 參數:這場戰鬥打贏
+## 要不要順帶呼叫 BattleReward.grant_victory_favor()。預設 true(維持原本行為);
+## WarBattleEvent 連續作戰傳 false,見該參數欄位註解。battle.gd 的 _record_battle_report()
+## 讀完立刻重設回預設值 true。
+var pending_battle_grant_nation_favor: bool = true
+
+## 戰報列表畫面自己的 UI 狀態(目前分頁/展開中的戰爭戰報),不是戰報資料本身——切去
+## 觀戰/戰報統計場景再按返回時,battle_report_list.gd 的節點早就被銷毀重建過,靠這裡的
+## session 記憶還原成離開當下的樣子(見該檔案 CATEGORY_NORMAL/CATEGORY_WAR),不寫存檔、
+## 不跨遊戲啟動保留。
+## 數值對應 battle_report_list.gd 的 CATEGORY_NORMAL(0)/CATEGORY_WAR(1),這裡故意不
+## 直接引用那兩個常數(Scripts/Autoload 不依賴 Scenes 底下的場景腳本),呼叫端自己對照。
+var list_last_category: int = 0
+var list_expanded_war_report_ids: Dictionary = {}
+
 func _ready() -> void:
 	_seed_demo_reports()
 
@@ -72,3 +107,6 @@ func queue_playback(report: BattleReport) -> void:
 ## 指定要看統計的戰報,呼叫端接著自行切換到 BattleReportStats 場景
 func queue_stats(report: BattleReport) -> void:
 	pending_stats_report = report
+
+func add_war_campaign_report(report: WarCampaignReport) -> void:
+	war_campaign_reports.append(report)

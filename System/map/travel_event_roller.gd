@@ -7,7 +7,7 @@ extends RefCounted
 ## 就骰一次」這種更簡單的計步器模型,骰完不管中不中都馬上歸零重新累積,永遠可以再次觸發。
 
 const DISTANCE_PER_ROLL := 1000.0
-const TRIGGER_CHANCE := 0.15
+const TRIGGER_CHANCE := 0
 
 var _distance_since_last_roll: float = 0.0
 var _last_player_pos: Vector2

@@ -1,78 +1,51 @@
-extends Node2D
+extends Control
 
-## 根據地場景整合層,比照 Scenes/Map/map.gd 的角色分工,但沒有走位/攝影機拖曳縮放
-## (使用者已確認:直接點擊建築物,不做角色走到定點——見計畫)。背景圖原始尺寸
-## 1024x559,靠根節點 scale 的 x/y 分別撐滿「實際執行時的視窗大小」,讓背景滿版鋪滿
-## 畫面(比照 Dialogue 場景背景用 anchor 滿版的效果)。不能像先前那樣把 scale 寫死在
-## .tscn(算的是 project.godot 設計時的 1920x1080),因為 HTML5 匯出在瀏覽器裡視窗比例
-## 不保證等於設計比例(例如 1920x980)——`window/stretch/aspect="keep_height"` 只保證
-## 邏輯高度貼齊,寬度會依實際視窗比例變動,寫死寬度會在較寬的視窗右側留空白。改成
-## `_fit_background_to_viewport()` 在 `_ready()` 用 `get_viewport_rect().size` 即時算,
-## 並接 `get_viewport().size_changed` 在瀏覽器視窗被使用者拖曳縮放時重算(場景節點釋放時
-## Node 訊號會自動斷線,不需手動 disconnect)。非等比縮放造成的些微變形可接受,因為
-## Images/Base/base.jpg 上沒有疊其他需要維持長寬比的圖層。BaseSystem.pick_building() 用
-## Building.territory_polygon(使用者在原圖 1024x559 像素座標點出來的多邊形)比對
-## get_local_mouse_position(),因為 Node2D.scale 就是 Godot 內建座標轉換,不管當下算出來
-## 的 x/y 縮放比例是多少,click 判定一樣正確,不需要額外換算。UI 放獨立 CanvasLayer 不受
-## 這個 scale 影響。跟大地圖
-## 一樣掛 HeaderBar(見 Scripts/UI/header_bar.gd),隊伍/資源狀態面板走
-## HeaderBar.add_status_button()(Map 場景也掛同一顆,見 map.gd),不另外開一條
-## 常駐的資源列。建築本身不畫任何額外圖層(不疊色塊、不顯示中文名稱標籤)——
-## Images/Base/base.jpg 的美術已經畫好建築長相,BuildingLibrary 的 territory_polygon
-## 只用來做點擊命中判定(見 BaseSystem.pick_building()),純資料、不需要對應的畫面節點。
+## Base 場景的外層排版殼:比照 Scenes/Map/map.gd,只負責「HeaderBar 固定貼頂 + 下方
+## BASE_VIEWPORT(SubViewport)顯示根據地世界」這件事,不碰任何建築規則/座標判定——
+## 那些全部封裝在獨立場景檔 Scenes/Base/base_inner.tscn(script 見 base_inner.gd),
+## 這裡只是把它 instance 進 BASE_VIEWPORT 底下顯示,節點命名為 BASE_INNER。美術要調整
+## 建築範圍/背景,直接開 base_inner.tscn 就是一般的 2D 場景編輯,完全不受這裡
+## SubViewport 尺寸的限制——不要開 base.tscn 改內容。
+##
+## SubViewportContainer 一定要開 stretch=true——關掉會讓 Godot 把它的最小尺寸直接等於
+## 子 SubViewport.size(Godot 內建行為),容器永遠至少跟 SubViewport 一樣大,沒辦法真的
+## 縮成 HeaderBar 底下那塊小範圍(見 Scenes/Map/map.gd 開頭註解,Map 版本先前就是踩了
+## 這個坑才把鏡頭釘死)。開 stretch=true 後容器尺寸完全由這裡的錨點決定,Godot 也會自動
+## 把子 SubViewport.size 隨容器改變即時同步。
+##
+## 「離開」按鈕放在這層(不放進 BASE_VIEWPORT),理由跟 HeaderBar 一致:這是畫面
+## chrome(離開整個根據地畫面),不是根據地世界本身的內容,固定位置不應該因為
+## SubViewport 尺寸而跟著跑——世界內容完全不需要知道 HeaderBar/離開鈕佔了多少空間,
+## 兩者用同一個 Control 座標系(整個視窗),互不影響。
 
-@onready var ui_layer: CanvasLayer = $UI
-@onready var leave_button: Button = $UI/LeaveButton
-@onready var background: TextureRect = $Background
+const _LEAVE_BUTTON_OFFSET := Rect2(1465.0, 825.0, 140.0, 60.0)
 
-var _base_system := BaseSystem.new()
-var _buildings: Array[Building] = []
-var header_bar: HeaderBar
+@onready var sub_viewport_container: SubViewportContainer = $SubViewportContainer
 
 
 func _ready() -> void:
-	_buildings = BuildingLibrary.get_all()
+	## HeaderBar 高度是唯一真相來源(Scripts/UI/header_bar.gd 的 HEIGHT),SubViewportContainer
+	## 要讓出的頂部空間直接讀這個常數,不在 .tscn 裡另外寫死一份數字。
+	sub_viewport_container.offset_top = HeaderBar.HEIGHT
 
-	_fit_background_to_viewport()
-	get_viewport().size_changed.connect(_fit_background_to_viewport)
-
-	header_bar = HeaderBar.new()
-	ui_layer.add_child(header_bar)
+	var header_bar := HeaderBar.new()
+	add_child(header_bar)
 	header_bar.add_status_button()
 
+	_build_leave_button()
+
+
+func _build_leave_button() -> void:
+	var leave_button := Button.new()
+	leave_button.text = "離開"
+	leave_button.offset_left = _LEAVE_BUTTON_OFFSET.position.x
+	leave_button.offset_top = _LEAVE_BUTTON_OFFSET.position.y
+	leave_button.offset_right = _LEAVE_BUTTON_OFFSET.position.x + _LEAVE_BUTTON_OFFSET.size.x
+	leave_button.offset_bottom = _LEAVE_BUTTON_OFFSET.position.y + _LEAVE_BUTTON_OFFSET.size.y
 	UiStyle.apply_wood_plaque_button(leave_button, 24.0, 12.0)
 	leave_button.add_theme_font_size_override("font_size", 22)
-
-
-## 用背景貼圖的原始像素尺寸對「當下實際」的視窗大小算出 x/y 縮放比例,取代寫死的
-## scale 數值,見上方檔案開頭註解為什麼不能寫死。
-func _fit_background_to_viewport() -> void:
-	var texture_size := background.texture.get_size()
-	var viewport_size := get_viewport_rect().size
-	scale = viewport_size / texture_size
-
-
-func _process(_delta: float) -> void:
-	_update_hover_cursor()
-
-
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		var picked := _base_system.pick_building(get_local_mouse_position(), _buildings)
-		if picked != null:
-			BaseBuildingEvent.trigger(picked)
-
-
-## 滑鼠懸停在可點擊的建築上時換成手指游標,跟 Scenes/Map/map.gd 的
-## _update_hover_cursor() 同一套邏輯;離開場景要記得還原(見 _exit_tree()),否則其他
-## 場景會沿用這裡設定的游標。
-func _update_hover_cursor() -> void:
-	var hovered := _base_system.pick_building(get_local_mouse_position(), _buildings)
-	Input.set_default_cursor_shape(Input.CURSOR_POINTING_HAND if hovered != null else Input.CURSOR_ARROW)
-
-
-func _exit_tree() -> void:
-	Input.set_default_cursor_shape(Input.CURSOR_ARROW)
+	leave_button.pressed.connect(_on_leave_button_pressed)
+	add_child(leave_button)
 
 
 ## 回到根據地的 MapLocation 選單頁(不是直接回大地圖),交給 BaseLeaveEvent 先播一句

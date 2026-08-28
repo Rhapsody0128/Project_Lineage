@@ -47,8 +47,8 @@ static func settle_money(battle: Battle) -> void:
 		BaseResourceStore.spend({GameEnums.ResourceType.GOLD: penalty})
 
 ## RankType(F..SSS)分別對應的戰鬥勝利國家好感度獎勵(見 System/event/map/
-## roaming_enemy_event.gd:遊蕩者統一是離生成點最近城鎮的 nation,見
-## RoamingEnemySpawner._nearest_town_nation())。只有贏,沒有輸的懲罰——玩家在自己國家
+## roaming_enemy_event.gd:遊蕩者統一是生成點所在地圖色塊的 nation,見
+## System/map/map_terrain_mask.gd 的 MapTerrainMask.nation_at())。只有贏,沒有輸的懲罰——玩家在自己國家
 ## 附近被盜賊打贏地方盜賊算是在替該國除害,打輸單純沒收穫,不倒扣好感度。累積好感度對應
 ## 到 RankType 等級的門檻表見 System/nation/nation_favor_rank.gd。
 const RANK_NATION_FAVOR: Array[int] = [1, 2, 3, 5, 8, 12, 18, 27, 40]

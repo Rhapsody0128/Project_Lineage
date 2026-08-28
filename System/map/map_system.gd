@@ -25,6 +25,9 @@ var position: Vector2
 var target_position: Vector2
 var is_moving: bool = false
 var speed: float
+## 抵達 target_position 之後接著要走的後續路徑點(見 MapPathfinder.find_path()),
+## set_destination() 的單點直線移動不會用到,固定是空陣列。
+var path_queue: Array[Vector2] = []
 
 
 func _init(p_start_position: Vector2, p_speed: float) -> void:
@@ -52,22 +55,47 @@ static func compute_speed(avg_agi: float) -> float:
 
 func set_destination(p_target: Vector2) -> void:
 	target_position = p_target
+	path_queue.clear()
+	is_moving = true
+
+
+## 依序走訪一串路徑點(見 MapPathfinder.find_path()):第一個點設為目前 target_position,
+## 其餘存進 path_queue 接力,advance() 抵達每個中繼點時自動切換下一個,直到 path_queue
+## 淨空才真正停止(is_moving=false)。傳空陣列不做任何事(呼叫端應自行 fallback,不會
+## 走到這裡)。
+func set_path(waypoints: Array[Vector2]) -> void:
+	if waypoints.is_empty():
+		return
+	path_queue = waypoints.duplicate()
+	target_position = path_queue.pop_front()
 	is_moving = true
 
 
 ## 每 frame 呼叫,依目前速度 x delta 逐幀逼近目的地,從不預先計算/寫死
-## 某段路線該花多久——移動時間永遠等於「距離 / 速度」的自然結果。
+## 某段路線該花多久——移動時間永遠等於「距離 / 速度」的自然結果。用 while 迴圈消耗這一幀
+## 的可走距離,而不是每幀只處理一個 target_position:高倍速(DEMO 100x)或路徑點很密集時,
+## 一幀走的距離可能一口氣超過好幾個路徑點,不這樣寫會卡在中繼點多等好幾幀才繼續前進。
 func advance(delta: float) -> void:
 	if not is_moving:
 		return
-	var to_target := target_position - position
-	var dist := to_target.length()
-	var step := speed * delta
-	if step >= dist or dist < 0.001:
-		position = target_position
-		is_moving = false
-	else:
-		position += to_target.normalized() * step
+	var remaining := speed * delta
+	while remaining > 0.0 and is_moving:
+		var to_target := target_position - position
+		var dist := to_target.length()
+		if dist < 0.001:
+			position = target_position
+		elif remaining >= dist:
+			position = target_position
+			remaining -= dist
+		else:
+			position += to_target.normalized() * remaining
+			remaining = 0.0
+			continue
+
+		if not path_queue.is_empty():
+			target_position = path_queue.pop_front()
+		else:
+			is_moving = false
 
 
 ## 找出 world_pos 命中的 MapObject:有 territory_polygon 的物件用多邊形範圍

@@ -14,6 +14,10 @@ const MOVE_EPSILON := 0.5
 ## 評分標籤位置:貼著 sprite(38x46,AnimatedSprite2D 預設置中)右下角。
 const RANK_BADGE_OFFSET := Vector2(14, 16)
 
+## 城鎮/城堡是 map.tscn 裡手動擺放、z_index 預設 0 的場景節點,遊蕩者要蓋在它們上面
+## 才不會被地標擋住,所以給正值。
+const ENEMY_Z_INDEX := 1
+
 var enemy: RoamingEnemy
 var sprite: AnimatedSprite2D
 var _last_dir_name := "Down"
@@ -26,6 +30,7 @@ func setup(p_enemy: RoamingEnemy) -> void:
 	enemy = p_enemy
 	position = enemy.position
 	_last_synced_position = enemy.position
+	z_index = ENEMY_Z_INDEX
 
 	var scene := load(CHARACTER_SCENE_PATH) as PackedScene
 	sprite = scene.instantiate()

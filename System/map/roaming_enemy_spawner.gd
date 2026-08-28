@@ -118,11 +118,16 @@ func _try_spawn_in_cell(cell: Vector2i) -> void:
 		clamp(cell_origin.y + Util.get_random_float(0.0, CELL_SIZE), 0.0, MapSystem.MAP_SIZE.y)
 	)
 
+	# 生成座標落在地圖色塊 mask(見 MapTerrainMask)不可行走的地方(山岳鏤空/海面)——
+	# 直接放棄這次生成機會,不重骰,比照該格骰過一次不重骰的既有規則。
+	if not MapTerrainMask.is_walkable(spawn_pos):
+		return
+
 	if _is_too_close_to_map_object(spawn_pos):
 		return
 
-	var nation := _nearest_town_nation(spawn_pos)
-	var rank := NationFavorRank.rank_for_favor(NationFavorStore.get_favor(nation)) if nation != -1 else GameEnums.RankType.F
+	var nation := MapTerrainMask.nation_at(spawn_pos)
+	var rank := NationFavorRank.scattered_rank_for_favor(NationFavorStore.get_favor(nation)) if nation != -1 else GameEnums.RankType.F
 	var party := PartyController.get_random_party(rank, nation)
 	var enemy := RoamingEnemy.new(Util.generate_uuid(), spawn_pos, party, party.rank_type)
 	enemies.append(enemy)
@@ -133,23 +138,6 @@ func _is_too_close_to_map_object(pos: Vector2) -> bool:
 		if pos.distance_to(obj.position) < MIN_DISTANCE_FROM_MAP_OBJECT:
 			return true
 	return false
-
-
-## 生成座標最接近哪座城鎮(MapObjectType.TOWN),就讓這隻遊蕩敵人統一是該城鎮的
-## nation——「這附近的盜賊」,不是全地圖統一隨機血統國家。沒有任何城鎮時(理論上不會
-## 發生,MapObject.get_all() 固定至少 3 座城鎮)fallback 給 -1,交回
-## PartyController.get_random_party() 自己讓隊內角色各自獨立隨機。
-func _nearest_town_nation(pos: Vector2) -> int:
-	var nearest_nation := -1
-	var nearest_dist := INF
-	for obj in _map_objects:
-		if obj.type != GameEnums.MapObjectType.TOWN:
-			continue
-		var dist := pos.distance_to(obj.position)
-		if dist < nearest_dist:
-			nearest_dist = dist
-			nearest_nation = obj.nation
-	return nearest_nation
 
 
 func _despawn_far(player_pos: Vector2) -> void:

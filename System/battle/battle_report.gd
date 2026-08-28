@@ -11,12 +11,20 @@ var battle: Battle
 ## 生成戰報當下的現實系統時間,顯示格式 "2026/08/16 16:11:31"(戰報列表表格用,跟
 ## title 的遊戲曆法時間分開兩欄——title 是遊戲世界的 BC 紀年,這個是玩家實際操作的時刻)。
 var system_time_text: String
+## 戰報列表「描述」欄用的一句話文案。呼叫端不指定就自動依敵方 rank_type 生成
+## 「O級敵人遭遇戰」(一般戰鬥的預設情境);呼叫端明確指定時(例如
+## WarCampaignController 連續作戰的「第 N 場」)直接採用呼叫端給的文字,不覆蓋。
+var description: String
 
-func _init(p_title: String, p_battle: Battle) -> void:
+func _init(p_title: String, p_battle: Battle, p_description: String = "") -> void:
 	id = Util.generate_uuid()
 	title = p_title
 	battle = p_battle
+	description = p_description if not p_description.is_empty() else _default_description(p_battle)
 	system_time_text = _format_system_time()
+
+static func _default_description(p_battle: Battle) -> String:
+	return "%s級敵人遭遇戰" % GameEnums.rank_label(p_battle.enemy_rank_type)
 
 static func _format_system_time() -> String:
 	var dt := Time.get_datetime_dict_from_system()

@@ -9,7 +9,7 @@ extends Control
 # =========================================================
 
 const AVATAR_SIZE := Vector2(44, 44)
-const WIN_COLOR := Color(0.1, 0.9, 0.1)
+const WIN_COLOR := Color(0.15, 0.5, 0.15)
 const LOSE_COLOR := Color(0.9, 0.1, 0.1)
 const DRAW_COLOR := Color(0.0, 0.0, 0.0)
 const NEUTRAL_COLOR := UiStyle.PARCHMENT_TEXT_COLOR

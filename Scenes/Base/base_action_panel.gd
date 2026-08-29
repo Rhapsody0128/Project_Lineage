@@ -34,6 +34,9 @@ extends VBoxContainer
 ## SIZE_SHRINK_BEGIN 避免被 VBoxContainer 橫向撐滿)。
 
 const AVATAR_SLOT_SIZE := Vector2(64, 64)
+## 鐵匠鋪總覽表標記武器主屬性(GameEnums.weapon_main_stat())用的紅色,跟
+## Scenes/Base/weapon_craft_panel.gd 的 _MAIN_STAT_COLOR 同一個值,兩個畫面標記方式一致。
+const _WEAPON_MAIN_STAT_COLOR := Color(0.75, 0.25, 0.25)
 
 var _building: Building
 ## 升級/建造失敗後單次顯示一行提示,顯示完就消耗掉,不跨 rebuild 保留。指派工作角色
@@ -116,6 +119,10 @@ func _rebuild_body() -> void:
 
 	if _building.type == GameEnums.BuildingType.STRONGHOLD:
 		_build_stronghold_section()
+		return
+
+	if _building.type == GameEnums.BuildingType.FORGE:
+		_build_forge_section()
 		return
 
 	if not _building.is_production_building():
@@ -408,6 +415,123 @@ func _open_stronghold_marriage_panel(eligible: Array[Character]) -> void:
 		ActionPanel.close(false)
 		BaseMarriageEvent.trigger(building, proposer, nation)
 	)
+
+
+## 鐵匠鋪:六武器類型總覽表(每列一種武器,欄位是六大素質各自的點數、RANK、總素質分開
+## 三種顯示,最右邊一欄是該列專屬的「打造武器」鈕——素質欄順序沿用 CharacterDetailView.
+## POTENTIAL_GRID_ORDER 跟角色面板一致)。「變更武器」按鈕跟建造/升級鈕一起塞進標題列
+## (ActionPanel.set_title_action_button(),× 左邊同一排),不再佔內容區塊一整排——見
+## _build_forge_title_row()。打造武器(WeaponCraftPanel)固定綁該列的武器類型,不再有
+## 「先選類型」這一步,直接依表格點的是哪一列決定;變更武器(WeaponEquipPanel)幫指定角色
+## 把手持武器類型換成另一種,比較兩種武器類型的全域素質加成差異,兩者是分開的獨立功能。
+func _build_forge_section() -> void:
+	ActionPanel.set_title_action_button(_build_forge_title_row())
+
+	var grid := GridContainer.new()
+	grid.columns = CharacterDetailView.POTENTIAL_GRID_ORDER.size() + 4
+	grid.add_theme_constant_override("h_separation", 20)
+	grid.add_theme_constant_override("v_separation", 6)
+
+	var headers: Array[String] = ["武器"]
+	for potential_type in CharacterDetailView.POTENTIAL_GRID_ORDER:
+		headers.append(GameEnums.potential_label(potential_type))
+	headers.append("RANK")
+	headers.append("總素質")
+	headers.append("")
+	for header_text in headers:
+		var header := Label.new()
+		header.text = header_text
+		header.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
+		grid.add_child(header)
+
+	for weapon_type in GameEnums.WeaponType.values():
+		_add_forge_weapon_row(grid, weapon_type)
+	add_child(grid)
+
+
+## 建造/升級鈕(_build_title_action_row(),FORGE 是非生產類建築,回傳單顆 Button 或 null)
+## 跟「變更武器」合併成同一排塞進標題列,取代 _rebuild_body() 一開始已經設過一次的版本
+## (ActionPanel.set_title_action_button() 换新的會自動 queue_free 舊的,不會重複殘留,見
+## action_panel.gd)。「打造武器」不放在這裡——固定綁武器類型,只能從下面表格每列自己的
+## 按鈕進入(見 _add_forge_weapon_row())。
+func _build_forge_title_row() -> Control:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+
+	var construction_button := _build_title_action_row()
+	if construction_button != null:
+		row.add_child(construction_button)
+
+	var change_button := Button.new()
+	change_button.text = "變更武器"
+	UiStyle.style_panel_action_button(change_button)
+	change_button.pressed.connect(_open_weapon_equip_panel)
+	row.add_child(change_button)
+
+	return row
+
+
+func _add_forge_weapon_row(grid: GridContainer, weapon_type: int) -> void:
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(24, 24)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = load(GameEnums.weapon_icon_path(weapon_type)) as Texture2D
+
+	var name_row := HBoxContainer.new()
+	name_row.add_theme_constant_override("separation", 6)
+	name_row.add_child(icon)
+	var name_label := Label.new()
+	name_label.text = GameEnums.weapon_label(weapon_type)
+	name_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	name_row.add_child(name_label)
+	grid.add_child(name_row)
+
+	var equipped: WeaponInstance = WeaponStore.get_equipped(weapon_type)
+	var main_stat := GameEnums.weapon_main_stat(weapon_type)
+	for potential_type in CharacterDetailView.POTENTIAL_GRID_ORDER:
+		var stat_label := Label.new()
+		stat_label.text = str(equipped.get_point(potential_type))
+		## 武器主屬性(例如劍的力量)這一格標紅色,比照 WeaponCraftPanel 比較表的
+		## _MAIN_STAT_COLOR 用同一個紅,兩個畫面標記方式一致。
+		stat_label.add_theme_color_override("font_color", _WEAPON_MAIN_STAT_COLOR if potential_type == main_stat else UiStyle.PARCHMENT_TEXT_COLOR)
+		grid.add_child(stat_label)
+
+	var rank_label := Label.new()
+	rank_label.text = "%s級" % GameEnums.rank_label(equipped.rank_type)
+	rank_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	grid.add_child(rank_label)
+
+	var total_label := Label.new()
+	total_label.text = str(equipped.total_points())
+	total_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	grid.add_child(total_label)
+
+	var craft_button := Button.new()
+	craft_button.text = "打造"
+	UiStyle.style_panel_action_button(craft_button)
+	craft_button.pressed.connect(func() -> void: _open_weapon_craft_panel(weapon_type))
+	grid.add_child(craft_button)
+
+
+## 表格每列的「打造武器」鈕開啟 WeaponCraftPanel,固定綁該列的武器類型(標題跟著顯示
+## 「打造武器（武器名）」)——寫法比照 _open_stronghold_marriage_panel():整份 ActionPanel
+## 內容替換(不是疊加),on_close 重新呼叫 BaseBuildingEvent.open_action_panel() 重建鐵匠鋪
+## 面板,不嘗試復用已被釋放的 self。
+func _open_weapon_craft_panel(weapon_type: int) -> void:
+	var building := _building
+	var panel := WeaponCraftPanel.new()
+	var title := "打造武器（%s）" % GameEnums.weapon_label(weapon_type)
+	ActionPanel.open_custom(title, panel, func(): BaseBuildingEvent.open_action_panel(building))
+	panel.setup(weapon_type, func(): BaseBuildingEvent.open_action_panel(building))
+
+
+## 「變更武器」按鈕開啟 WeaponEquipPanel,同樣是整份 ActionPanel 內容替換。
+func _open_weapon_equip_panel() -> void:
+	var building := _building
+	var panel := WeaponEquipPanel.new()
+	ActionPanel.open_custom("變更武器", panel, func(): BaseBuildingEvent.open_action_panel(building))
+	panel.setup(func(): BaseBuildingEvent.open_action_panel(building))
 
 
 ## 有配方(fixed_recipe 或工匠坊)的建築不重複顯示這行——那些建築的「理論上限」已經改成
@@ -1022,16 +1146,10 @@ func _format_cost(cost: Dictionary) -> String:
 	return "、".join(parts)
 
 
-## 「按鈕都用 ACTION PANEL WOOD PANEL」——比照 Scenes/ActionPanel/action_panel.gd 清單列
-## 的 action_button 那套木牌樣式(UiStyle.apply_wood_plaque_button()),讓根據地建築面板
-## 內的按鈕跟其他彈出面板長相一致,不再是預設灰底按鈕。SIZE_SHRINK_BEGIN 是關鍵——這個
-## VBoxContainer 對子節點的橫向(交叉軸)預設會撐滿整個面板寬度,直接 add_child(button)
-## 的按鈕(建造/升級/取消等)不設這個的話,木牌貼圖會被硬拉成一整條很長的長方形,不是
-## 圖片原本的比例;設成 SHRINK_BEGIN 後按鈕只會跟內容(文字+邊距)一樣寬,靠左對齊。
+## 按鈕木牌樣式已搬到 UiStyle.style_panel_action_button()(多個面板腳本共用,不只這裡),
+## 這裡留一個薄委派避免重寫檔案內全部既有呼叫點。
 func _style_button(button: Button) -> void:
-	UiStyle.apply_wood_plaque_button(button, 16.0, 6.0)
-	button.add_theme_font_size_override("font_size", 16)
-	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	UiStyle.style_panel_action_button(button)
 
 
 func _add_label(text: String) -> void:

@@ -61,6 +61,8 @@ static func encode_character(character: Character) -> Dictionary:
 		"potential": _encode_potential(character.potential),
 		"bloodline_percentages": character.bloodline.percentages,
 		"weapon": character.weapon,
+		"weapon_rank": character.weapon_rank,
+		"weapon_stat_bonus": SaveDataCodec.int_keyed_to_str(character.weapon_stat_bonus),
 		"skill_names": skill_names,
 		"level": character.level_system.level,
 		"exp": character.level_system.exp,
@@ -134,6 +136,8 @@ static func decode_character_base(data: Dictionary) -> Character:
 	)
 	character.id = data["id"]
 	character.hp = int(data["hp"])
+	character.weapon_rank = int(data.get("weapon_rank", GameEnums.RankType.F))
+	character.weapon_stat_bonus = SaveDataCodec.str_keyed_to_int(data.get("weapon_stat_bonus", {}))
 	character.is_protagonist = data.get("is_protagonist", false)
 	character.is_pregnant = data.get("is_pregnant", false)
 	character.pregnancy_months = int(data.get("pregnancy_months", 0))

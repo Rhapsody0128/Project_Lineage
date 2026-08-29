@@ -19,8 +19,18 @@ signal changed
 
 ## 玩家預設起始資源,根據地剛開局就有這些可用來建造第一批建築。
 var amounts: Dictionary = {
-	GameEnums.ResourceType.WOOD: 300.0,
+	GameEnums.ResourceType.WOOD: 500.0,
 	GameEnums.ResourceType.GOLD: 500.0,
+	GameEnums.ResourceType.STONE: 500.0,
+	GameEnums.ResourceType.FOOD: 500.0,
+	GameEnums.ResourceType.ORE: 500.0,
+	GameEnums.ResourceType.CONTRABAND: 500.0,
+	GameEnums.ResourceType.CURSE: 500.0,
+	GameEnums.ResourceType.FAITH: 500.0,
+	GameEnums.ResourceType.FUR: 500.0,
+	GameEnums.ResourceType.BOOK: 500.0,
+	GameEnums.ResourceType.RESEARCH: 500.0,
+	GameEnums.ResourceType.TOOL: 500.0,
 }
 
 

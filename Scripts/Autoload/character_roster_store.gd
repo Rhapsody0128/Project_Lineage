@@ -37,6 +37,7 @@ func try_add(character: Character) -> bool:
 		MessageBar.show_message(ROSTER_FULL_MESSAGE)
 		return false
 	all_characteres.append(character)
+	WeaponStore.sync_character(character)
 	return true
 
 

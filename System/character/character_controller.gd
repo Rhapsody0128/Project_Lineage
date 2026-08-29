@@ -27,16 +27,19 @@ const WEAPON_BY_PRIMARY_STAT := {
 	GameEnums.WeaponType.DREAMCATCHER: "mentality",
 }
 
-## 依角色六大素質中最高者發放對應武器,取代純隨機抽武器——武器決定攻擊素質輸出
+## 依角色六大素質中最擅長者發放對應武器,取代純隨機抽武器——武器決定攻擊素質輸出
 ## (見 SkillEffectLibrary._attack_value()),發武器前先看角色最擅長哪項素質,才能讓
-## 戰鬥數值跟裝備直覺對應。並列最高時從並列項目裡隨機抽一個,避免固定偏向某一項。
+## 戰鬥數值跟裝備直覺對應。「最擅長」看的是 xxx_ratio(血統/評級決定的成長天賦),
+## 不是 xxx 這個先天雜訊 base 值(0~30、跟血統無關,見 PotentialController),不然
+## 血統武器系(獅→大劍等)會被無關的 base 雜訊蓋過去,發出跟血統不符的武器。並列
+## 最高時從並列項目裡隨機抽一個,避免固定偏向某一項。
 static func get_weapon_for_potential(potential: Potential) -> int:
-	var max_value := -1.0
+	var max_ratio := -1.0
 	for weapon in WEAPON_BY_PRIMARY_STAT:
-		max_value = max(max_value, potential.get(WEAPON_BY_PRIMARY_STAT[weapon]))
+		max_ratio = max(max_ratio, potential.get(WEAPON_BY_PRIMARY_STAT[weapon] + "_ratio"))
 	var best_weapons: Array[int] = []
 	for weapon in WEAPON_BY_PRIMARY_STAT:
-		if potential.get(WEAPON_BY_PRIMARY_STAT[weapon]) == max_value:
+		if potential.get(WEAPON_BY_PRIMARY_STAT[weapon] + "_ratio") == max_ratio:
 			best_weapons.append(weapon)
 	return Util.get_random_from_array(best_weapons)
 
@@ -46,7 +49,10 @@ static func get_weapon_for_potential(potential: Potential) -> int:
 ## (集中在基準評級附近、偶爾探高一兩級,不會超過基準),每次呼叫本函式都重新骰一次,
 ## 所以同一隊呼叫多次會讓隊員評級各自不同,不是整隊統一同一級。骰出來的評級同時餵給
 ## Bloodline/Potential 兩者,見 PotentialController.get_random_potential()/
-## BloodlineController.get_random_bloodline()。gender 不填(-1)= 維持原本隨機生成,
+## BloodlineController.get_random_bloodline();兩者生成後再呼叫
+## BloodlineLibrary.apply_to_potential() 把血統加成疊上 potential(比照
+## InheritanceController.create_child() 生小孩那條路徑同一套函式),血統對應的主力素質
+## 才會實際被推高、跟其餘素質拉開差距,不是只有好看的血統標籤。gender 不填(-1)= 維持原本隨機生成,
 ## 指定 GameEnums.Gender.MALE/FEMALE 時強制產出該性別(例如城鎮中心聯姻流程需要生成
 ## 跟聯姻發起人性別相反的人選,見 System/marriage/marriage_candidate_generator.gd)。
 static func get_random_character(rank_type: int = -1, nation: int = -1, gender: int = -1) -> Character:
@@ -65,6 +71,7 @@ static func get_random_character(rank_type: int = -1, nation: int = -1, gender: 
 	var traits := TraitController.get_random_traits(2)
 	var potential := PotentialController.get_random_potential(resolved_rank)
 	var bloodline := BloodlineController.get_random_bloodline(resolved_rank, nation)
+	potential = BloodlineLibrary.apply_to_potential(potential, bloodline)
 	var weapon: int = get_weapon_for_potential(potential)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
 	var skill_list := SkillController.get_random_initial_skill_list(weapon, noble_rank, bloodline)

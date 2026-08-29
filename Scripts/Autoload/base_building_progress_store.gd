@@ -43,7 +43,7 @@ func _ready() -> void:
 
 
 func get_level(building_type: GameEnums.BuildingType) -> int:
-	return _levels.get(building_type, 9)
+	return _levels.get(building_type, 8)
 
 
 func is_unlocked(building_type: GameEnums.BuildingType) -> bool:

@@ -74,10 +74,10 @@ const SKILL_DISABLED_MODULATE := Color(1, 1, 1, 0.4)
 const SKILL_ENABLED_MODULATE := Color(1, 1, 1, 1)
 
 ## 六大素質列的排列順序(2 欄 GridContainer 依序左上→右下填格),
-## 對照使用者要的排版:力量/敏捷、體質/靈巧、智慧/信仰。
+## 跟 GameEnums.PotentialType 宣告順序一致,不另外調整排版。
 const POTENTIAL_GRID_ORDER := [
-	GameEnums.PotentialType.STRENGTH, GameEnums.PotentialType.AGILITY,
-	GameEnums.PotentialType.VITALITY, GameEnums.PotentialType.DEXTERITY,
+	GameEnums.PotentialType.STRENGTH, GameEnums.PotentialType.VITALITY,
+	GameEnums.PotentialType.AGILITY, GameEnums.PotentialType.DEXTERITY,
 	GameEnums.PotentialType.INTELLIGENCE, GameEnums.PotentialType.MENTALITY,
 ]
 
@@ -87,6 +87,7 @@ var age_label: Label
 var status_label: Label
 var gender_label: Label
 var level_value_label: Label
+var weapon_rank_label: Label
 var weapon_icon: TextureRect
 var exp_bar: ProgressBar
 var exp_value_label: Label
@@ -172,8 +173,9 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 	# 選定才會有值(見 AcademyRule.enroll())——武器 enum 陣列查表對負數索引會從陣列尾端
 	# 繞回去(GDScript 陣列語意),不特判會顯示成一個看起來合法但錯誤的武器,而不是報錯。
 	var has_weapon := character.weapon != GameEnums.NO_WEAPON_BINDING
+	weapon_rank_label.text = "%s級" % GameEnums.rank_label(character.weapon_rank) if has_weapon else ""
 	weapon_icon.texture = load(GameEnums.weapon_icon_path(character.weapon)) as Texture2D if has_weapon else null
-	weapon_icon.tooltip_text = GameEnums.weapon_label(character.weapon) if has_weapon else "尚未決定"
+	weapon_icon.tooltip_text = _build_weapon_tooltip(character) if has_weapon else "尚未決定"
 
 	var is_leader := battle_character != null and battle_character.is_leader
 
@@ -189,6 +191,17 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 	_populate_skills(character)
 	_populate_traits(character.traits)
 	_populate_family(character)
+
+
+## 武器圖示的 tooltip:武器名稱 + 逐項列出目前手持武器加成的素質點數(只列非零項),
+## 取代原本純武器名稱——玩家滑過去就能直接看到這把武器實際帶來多少加成。
+func _build_weapon_tooltip(character: Character) -> String:
+	var lines: Array[String] = [GameEnums.weapon_label(character.weapon)]
+	for potential_type in GameEnums.PotentialType.values():
+		var bonus: int = character.weapon_stat_bonus.get(potential_type, 0)
+		if bonus != 0:
+			lines.append("%s +%d" % [GameEnums.potential_label(potential_type), bonus])
+	return "\n".join(lines)
 
 
 ## 區塊標題顏色,統一用 UiStyle 的深咖啡系 PARCHMENT_SUBTITLE_COLOR。
@@ -389,6 +402,11 @@ func _build_attribute_tab() -> Control:
 	weapon_caption.add_theme_font_size_override("font_size", 15)
 	_apply_body_text_color(weapon_caption)
 	weapon_row.add_child(weapon_caption)
+
+	weapon_rank_label = Label.new()
+	weapon_rank_label.add_theme_font_size_override("font_size", 15)
+	_apply_body_text_color(weapon_rank_label)
+	weapon_row.add_child(weapon_rank_label)
 
 	weapon_icon = TextureRect.new()
 	weapon_icon.custom_minimum_size = WEAPON_ICON_SIZE

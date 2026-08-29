@@ -26,6 +26,12 @@ var bloodline: Bloodline
 var noble_bloodline_rank: int
 ## 目前手持的武器,決定哪些 bind_weapon 技能能施放
 var weapon: GameEnums.WeaponType
+## 目前手持武器類型提供的素質加成(GameEnums.PotentialType -> 點數)。玩家角色由
+## WeaponStore.sync_character() 在加入 CharacterRosterStore 時/裝備變更時寫入;敵人小隊
+## 由 PartyController.get_random_party() 產生當下直接指派,跟 WeaponStore 無關。
+var weapon_stat_bonus: Dictionary = {}
+## 目前手持武器的 rank(GameEnums.RankType),來源同上,UI 顯示用(CharacterDetailView)。
+var weapon_rank: GameEnums.RankType = GameEnums.RankType.F
 var skill_list: Array[Skill]
 var level_system: LevelSystem
 var hp: int
@@ -232,18 +238,23 @@ func _trait_stat_multiplier() -> float:
 		multiplier *= character_trait.stat_multiplier
 	return multiplier
 
+## 手持武器提供的素質加成——套用完潛力+成長+特性乘算之後直接加點數,不參與特性乘算
+## (武器加成不會被衰老等 stat_multiplier 打折)。
+func get_weapon_stat_bonus(potential_type: int) -> float:
+	return float(weapon_stat_bonus.get(potential_type, 0))
+
 var strength: float:
-	get: return _get_real_potential(potential.strength, potential.strength_ratio)
+	get: return _get_real_potential(potential.strength, potential.strength_ratio) + get_weapon_stat_bonus(GameEnums.PotentialType.STRENGTH)
 var agility: float:
-	get: return _get_real_potential(potential.agility, potential.agility_ratio)
+	get: return _get_real_potential(potential.agility, potential.agility_ratio) + get_weapon_stat_bonus(GameEnums.PotentialType.AGILITY)
 var dexterity: float:
-	get: return _get_real_potential(potential.dexterity, potential.dexterity_ratio)
+	get: return _get_real_potential(potential.dexterity, potential.dexterity_ratio) + get_weapon_stat_bonus(GameEnums.PotentialType.DEXTERITY)
 var vitality: float:
-	get: return _get_real_potential(potential.vitality, potential.vitality_ratio)
+	get: return _get_real_potential(potential.vitality, potential.vitality_ratio) + get_weapon_stat_bonus(GameEnums.PotentialType.VITALITY)
 var intelligence: float:
-	get: return _get_real_potential(potential.intelligence, potential.intelligence_ratio)
+	get: return _get_real_potential(potential.intelligence, potential.intelligence_ratio) + get_weapon_stat_bonus(GameEnums.PotentialType.INTELLIGENCE)
 var mentality: float:
-	get: return _get_real_potential(potential.mentality, potential.mentality_ratio)
+	get: return _get_real_potential(potential.mentality, potential.mentality_ratio) + get_weapon_stat_bonus(GameEnums.PotentialType.MENTALITY)
 
 func get_potential(potential_type: int) -> float:
 	match potential_type:

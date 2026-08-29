@@ -3,19 +3,33 @@ extends Control
 
 # =========================================================
 # 角色六大素質雷達圖(力量/體質/敏捷/靈巧/智慧/信仰)。
-# 純粹畫面呈現,只依傳入的 Character 目前數值(已含等級加成)畫圖,
-# 不含任何數值判定邏輯。
+# 純粹畫面呈現,不含任何數值判定邏輯。
+#
+# 沒有 BattleCharacter(創角/角色面板等日常情境)時,形狀畫的是「潛力 ratio」本身
+# (Potential.xxx_ratio,決定評級的那個數字),不是 Character.xxx 那組已含等級加成的
+# 即時數值——後者的 base 是跟血統/評級無關的 0~30 先天雜訊,拿來畫形狀會讓形狀跟
+# 旁邊標出來的評級對不上(1 級角色 base 雜訊壓過 ratio 貢獻,見
+# Character._get_real_potential())。用 ratio 直接對 InheritanceConstants.
+# POTENTIAL_RATIO_MAX(潛力 ratio 實際上限,見該檔常數註解——SSS 那一階要 ratio>=2.1
+# 才夠,不是字面上的 2.0)線性換算半徑,直接引用同一份常數而不是自己再存一份
+# 數字,避免兩邊之後又漂移不同步。不拿評級本身(F=0~SSS=8)當格數,是因為 ratio
+# 下限是 0.5,不是 0,直接用 ratio/上限 換算,F 評級的角色自然落在中心以外的位置,
+# 不會整個貼死在正中心看起來像「完全沒有潛力」,格線也依同一把尺畫在
+# RATIO_RING_VALUES([0.4, 0.8, 1.2, 1.6, 2.0])五圈,不用切太密——這五個刻度不是
+# 上限,單純是好讀的參考線,實際外圈邊界是 POTENTIAL_RATIO_MAX。
 #
 # 從戰鬥場景(點頭像)開啟時會多帶一個 BattleCharacter(見 set_character() 的第二參數)——
-# 這時雷達圖形狀本身改用 BattleCharacter.get_potential()(套用完暴擊/被動/buff/debuff
-# 加成後的即時數值)。標籤只顯示素質名稱+等級(例如「力量S」),數值改在
-# CharacterDetailView 的屬性分頁顯示(見該檔 _update_potential_labels()),
-# 雷達圖本身不重複列數字。
+# 這時才改用 BattleCharacter.get_potential()(套用完暴擊/被動/buff/debuff 加成後的
+# 即時數值)畫形狀,格線維持原本的 RING_COUNT/MAX_VALUE 四等分,因為這裡要看的
+# 是「戰場上實際多強」而非血統潛力。標籤兩種情境都只顯示素質名稱+基礎潛力評級
+# (例如「力量S」),數值改在 CharacterDetailView 的屬性分頁顯示(見該檔
+# _update_potential_labels()),雷達圖本身不重複列數字。
 # =========================================================
 
 const AXIS_COUNT := 6
 const RING_COUNT := 4
 const MAX_VALUE := 200.0
+const RATIO_RING_VALUES: Array[float] = [0.4, 0.8, 1.2, 1.6, 2.0]
 const LABEL_MARGIN := 26.0
 const FONT_SIZE := 14
 
@@ -76,9 +90,23 @@ func _axis_point(center: Vector2, radius: float, index: int) -> Vector2:
 	return center + Vector2(cos(angle), sin(angle)) * radius
 
 
+## 沒有 BattleCharacter 時格線畫在 RATIO_RING_VALUES 那幾個 ratio 刻度上(五圈,
+## 見檔頭註解),有 BattleCharacter 時維持原本 0~MAX_VALUE 的四等分。
+func _ring_fractions() -> Array[float]:
+	if _battle_character != null:
+		var value_fractions: Array[float] = []
+		for ring in range(1, RING_COUNT + 1):
+			value_fractions.append(ring / float(RING_COUNT))
+		return value_fractions
+	var ratio_fractions: Array[float] = []
+	for ratio_value in RATIO_RING_VALUES:
+		ratio_fractions.append(ratio_value / InheritanceConstants.POTENTIAL_RATIO_MAX)
+	return ratio_fractions
+
+
 func _draw_grid(center: Vector2, radius: float) -> void:
-	for ring in range(1, RING_COUNT + 1):
-		var ring_radius := radius * ring / float(RING_COUNT)
+	for fraction in _ring_fractions():
+		var ring_radius := radius * fraction
 		var points := PackedVector2Array()
 		for i in range(AXIS_COUNT + 1):
 			points.append(_axis_point(center, ring_radius, i % AXIS_COUNT))
@@ -88,19 +116,40 @@ func _draw_grid(center: Vector2, radius: float) -> void:
 		draw_line(center, _axis_point(center, radius, i), GRID_COLOR, 1.0)
 
 
-## 有 BattleCharacter 時,雷達圖的形狀本身也改畫即時數值(不然形狀跟旁邊標出來的即時數字對不上)。
-func _current_value(potential_type: int) -> float:
+## 潛力 ratio(GameEnums.PotentialType 索引對齊 Potential.xxx_ratio 六個欄位)。
+func _potential_ratio(potential_type: int) -> float:
+	match potential_type:
+		GameEnums.PotentialType.STRENGTH:
+			return _character.potential.strength_ratio
+		GameEnums.PotentialType.VITALITY:
+			return _character.potential.vitality_ratio
+		GameEnums.PotentialType.AGILITY:
+			return _character.potential.agility_ratio
+		GameEnums.PotentialType.DEXTERITY:
+			return _character.potential.dexterity_ratio
+		GameEnums.PotentialType.INTELLIGENCE:
+			return _character.potential.intelligence_ratio
+		GameEnums.PotentialType.MENTALITY:
+			return _character.potential.mentality_ratio
+		_:
+			return Potential.BASE_RATIO
+
+
+## 形狀用的數值換算成 0~1 的半徑比例:有 BattleCharacter 時看即時數值(戰場上實際多強,
+## 見檔頭註解),沒有時直接拿 ratio 對 InheritanceConstants.POTENTIAL_RATIO_MAX 線性
+## 換算,保證形狀連續反映 ratio 本身(而不是量化過的評級階梯),旁邊軸標籤的評級文字
+## 仍是同一個 ratio 換算出來的,兩者不會對不上。
+func _value_fraction(potential_type: int) -> float:
 	if _battle_character != null:
-		return _battle_character.get_potential(potential_type)
-	return _character.get_potential(potential_type)
+		return clampf(_battle_character.get_potential(potential_type) / MAX_VALUE, 0.0, 1.0)
+	return clampf(_potential_ratio(potential_type) / InheritanceConstants.POTENTIAL_RATIO_MAX, 0.0, 1.0)
 
 
 func _draw_values(center: Vector2, radius: float) -> void:
 	var points := PackedVector2Array()
 	for i in range(AXIS_COUNT):
-		var value := _current_value(POTENTIAL_TYPES[i])
-		var ratio: float = clampf(value / MAX_VALUE, 0.0, 1.0)
-		points.append(_axis_point(center, radius * ratio, i))
+		var fraction := _value_fraction(POTENTIAL_TYPES[i])
+		points.append(_axis_point(center, radius * fraction, i))
 
 	if points.size() < 3:
 		return

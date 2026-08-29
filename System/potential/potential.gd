@@ -4,7 +4,15 @@ extends RefCounted
 ## rank_from_ratio() 的換算基準,PotentialController 指定目標 RankType 生成 ratio 時
 ## 也要反推同一組數字,提升成 class 常數避免兩邊各自硬編一次。
 const BASE_RATIO := 0.5
-const RANK_GAP := 0.2
+## 潛力 ratio 的真正上限——純評級跟血統加成後的最終值都封頂在這裡,是唯一定義
+## (InheritanceConstants.POTENTIAL_RATIO_MAX 只是引用這裡,不要反過來在那邊另外
+## 存一份數字)。RANK_GAP 的 9 級距直接切滿 [BASE_RATIO, MAX_RATIO) 整段,不留一段
+## 「不含血統」的子區間給血統疊加——RANK 顯示的就是「這項素質最終(已含血統)的
+## 強度落在哪裡」,血統加成因此會直接反映在 RANK 上;會不會超過 MAX_RATIO 交給
+## BloodlineLibrary.apply_to_potential() 自己 clampf 兜底,不需要靠犧牲 RANK 的
+## 解析度去預留安全邊界(上一版 RANK_ONLY_MAX_RATIO 就是多繞的這一圈,拿掉)。
+const MAX_RATIO := 2.3
+const RANK_GAP := (MAX_RATIO - BASE_RATIO) / (GameEnums.RankType.SSS + 1)
 
 var strength: float
 var vitality: float
@@ -20,7 +28,7 @@ var agility_ratio: float
 var dexterity_ratio: float
 var intelligence_ratio: float
 var mentality_ratio: float
-## 區間 0.5 - 2
+## 區間 BASE_RATIO ~ MAX_RATIO,不要寫死數字,見上面常數區塊的說明。
 
 var strength_rank: int
 var vitality_rank: int
@@ -62,21 +70,18 @@ func _init(
 	intelligence_rank = rank_from_ratio(intelligence_ratio)
 	mentality_rank = rank_from_ratio(mentality_ratio)
 
-## 根據比例計算血統排名
+## 根據比例計算評級
 ##
-## 排名規則：
-## F   : ratio <= 0.5
-## E   : 0.5 < ratio <= 0.7
-## D   : 0.7 < ratio <= 0.9
-## C   : 0.9 < ratio <= 1.1
-## B   : 1.1 < ratio <= 1.3
-## A   : 1.3 < ratio <= 1.5
-## S   : 1.5 < ratio <= 1.7
-## SS  : 1.7 < ratio <= 1.9
-## SSS : ratio > 1.9
-##
-## 基準值為 0.5，每增加 0.2 提升一個排名。
-## 最低為 F，最高限制為 SSS。
+## 左閉右開(floori 的實際行為,不是四捨五入或右閉區間):第 n 級(F=0~SSS=8)的
+## 區間是 [BASE_RATIO + n*RANK_GAP, BASE_RATIO + (n+1)*RANK_GAP)。刻意不在這裡列出
+## 算好的數字表——RANK_GAP 是公式算出來的(見上面常數區塊),BASE_RATIO/MAX_RATIO
+## 之後調整時這裡若寫死一份數字表會立刻過期、跟程式碼對不上(先前的版本就是這樣
+## 壞掉:表格寫死的數字沒跟著常數變動同步更新,clamp 常數抄錯數字,SSS 永遠算不
+## 出來)。要看目前實際切在哪,直接算 BASE_RATIO + n*RANK_GAP 或印出來看,不要猜。
+## ratio 傳進來的時候已經是「純評級 + 血統加成」的最終值(見 CharacterController.
+## get_random_character() 呼叫 BloodlineLibrary.apply_to_potential() 那一步),
+## 這裡的級距因此也切滿最終值的完整範圍,血統加成疊多少、RANK 就跟著反映多少,
+## 不會卡在某個子區間頂點就再也顯示不出差異。
 static func rank_from_ratio(ratio: float) -> int:
 	var rank := floori((ratio - BASE_RATIO) / RANK_GAP) + GameEnums.RankType.F
 

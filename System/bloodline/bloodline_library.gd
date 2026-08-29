@@ -9,48 +9,48 @@ extends RefCounted
 ## 陣列索引順序對齊 GameEnums.PotentialType(STRENGTH/VITALITY/AGILITY/DEXTERITY/
 ## INTELLIGENCE/MENTALITY)。數值依國家主題(獅→力量/鷹→靈巧/豹→敏捷/熊→體質/
 ## 龍→智慧/鹿→信仰,見 遊戲企劃設定總整理.md 血統國家對照表),各國同一量級類推:
-## 高血主線 1.0/次線 0.6/三線 0.4,平血主線 0.3/次線 0.2/三線 0.1。
+## 高血主線 1.0/次線 0.5/三線 0.3,平血主線 0.4/次線 0.2/三線 0.1。
 static func _ratio_bonus_table() -> Array[Array]:
 	var table: Array[Array] = []
 	table.resize(GameEnums.BloodlineNation.size() * Bloodline.RANK_COUNT)
 	for i in range(table.size()):
 		table[i] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
-	# 獅 LION:力量系(高血 STR1.0 VIT0.6 DEX0.4 / 平血 STR0.3 VIT0.2 DEX0.1)
+	# 獅 LION:力量系(高血 STR1.0 VIT0.5 DEX0.3 / 平血 STR0.4 VIT0.2 DEX0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.LION, GameEnums.BloodlineRank.NOBLE)] = \
-		[1.0, 0.6, 0.0, 0.4, 0.0, 0.0]
+		[1.0, 0.5, 0.0, 0.3, 0.0, 0.0]
 	table[Bloodline.index_of(GameEnums.BloodlineNation.LION, GameEnums.BloodlineRank.COMMON)] = \
-		[0.3, 0.2, 0.0, 0.1, 0.0, 0.0]
+		[0.4, 0.2, 0.0, 0.1, 0.0, 0.0]
 
-	# 鷹 EAGLE:靈巧系(高血 DEX1.0 AGI0.6 MEN0.4 / 平血 DEX0.3 AGI0.2 MEN0.1)
+	# 鷹 EAGLE:靈巧系(高血 DEX1.0 AGI0.5 MEN0.3 / 平血 DEX0.4 AGI0.2 MEN0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.EAGLE, GameEnums.BloodlineRank.NOBLE)] = \
-		[0, 0.0, 0.6, 1.0, 0.0, 0.4]
+		[0, 0.0, 0.5, 1.0, 0.0, 0.3]
 	table[Bloodline.index_of(GameEnums.BloodlineNation.EAGLE, GameEnums.BloodlineRank.COMMON)] = \
-		[0, 0.0, 0.2, 0.3, 0.0, 0.1]
+		[0, 0.0, 0.2, 0.4, 0.0, 0.1]
 
-	# 豹 LEOPARD:敏捷系(高血 AGI1.0 DEX0.6 STR0.4 / 平血 AGI0.3 DEX0.2 STR0.1)
+	# 豹 LEOPARD:敏捷系(高血 AGI1.0 DEX0.5 STR0.3 / 平血 AGI0.4 DEX0.2 STR0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.LEOPARD, GameEnums.BloodlineRank.NOBLE)] = \
-		[0.4, 0, 1.0, 0.6, 0.0, 0.0]
+		[0.3, 0, 1.0, 0.5, 0.0, 0.0]
 	table[Bloodline.index_of(GameEnums.BloodlineNation.LEOPARD, GameEnums.BloodlineRank.COMMON)] = \
-		[0.1, 0.0, 0.3, 0.2, 0.0, 0.0]
+		[0.1, 0.0, 0.4, 0.2, 0.0, 0.0]
 
-	# 熊 BEAR:體質系(高血 VIT1.0 STR0.6 MEN0.4 / 平血 VIT0.3 STR0.2 MEN0.1)
+	# 熊 BEAR:體質系(高血 VIT1.0 STR0.5 MEN0.3 / 平血 VIT0.4 STR0.2 MEN0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.BEAR, GameEnums.BloodlineRank.NOBLE)] = \
-		[0.6, 1.0, 0.0, 0.0, 0.0, 0.4]
+		[0.5, 1.0, 0.0, 0.0, 0.0, 0.3]
 	table[Bloodline.index_of(GameEnums.BloodlineNation.BEAR, GameEnums.BloodlineRank.COMMON)] = \
-		[0.2, 0.3, 0.0, 0.0, 0.0, 0.1]
+		[0.2, 0.4, 0.0, 0.0, 0.0, 0.1]
 
-	# 龍 DRAGON:智慧系(高血 INT1.0 MEN0.6 VIT0.4 / 平血 INT0.3 MEN0.2 VIT0.1)
+	# 龍 DRAGON:智慧系(高血 INT1.0 MEN0.5 VIT0.3 / 平血 INT0.4 MEN0.2 VIT0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.DRAGON, GameEnums.BloodlineRank.NOBLE)] = \
-		[0.0, 0.4, 0.0, 0.0, 1.0, 0.6]
+		[0.0, 0.3, 0.0, 0.0, 1.0, 0.5]
 	table[Bloodline.index_of(GameEnums.BloodlineNation.DRAGON, GameEnums.BloodlineRank.COMMON)] = \
-		[0.0, 0.1, 0.0, 0.0, 0.3, 0.2]
+		[0.0, 0.1, 0.0, 0.0, 0.4, 0.2]
 
-	# 鹿 DEER:信仰系(高血 MEN1.0 INT0.6 AGI0.4 / 平血 MEN0.3 INT0.2 AGI0.1)
+	# 鹿 DEER:信仰系(高血 MEN1.0 INT0.5 AGI0.3 / 平血 MEN0.4 INT0.2 AGI0.1)
 	table[Bloodline.index_of(GameEnums.BloodlineNation.DEER, GameEnums.BloodlineRank.NOBLE)] = \
-		[0.0, 0.0, 0.4, 0.0, 0.6, 1.0]
+		[0.0, 0.0, 0.3, 0.0, 0.5, 1.0]
 	table[Bloodline.index_of(GameEnums.BloodlineNation.DEER, GameEnums.BloodlineRank.COMMON)] = \
-		[0.0, 0.0, 0.1, 0.0, 0.2, 0.3]
+		[0.0, 0.0, 0.1, 0.0, 0.2, 0.4]
 
 	return table
 

@@ -12,7 +12,7 @@ extends Node
 # (System 不碰 autoload,見 CLAUDE.md)。
 # =========================================================
 
-const DEFAULT_USES := 5
+const DEFAULT_USES := 1
 
 ## Ultimate.id -> 剩餘次數。未出現過的 id 視為還沒用過,回傳 DEFAULT_USES。
 var _uses_remaining: Dictionary = {}

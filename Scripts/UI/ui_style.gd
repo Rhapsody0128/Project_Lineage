@@ -230,6 +230,19 @@ static func apply_wood_plaque_button(
 	button.add_theme_font_size_override("font_size", 28)
 
 
+## 根據地面板/彈出式面板內文字按鈕的共用木牌樣式(建造/升級/打造/確認等),取代原本
+## Scenes/Base/base_action_panel.gd 私有的 _style_button()——這套按鈕外觀不只一個場景腳本
+## 需要,搬到這裡讓 Scenes/ 底下任何面板都能直接呼叫。SIZE_SHRINK_BEGIN 是關鍵——放進
+## VBoxContainer 時,對子節點的橫向(交叉軸)預設會撐滿整個面板寬度,不設這個的話木牌貼圖
+## 會被硬拉成一整條很長的長方形,不是圖片原本的比例;設成 SHRINK_BEGIN 後按鈕只會跟內容
+## (文字+邊距)一樣寬,靠左對齊——放進 HBoxContainer(例如 ActionPanel 標題列)裡則單純
+## 避免被撐滿,同樣適用。
+static func style_panel_action_button(button: Button) -> void:
+	apply_wood_plaque_button(button, 16.0, 6.0)
+	button.add_theme_font_size_override("font_size", 16)
+	button.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+
+
 static func _wood_button_stylebox(texture: Texture2D, content_margin_h: float, content_margin_v: float) -> StyleBoxTexture:
 	var style := StyleBoxTexture.new()
 	style.texture = texture

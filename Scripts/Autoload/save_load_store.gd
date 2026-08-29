@@ -64,6 +64,7 @@ func save_game(slot: int) -> bool:
 		"building_progress": BaseBuildingProgressStore.to_save_data(),
 		"dispatch": BaseDispatchStore.to_save_data(),
 		"nation_favors": NationFavorStore.to_save_data(),
+		"weapons": WeaponStore.to_save_data(),
 		"morale": MoraleStore.to_save_data(),
 		"world_time": WorldTimeStore.to_save_data(),
 		"ultimate_uses": UltimateStore.to_save_data(),
@@ -107,6 +108,7 @@ func load_game(slot: int) -> bool:
 	BaseBuildingProgressStore.load_save_data(data.get("building_progress", {}))
 	BaseDispatchStore.load_save_data(data.get("dispatch", {}))
 	NationFavorStore.load_save_data(data.get("nation_favors", {}))
+	WeaponStore.load_save_data(data.get("weapons", {}))
 	MoraleStore.load_save_data(data.get("morale", {}))
 	WorldTimeStore.load_save_data(data.get("world_time", {}))
 	UltimateStore.load_save_data(data.get("ultimate_uses", {}))

@@ -3,7 +3,7 @@ extends RefCounted
 
 enum RankType {F, E, D, C, B, A, S, SS, SSS}
 enum PotentialType {STRENGTH, VITALITY, AGILITY, DEXTERITY, INTELLIGENCE, MENTALITY}
-enum WeaponType {SWORD, BOW, SHIELD, DAGGER, STAFF, DREAMCATCHER}
+enum WeaponType {SWORD, SHIELD, DAGGER, BOW, STAFF, DREAMCATCHER}
 ## Skill.bind_weapon 專用的「未綁定特定武器」標記(被動/隊長技能等任何武器都能用),
 ## 故意不塞進 WeaponType enum——角色一定持有真實武器,WeaponType 只代表可持有的
 ## 武器種類,不該混入這種非武器的旗標值。
@@ -183,7 +183,7 @@ const POTENTIAL_TYPE_LABELS: Array[String] = ["力量", "體質", "敏捷", "靈
 const RANK_TYPE_LABELS: Array[String] = ["F", "E", "D", "C", "B", "A", "S", "SS", "SSS"]
 
 ## 武器 UI 顯示用中文標籤,順序對應 WeaponType enum
-const WEAPON_TYPE_LABELS: Array[String] = ["劍", "弓", "盾", "匕首", "法杖", "捕夢網"]
+const WEAPON_TYPE_LABELS: Array[String] = ["劍", "盾", "匕首", "弓", "法杖", "捕夢網"]
 
 ## 角色清單排序欄位 UI 顯示用中文標籤,順序對應 CharacterSortKey enum
 const CHARACTER_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子數", "力量", "體質", "敏捷", "靈巧", "智慧", "信仰"]
@@ -330,9 +330,9 @@ static func bloodline_full_label(nation: int, rank: int) -> String:
 ## 匕首黃、法杖藍、捕夢網青,順序對應 WeaponType enum
 const WEAPON_BORDER_COLORS: Array[Color] = [
 	Color(0.85, 0.2, 0.2, 1), # 大劍:紅
-	Color(0.92, 0.92, 0.92, 1), # 弓箭手:白
 	Color(0.35, 0.85, 0.35, 1), # 盾牌:綠
 	Color(1.0, 0.85, 0.15, 1), # 匕首:黃
+	Color(0.92, 0.92, 0.92, 1), # 弓箭手:白
 	Color(0.35, 0.55, 1.0, 1), # 法杖:藍
 	Color(0.3, 0.9, 0.9, 1), # 捕夢網:青
 ]
@@ -344,15 +344,28 @@ static func weapon_border_color(weapon_type: int) -> Color:
 ## 順序對應 WeaponType enum
 const WEAPON_ICON_PATHS: Array[String] = [
 	"res://Images/Weapon/SWORD.svg",
-	"res://Images/Weapon/BOW.svg",
 	"res://Images/Weapon/SHIELD.svg",
 	"res://Images/Weapon/DAGGER.svg",
+	"res://Images/Weapon/BOW.svg",
 	"res://Images/Weapon/STAFF.svg",
 	"res://Images/Weapon/DREAMCATCHER.svg",
 ]
 
 static func weapon_icon_path(weapon_type: int) -> String:
 	return WEAPON_ICON_PATHS[weapon_type]
+
+## 每種武器打造時的主屬性(WeaponLibrary 抽點時權重 +30%),順序對應 WeaponType enum
+const WEAPON_MAIN_STAT: Array[PotentialType] = [
+	PotentialType.STRENGTH, # 大劍
+	PotentialType.VITALITY, # 盾牌
+	PotentialType.AGILITY, # 匕首
+	PotentialType.DEXTERITY, # 弓箭手
+	PotentialType.INTELLIGENCE, # 法杖
+	PotentialType.MENTALITY, # 捕夢網
+]
+
+static func weapon_main_stat(weapon_type: int) -> int:
+	return WEAPON_MAIN_STAT[weapon_type]
 
 ## 六大素質代表色(素質增益/減益箭頭、雷達圖等畫面共用同一份配色表),
 ## 順序對應 PotentialType enum
@@ -508,7 +521,7 @@ static func format_potential_type_list(potential_types: Array) -> String:
 
 ## 基本攻擊距離(曼哈頓格數):近戰(劍/盾/匕首)1 格、遠程(弓/法杖/捕夢網)2 格,
 ## 順序對應 WeaponType enum
-const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 2, 1, 1, 2, 2]
+const WEAPON_BASIC_ATTACK_RANGE: Array[int] = [1, 1, 1, 2, 2, 2]
 
 ## 是否為魔法攻擊(法杖/捕夢網):魔法攻擊無視閃避,一定命中,順序對應 WeaponType enum
 const WEAPON_IS_MAGIC: Array[bool] = [false, false, false, false, true, true]

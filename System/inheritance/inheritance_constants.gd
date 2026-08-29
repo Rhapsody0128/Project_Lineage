@@ -19,5 +19,5 @@ const POTENTIAL_STAT_MIN := 0.0
 const POTENTIAL_STAT_MAX := 200.0 # 對應 Potential 註解「區間 0-200」
 
 const POTENTIAL_RATIO_VARIANCE := 0.2 # 潛力 ratio 理論值 ±0.2(絕對值,非比例)
-const POTENTIAL_RATIO_MIN := 0.5
-const POTENTIAL_RATIO_MAX := 2.0 # 對應 Potential 註解「區間 0.5-2」
+const POTENTIAL_RATIO_MIN := Potential.BASE_RATIO
+const POTENTIAL_RATIO_MAX := Potential.MAX_RATIO

@@ -12,10 +12,17 @@ extends Node
 ## 寫死的初始值)——world_inner.gd._sync_map_object_positions() 對 BASE 類型改成用這裡的
 ## position 覆寫回場景節點,而不是像城鎮/城堡那樣讀節點目前位置存進資料,見該函式註解。
 ##
-## 預設值是 Scenes/Map/world_inner.tscn 裡 Base 節點目前擺放的初始座標,只在還沒讀過存檔/
-## 進過大地圖時當備援。
+## 還沒有確定座標時(全新遊戲、還沒讀過存檔也還沒進過大地圖)不寫死一份常數在這裡
+## 當備援——那樣每次美術/企劃在 world_inner.tscn 裡拖動 Base 節點調整定位,都要記得
+## 回來同步改這個常數,很容易漏改導致兩邊對不上。改成 has_value 旗標:世界地圖第一次
+## 進場、發現還沒有確定座標時,直接把 Base 節點「當下」擺放的位置回填進來當定案值
+## (見 world_inner.gd._sync_map_object_positions()),之後才開始套用「這裡的值覆寫回
+## 節點」的既有規則。
 
-var position: Vector2 = Vector2(2115.0, 1216.0)
+var position: Vector2 = Vector2.ZERO
+## 是否已經有確定座標——見上方欄位註解。讀檔讀到存檔裡的座標,或大地圖第一次進場時
+## 回填 Base 節點目前位置,都會把這個設成 true。
+var has_value: bool = false
 
 ## 玩家是否正處於「遷移根據地」選點模式——true 時 Scenes/Map/world_inner.gd 的點擊處理
 ## 會改成「挑選新根據地座標」而不是一般的移動/進入地點(見該檔案 _handle_click_to_move()
@@ -26,11 +33,18 @@ var is_relocating: bool = false
 
 
 ## Vector2 存成 [x, y] 陣列,比照 Scripts/Autoload/map_session_store.gd 的既有慣例。
-## is_relocating 不存——選點模式是暫時性 session 狀態,見上方欄位註解。
+## is_relocating 不存——選點模式是暫時性 session 狀態,見上方欄位註解。還沒有確定座標時
+## (has_value 仍是 false)存空字典,讀檔時才不會把「還沒定案」誤存成 Vector2.ZERO 這個
+## 假座標。
 func to_save_data() -> Dictionary:
+	if not has_value:
+		return {}
 	return {"position": [position.x, position.y]}
 
 
 func load_save_data(data: Dictionary) -> void:
-	var p: Array = data.get("position", [position.x, position.y])
+	var p: Array = data.get("position", [])
+	if p.size() != 2:
+		return
 	position = Vector2(p[0], p[1])
+	has_value = true

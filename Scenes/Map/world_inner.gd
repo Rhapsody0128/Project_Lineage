@@ -213,9 +213,14 @@ func _find_object_by_type(type: int) -> MapObject:
 ##
 ## 根據地(BASE)方向反過來:玩家可能已經遷移過(見 _apply_relocation()),但
 ## world_inner.tscn 場景檔本身不會記得這件事——每次重新載入這個場景,Base 節點都會回到
-## .tscn 裡寫死的初始座標,不是玩家上次搬到的地方。所以 BASE 改成拿 BaseLocationStore
+## .tscn 裡擺放的座標,不是玩家上次搬到的地方。所以 BASE 改成拿 BaseLocationStore
 ## (單一事實來源,見該檔案開頭註解)目前存的 position 覆寫回節點,而不是像城鎮/城堡那樣
 ## 讀節點目前位置存回資料——順序反了會讓每次重進大地圖都把遷移結果蓋回初始位置。
+##
+## 例外是 BaseLocationStore 還沒有確定座標的時候(全新遊戲第一次進大地圖,或讀取沒有
+## base_location 欄位的舊存檔)——這種情況反過來,直接把 Base 節點「當下」在 .tscn 裡
+## 擺放的座標回填進 BaseLocationStore 當定案值,不覆寫節點。這樣美術/企劃調整 Base 節點
+## 定位只要改 .tscn,不用回頭同步任何腳本常數。
 func _sync_map_object_positions() -> void:
 	for obj in _objects:
 		var node_name := _map_object_node_name(obj)
@@ -225,7 +230,11 @@ func _sync_map_object_positions() -> void:
 		if map_node == null:
 			continue
 		if obj.type == GameEnums.MapObjectType.BASE:
-			map_node.position = BaseLocationStore.position
+			if BaseLocationStore.has_value:
+				map_node.position = BaseLocationStore.position
+			else:
+				BaseLocationStore.position = map_node.position
+				BaseLocationStore.has_value = true
 			obj.position = BaseLocationStore.position
 			# RoamingEnemyStore(autoload)全程持有同一個 spawner,它内部的根據地座標快照
 			# 只在遊戲啟動當下拍過一次(見 RoamingEnemySpawner._map_objects),讀檔讀到

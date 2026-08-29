@@ -59,6 +59,9 @@ static func get_random_party(rank_type: int = -1, nation: int = -1, level: int =
 		character.level_system = LevelSystem.new(resolved_level)
 		# character.weapon = GameEnums.WeaponType.SHIELD
 		# character.skill_list = SkillController.get_skill_list_by_weapon(character.weapon)
+		var enemy_weapon := WeaponLibrary.generate_random_weapon(character.weapon, resolved_rank)
+		character.weapon_rank = resolved_rank
+		character.weapon_stat_bonus = enemy_weapon.stat_points
 		characteres.append(character)
 	var leader: Character = Util.get_random_from_array(characteres)
 	var party := Party.new("隨機小隊", characteres, leader)

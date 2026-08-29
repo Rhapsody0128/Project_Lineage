@@ -99,7 +99,10 @@ class RosterSlot:
 	var max_count: int
 	var active_tween: Tween
 	var skill_tween: Tween
-	var skill_bubble: PanelContainer
+	## 待播放的招式名稱佇列;同一格頭像短時間內可能疊好幾次「喊招式」(例如主動技能
+	## 本身 + 順帶觸發的被動技能),見 pulse_skill()/_drain_skill_bubble_queue()。
+	var skill_bubble_queue: Array[String] = []
+	var skill_bubble_draining: bool = false
 	var buff_arrow_label: Label
 	var debuff_arrow_label: Label
 	var buff_types: Array[int] = []
@@ -495,7 +498,11 @@ func pulse_active(battle_character: BattleCharacter) -> void:
 
 
 ## 放技能時:頭像照樣靠近戰場(pulse_active),頭像框變色高亮一下,
-## 另外在頭像面向戰場那一側彈出一個漫畫風格的對話框,寫出招式名稱。
+## 另外在頭像面向戰場那一側彈出一個漫畫風格的對話框,寫出招式名稱。同一格頭像短時間內
+## 可能被連續呼叫好幾次(例如主動技能本身喊完,緊接著又觸發一個被動技能也要喊)——
+## 對話框改成排隊播放(見 _enqueue_skill_bubble()),不會像舊版直接 queue_free() 蓋掉
+## 前一個還沒讓玩家看清楚的招式名稱。頭像框高亮則維持「重新觸發」不排隊,純粹的短暫
+## 提示效果,疊加/打斷不影響可讀性。
 func pulse_skill(battle_character: BattleCharacter, skill_name: String) -> void:
 	var s: RosterSlot = _slots.get(battle_character)
 	if s == null:
@@ -512,17 +519,36 @@ func pulse_skill(battle_character: BattleCharacter, skill_name: String) -> void:
 	s.skill_tween.tween_interval(ACTIVE_HOLD_TIME)
 	s.skill_tween.tween_property(s.frame_style, "border_color", s.base_border_color, ACTIVE_RETURN_TIME)
 
-	_show_skill_bubble(s, skill_name)
+	_enqueue_skill_bubble(s, skill_name)
+
+
+## 把要喊的招式名稱排進這一格頭像自己的佇列;如果目前沒有正在播放中,立刻開始消化
+## 佇列,否則交給正在跑的 _drain_skill_bubble_queue() 迴圈接手播放。
+func _enqueue_skill_bubble(s: RosterSlot, skill_name: String) -> void:
+	s.skill_bubble_queue.append(skill_name)
+	if s.skill_bubble_draining:
+		return
+	_drain_skill_bubble_queue(s)
+
+
+## 依序播放佇列裡的每個招式名稱,一個對話框完整淡入→停留→淡出結束才輪到下一個,
+## 避免疊字互相蓋掉。
+func _drain_skill_bubble_queue(s: RosterSlot) -> void:
+	s.skill_bubble_draining = true
+	while s.skill_bubble_queue.size() > 0:
+		var skill_name: String = s.skill_bubble_queue.pop_front()
+		await _show_skill_bubble(s, skill_name)
+		if not is_instance_valid(s.portrait_frame):
+			break
+	s.skill_bubble_draining = false
 
 
 ## 在頭像旁(面向戰場的那一側)彈出一個邊框+底色的漫畫對話框,寫出招式名稱,
-## 淡入停留一下後淡出釋放。對話框跟尖角尾巴掛在場景根節點下(而不是頭像列自己的
+## 淡入停留一下後淡出釋放,await 到完全淡出釋放才返回,讓 _drain_skill_bubble_queue()
+## 能依序播放不重疊。對話框跟尖角尾巴掛在場景根節點下(而不是頭像列自己的
 ## VBoxContainer),因為 Container 會用自己的排版邏輯強制覆蓋子節點座標,沒辦法
 ## 手動定位在頭像外側。
 func _show_skill_bubble(s: RosterSlot, skill_name: String) -> void:
-	if s.skill_bubble != null and is_instance_valid(s.skill_bubble):
-		s.skill_bubble.queue_free()
-
 	var bubble := PanelContainer.new()
 	bubble.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bubble.modulate.a = 0.0
@@ -563,13 +589,13 @@ func _show_skill_bubble(s: RosterSlot, skill_name: String) -> void:
 		overlay = self
 	overlay.add_child(bubble)
 	overlay.add_child(tail)
-	s.skill_bubble = bubble
 
-	_animate_skill_bubble(s, bubble, tail)
+	await _animate_skill_bubble(s, bubble, tail)
 
 
 ## 等一影格讓對話框依內容算出實際尺寸,再依頭像位置(面向戰場那一側)定位對話框
-## 與尖角尾巴,接著淡入 → 停留 → 淡出 → 釋放。
+## 與尖角尾巴,接著淡入 → 停留 → 淡出 → 釋放。await 到 queue_free() 執行完才返回,
+## 讓 _show_skill_bubble()/_drain_skill_bubble_queue() 能依序播放不重疊。
 func _animate_skill_bubble(s: RosterSlot, bubble: PanelContainer, tail: Panel) -> void:
 	await get_tree().process_frame
 
@@ -605,6 +631,7 @@ func _animate_skill_bubble(s: RosterSlot, bubble: PanelContainer, tail: Panel) -
 	tw.parallel().tween_property(tail, "modulate:a", 0.0, SKILL_BUBBLE_FADE_TIME)
 	tw.tween_callback(bubble.queue_free)
 	tw.tween_callback(tail.queue_free)
+	await tw.finished
 
 
 ## 隊長的個人頭像(Images/Face 隨機圖);沒有頭像時退回 Warrier 佔位圖

@@ -60,21 +60,20 @@ var _self_card: CharacterAvatarCard
 
 
 func _ready() -> void:
-	UiStyle.apply_parchment_panel(face_off_panel, 760.0, 220.0)
-	UiStyle.apply_parchment_panel(picker_panel, 760.0, 480.0)
+	# 不套羊皮紙面板——只在需要分隔的那一邊畫一條線(左側 DetailPanel 在右邊、右欄上方
+	# FaceOffPanel 在下面),取代原本各自獨立一顆固定尺寸羊皮紙面板的設計。PickerPanel
+	# 是最後一塊、後面沒有區塊接著,不需要邊框,但仍要蓋掉引擎預設的 PanelContainer 底色
+	# (深色/接近黑),不然會露出一塊跟羊皮紙底不搭的黑底。
+	detail_panel.add_theme_stylebox_override("panel", UiStyle.right_border_style())
+	face_off_panel.add_theme_stylebox_override("panel", UiStyle.bottom_border_style())
+	picker_panel.add_theme_stylebox_override("panel", UiStyle.transparent_panel_style())
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# 只留最外層 ActionPanel 一個捲動框(見 action_panel.gd 開頭註解),分頁內容不再另包
+	# 一層獨立 ScrollContainer 搶捲動手感。
+	_detail_view.scrollable_tabs = false
 	detail_panel.add_child(_detail_view)
-
-	# detail_panel 的寬度來自剛掛進去的 _detail_view 自己宣告的 custom_minimum_size.x
-	# (CharacterDetailView.PANEL_WIDTH)——用 get_combined_minimum_size() 現場問出來當
-	# 第一次套用的猜測值,一定要等 _detail_view 已經掛進樹裡再呼叫,不然問到的還是 0。
-	# 高度撐滿 MainRow,先用目前的自然內容高度墊著,交給 apply_parchment_panel() 內建的
-	# resized 訊號自動補正。
-	var panel_size := detail_panel.get_combined_minimum_size()
-	UiStyle.apply_parchment_panel(detail_panel, panel_size.x, panel_size.y)
 
 	# 「接受」跟 ActionPanel 標題列的 × 放同一行,不再另外占一整排——沒有獨立的婉拒/取消鈕,
 	# × 本身就會呼叫 decline(),效果完全一樣。
@@ -103,10 +102,9 @@ func setup(target_character: Character, self_character: Character, mode: GameEnu
 	_set_self_card(_self_character)
 
 	_select_bar = CharacterSelectBar.new()
-	# 角色數量一多,卡片網格會長得比 PickerPanel 還高——包一層捲動框讓超出的部分自己
-	# 捲動,不要讓外層 ActionPanel 的 ItemsList 整包一起被撐高、變成捲動整個告白面板
-	# (見 action_panel.gd 的 wrap_scrollable())。
-	picker_vbox.add_child(ActionPanel.wrap_scrollable(_select_bar))
+	# 不再另包一層 ScrollContainer——只有最外層 ActionPanel 負責捲動(見 action_panel.gd
+	# 開頭註解),這裡卡片網格多長就自然往下長多高。
+	picker_vbox.add_child(_select_bar)
 	_select_bar.character_selected.connect(_on_picker_character_selected)
 
 	var eligible: Array[Character] = []

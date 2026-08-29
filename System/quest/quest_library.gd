@@ -47,7 +47,7 @@ static func title_for(quest: Quest) -> String:
 	var nation_label := GameEnums.bloodline_nation_label(quest.nation)
 	match quest.quest_type:
 		GameEnums.QuestType.BANDIT_SUBJUGATION:
-			return "討伐%s國周邊強盜" % nation_label
+			return "討伐%s國周邊%s" % [nation_label, GameEnums.bandit_label_for_nation(quest.nation)]
 		GameEnums.QuestType.DELIVERY:
 			return "%s國物資委託" % nation_label
 		GameEnums.QuestType.COURIER:
@@ -68,7 +68,7 @@ static func description_for(quest: Quest) -> String:
 	]
 	match quest.quest_type:
 		GameEnums.QuestType.BANDIT_SUBJUGATION:
-			return "擊退一隊 %s 國附近的遊蕩強盜,委託完成後獲得 %s。" % [nation_label, reward_text]
+			return "擊退一隊 %s 國附近的遊蕩%s,委託完成後獲得 %s。" % [nation_label, GameEnums.bandit_label_for_nation(quest.nation), reward_text]
 		GameEnums.QuestType.DELIVERY:
 			return "繳交 %d 個%s,委託完成後獲得 %s。" % [
 				quest.resource_amount, GameEnums.resource_string_label(quest.resource_type), reward_text,

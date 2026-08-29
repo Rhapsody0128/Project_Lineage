@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d2q1kl548y8vq"
-path="res://.godot/imported/base_with_text.jpg-9854695fae7533286ee27d0bb6d2054a.ctex"
+uid="uid://b2qrx6nsdwipt"
+path="res://.godot/imported/base_MOUNTAINS.jpg-46c26543c873ae0baf6680cca73fc9d7.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Base/base_with_text.jpg"
-dest_files=["res://.godot/imported/base_with_text.jpg-9854695fae7533286ee27d0bb6d2054a.ctex"]
+source_file="res://Images/Base/base_MOUNTAINS.jpg"
+dest_files=["res://.godot/imported/base_MOUNTAINS.jpg-46c26543c873ae0baf6680cca73fc9d7.ctex"]
 
 [params]
 

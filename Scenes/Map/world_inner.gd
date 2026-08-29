@@ -188,6 +188,9 @@ func _ready() -> void:
 	_sync_enemy_visuals()
 	_sync_war_battle_visuals()
 
+	if BaseLocationStore.is_relocating:
+		ConfirmDialog.notify("請在地圖上點選新的根據地位置（Esc 取消）")
+
 
 func _find_object_by_id(id: String) -> MapObject:
 	for obj in _objects:
@@ -196,18 +199,41 @@ func _find_object_by_id(id: String) -> MapObject:
 	return null
 
 
-## 城鎮/根據地座標一律以 world_inner.tscn 裡手動擺放的節點為準(美術直接拖曳決定,見
+func _find_object_by_type(type: int) -> MapObject:
+	for obj in _objects:
+		if obj.type == type:
+			return obj
+	return null
+
+
+## 城鎮/城堡座標一律以 world_inner.tscn 裡手動擺放的節點為準(美術直接拖曳決定,見
 ## System/map/map_object.gd 的 get_all() 註解),這裡覆寫掉那邊存的快照數值,
 ## RoamingEnemySpawner 等獨立呼叫 MapObject.get_all() 的 System 層邏輯沒有場景樹可讀,
 ## 只能繼續吃那份快照,所以拖動節點後記得手動同步回 map_object.gd。
+##
+## 根據地(BASE)方向反過來:玩家可能已經遷移過(見 _apply_relocation()),但
+## world_inner.tscn 場景檔本身不會記得這件事——每次重新載入這個場景,Base 節點都會回到
+## .tscn 裡寫死的初始座標,不是玩家上次搬到的地方。所以 BASE 改成拿 BaseLocationStore
+## (單一事實來源,見該檔案開頭註解)目前存的 position 覆寫回節點,而不是像城鎮/城堡那樣
+## 讀節點目前位置存回資料——順序反了會讓每次重進大地圖都把遷移結果蓋回初始位置。
 func _sync_map_object_positions() -> void:
 	for obj in _objects:
 		var node_name := _map_object_node_name(obj)
 		if node_name.is_empty():
 			continue
 		var map_node := get_node_or_null(node_name)
-		if map_node != null:
-			obj.position = map_node.position
+		if map_node == null:
+			continue
+		if obj.type == GameEnums.MapObjectType.BASE:
+			map_node.position = BaseLocationStore.position
+			obj.position = BaseLocationStore.position
+			# RoamingEnemyStore(autoload)全程持有同一個 spawner,它内部的根據地座標快照
+			# 只在遊戲啟動當下拍過一次(見 RoamingEnemySpawner._map_objects),讀檔讀到
+			# 已經遷移過的存檔時不會自動跟著換——這裡每次進大地圖都重新推一次,確保跟
+			# BaseLocationStore 對得上,不用另外在讀檔流程特判。
+			RoamingEnemyStore.spawner.update_base_position(BaseLocationStore.position)
+			continue
+		obj.position = map_node.position
 
 
 func _map_object_node_name(obj: MapObject) -> String:
@@ -520,6 +546,12 @@ func _dir_name(dir: Vector2) -> String:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	# 遷移根據地選點模式下按 Esc 直接取消,不套用任何變更——見 BaseLocationStore.
+	# is_relocating 開頭註解。放在最前面,擋掉底下的拖曳/點擊判定。
+	if BaseLocationStore.is_relocating and event.is_action_pressed("ui_cancel"):
+		BaseLocationStore.is_relocating = false
+		ConfirmDialog.notify("已取消遷移根據地")
+		return
 	if event is InputEventMouseButton:
 		var button_event := event as InputEventMouseButton
 		if button_event.pressed and button_event.button_index == MOUSE_BUTTON_WHEEL_UP:
@@ -623,6 +655,12 @@ func _update_wasd_pan(delta: float) -> void:
 
 func _handle_click_to_move() -> void:
 	var world_pos := camera.get_global_mouse_position()
+
+	# 遷移根據地選點模式下,點擊一律解讀成「挑選新根據地座標」,不觸發任何移動/進入地點
+	# /追敵人邏輯(見 BaseLocationStore.is_relocating 開頭註解)。
+	if BaseLocationStore.is_relocating:
+		_handle_relocation_click(world_pos)
+		return
 
 	# 遊蕩敵人優先判定:直接點在敵人身上要瞄準牠、追過去,不是走去玩家點下滑鼠當下
 	# 敵人所在的那個死點——敵人會自己遊蕩,見 _process() 每幀重新瞄準 _traveling_to_enemy
@@ -771,3 +809,56 @@ func _plan_route(destination: Vector2) -> Array[Vector2]:
 	if not path.is_empty():
 		return path
 	return [MapTerrainMask.clamp_segment_to_walkable(map_system.position, destination)]
+
+
+## 遷移根據地選點模式下的點擊處理:合法性判斷交給 System/base/base_relocation_rule.gd
+## (不太靠近城鎮/落在可通行地形),不合法只跳訊息提示、不開確認彈窗;資材是否足夠也在
+## 這裡先擋一次,避免玩家點過合法性判斷、看到確認彈窗上的花費之後,按下去才又跳資材不足
+## ——跟資材有關的判斷應該在同一個時間點一次告訴玩家。都通過才跳 ConfirmDialog 顯示花費,
+## 確認才真的呼叫 _apply_relocation() 套用。
+func _handle_relocation_click(world_pos: Vector2) -> void:
+	var reason := BaseRelocationRule.invalid_reason(world_pos)
+	if not reason.is_empty():
+		ConfirmDialog.notify(reason)
+		return
+	if not BaseResourceStore.can_afford(BaseRelocationRule.COST):
+		ConfirmDialog.notify("資材不足,無法遷移根據地")
+		return
+	ConfirmDialog.ask(
+		"是否將根據地遷移至此處？將花費 %s" % _format_relocation_cost(),
+		func(): _apply_relocation(world_pos)
+	)
+
+
+func _format_relocation_cost() -> String:
+	var parts: Array[String] = []
+	for resource_type in BaseRelocationRule.COST:
+		parts.append("%s x%d" % [GameEnums.resource_string_label(resource_type), BaseRelocationRule.COST[resource_type]])
+	return "、".join(parts)
+
+
+## 套用遷移:扣資材、把 Base 場景節點與 BaseLocationStore.position 一起改成新座標——
+## 兩者缺一不可,否則下次進大地圖 _sync_map_object_positions() 會直接把
+## BaseLocationStore 蓋回節點原本(還沒搬動的)座標,見該函式開頭註解。本次 session 內的
+## _objects 快照跟 RoamingEnemySpawner 各自快取的根據地座標也一併同步,不用重新進場景
+## 才生效(見 RoamingEnemySpawner.update_base_position() 開頭註解)。_current_map_object
+## 清空是因為玩家的頭像實際上還站在原地,根據地已經搬去別處,不能再被判定成「已經站在
+## 根據地上」。
+func _apply_relocation(pos: Vector2) -> void:
+	BaseResourceStore.spend(BaseRelocationRule.COST)
+
+	var base_node := get_node_or_null(BASE_NODE_NAME)
+	if base_node != null:
+		base_node.position = pos
+	BaseLocationStore.position = pos
+
+	var base_object := _find_object_by_type(GameEnums.MapObjectType.BASE)
+	if base_object != null:
+		base_object.position = pos
+	if _current_map_object == base_object:
+		_current_map_object = null
+
+	RoamingEnemyStore.spawner.update_base_position(pos)
+
+	BaseLocationStore.is_relocating = false
+	ConfirmDialog.notify("根據地已遷移")

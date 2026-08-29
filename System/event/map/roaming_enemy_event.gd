@@ -26,7 +26,18 @@ static func trigger(enemy: RoamingEnemy) -> void:
 	event._start()
 
 
+## 遭遇當下重新依敵人「目前座標」所在地圖色塊指派所屬國家,覆寫生成當下的舊值——敵人
+## 生成後會原地遊蕩(見 System/map/roaming_enemy.gd 的 WANDER_RADIUS),可能已經漂出
+## 生成當下的色塊範圍。戰鬥獎勵/好感度(BattleReward.grant_victory_favor)、討伐委託完成
+## 判定(QuestStore.notify_bandit_defeated)都要看「在哪裡被擊退」,不是「出生/牠自己
+## 血統是哪國」,所以在真正觸發遭遇的這一刻覆寫 party.nation_type,下游全部跟著更新;
+## 查不到(理論上不會發生,見 MapTerrainMask 的可行走判定)時維持生成當下指派的舊值,
+## 不覆寫成 -1。
 func _start() -> void:
+	var current_nation := MapTerrainMask.nation_at(_enemy.position)
+	if current_nation != -1:
+		_enemy.party.nation_type = current_nation
+
 	var self_party := PartyStore.party
 	var dialogue := _build_challenge(self_party, func():
 		AskBattle.ask(
@@ -73,6 +84,8 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 
 	var lines: Array[DialogueLine] = []
 
+	var encounter_text := "一群%s擋住了去路！" % _bandit_label()
+
 	if has_party:
 		var stakes_text := _build_stakes_text()
 		var choices: Array[DialogueChoice] = [
@@ -80,7 +93,7 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 			DialogueChoice.new("離開", RETURN_SCENE_PATH, on_declined),
 		]
 		lines = [
-			DialogueLine.new(bandit_speaker.id, "一群盜賊擋住了去路！"),
+			DialogueLine.new(bandit_speaker.id, encounter_text),
 			DialogueLine.new(player_speaker.id, stakes_text, choices),
 		]
 	else:
@@ -88,11 +101,21 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 			DialogueChoice.new("離開", RETURN_SCENE_PATH, on_declined),
 		]
 		lines = [
-			DialogueLine.new(bandit_speaker.id, "一群盜賊擋住了去路！"),
+			DialogueLine.new(bandit_speaker.id, encounter_text),
 			DialogueLine.new(player_speaker.id, "（我還沒整頓好隊伍,先撤退吧。）", choices),
 		]
 
 	return Dialogue.new([bandit_speaker, player_speaker], lines, _background_path())
+
+
+## 依 party.nation_type(見 _start() 已在遭遇當下覆寫成「目前座標」所在國家)換算成地形
+## 對應的強盜稱呼(GameEnums.terrain_bandit_label()),-1(理論上不會發生)時 fallback 回
+## 中性的「強盜」。
+func _bandit_label() -> String:
+	var nation_type := _enemy.party.nation_type
+	if nation_type == -1:
+		return "強盜"
+	return GameEnums.bandit_label_for_nation(nation_type)
 
 
 ## 遭遇對話背景圖優先看敵人目前座標在地圖色塊 mask(見 System/map/map_terrain_mask.gd)
@@ -112,8 +135,8 @@ func _background_path() -> String:
 
 
 ## 開戰前先告知玩家這場遭遇的評級/金錢與好感度利害關係(見 System/battle/battle_reward.gd
-## 的三張 RankType 查表)。_enemy.party.nation_type 一律由 MapTerrainMask.nation_at()
-## 依生成座標指派,理論上不會是 -1,但仍防呆處理。
+## 的三張 RankType 查表)。_enemy.party.nation_type 一律由 _start() 依遭遇當下座標
+## (MapTerrainMask.nation_at())指派,理論上不會是 -1,但仍防呆處理。
 func _build_stakes_text() -> String:
 	var rank_label := GameEnums.rank_label(_enemy.rank)
 	var reward := BattleReward.money_reward_for_rank(_enemy.rank)

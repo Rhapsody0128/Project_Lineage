@@ -1,15 +1,105 @@
-[gd_scene format=3]
+[gd_scene format=3 uid="uid://d0jhela56s5i1"]
 
-[ext_resource type="Script" path="res://Scenes/Base/base_inner.gd" id="1_inner"]
-[ext_resource type="Texture2D" uid="uid://brshvytyolmhu" path="res://Images/Base/base.jpg" id="3_background"]
+[ext_resource type="Script" uid="uid://dxt6cbflw6ia7" path="res://Scenes/Base/base_inner.gd" id="1_inner"]
+[ext_resource type="Texture2D" uid="uid://cub1etyjoksw6" path="res://Images/Base/base_PLAINS.jpg" id="2_q3qpk"]
 
-[node name="BASE_INNER" type="Node2D"]
+[node name="BASE_INNER" type="Node2D" unique_id=1501139261]
 script = ExtResource("1_inner")
 
-[node name="Background" type="TextureRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=1162828741]
 offset_right = 1024.0
 offset_bottom = 559.0
 mouse_filter = 2
-texture = ExtResource("3_background")
+texture = ExtResource("2_q3qpk")
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=2013575285]
+
+[node name="STRONGHOLD" type="Polygon2D" parent="." unique_id=1066085058]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(628, 154, 745, 220, 890, 146, 888, 86, 875, 67, 851, 91, 802, 65, 774, 15, 696, 45, 695, 82, 669, 98, 649, 68, 631, 98)
+
+[node name="RESIDENTIAL" type="Polygon2D" parent="." unique_id=2045568372]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(618, 371, 730, 422, 812, 379, 831, 332, 862, 313, 864, 272, 846, 250, 816, 267, 781, 255, 750, 230, 699, 248, 636, 282, 611, 334)
+
+[node name="CLINIC" type="Polygon2D" parent="." unique_id=2024433758]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(871, 370, 918, 400, 937, 387, 995, 419, 1096, 364, 1092, 353, 1059, 337, 1058, 308, 996, 281, 988, 262, 902, 311, 906, 335, 881, 341)
+
+[node name="WAREHOUSE" type="Polygon2D" parent="." unique_id=1942986084]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(872, 216, 895, 231, 921, 227, 955, 261, 987, 257, 1044, 242, 1039, 225, 1076, 205, 1076, 181, 1063, 176, 1064, 150, 1048, 125, 1023, 140, 989, 125, 974, 136, 961, 115, 893, 151, 881, 165)
+
+[node name="BARRACKS" type="Polygon2D" parent="." unique_id=550663164]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(1056, 233, 1229, 323, 1380, 240, 1378, 227, 1204, 138, 1056, 218)
+
+[node name="FORGE" type="Polygon2D" parent="." unique_id=1785437231]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(575, 642, 609, 661, 607, 677, 628, 681, 631, 669, 702, 693, 744, 673, 806, 650, 760, 621, 791, 606, 785, 554, 731, 516, 719, 505, 705, 517, 693, 547, 621, 575, 583, 600)
+
+[node name="LUMBER_MILL" type="Polygon2D" parent="." unique_id=2105658918]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(999, 652, 1030, 655, 1055, 685, 1097, 687, 1194, 647, 1224, 657, 1254, 642, 1238, 613, 1214, 615, 1209, 592, 1185, 573, 1172, 546, 1130, 563, 1126, 543, 1087, 560, 1027, 593)
+
+[node name="QUARRY" type="Polygon2D" parent="." unique_id=1307362097]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(1409, 285, 1408, 496, 1160, 480, 1126, 424, 1210, 367, 1305, 320, 1376, 287)
+
+[node name="FARM" type="Polygon2D" parent="." unique_id=1956131805]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(313, 389, 414, 447, 425, 430, 446, 440, 446, 458, 478, 453, 499, 482, 536, 486, 583, 480, 600, 539, 412, 649, 243, 565, 288, 531, 245, 507, 303, 476, 229, 438)
+
+[node name="MINE" type="Polygon2D" parent="." unique_id=67474680]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(0, 434, 1, 482, 70, 510, 124, 502, 222, 518, 245, 466, 218, 437, 159, 388, 101, 357, 82, 360, 43, 399)
+
+[node name="CARAVAN" type="Polygon2D" parent="." unique_id=1446817043]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(745, 503, 777, 423, 836, 407, 900, 419, 944, 448, 1000, 481, 987, 518, 917, 511, 821, 532)
+
+[node name="BLACK_MARKET" type="Polygon2D" parent="." unique_id=2007161601]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(539, 355, 594, 379, 619, 413, 595, 446, 503, 458, 461, 440, 444, 407, 447, 377, 474, 358)
+
+[node name="HUNTING_GROUND" type="Polygon2D" parent="." unique_id=1566619781]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(193, 589, 286, 614, 297, 666, 241, 737, 110, 732, 54, 683, 90, 635)
+
+[node name="WORKSHOP" type="Polygon2D" parent="." unique_id=360403083]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(526, 599, 534, 599, 540, 627, 550, 619, 567, 645, 586, 656, 601, 705, 569, 733, 519, 732, 459, 698, 471, 671, 474, 645, 527, 626)
+
+[node name="SCRIPTORIUM" type="Polygon2D" parent="." unique_id=862036465]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(470, 137, 549, 183, 545, 239, 511, 236, 477, 253, 419, 221, 423, 186, 454, 161)
+
+[node name="RESEARCH_INSTITUTE" type="Polygon2D" parent="." unique_id=854209505]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(235, 301, 349, 361, 471, 299, 363, 227, 355, 210, 295, 223, 274, 261)
+
+[node name="ALTAR" type="Polygon2D" parent="." unique_id=1865785961]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(336, 159, 309, 167, 287, 157, 267, 167, 177, 120, 179, 110, 194, 103, 194, 75, 212, 60, 208, 37, 229, 21, 304, 56, 305, 65, 322, 67, 325, 97, 349, 111, 341, 129, 364, 112, 380, 131, 380, 151)
+
+[node name="FORBIDDEN_ALTAR" type="Polygon2D" parent="." unique_id=1144917699]
+visible = false
+color = Color(1, 1, 1, 0.4509804)
+polygon = PackedVector2Array(79, 200, 109, 223, 124, 255, 146, 271, 132, 301, 90, 310, 36, 282, 37, 233)

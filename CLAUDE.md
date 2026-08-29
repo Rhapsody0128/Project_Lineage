@@ -219,14 +219,27 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 目前只有等級查詢,沒有任何解鎖效果。
 
 遊蕩者(`RoamingEnemy`)打贏會替一個國家加好感度:生成時
-`RoamingEnemySpawner._nearest_town_nation()` 依生成座標找離它最近的城鎮
-(`MapObject.get_all()` 篩 `MapObjectType.TOWN`),把該城鎮的 `nation` 一併帶進
-`PartyController.get_random_party(rank_type, nation)`,讓「這附近的盜賊」統一是那個國家的
-血統(`Party.nation_type`,比照 `Party.rank_type` 只在明確指定 nation 時才有值)。戰鬥
+`RoamingEnemySpawner._try_spawn_in_cell()` 依生成座標查
+`System/map/map_terrain_mask.gd` 的地圖色塊 mask(`MapTerrainMask.nation_at()`)——
+色塊圖(`Images/Map/map_terrain.png`)用六色畫出六國地形範圍,查不到(山岳鏤空/海面/
+地圖外「無色區」)就放棄這次生成,不落在任何單一國家身上,所以遊蕩者一定生在某個
+色塊範圍內。查到的 nation 帶進 `PartyController.get_random_party(rank_type, nation)`,
+不只整隊統一標成 `Party.nation_type`,連隊內每個角色的 `Bloodline` 也一併強制成該國
+血統(`BloodlineController.get_random_bloodline(rank, nation)`)。生成後敵人會原地遊蕩
+(`RoamingEnemy.advance_wander()`,`WANDER_RADIUS`,移動範圍卡在 `MapTerrainMask` 可行走
+處但不限制留在同一國色塊內,可能遊蕩跨過國界),所以真正觸發遭遇(`RoamingEnemyEvent.
+_start()`)那一刻,會重新用敵人「目前座標」查一次 mask、覆寫 `party.nation_type`——
+好感度/委託獎勵看的是「在哪裡被擊退」(遭遇地點鄰近哪一國),不是牠出生或血統上屬於
+哪一國,所以哪一國的血統跑到別國地盤上被打贏,好感度一樣算給遭遇當地那一國。戰鬥
 結算時 `Battle.enemy_nation_type` 沿用 `enemy_party.nation_type`,`System/battle/
 battle_reward.gd` 的 `grant_victory_favor(battle)` 依 `enemy_rank_type` 查
 `RANK_NATION_FAVOR` 表發好感度給該國家——只有贏才加,戰敗/平手不倒扣,呼叫點跟
-`grant_victory_exp`/`settle_money` 是同一組(見「戰鬥系統」節)。
+`grant_victory_exp`/`settle_money` 是同一組(見「戰鬥系統」節)。遭遇對話的背景圖
+(`RoamingEnemyEvent._background_path()`)同樣是查敵人目前座標的地形,不是牠的血統國家。
+各地形產出的遊蕩者稱呼不是統一的「強盜」,依 `GameEnums.terrain_bandit_label()`
+(平原→強盜/山地→山賊/高原→異端/森林→綠林者/沙漠→沙匪/冰原→浪跡者)換算文案,城堡
+攻略(`CastleSiegeEvent`)、討伐委託文案(`QuestLibrary`)共用同一份對照表
+(`GameEnums.bandit_label_for_nation()`)。
 
 ## 消息(System/news + NewsStore)
 

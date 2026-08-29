@@ -179,6 +179,29 @@ static func _set_parchment_style(panel: Control, panel_width: float, panel_heigh
 	panel.add_theme_stylebox_override("panel", style)
 
 
+## 分隔線樣式:不套羊皮紙面板,只在單一邊畫一條線分隔相鄰區塊,背景透明——用於「整包內容
+## 本來就要自然往下長,不需要各自獨立一顆固定尺寸面板」的場合(例如 marriage_proposal_panel.gd/
+## stronghold_marriage_panel.gd 拿掉 apply_parchment_panel() 之後,左側區塊在右邊畫一條線
+## 分隔右側欄,右側欄上方區塊在下面畫一條線分隔下方區塊)。最後一個區塊(沒有下一個區塊接著)
+## 不需要呼叫這裡,維持無邊框即可。
+const DIVIDER_COLOR := Color(0.4, 0.29, 0.18, 0.5)
+
+## 完全透明、無邊框——蓋掉引擎預設 PanelContainer 深色底(不套的話會露出一塊跟羊皮紙底
+## 不搭的黑底),用在「最後一塊、後面沒有區塊接著,不需要分隔線」的場合。
+static func transparent_panel_style(content_margin: float = 16.0) -> StyleBoxFlat:
+	return bordered_panel(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0, 0, content_margin, content_margin)
+
+static func right_border_style(content_margin: float = 16.0, border_width: int = 2, border_color: Color = DIVIDER_COLOR) -> StyleBoxFlat:
+	var style := bordered_panel(Color(0, 0, 0, 0), border_color, 0, 0, content_margin, content_margin)
+	style.border_width_right = border_width
+	return style
+
+static func bottom_border_style(content_margin: float = 16.0, border_width: int = 2, border_color: Color = DIVIDER_COLOR) -> StyleBoxFlat:
+	var style := bordered_panel(Color(0, 0, 0, 0), border_color, 0, 0, content_margin, content_margin)
+	style.border_width_bottom = border_width
+	return style
+
+
 const WOOD_BUTTON_NORMAL_TEXTURE := preload("res://Images/UI/button/wood_button_normal.png")
 const WOOD_BUTTON_HOVER_TEXTURE := preload("res://Images/UI/button/wood_button_hover.png")
 const WOOD_BUTTON_PRESSED_TEXTURE := preload("res://Images/UI/button/wood_button_pressed.png")

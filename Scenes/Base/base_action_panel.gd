@@ -395,6 +395,9 @@ func _on_leader_confirmed(character: Character) -> void:
 func _open_stronghold_marriage_panel(eligible: Array[Character]) -> void:
 	var building := _building
 	var panel := StrongholdMarriagePanel.new()
+	# 沿用 ActionPanel.DEFAULT_MIN_SIZE(1500x750)——那只是「最小」尺寸,不是固定尺寸:
+	# StrongholdMarriagePanel 內容比 750 矮就照最小高度長,留白墊在下面;內容比 750 高時
+	# PanelContainer 本來就會照子節點需要的高度自動長高,沒必要另外傳更小的高度硬擠。
 	ActionPanel.open_custom("城鎮中心聯姻", panel, func(): BaseBuildingEvent.open_action_panel(building))
 	panel.setup(eligible, func(proposer: Character, nation: int) -> void:
 		# BaseMarriageEvent 接下來會呼叫 goto_dialogue() 真的切場景離開 base.tscn——

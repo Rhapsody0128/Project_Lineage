@@ -119,6 +119,10 @@ func _start(return_scene_path: String, nation: int) -> void:
 ## 視同婉拒/取消,接到 panel.decline。
 func _open_marriage_panel() -> void:
 	var panel := MARRIAGE_PROPOSAL_PANEL_SCENE.instantiate()
+	# 沿用 ActionPanel.DEFAULT_MIN_SIZE(1500x750)——那只是「最小」尺寸,不是固定尺寸:
+	# MarriageProposalPanel 內容比 750 矮就照最小高度長,留白墊在下面;內容比 750 高時
+	# PanelContainer 本來就會照子節點需要的高度自動長高(見 action_panel.gd 開頭「內容
+	# 溢出」說明),沒必要另外傳更小的高度硬擠,不然反而會小於設計最小高度,顯得畫面很短。
 	ActionPanel.open_custom(MARRIAGE_PANEL_TITLE, panel, panel.decline)
 	# setup() 簽名是 (target_character, self_character, ...):target 是對方(搭訕的人,
 	# stranger),self 是我方(被搭訕、原本屬意要出面的人,courted)——順序跟兩個變數的

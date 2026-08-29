@@ -109,19 +109,25 @@ func ai_personality_multiplier(skill_type: int) -> float:
 ## AREA_EXPAND_ON_ATTACK 讓這次攻擊機率擴大成命中目標周遭範圍 1 格內的敵人;
 ## EXTRA_HIT_ON_ATTACK 命中後機率追加一次普通攻擊——allow_extra_hit 參數防止追加的
 ## 那一擊自己又觸發追加,避免無限連鎖(遞迴呼叫 attack() 時傳 false)。守護只保護
-## target 本人,範圍擴大額外命中的敵人不會觸發守護。
-func attack(target: BattleCharacter, action_detail: String = "", allow_extra_hit: bool = true) -> void:
+## target 本人,範圍擴大額外命中的敵人不會觸發守護。trigger_skill_name 是遞迴呼叫用:
+## EXTRA_HIT_ON_ATTACK 觸發追加一擊時,把觸發的被動技能名稱傳進來,讓這筆額外的
+## AttackEvent 也能喊出招式名稱(見下方 skill_event_names 組裝)。
+func attack(target: BattleCharacter, action_detail: String = "", allow_extra_hit: bool = true, trigger_skill_name: String = "") -> void:
 	var guard_result := CombatResolver.resolve_guard(target, self)
 	var actual_target: BattleCharacter = guard_result.target
 	var guarded: bool = actual_target != target
 
 	var attack_targets: Array[BattleCharacter] = [actual_target]
 	var expand_note := ""
+	var event_skill_names: Array[String] = []
+	if trigger_skill_name != "":
+		event_skill_names.append(trigger_skill_name)
 	var area_expand_skill := character.find_skill_with_mechanic(GameEnums.SkillMechanic.AREA_EXPAND_ON_ATTACK)
 	if area_expand_skill != null and not guarded:
 		var expand_trigger := CombatResolver.judge_reactive_trigger(name, area_expand_skill.base_chance)
-		expand_note = "\n\n%s" % expand_trigger.detail
+		expand_note = "\n\n被動技能「%s」判定:\n%s" % [area_expand_skill.name, expand_trigger.detail]
 		if expand_trigger.triggered:
+			event_skill_names.append(area_expand_skill.name)
 			for other in enemies:
 				if other != actual_target and Util.manhattan_distance(other.grid_pos, actual_target.grid_pos) <= 1:
 					attack_targets.append(other)
@@ -133,7 +139,7 @@ func attack(target: BattleCharacter, action_detail: String = "", allow_extra_hit
 	if action_detail != "":
 		attack_detail = "%s\n\n%s" % [action_detail, target_pick_detail]
 
-	battle.log_event(AttackEvent.new(self, actual_target, attack_detail))
+	battle.log_event(AttackEvent.new(self, actual_target, attack_detail, "、".join(event_skill_names)))
 
 	for hit_target in attack_targets:
 		_resolve_basic_attack_hit(hit_target, guarded, guard_result.damage_multiplier, allow_extra_hit)
@@ -150,7 +156,10 @@ func _resolve_basic_attack_hit(actual_target: BattleCharacter, guarded: bool, gu
 		var perfect_dodge_skill := actual_target.character.find_skill_with_mechanic(GameEnums.SkillMechanic.PERFECT_DODGE)
 		if perfect_dodge_skill != null:
 			var perfect_check := CombatResolver.judge_reactive_trigger(actual_target.name, perfect_dodge_skill.base_chance)
-			dodge_check = DodgeResult.new(perfect_check.triggered, "完美迴避判定:\n%s" % perfect_check.detail)
+			var perfect_detail := "完美迴避判定:\n%s" % perfect_check.detail
+			dodge_check = DodgeResult.new(perfect_check.triggered, perfect_detail)
+			if perfect_check.triggered:
+				battle.log_event(DodgeEvent.new(self, actual_target, perfect_detail, perfect_dodge_skill.name))
 		else:
 			dodge_check = DodgeResult.new(false, "")
 		if not dodge_check.dodged:
@@ -159,18 +168,29 @@ func _resolve_basic_attack_hit(actual_target: BattleCharacter, guarded: bool, gu
 		SkillEffectLibrary.maybe_dodge_counter(actual_target, self)
 		return
 
+	var proc_skill_names: Array[String] = []
 	var armor_pierce := SkillEffectLibrary.check_chance_armor_pierce(self)
 	var damage := SkillEffectLibrary.basic_attack_damage(self, actual_target, character.weapon, armor_pierce)
 	var crit_check := CombatResolver.judge_crit(self, actual_target)
 	if SkillEffectLibrary.check_chance_guaranteed_crit(self):
-		crit_check = CritResult.new(true, "%s 的被動使這次攻擊必定暴擊" % name)
+		if is_guaranteed_crit:
+			crit_check = CritResult.new(true, "%s 的被動使這次攻擊必定暴擊" % name)
+		else:
+			var crit_skill := character.find_skill_with_mechanic(GameEnums.SkillMechanic.CHANCE_GUARANTEED_CRIT)
+			crit_check = CritResult.new(true, "%s 發動被動技能「%s」,這次攻擊必定暴擊" % [name, crit_skill.name])
+			proc_skill_names.append(crit_skill.name)
 	if crit_check.critical:
 		damage *= CombatResolver.CRIT_DAMAGE_MULTIPLIER
-	var damage_detail := "%s\n\n%s" % [dodge_check.detail, crit_check.detail]
+	var armor_pierce_detail := ""
+	if armor_pierce and not is_armor_piercing:
+		var armor_pierce_skill := character.find_skill_with_mechanic(GameEnums.SkillMechanic.CHANCE_ARMOR_PIERCE)
+		armor_pierce_detail = "\n\n%s 發動被動技能「%s」,這次攻擊無視防禦" % [name, armor_pierce_skill.name]
+		proc_skill_names.append(armor_pierce_skill.name)
+	var damage_detail := "%s\n\n%s%s" % [dodge_check.detail, crit_check.detail, armor_pierce_detail]
 	if guarded:
 		damage *= guard_damage_multiplier
 		damage_detail += "\n\n此傷害因守護減少 30%"
-	CombatResolver.apply_damage(actual_target, damage, crit_check.critical, damage_detail)
+	CombatResolver.apply_damage(actual_target, damage, crit_check.critical, damage_detail, self, proc_skill_names)
 
 	SkillEffectLibrary.maybe_counter_attack(self, actual_target)
 	SkillEffectLibrary.maybe_reactive_heal(actual_target)
@@ -184,7 +204,8 @@ func _resolve_basic_attack_hit(actual_target: BattleCharacter, guarded: bool, gu
 		return
 	var extra_trigger := CombatResolver.judge_reactive_trigger(name, extra_hit_skill.base_chance)
 	if extra_trigger.triggered:
-		attack(actual_target, extra_trigger.detail, false)
+		var extra_detail := "%s 發動被動技能「%s」,獲得追加一擊！\n%s" % [name, extra_hit_skill.name, extra_trigger.detail]
+		attack(actual_target, extra_detail, false, extra_hit_skill.name)
 
 func daze(action_detail: String = "") -> void:
 	battle.log_event(DazeEvent.new(self, action_detail))

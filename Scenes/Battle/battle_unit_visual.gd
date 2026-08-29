@@ -47,6 +47,11 @@ const HIT_SHAKE_OFFSET := 6.0
 # 閃避反應:側身晃一下的位移(像素),不閃白、不震動,跟受擊反應明確區分開來
 const DODGE_STEP_OFFSET := Vector2(26.0, -16.0)
 
+# 完美迴避反應:左右來回移動(像素),跟一般閃避的單次側身晃動明確區分開來,
+# 讓玩家一眼看出這次是被動技能發動而不是單純的 AGI/DEX 判定閃開
+const PERFECT_DODGE_STEP_OFFSET := 34.0
+const PERFECT_DODGE_STEP_TIME := 0.09
+
 # 治療飄字:綠色,樣式比照傷害數字但方向相反(不需要暴擊分級)
 const HEAL_NUMBER_COLOR := Color(0.4, 1.0, 0.5)
 const HEAL_NUMBER_FONT_SIZE := 28
@@ -417,6 +422,22 @@ func play_dodge_reaction() -> void:
 	var tw := create_tween()
 	tw.tween_property(sprite, "position", base_pos + DODGE_STEP_OFFSET, 0.1)
 	tw.tween_property(sprite, "position", base_pos, 0.16)
+
+
+## 完美迴避(PERFECT_DODGE 武器被動)觸發時的反應:左右來回移動,跟 play_dodge_reaction()
+## 單純側身晃一下明確做出區分——這是被動技能發動而不是普通的判定閃避,見
+## DodgeEvent.skill_name/battle.gd 的分流。
+func play_perfect_dodge_reaction() -> void:
+	if sprite == null:
+		return
+
+	var base_pos := sprite.position
+	var side := -1.0 if is_enemy else 1.0
+
+	var tw := create_tween()
+	tw.tween_property(sprite, "position", base_pos + Vector2(-PERFECT_DODGE_STEP_OFFSET * side, 0.0), PERFECT_DODGE_STEP_TIME)
+	tw.tween_property(sprite, "position", base_pos + Vector2(PERFECT_DODGE_STEP_OFFSET * side, 0.0), PERFECT_DODGE_STEP_TIME)
+	tw.tween_property(sprite, "position", base_pos, PERFECT_DODGE_STEP_TIME)
 
 
 ## 守護觸發:守護者從原地飛身位移到「受擊者面前、面向攻擊方」的位置頂替承受攻擊。

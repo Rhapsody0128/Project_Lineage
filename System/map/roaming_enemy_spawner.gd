@@ -32,6 +32,19 @@ var _last_player_cell: Vector2i = Vector2i(999999, 999999)
 var _map_objects: Array[MapObject] = MapObject.get_all()
 
 
+## RoamingEnemyStore(autoload)全程只持有一個 spawner 實例,_map_objects 因此只在
+## 這裡初始化那一刻拍過 MapObject.get_all() 一次快照,而那份快照裡的根據地座標本來就是
+## 寫死常數(見 System/map/map_object.gd 開頭註解),不會反映 BaseLocationStore 之後的
+## 異動。根據地遷移(Scenes/Map/world_inner.gd)完成後呼叫這支直接改掉快照裡那一筆,
+## 避免遷移後「別生成在根據地領土內」的判斷還在用舊座標——不整包重call get_all()
+## 重拍,因為那份靜態工廠回傳的根據地座標一樣是寫死常數,重拍也拿不到新位置。
+func update_base_position(new_pos: Vector2) -> void:
+	for obj in _map_objects:
+		if obj.type == GameEnums.MapObjectType.BASE:
+			obj.position = new_pos
+			return
+
+
 ## map.gd 每幀呼叫。玩家跨到新格子才重新丟骰生成;敵人自身的遊蕩位移與離玩家太遠的
 ## 消失判定則每幀都要做(敵人數量少,逐一檢查很便宜)。
 func update(player_pos: Vector2, delta: float) -> void:
@@ -127,7 +140,8 @@ func _try_spawn_in_cell(cell: Vector2i) -> void:
 		return
 
 	var nation := MapTerrainMask.nation_at(spawn_pos)
-	var rank := NationFavorRank.scattered_rank_for_favor(NationFavorStore.get_favor(nation)) if nation != -1 else GameEnums.RankType.F
+	var base_rank := NationFavorRank.rank_for_favor(NationFavorStore.get_favor(nation)) if nation != -1 else GameEnums.RankType.F
+	var rank := RankDrawTable.roll(base_rank)
 	var party := PartyController.get_random_party(rank, nation)
 	var enemy := RoamingEnemy.new(Util.generate_uuid(), spawn_pos, party, party.rank_type)
 	enemies.append(enemy)

@@ -764,7 +764,11 @@ func _play_action_with_reaction(action_event: BattleEvent, reaction_events: Arra
 	else:
 		var attack_event := action_event as AttackEvent
 		_log(_hint("%s 攻擊 %s！" % [attack_event.actor_name, attack_event.target_name], attack_event))
-		_roster_for(actor_character).pulse_active(actor_character)
+		if attack_event.skill_name != "":
+			_log(_hint("%s 發動被動技能「%s」！" % [attack_event.actor_name, attack_event.skill_name], attack_event))
+			_roster_for(actor_character).pulse_skill(actor_character, attack_event.skill_name)
+		else:
+			_roster_for(actor_character).pulse_active(actor_character)
 
 	var anim := actor.play_attack_towards(target.grid_pos)
 
@@ -780,14 +784,27 @@ func _apply_reaction(event: BattleEvent) -> void:
 	match event.event_type:
 		GameEnums.BattleEventType.DODGE:
 			var dodge_event := event as DodgeEvent
-			_log(_hint("%s 閃避了 %s 的攻擊" % [dodge_event.target_name, dodge_event.actor_name], dodge_event))
 			var dodge_visual: BattleUnitVisual = visuals.get(dodge_event.target)
-			if dodge_visual != null:
-				dodge_visual.play_dodge_reaction()
+			if dodge_event.skill_name != "":
+				_log(_hint("%s 發動被動技能「%s」，完美迴避了 %s 的攻擊！" % [dodge_event.target_name, dodge_event.skill_name, dodge_event.actor_name], dodge_event))
+				_roster_for(dodge_event.target).pulse_skill(dodge_event.target, dodge_event.skill_name)
+				if dodge_visual != null:
+					dodge_visual.play_perfect_dodge_reaction()
+			else:
+				_log(_hint("%s 閃避了 %s 的攻擊" % [dodge_event.target_name, dodge_event.actor_name], dodge_event))
+				if dodge_visual != null:
+					dodge_visual.play_dodge_reaction()
 		GameEnums.BattleEventType.DAMAGE:
 			var damage_event := event as DamageEvent
 			var crit_text := "[color=red][b]（暴擊！）[/b][/color]" if damage_event.is_critical else ""
 			_log(_hint("%s 受到 %d 點傷害%s" % [damage_event.target_name, damage_event.damage_points, crit_text], damage_event))
+			if damage_event.reduction_skill_name != "":
+				_log(_hint("%s 發動被動技能「%s」，減輕了這次傷害" % [damage_event.target_name, damage_event.reduction_skill_name], damage_event))
+				_roster_for(damage_event.target).pulse_skill(damage_event.target, damage_event.reduction_skill_name)
+			if damage_event.actor != null:
+				for proc_skill_name in damage_event.actor_proc_skill_names:
+					_log(_hint("%s 發動被動技能「%s」！" % [damage_event.actor.name, proc_skill_name], damage_event))
+					_roster_for(damage_event.actor).pulse_skill(damage_event.actor, proc_skill_name)
 			var hit_visual: BattleUnitVisual = visuals.get(damage_event.target)
 			if hit_visual != null:
 				hit_visual.play_hit_reaction()

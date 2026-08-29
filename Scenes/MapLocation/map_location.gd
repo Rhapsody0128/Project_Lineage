@@ -13,6 +13,7 @@ const MARKET_LABEL := "市集"
 const REST_LABEL := "休息"
 const ENTER_BASE_LABEL := "進入根據地"
 const LONG_REST_LABEL := "長休"
+const RELOCATE_BASE_LABEL := "遷移根據地"
 
 ## 地點選單按鈕統一套木牌鐵框樣式(UiStyle.apply_wood_plaque_button),margin 比
 ## main.tscn 的 Start 按鈕縮小一截——這裡最多要疊 5、6 顆按鈕,用 Start 那組大 margin
@@ -73,6 +74,8 @@ func _ready() -> void:
 			button.pressed.connect(_on_long_rest_button_pressed)
 		elif sub_location_label == ENTER_BASE_LABEL:
 			button.pressed.connect(_on_enter_base_button_pressed)
+		elif sub_location_label == RELOCATE_BASE_LABEL:
+			button.pressed.connect(_on_relocate_base_button_pressed)
 		sub_locations_container.add_child(button)
 
 
@@ -202,6 +205,17 @@ func _on_long_rest_confirmed(days: int) -> void:
 	WorldTimeStore.set_playing(true)
 	MapSessionStore.rest_requested = true
 	MapSessionStore.long_rest_target_day = WorldTimeStore.controller.world_time.get_day_count() + days
+	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
+	if error != OK:
+		printerr("Error changing scene to map: ", error)
+
+
+## 遷移根據地:退回大地圖並進入選點模式(BaseLocationStore.is_relocating,見該檔案開頭
+## 註解),不像休息/長休需要播放時間——玩家還在挑座標,世界時間維持暫停。實際點擊判定/
+## 合法性檢查/確認彈窗都在 Scenes/Map/world_inner.gd,這裡只負責開關選點模式跟切場景。
+func _on_relocate_base_button_pressed() -> void:
+	WorldTimeStore.controller.is_playing = false
+	BaseLocationStore.is_relocating = true
 	var error := get_tree().change_scene_to_file("res://Scenes/Map/map.tscn")
 	if error != OK:
 		printerr("Error changing scene to map: ", error)

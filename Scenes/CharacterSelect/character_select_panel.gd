@@ -9,12 +9,12 @@ extends HBoxContainer
 #
 # 版面三塊:左側 CharacterDetailView 顯示目前聚焦角色的完整情報(素質/血統/家族全分頁,
 # 跟 CharacterPanel/CharacterRoster 共用同一顆元件)——寬度是這顆元件自己攜帶的
-# PANEL_WIDTH,這裡不用也不該再設一次,高度用 SIZE_EXPAND_FILL 撐滿
-# CharacterSelectOverlay 給的整個面板高度,不留空白;右上
-# context_box 是彈性空間,呼叫端依情境自行塞說明文字/額外資訊,不需要就留空;右下
-# CharacterSelectBar 是排序/篩選 + 卡片網格(card_factory 一律回傳
-# CharacterAvatarCard,完整素質已經在左側,卡片只需要負責「選中/不可選」,見該檔案的
-# available/unavailable_reason)。
+# PANEL_WIDTH,這裡不用也不該再設一次,右邊畫一條線分隔右欄,不套羊皮紙面板(比照
+# marriage_proposal_panel.gd 的既有慣例);右上 context_box 是彈性空間,呼叫端依情境自行
+# 塞說明文字/額外資訊,不需要就留空;右下 CharacterSelectBar 是排序/篩選 + 卡片網格
+# (card_factory 一律回傳 CharacterAvatarCard,完整素質已經在左側,卡片只需要負責
+# 「選中/不可選」,見該檔案的 available/unavailable_reason)。整包內容自然往下長,
+# 超出的部分交給外層 CharacterSelectOverlay 唯一的捲動框處理(見該檔案開頭註解)。
 #
 # 點卡片只是換左側聚焦顯示(_on_card_selected),不會立刻觸發呼叫端的動作——一定要按
 # 下方確認鈕才會 emit character_confirmed,讓玩家能先翻過幾張卡片看完整資料再決定,
@@ -41,25 +41,21 @@ var _focused_character: Character = null
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 
+	# 不套羊皮紙面板——只在右邊畫一條線分隔右欄,取代原本獨立一顆固定尺寸羊皮紙面板的
+	# 設計,比照 marriage_proposal_panel.gd 的既有慣例。
 	var detail_panel := PanelContainer.new()
+	detail_panel.add_theme_stylebox_override("panel", UiStyle.right_border_style())
 	add_child(detail_panel)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# 只留最外層 CharacterSelectOverlay 一個捲動框(見該檔案開頭註解),分頁內容不再另包
+	# 一層獨立 ScrollContainer 搶捲動手感。
+	_detail_view.scrollable_tabs = false
 	detail_panel.add_child(_detail_view)
-
-	# detail_panel 的寬度來自剛掛進去的 _detail_view 自己宣告的 custom_minimum_size.x
-	# (CharacterDetailView.PANEL_WIDTH)——用 get_combined_minimum_size() 現場問出來當
-	# 第一次套用的猜測值,一定要等 _detail_view 已經掛進樹裡再呼叫,不然問到的還是 0。
-	# 高度撐滿 CharacterSelectOverlay 給的高度,先用目前的自然內容高度墊著,交給
-	# apply_parchment_panel() 內建的 resized 訊號自動補正。
-	var panel_size := detail_panel.get_combined_minimum_size()
-	UiStyle.apply_parchment_panel(detail_panel, panel_size.x, panel_size.y)
 
 	_right_column = VBoxContainer.new()
 	_right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_right_column.add_theme_constant_override("separation", 10)
 	add_child(_right_column)
 
@@ -109,7 +105,6 @@ func setup(characters: Array[Character], card_factory: Callable, initial_sort_ke
 		return
 
 	_select_bar = CharacterSelectBar.new()
-	_select_bar.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_right_column.add_child(_select_bar)
 	_right_column.move_child(_select_bar, context_box.get_index() + 1)
 	_select_bar.character_selected.connect(_on_card_selected)

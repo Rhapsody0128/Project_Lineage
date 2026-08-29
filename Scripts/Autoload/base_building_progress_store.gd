@@ -7,7 +7,7 @@ extends Node
 # 的存取方法,實際數字在 Building.build_cost/build_days/upgrade_costs/upgrade_days
 # (見 System/base/building/building_library.gd)。
 #
-# 用 GameEnums.BuildingType(Building.type)當 key,不是字串——17 種建築類型本來就
+# 用 GameEnums.BuildingType(Building.type)當 key,不是字串——18 種建築類型本來就
 # 一一對應,不需要另外維護一份 id,見 System/base/building/building.gd 開頭註解。
 #
 # 等級 0 表示尚未建造(DISABLED,查不到 type 時的預設值),1~9 對應 GameEnums.RankType

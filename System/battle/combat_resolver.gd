@@ -194,17 +194,31 @@ static func resolve_guard(original_target: BattleCharacter, attacker: BattleChar
 ## 原封不動存進事件給戰報 UI 顯示(護盾吸收的說明另外附加,不干擾原本的判定明細)。
 ## 減傷被動(絕境求生/身經百戰):skill.skill_ratio 是減傷比例、skill.secondary_ratio 是
 ## 觸發門檻(以 hp_ratio 表示,0.0=無條件生效,例如身經百戰;0.3=HP<30% 才生效,例如
-## 絕境求生)。在護盾吸收之前先打折,減傷跟護盾兩者都吃得到、不互相排斥。
-static func _apply_damage_reduction(target: BattleCharacter, damage: float) -> float:
+## 絕境求生)。在護盾吸收之前先打折,減傷跟護盾兩者都吃得到、不互相排斥。回傳
+## [減傷後的傷害, 有觸發時的技能名稱(沒觸發是空字串)],呼叫端(apply_damage())拿技能
+## 名稱寫進 detail、記進 DamageEvent.reduction_skill_name,讓 battle.gd 喊出招式名稱。
+static func _apply_damage_reduction(target: BattleCharacter, damage: float) -> Array:
 	var skill := target.character.find_skill_with_mechanic(GameEnums.SkillMechanic.DAMAGE_REDUCTION)
 	if skill == null:
-		return damage
+		return [damage, ""]
 	if skill.secondary_ratio > 0.0 and target.hp_ratio >= skill.secondary_ratio:
-		return damage
-	return damage * (1.0 - skill.skill_ratio)
+		return [damage, ""]
+	return [damage * (1.0 - skill.skill_ratio), skill.name]
 
-static func apply_damage(target: BattleCharacter, damage_in: float, is_critical: bool = false, detail: String = "") -> void:
-	var damage := _apply_damage_reduction(target, damage_in)
+## actor/actor_proc_skill_names:造成這筆傷害的攻擊方,以及攻擊方這一擊順帶觸發、只
+## 影響數值本身的被動技能名稱(破綻洞察/絕殺直覺這類,見呼叫端 battle_character.gd/
+## skill_effect_library.gd 怎麼收集這份清單)。兩者預設空,絕大多數呼叫端(反擊/奧義等
+## 沒有這類機率觸發的情境)不用理會這兩個參數。
+static func apply_damage(
+	target: BattleCharacter, damage_in: float, is_critical: bool = false, detail: String = "",
+	actor: BattleCharacter = null, actor_proc_skill_names: Array[String] = []
+) -> void:
+	var reduction_result := _apply_damage_reduction(target, damage_in)
+	var damage: float = reduction_result[0]
+	var reduction_skill_name: String = reduction_result[1]
+	if reduction_skill_name != "":
+		detail += "\n\n%s 發動被動技能「%s」,傷害降低(%.0f → %.0f)" % [target.name, reduction_skill_name, damage_in, damage]
+
 	var remaining_damage := damage
 	if target.shield_points > 0.0:
 		var absorbed := minf(target.shield_points, remaining_damage)
@@ -215,7 +229,10 @@ static func apply_damage(target: BattleCharacter, damage_in: float, is_critical:
 	var damage_points: int = roundi(remaining_damage)
 	target.character.take_damage(damage_points)
 
-	target.battle.log_event(DamageEvent.new(target, damage_points, target.hp, is_critical, detail, roundi(target.shield_points)))
+	target.battle.log_event(DamageEvent.new(
+		target, damage_points, target.hp, is_critical, detail, roundi(target.shield_points),
+		reduction_skill_name, actor, actor_proc_skill_names
+	))
 
 	if target.is_disabled:
 		target.battle.log_event(DefeatedEvent.new(target))

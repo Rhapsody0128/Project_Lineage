@@ -4,11 +4,11 @@ extends RefCounted
 ## 根據地上單一建築的靜態資料(見 BuildingLibrary.get_all())。跟 System/map/map_object.gd
 ## 的 MapObject 同一種設計:類型/範圍集中在工廠函式回傳,不要散落寫在 base.tscn 或
 ## base_system.gd。生產類建築(potential_type/produces 不為 -1)可以派遣角色,見
-## BaseDispatchStore;非生產類建築(城鎮中心/住宅區/醫療所/倉庫/兵營)目前只有資料
+## BaseDispatchStore;非生產類建築(城鎮中心/住宅區/醫療所/倉庫/兵營/鐵匠鋪)目前只有資料
 ## 定義,功能尚未實作。
 ##
 ## type(GameEnums.BuildingType)本身就是唯一識別碼,不另外維護一份重複的字串 id——
-## 17 種建築類型本來就一一對應,不會有兩棟建築共用同一個 type 卻該視為不同個體的情況。
+## 18 種建築類型本來就一一對應,不會有兩棟建築共用同一個 type 卻該視為不同個體的情況。
 ## 所有拿建築當 Dictionary key 的地方(BaseDispatchStore/BaseBuildingProgressStore)一律
 ## 用 type。
 ##

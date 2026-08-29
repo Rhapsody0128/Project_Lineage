@@ -27,6 +27,7 @@ var panel: CharacterSelectPanel
 
 var _title_label: Label
 var _content_box: VBoxContainer
+var _items_list: VBoxContainer
 
 
 func _init() -> void:
@@ -45,9 +46,10 @@ func _ready() -> void:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.add_child(center)
 
-	# 用 ActionPanel 既有的 DEFAULT_MIN_SIZE 當固定彈窗尺寸,不再依 viewport 現場算近全螢幕
-	# 大小——選人畫面內容量比 ActionPanel 的清單少,沿用同一組「預設彈窗大小」慣例即可,
-	# 不需要另外調一組數字。
+	# 用 ActionPanel 既有的 DEFAULT_MIN_SIZE 當彈窗的「最小」尺寸(不是固定尺寸)——選人
+	# 畫面內容量比 ActionPanel 的清單少,沿用同一組「預設彈窗大小」慣例即可,不需要另外調
+	# 一組數字。內容比這個矮就照最小高度長,留白墊在下面;內容比這個高時 PanelContainer
+	# 本來就會照子節點需要的高度自動長高,不夠高的部分才由下面的 ScrollContainer 接手捲動。
 	# apply_parchment_panel() 的 stylebox 本身就帶內距,跟 ActionPanel 的 PanelBox 一樣不用
 	# 額外參數、全部吃預設值——不要另外疊一層 MarginContainer,單一內距來源,才不會跟
 	# ActionPanel 內容的距離兜不起來。
@@ -76,6 +78,21 @@ func _ready() -> void:
 	close_button.pressed.connect(close)
 	top_bar.add_child(close_button)
 
+	# 內容溢出時「誰負責捲動」統一由這裡決定,比照 action_panel.gd 的既有慣例——呼叫端
+	# (open_picker()/open_content() 塞內容的地方)不要自己各自組一份 ScrollContainer
+	# (見 worker_dispatch_panel.gd/character_select_panel.gd 拿掉各自 wrap_scrollable()
+	# 的既有慣例更新)。
+	var scroll := ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	UiStyle.apply_parchment_scrollbar(scroll)
+	_content_box.add_child(scroll)
+
+	_items_list = VBoxContainer.new()
+	_items_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_items_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(_items_list)
+
 
 ## title/characters/card_factory/initial_sort_key/on_confirmed/confirm_label/initial_focus
 ## 直接轉呼叫 CharacterSelectPanel.setup()。確認選擇時先 close() 掉自己再呼叫
@@ -88,7 +105,7 @@ func open_picker(title: String, characters: Array[Character], card_factory: Call
 	_title_label.text = title
 	panel = CharacterSelectPanel.new()
 	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_content_box.add_child(panel)
+	_items_list.add_child(panel)
 	panel.cancelled.connect(close)
 	panel.character_confirmed.connect(func(character: Character) -> void:
 		close()
@@ -105,7 +122,7 @@ func open_picker(title: String, characters: Array[Character], card_factory: Call
 func open_content(title: String, content: Control) -> void:
 	_title_label.text = title
 	content.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_content_box.add_child(content)
+	_items_list.add_child(content)
 
 
 func close() -> void:

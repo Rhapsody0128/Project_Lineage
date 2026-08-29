@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://brshvytyolmhu"
-path="res://.godot/imported/base.jpg-c04870c5cbbfe4e1585a1a4919dac339.ctex"
+uid="uid://bsomowqhjc2pj"
+path="res://.godot/imported/base_ICEFIELD.jpg-bee562480da69cda7cfe47887753d5d5.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://Images/Base/base.jpg"
-dest_files=["res://.godot/imported/base.jpg-c04870c5cbbfe4e1585a1a4919dac339.ctex"]
+source_file="res://Images/Base/base_ICEFIELD.jpg"
+dest_files=["res://.godot/imported/base_ICEFIELD.jpg-bee562480da69cda7cfe47887753d5d5.ctex"]
 
 [params]
 

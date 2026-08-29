@@ -6,10 +6,12 @@ extends VBoxContainer
 # (屬性/血統/家族)。彈出式 CharacterPanel 與 CharacterRoster(角色列表
 # 畫面左 1/3 欄)共用同一顆完整元件,不再各自維護一份呈現邏輯。
 #
-# 分頁內容各自包一層 ScrollContainer——外層 CharacterPanel 面板本身是
+# 分頁內容預設各自包一層 ScrollContainer——外層 CharacterPanel 面板本身是
 # 固定尺寸(不隨內容被撐高,見 character_panel.tscn 的 PanelBox
 # custom_minimum_size),內容多到放不下時要在分頁內部捲動,而不是把
-# TabContainer/面板本身的最小尺寸往上頂。
+# TabContainer/面板本身的最小尺寸往上頂。塞進「整包內容自然往下長」的外殼
+# (MarriageProposalPanel/StrongholdMarriagePanel)則要在 add_child() 之前把
+# scrollable_tabs 設 false,見下方欄位註解。
 #
 # 排版風格統一成兩種:區塊標題/立繪/大型圖表(雷達圖/技能格/血統計量表)
 # 置中或滿版鋪開;單行數值(等級/武器/EXP/六大素質/血統百分比)一律拆成
@@ -100,6 +102,13 @@ var mate_list: VBoxContainer
 var children_list: VBoxContainer
 
 var current_character: Character
+
+## 分頁內容預設各自包一層 ScrollContainer(見下方 _wrap_tab_content())——只適用於固定
+## 尺寸、不隨內容撐高的外殼(CharacterPanel/CharacterRoster/CharacterSelectPanel)。塞進
+## 「整包內容自然往下長、只由外層自己的捲動框負責捲動」的外殼(MarriageProposalPanel/
+## StrongholdMarriagePanel,見兩者 _ready())要在 add_child() 進場景樹之前把這個設成
+## false,分頁內容才不會多一層獨立捲動框搶走捲動手感。
+var scrollable_tabs: bool = true
 
 
 func _ready() -> void:
@@ -277,18 +286,11 @@ func _load_face_texture(face_path: String) -> Texture2D:
 	return load(face_path) as Texture2D
 
 
-## 分頁內容統一包一層 MarginContainer(TAB_CONTENT_PADDING)再放進 ScrollContainer,
-## 避免文字/計量表貼齊分頁邊緣;分頁內容放不下時在 ScrollContainer 內部捲動,
-## 不撐高外層固定尺寸的面板。
-func _wrap_tab_content(tab_name: String, content: Control) -> ScrollContainer:
-	var scroll := ScrollContainer.new()
-	scroll.name = tab_name
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	# 引擎原生捲軸太粗、顏色也不搭羊皮紙底,換成 UiStyle 共用的淡色細版。
-	UiStyle.apply_parchment_scrollbar(scroll)
-
+## 分頁內容統一包一層 MarginContainer(TAB_CONTENT_PADDING),避免文字/計量表貼齊分頁邊緣。
+## scrollable_tabs(預設 true)為 true 時再外包一層 ScrollContainer,分頁內容放不下時在
+## 這裡面捲動,不撐高外層固定尺寸的面板;scrollable_tabs=false 時直接回傳 MarginContainer,
+## 讓分頁內容自然往下長,交給更外層(例如 ActionPanel)自己的捲動框處理溢出。
+func _wrap_tab_content(tab_name: String, content: Control) -> Control:
 	var margin := MarginContainer.new()
 	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -296,10 +298,22 @@ func _wrap_tab_content(tab_name: String, content: Control) -> ScrollContainer:
 	margin.add_theme_constant_override("margin_top", TAB_CONTENT_PADDING)
 	margin.add_theme_constant_override("margin_right", TAB_CONTENT_PADDING)
 	margin.add_theme_constant_override("margin_bottom", TAB_CONTENT_PADDING)
-	scroll.add_child(margin)
 
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	margin.add_child(content)
+
+	if not scrollable_tabs:
+		margin.name = tab_name
+		return margin
+
+	var scroll := ScrollContainer.new()
+	scroll.name = tab_name
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# 引擎原生捲軸太粗、顏色也不搭羊皮紙底,換成 UiStyle 共用的淡色細版。
+	UiStyle.apply_parchment_scrollbar(scroll)
+	scroll.add_child(margin)
 
 	return scroll
 

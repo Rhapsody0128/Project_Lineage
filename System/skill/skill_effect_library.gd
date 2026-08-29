@@ -148,7 +148,10 @@ static func _resolve_attack_hit(self_character: BattleCharacter, enemy_character
 		var perfect_dodge_skill := enemy_character.character.find_skill_with_mechanic(GameEnums.SkillMechanic.PERFECT_DODGE)
 		if perfect_dodge_skill != null:
 			var perfect_check := CombatResolver.judge_reactive_trigger(enemy_character.name, perfect_dodge_skill.base_chance)
-			dodge_check = DodgeResult.new(perfect_check.triggered, "完美迴避判定:\n%s" % perfect_check.detail)
+			var perfect_detail := "完美迴避判定:\n%s" % perfect_check.detail
+			dodge_check = DodgeResult.new(perfect_check.triggered, perfect_detail)
+			if perfect_check.triggered:
+				enemy_character.battle.log_event(DodgeEvent.new(self_character, enemy_character, perfect_detail, perfect_dodge_skill.name))
 		else:
 			dodge_check = DodgeResult.new(false, "")
 		if not dodge_check.dodged:
@@ -158,23 +161,36 @@ static func _resolve_attack_hit(self_character: BattleCharacter, enemy_character
 		maybe_dodge_counter(enemy_character, self_character)
 		return
 
+	var proc_skill_names: Array[String] = []
 	var armor_pierce := skill.mechanics.has(GameEnums.SkillMechanic.ARMOR_PIERCE) or check_chance_armor_pierce(self_character)
 	var effective_defense := attack_value if armor_pierce else defense_value
 	var damage := _skill_damage(attack_value, effective_defense, damage_multiplier)
 
 	var crit_check: CritResult
-	if skill.mechanics.has(GameEnums.SkillMechanic.GUARANTEED_CRIT) or check_chance_guaranteed_crit(self_character):
+	if skill.mechanics.has(GameEnums.SkillMechanic.GUARANTEED_CRIT):
 		crit_check = CritResult.new(true, "%s 的技能必定暴擊" % skill.name)
+	elif self_character.is_guaranteed_crit:
+		crit_check = CritResult.new(true, "%s 的被動使這次攻擊必定暴擊" % self_character.name)
+	elif check_chance_guaranteed_crit(self_character):
+		var crit_skill := self_character.character.find_skill_with_mechanic(GameEnums.SkillMechanic.CHANCE_GUARANTEED_CRIT)
+		crit_check = CritResult.new(true, "%s 發動被動技能「%s」,這次攻擊必定暴擊" % [self_character.name, crit_skill.name])
+		proc_skill_names.append(crit_skill.name)
 	else:
 		crit_check = CombatResolver.judge_crit(self_character, enemy_character)
 	if crit_check.critical:
 		damage *= CombatResolver.CRIT_DAMAGE_MULTIPLIER
 
-	var damage_detail := "%s\n\n%s" % [dodge_check.detail, crit_check.detail]
+	var armor_pierce_detail := ""
+	if armor_pierce and not skill.mechanics.has(GameEnums.SkillMechanic.ARMOR_PIERCE) and not self_character.is_armor_piercing:
+		var armor_pierce_skill := self_character.character.find_skill_with_mechanic(GameEnums.SkillMechanic.CHANCE_ARMOR_PIERCE)
+		armor_pierce_detail = "\n\n%s 發動被動技能「%s」,這次攻擊無視防禦" % [self_character.name, armor_pierce_skill.name]
+		proc_skill_names.append(armor_pierce_skill.name)
+
+	var damage_detail := "%s\n\n%s%s" % [dodge_check.detail, crit_check.detail, armor_pierce_detail]
 	if guarded:
 		damage *= guard_damage_multiplier
 		damage_detail += "\n\n此傷害因守護減少 30%"
-	CombatResolver.apply_damage(enemy_character, damage, crit_check.critical, damage_detail)
+	CombatResolver.apply_damage(enemy_character, damage, crit_check.critical, damage_detail, self_character, proc_skill_names)
 
 	maybe_counter_attack(self_character, enemy_character)
 	maybe_reactive_heal(enemy_character)

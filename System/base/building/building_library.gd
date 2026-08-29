@@ -1,7 +1,7 @@
 class_name BuildingLibrary
 extends RefCounted
 
-## 根據地全部 17 種建築的集中定義(遊戲企劃設定總整理.md 六十八節)。這裡只放遊戲數值
+## 根據地全部 18 種建築的集中定義(遊戲企劃設定總整理.md 六十八節)。這裡只放遊戲數值
 ## (名稱/描述/素質需求/產出/耗材/天數),畫面座標(territory_polygon)分開放在
 ## System/base/building/building_positions.gd,由 Building._init() 依 type 自動查出
 ## (見 building.gd),這裡不用傳、也不用維護額外的字串 id——type 本身就是識別碼。
@@ -9,11 +9,14 @@ extends RefCounted
 ## 每個 Building.new() 呼叫一個參數一行,後面用註解標明對應 Building._init() 的哪個
 ## 欄位(順序見 building.gd),方便掃視/調整個別數值,不用回頭數第幾個參數。
 ##
-## 全部 17 棟建築共用同一條建造/升級天數曲線(BUILD_DAYS/UPGRADE_DAYS,見「根據地經濟
-## 藍圖」設計文件):0→1 固定 30 天,1→2...8→9 依序拉長。12 棟生產類建築跟 5 棟非生產類
-## 建築(STRONGHOLD/RESIDENTIAL/CLINIC/WAREHOUSE/BARRACKS)的 base_yield/build_cost/
+## 全部 18 棟建築共用同一條建造/升級天數曲線(BUILD_DAYS/UPGRADE_DAYS,見「根據地經濟
+## 藍圖」設計文件):0→1 固定 30 天,1→2...8→9 依序拉長。12 棟生產類建築跟 6 棟非生產類
+## 建築(STRONGHOLD/RESIDENTIAL/CLINIC/WAREHOUSE/BARRACKS/FORGE)的 base_yield/build_cost/
 ## upgrade_costs 都依「根據地內政系統設計」文件逐棟手動填寫(見下方各建築註解對應的
 ## 資源鏈),沒有任何佔位公式展開的數字。
+##
+## FORGE(鐵匠鋪)的素質加成機制本身尚未實作(比照 CLINIC/BARRACKS 等非生產類建築,
+## 目前只有資料定義),但 territory_polygon 已經是正式座標(見 building_positions.gd)。
 
 const BUILD_DAYS := 30
 const UPGRADE_DAYS: Array[int] = [41, 55, 74, 100, 135, 182, 245, 331]
@@ -126,6 +129,27 @@ static func get_all() -> Array[Building]:
 				{GameEnums.ResourceType.ORE: 230, GameEnums.ResourceType.GOLD: 330, GameEnums.ResourceType.TOOL: 75},
 			],
 			UPGRADE_DAYS                                      ## 升級天數表
+		),
+		Building.new(
+			GameEnums.BuildingType.FORGE,                     ## 建築類型(同時也是識別碼)
+			"鐵匠鋪",                                          ## 中文名稱
+			"打造裝備,升級後提升對應武器類型的全體基礎素質。",         ## ACTION PANEL 描述文字
+			-1,                                               ## 素質需求(-1 = 非生產類建築)
+			-1,                                               ## 產出資源(-1 = 無產出)
+			0,                                                ## 基礎產量
+			{GameEnums.ResourceType.ORE: 45},                 ## 建造(0→1)耗材
+			BUILD_DAYS,                                       ## 建造天數
+			[                                                 ## 升級(1→9)耗材表
+				{GameEnums.ResourceType.ORE: 40, GameEnums.ResourceType.TOOL: 20},
+				{GameEnums.ResourceType.ORE: 55, GameEnums.ResourceType.TOOL: 30},
+				{GameEnums.ResourceType.ORE: 75, GameEnums.ResourceType.TOOL: 40},
+				{GameEnums.ResourceType.ORE: 100, GameEnums.ResourceType.TOOL: 55},
+				{GameEnums.ResourceType.ORE: 135, GameEnums.ResourceType.TOOL: 70},
+				{GameEnums.ResourceType.ORE: 180, GameEnums.ResourceType.TOOL: 95},
+				{GameEnums.ResourceType.ORE: 245, GameEnums.ResourceType.TOOL: 125},
+				{GameEnums.ResourceType.ORE: 330, GameEnums.ResourceType.TOOL: 170},
+			],
+			UPGRADE_DAYS                                     ## 升級天數表
 		),
 		Building.new(
 			GameEnums.BuildingType.LUMBER_MILL,               ## 建築類型(同時也是識別碼)

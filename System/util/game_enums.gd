@@ -192,12 +192,12 @@ const CHARACTER_SORT_KEY_LABELS: Array[String] = ["等級", "總數值", "格子
 const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城鎮", "根據地", "城堡"]
 
 ## 根據地建築類型,見 System/base/building/building_library.gd 與
-## 遊戲企劃設定總整理.md 六十八節。前五種(城鎮中心~兵營)是非生產類建築,功能尚未
+## 遊戲企劃設定總整理.md 六十八節。前六種(城鎮中心~鐵匠鋪)是非生產類建築,功能尚未
 ## 實作;後十二種是生產類建築,每種對應六大素質之一。其中 6 種(採石場/採礦場/黑市/
 ## 抄書院/科學研究所/禁忌祭壇)月結算會額外消耗固定資源才能產出(見 Building.fixed_recipe),
 ## 工匠坊則是玩家自選三種配方之一(見 WorkshopRecipeLibrary),其餘 5 種不消耗任何資源。
 enum BuildingType {
-	STRONGHOLD, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS,
+	STRONGHOLD, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS, FORGE,
 	LUMBER_MILL, QUARRY, FARM, MINE, CARAVAN, BLACK_MARKET,
 	HUNTING_GROUND, WORKSHOP, SCRIPTORIUM, RESEARCH_INSTITUTE,
 	ALTAR, FORBIDDEN_ALTAR,
@@ -205,7 +205,7 @@ enum BuildingType {
 
 ## 根據地建築 UI 顯示用中文標籤,順序對應 BuildingType enum
 const BUILDING_TYPE_LABELS: Array[String] = [
-	"城鎮中心", "住宅區", "醫療所", "倉庫", "兵營",
+	"城鎮中心", "住宅區", "醫療所", "倉庫", "兵營", "鐵匠鋪",
 	"伐木場", "採石場", "農田", "採礦場", "商隊站", "黑市",
 	"狩獵場", "工匠坊", "抄書院", "科學研究所",
 	"祭壇", "禁忌祭壇",
@@ -412,6 +412,19 @@ const BLOODLINE_NATION_TERRAINS: Array[TerrainType] = [
 static func bloodline_nation_terrain(nation: int) -> int:
 	return BLOODLINE_NATION_TERRAINS[nation]
 
+## 各地形產出的強盜稱呼,索引對應 TerrainType:平原→強盜/山地→山賊/高原→異端/
+## 森林→綠林者/沙漠→沙匪/冰原→浪跡者。遊蕩者遭遇對話/城堡攻略/討伐委託文案共用同一份
+## 稱呼,不要各自寫死「強盜」兩個字。
+const TERRAIN_BANDIT_LABELS: Array[String] = ["強盜", "山賊", "異端", "綠林者", "沙匪", "浪跡者"]
+
+static func terrain_bandit_label(terrain_type: int) -> String:
+	return TERRAIN_BANDIT_LABELS[terrain_type]
+
+## nation 版本的強盜稱呼,查 bloodline_nation_terrain() 換算地形,不重複維護第二份
+## nation→稱呼對照表。
+static func bandit_label_for_nation(nation: int) -> String:
+	return terrain_bandit_label(bloodline_nation_terrain(nation))
+
 ## 城鎮外觀對話背景圖(Images/Dialogue/Map/Town/town_<TERRAIN>.png)——檔名直接對應
 ## TerrainType enum 成員名稱,不另外維護一份路徑陣列(下面 base_building_background_path()
 ## 同理),見 System/map/map_object.gd 的 MapObject.terrain_type()。同時也是
@@ -428,6 +441,13 @@ static func castle_background_path(terrain_type: int) -> String:
 
 static func terrain_background_path(terrain_type: int) -> String:
 	return "res://Images/Dialogue/Map/Terrain/%s.png" % TerrainType.keys()[terrain_type]
+
+## 根據地內部場景背景圖(Images/Base/base_<TERRAIN>.jpg),見 Scenes/Base/base_inner.gd。
+## 依根據地實際座標查 MapTerrainMask 判定地形,不吃 MapObject.nation 那個暫定 LION 的
+## 預設值(見 MapObject.nation 註解)——這裡問的是「根據地座落在地圖上哪塊地形」,跟
+## 玩家尚未開放的自身國家血統選擇是兩件事。
+static func base_interior_background_path(terrain_type: int) -> String:
+	return "res://Images/Base/base_%s.jpg" % TerrainType.keys()[terrain_type]
 
 ## 大地圖城鎮圖示(Images/Map/MapObject/Town/),見 Scenes/MapObject/Town/town.gd。
 ## 檔名沿用美術原始命名(DESSERT 是既有拼字,不是 DESERT 的筆誤修正),所以不能像

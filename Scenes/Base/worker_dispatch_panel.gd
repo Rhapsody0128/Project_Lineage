@@ -10,9 +10,10 @@ extends HBoxContainer
 # 疊加視窗關閉時才重建底下的建築面板(見 base_action_panel.gd 的 _open_dispatch_picker())。
 #
 # 版面三塊,比照 stronghold_marriage_panel.gd/marriage_proposal_panel.gd 的既有慣例——
-# 左側固定寬度 CharacterDetailView 一塊獨立羊皮紙面板,右側上下各一塊獨立羊皮紙面板,
-# 各自內容可能超出自己那個框時各自捲動(ActionPanel.wrap_scrollable()),不會互相牽連、
-# 也不會把整包右側撐高變成捲動整個面板。左側初始顯示依建築適應性素質(potential_type)
+# 不套羊皮紙面板,只在需要分隔的那一邊畫一條線(左側在右邊、右欄上方的工作角色列在
+# 下面),三塊內容都自然往下/往右長多高多寬,只有最外層 CharacterSelectOverlay 一個
+# 捲動框負責捲動(見該檔案開頭註解),不會有各自獨立的捲動框互相牽連。左側初始顯示依
+# 建築適應性素質(potential_type)
 # 排序最高的角色,給玩家一個「這個建築最適合誰」的預覽起點;右下角色清單點卡片時除了
 # 嘗試指派,也會同步把左側焦點換成剛點的那個人(見 _on_list_card_selected()),方便玩家
 # 一邊點一邊確認剛選的人素質——召回(點右上已填格子)不影響左側焦點。右上是目前已指派的
@@ -48,22 +49,22 @@ func _init(p_building: Building) -> void:
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 
+	# 不套羊皮紙面板——只在需要分隔的那一邊畫一條線(左側 detail_panel 在右邊、右欄上方
+	# 工作角色列在下面),取代原本各自獨立一顆固定尺寸羊皮紙面板的設計,比照
+	# marriage_proposal_panel.gd 的既有慣例。
 	var detail_panel := PanelContainer.new()
+	detail_panel.add_theme_stylebox_override("panel", UiStyle.right_border_style())
 	add_child(detail_panel)
 
 	_detail_view = CharacterDetailView.new()
 	_detail_view.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail_view.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# 只留最外層 CharacterSelectOverlay 一個捲動框(見該檔案開頭註解),分頁內容不再另包
+	# 一層獨立 ScrollContainer 搶捲動手感。
+	_detail_view.scrollable_tabs = false
 	detail_panel.add_child(_detail_view)
-
-	# 比照 character_select_panel.gd 的既有寫法:掛進樹裡才問得到 _detail_view 自己攜帶的
-	# custom_minimum_size(CharacterDetailView.PANEL_WIDTH)。
-	var panel_size := detail_panel.get_combined_minimum_size()
-	UiStyle.apply_parchment_panel(detail_panel, panel_size.x, panel_size.y)
 
 	var right_column := VBoxContainer.new()
 	right_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right_column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	right_column.add_theme_constant_override("separation", 16)
 	add_child(right_column)
 
@@ -88,13 +89,12 @@ func _ready() -> void:
 	_rebuild_slots()
 
 
-## 右上「工作角色」區塊:獨立木框羊皮紙面板,固定高度,_slots_row 包一層捲動框防呆——
-## 格數多到超出面板寬度時交給捲動框自己吃掉,不會撐大整個右側欄位(見 stronghold_marriage_panel.gd
-## 的 _build_nation_panel() 同一套做法)。
+## 右上「工作角色」區塊:下方畫一條線跟「全部角色」區塊分隔,不套羊皮紙面板,格數多長
+## 就自然往右長(超出的部分只有最外層 CharacterSelectOverlay 負責捲動,見該檔案開頭
+## 註解),比照 marriage_proposal_panel.gd 的既有慣例。
 func _build_slots_panel() -> Control:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(0, 160)
-	UiStyle.apply_parchment_panel(panel, 700.0, 160.0)
+	panel.add_theme_stylebox_override("panel", UiStyle.bottom_border_style())
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
@@ -108,23 +108,20 @@ func _build_slots_panel() -> Control:
 
 	_slots_row = HBoxContainer.new()
 	_slots_row.add_theme_constant_override("separation", 8)
-	column.add_child(ActionPanel.wrap_scrollable(_slots_row))
+	column.add_child(_slots_row)
 
 	return panel
 
 
-## 右下「全部角色」區塊:獨立木框羊皮紙面板,撐滿剩餘高度,裡面是可篩選排序的
-## CharacterSelectBar——角色數量一多,卡片網格會長得比面板還高,包一層捲動框讓超出的部分
-## 自己捲動,不要讓外層 CharacterSelectOverlay 的內容整包一起被撐高(見
-## stronghold_marriage_panel.gd 的 _build_proposer_panel() 同一套做法)。
+## 右下「全部角色」區塊:最後一塊、後面沒有區塊接著,不需要分隔線,但仍要蓋掉引擎預設的
+## PanelContainer 深色底,裡面是可篩選排序的 CharacterSelectBar,卡片網格多長就自然往下長
+## 多高(只有最外層 CharacterSelectOverlay 負責捲動)。
 func _build_picker_panel() -> Control:
 	var panel := PanelContainer.new()
-	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	UiStyle.apply_parchment_panel(panel, 700.0, 380.0)
+	panel.add_theme_stylebox_override("panel", UiStyle.transparent_panel_style())
 
 	var column := VBoxContainer.new()
 	column.add_theme_constant_override("separation", 10)
-	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	panel.add_child(column)
 
 	var title := Label.new()
@@ -134,7 +131,7 @@ func _build_picker_panel() -> Control:
 	column.add_child(title)
 
 	_select_bar = CharacterSelectBar.new()
-	column.add_child(ActionPanel.wrap_scrollable(_select_bar))
+	column.add_child(_select_bar)
 
 	return panel
 

@@ -67,7 +67,7 @@ position = Vector2(6930, 2386)
 terrain = 4
 
 [node name="Base" parent="." unique_id=1764095116 instance=ExtResource("4_base_scene")]
-position = Vector2(2733.9995, 1810.0005)
+position = Vector2(3659, 2217)
 
 [node name="Castle_Plains_1" parent="." unique_id=139673482 instance=ExtResource("5_castle_scene")]
 position = Vector2(1113, 2259)

@@ -6,7 +6,7 @@ extends Node
 # BaseBuildingProgressStore.get_max_workers() 位角色(容量=建築等級)、一位角色同一時間
 # 只能派 1 棟建築,靠 dispatch() 內先呼叫 undispatch_character() 清掉舊指派來保證。
 #
-# 用 GameEnums.BuildingType(Building.type)當 key,不是字串——17 種建築類型本來就
+# 用 GameEnums.BuildingType(Building.type)當 key,不是字串——18 種建築類型本來就
 # 一一對應,不需要另外維護一份 id,見 System/base/building/building.gd 開頭註解。
 #
 # 每月結算不是自己註冊 WorldTimeController,改由 MonthlySettlementStore 統一協調

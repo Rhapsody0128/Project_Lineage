@@ -10,11 +10,11 @@ extends Node2D
 ## `_fit_background_to_viewport()` 在 `_ready()` 用 `get_viewport_rect().size` 即時算,
 ## 並接 `get_viewport().size_changed` 在視窗大小變動時重算(場景節點釋放時 Node 訊號會
 ## 自動斷線,不需手動 disconnect)。非等比縮放造成的些微變形可接受,因為
-## Images/Base/base.jpg 上沒有疊其他需要維持長寬比的圖層。BaseSystem.pick_building() 用
+## Images/Base/base_<TERRAIN>.jpg 上沒有疊其他需要維持長寬比的圖層。BaseSystem.pick_building() 用
 ## Building.territory_polygon(使用者在原圖 1024x559 像素座標點出來的多邊形)比對
 ## get_local_mouse_position(),因為 Node2D.scale 就是 Godot 內建座標轉換,不管當下算出來
 ## 的 x/y 縮放比例是多少,click 判定一樣正確,不需要額外換算。建築本身不畫任何額外
-## 圖層(不疊色塊、不顯示中文名稱標籤)——Images/Base/base.jpg 的美術已經畫好建築長相,
+## 圖層(不疊色塊、不顯示中文名稱標籤)——Images/Base/base_<TERRAIN>.jpg 的美術已經畫好建築長相,
 ## BuildingLibrary 的 territory_polygon 只用來做點擊命中判定(見
 ## BaseSystem.pick_building()),純資料、不需要對應的畫面節點。
 ##
@@ -35,8 +35,23 @@ var _buildings: Array[Building] = []
 func _ready() -> void:
 	_buildings = BuildingLibrary.get_all()
 
+	_load_background_texture()
 	_fit_background_to_viewport()
 	get_viewport().size_changed.connect(_fit_background_to_viewport)
+
+
+## 依根據地在大地圖上的實際座標(BaseLocationStore,見該檔案檔頭註解——根據地之後會開放
+## 玩家遷移,不是 MapObject.get_all() 那種寫死快照)查 MapTerrainMask 判定地形,換成對應的
+## Images/Base/base_<TERRAIN>.jpg(六張地形差分,見 GameEnums.base_interior_background_path())。
+## 不吃 MapObject.nation(那個欄位目前暫定 LION,是別的功能——玩家尚未開放自身國家血統
+## 選擇——借用的預設值,不代表根據地實際座落的地形)。查不到地形(理論上不會發生,根據地
+## 座標本來就落在陸地上)就退回 PLAINS 當保底。
+func _load_background_texture() -> void:
+	var terrain_type: int = GameEnums.TerrainType.PLAINS
+	var nation := MapTerrainMask.nation_at(BaseLocationStore.position)
+	if nation != -1:
+		terrain_type = GameEnums.bloodline_nation_terrain(nation)
+	background.texture = load(GameEnums.base_interior_background_path(terrain_type)) as Texture2D
 
 
 ## 用背景貼圖的原始像素尺寸對「當下實際」的視窗大小算出 x/y 縮放比例,取代寫死的

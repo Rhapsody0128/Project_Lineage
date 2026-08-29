@@ -87,7 +87,7 @@ func _build_wave_intro() -> Dialogue:
 	match _wave_index:
 		0:
 			lines.append(DialogueLine.new(guard_speaker.id, "臭小鬼,膽敢闖進我們的領地,你是有什麼打算?"))
-			lines.append(DialogueLine.new(narrator.id, "你觀察對方,看起來是 %s 級的強盜佔領了這座城堡。" % GameEnums.rank_label(_guard_rank)))
+			lines.append(DialogueLine.new(narrator.id, "你觀察對方,看起來是 %s 級的%s佔領了這座城堡。" % [GameEnums.rank_label(_guard_rank), _bandit_label()]))
 			speakers.append(narrator)
 		1:
 			lines.append(DialogueLine.new(guard_speaker.id, "滿能打的嘛,接下來就看看你有沒有膽接我二把手的劍!"))
@@ -111,7 +111,7 @@ func _build_wave_intro() -> Dialogue:
 
 func _accept_line() -> String:
 	match _wave_index:
-		0: return "無恥的強盜,我是來伸張正義的!"
+		0: return "無恥的%s,我是來伸張正義的!" % _bandit_label()
 		1: return "廢話少說,放馬過來!"
 		_: return "這次也不會輸!"
 
@@ -136,9 +136,16 @@ func _build_victory_dialogue() -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(guard_speaker.id, "不……這座城堡……我不甘心啊!"),
-		DialogueLine.new(narrator.id, "強盜首領倉皇逃走,你成功佔領了%s。" % _map_object.name),
+		DialogueLine.new(narrator.id, "%s首領倉皇逃走,你成功佔領了%s。" % [_bandit_label(), _map_object.name]),
 	]
 	return Dialogue.new([guard_speaker, narrator], lines, BACKGROUND_PATH)
+
+
+## 這座城堡所屬國家(_map_object.nation,靜態寫死,見 System/map/map_object.gd)換算成
+## 地形對應的強盜稱呼(GameEnums.terrain_bandit_label()),跟遊蕩者(見
+## System/event/map/roaming_enemy_event.gd 的 _bandit_label())共用同一份對照表。
+func _bandit_label() -> String:
+	return GameEnums.bandit_label_for_nation(_map_object.nation)
 
 
 ## 佔領後每次「聊天」都是同一段固定內容,產出量是確定性算式,不需要另存「上個月」快照,

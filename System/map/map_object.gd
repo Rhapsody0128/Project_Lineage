@@ -64,8 +64,12 @@ static func get_all() -> Array[MapObject]:
 		MapObject.new("LeopardTown", "豹城", null, Vector2(6930.0, 2386.0), GameEnums.MapObjectType.TOWN, GameEnums.BloodlineNation.LEOPARD),
 		# nation 暫定 LION——玩家目前沒有可選的自身國家血統,根據地地點選單背景圖固定用
 		# GameEnums.BASE_LOCATION_BACKGROUND_PATH,不吃這個 nation 換算的地形,等玩家
-		# 可選血統國家的功能接上再視需要改成真正的選擇結果。
-		MapObject.new("PlayerBase", "根據地", null, Vector2(2733.9995, 1810.0005), GameEnums.MapObjectType.BASE, GameEnums.BloodlineNation.LION),
+		# 可選血統國家的功能接上再視需要改成真正的選擇結果。position 這裡仍是編輯器目前
+		# 擺放座標的快照(給 RoamingEnemySpawner 等拿不到場景樹的 System 層邏輯讀,見上方
+		# get_all() 註解),但根據地實際座落的地形(Scenes/Base/base_inner.gd 挑背景圖用)
+		# 已經改讀 BaseLocationStore(autoload)即時同步的座標,不再吃這裡——根據地之後會
+		# 開放玩家遷移,不是城鎮/城堡那種擺好就不再變的定點。
+		MapObject.new("PlayerBase", "根據地", null, Vector2(2115.0, 1216.0), GameEnums.MapObjectType.BASE, GameEnums.BloodlineNation.LION),
 		# 十二座城堡,每種地形各兩座。nation 純粹借地形對應的國家當查表 key(見上方 nation
 		# 欄位註解),不代表城堡效忠哪國。
 		MapObject.new("PlainsCastle1", "平原城堡1", null, Vector2(1113.0, 2259.0), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.LION),
@@ -94,13 +98,17 @@ static func get_all() -> Array[MapObject]:
 ## 彈出面板讓玩家指定 1~365 天,確定後一樣退回大地圖播放時間,但額外把倍速直接調到
 ## DEMO(100 倍),直到指定天數到達或玩家提早移動/操作(視同一般休息醒來)才把倍速還原
 ## 成 1 倍——實際到站判定/倍速還原都在 Scenes/Map/map.gd(MapSessionStore.
-## long_rest_target_day),這裡只負責在子選單多列一顆按鈕。CASTLE:駐軍是佔位按鈕;
+## long_rest_target_day),這裡只負責在子選單多列一顆按鈕。BASE 再多一顆「遷移根據地」:
+## 按下後切回大地圖進入選點模式,玩家點選新座標、通過 System/base/base_relocation_rule.gd
+## 的合法性判斷(不太靠近城鎮/沒落在不可行走地形)後跳確認彈窗顯示花費,確認才真的套用,
+## 實際選點/確認流程在 Scenes/Map/world_inner.gd(BaseLocationStore.is_relocating),這裡
+## 一樣只負責在子選單多列一顆按鈕。CASTLE:駐軍是佔位按鈕;
 ## 聊天跟 TOWN 同名但故意不共用 TownChatEvent(map_location.gd 的 CHAT_LABEL 分支額外
 ## 檢查 type == TOWN 才接,見該檔案註解),先當佔位按鈕,城堡專屬聊天內容之後再設計;
 ## 休息比照 TOWN/BASE 共用同一支 _on_rest_button_pressed()。
 const TYPE_SUB_LOCATIONS: Dictionary = {
 	GameEnums.MapObjectType.TOWN: ["城門", "酒館", "市集", "聊天", "休息"],
-	GameEnums.MapObjectType.BASE: ["進入根據地", "休息", "長休"],
+	GameEnums.MapObjectType.BASE: ["進入根據地", "休息", "長休", "遷移根據地"],
 	GameEnums.MapObjectType.CASTLE: ["聊天", "駐軍", "休息"],
 }
 

@@ -51,6 +51,7 @@ LifeEventQueueStore="*res://Scripts/Autoload/life_event_queue_store.gd"
 CastleStore="*res://Scripts/Autoload/castle_store.gd"
 MonthlySettlementStore="*res://Scripts/Autoload/monthly_settlement_store.gd"
 NationRelationStore="*res://Scripts/Autoload/nation_relation_store.gd"
+BaseLocationStore="*res://Scripts/Autoload/base_location_store.gd"
 
 [display]
 

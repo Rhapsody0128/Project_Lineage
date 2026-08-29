@@ -142,6 +142,11 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 - 血統/學院/婚姻/城鎮/英靈殿等企劃概念尚無對應 System 模組
 - CONFUSE(叛變攻擊己方)機制已寫好但抽選池暫時關閉,等魅惑狀態系統接上再開放
 - `Character.age` 目前只是產生時隨機指定的靜態數值,尚無老化/死亡/婚姻等生命週期機制
+- 根據地新增第 18 種建築 `GameEnums.BuildingType.FORGE`(鐵匠鋪,`System/base/building/
+  building_library.gd`):打造裝備、升級後提升對應武器類型全體基礎素質(遊戲企劃設定
+  總整理.md 八、「武器統一素質」)。目前是非生產類建築(比照 CLINIC/BARRACKS,只有
+  資料定義+`base_inner.tscn` 裡的正式 `territory_polygon`),素質加成機制本身還沒接,
+  只有建造/升級的資源數值框架
 
 ## 六、血統國家與地理環境對照表
 
@@ -160,7 +165,11 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 `System/map/map_object.gd` 的 `MapObject.nation` 記錄每個地點所屬國家,`terrain_type()`
 包一層 `bloodline_nation_terrain()`。目前三座城鎮(獅城/雄城/鷹城)分別對應 LION/BEAR/
 EAGLE;`PlayerBase`(玩家根據地)暫時借用 LION 當預設外觀,玩家還沒有可選的自身國家
-血統,等那個功能接上再改成真正的選擇結果。
+血統,等那個功能接上再改成真正的選擇結果。這個 `nation`/位置快照只給拿不到場景樹的
+System 層邏輯(如 `RoamingEnemySpawner`)讀;根據地實際座落的地形(`Scenes/Base/
+base_inner.gd` 挑 `base_<TERRAIN>.jpg` 背景圖用)改讀 `BaseLocationStore`(autoload,
+`Scripts/Autoload/base_location_store.gd`)即時同步的座標,不吃這份快照——根據地之後
+會開放玩家遷移,不是城鎮/城堡那種美術擺好就不再變的定點,見該檔案檔頭註解。
 
 對話背景圖(`Images/Dialogue/`)一律靠 `GameEnums` 的路徑組字函式取檔案路徑,檔名直接對應
 enum 成員名稱,不另外維護路徑陣列(降低新增/調整 enum 順序時悄悄對不上的風險):

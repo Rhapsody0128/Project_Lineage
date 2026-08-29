@@ -11,12 +11,15 @@ extends VBoxContainer
 ## 生產類建築額外顯示目前月產量與工作角色頭像格(容量=等級,點空格開角色選人面板指派、
 ## 點已填格子直接召回)。
 ##
-## 「選一位角色」情境(派遣工作角色/兵營指派受訓/更換整團領導人)一律呼叫
+## 「選一位角色」情境(派遣工作角色/更換整團領導人)一律呼叫
 ## Scenes/CharacterSelect/character_select_overlay.gd 的 CharacterSelectOverlay,疊加在
 ## 這份建築面板最上層(獨立 CanvasLayer,不是原地替換 ActionPanel 目前的內容)——self
 ## 全程留在畫面上不受影響,選定/取消都只是把疊加面板關掉,接下來直接沿用 self 更新狀態、
-## 呼叫 _rebuild_body(),見 _open_dispatch_picker()/_open_trainee_picker()/
-## _open_leader_picker() 的既有寫法。城鎮中心聯姻是例外:選聯姻角色/寄信國家改走
+## 呼叫 _rebuild_body(),見 _open_dispatch_picker()/_open_leader_picker() 的既有寫法。
+## 兵營是例外:六大項目整份交給獨立的 BarracksPanel(見 _build_barracks_panel()),六顆
+## 按鈕各自 ActionPanel.open_custom() 開一份全新內容(比照 _open_weapon_craft_panel() 寫法,
+## 不是原地切換這裡的內容),各自的選人流程也由那些獨立畫面自己開 CharacterSelectOverlay,
+## 不沿用這裡的 _rebuild_body() 流程。城鎮中心聯姻也是例外:選聯姻角色/寄信國家改走
 ## Scenes/Marriage/stronghold_marriage_panel.gd 的 StrongholdMarriagePanel(見
 ## _open_stronghold_marriage_panel()),外殼直接換掉 ActionPanel 目前顯示的內容(不是疊
 ## 加),候選人盲選跟後續 Dialogue 演出則交給 System/event/base/base_marriage_event.gd。
@@ -45,9 +48,6 @@ var _building: Building
 var _upgrade_error: bool = false
 var _build_error: bool = false
 
-## 兵營:選定要受訓的角色後存這裡,接著展開技能清單(_build_skill_picker())。
-var _training_character: Character = null
-var _barracks_error: bool = false
 ## 祭壇/禁忌祭壇購買奧義、科技樹解鎖各自的單次錯誤提示旗標,用法同
 ## _build_error/_upgrade_error——商隊站/黑市兌換改成每月自動執行,設定當下不會失敗,
 ## 不需要對應的錯誤旗標。
@@ -106,7 +106,7 @@ func _rebuild_body() -> void:
 		_add_label("已達最高等級")
 
 	if _building.type == GameEnums.BuildingType.BARRACKS:
-		_build_barracks_section()
+		_build_barracks_panel()
 		return
 
 	if _building.type == GameEnums.BuildingType.WAREHOUSE:
@@ -617,121 +617,21 @@ func _open_dispatch_picker() -> void:
 	overlay.tree_exiting.connect(_rebuild_body)
 
 
-## 兩個「選一個純頭像卡就好」的選人情境(兵營受訓/更換整團領導人)共用這顆最簡單的
-## card_factory——完整資訊都在 CharacterSelectPanel 左側,卡片不需要額外的可選/不可選
-## 狀態。
+## 「選一個純頭像卡就好」的選人情境(更換整團領導人)用這顆最簡單的 card_factory——
+## 完整資訊都在 CharacterSelectPanel 左側,卡片不需要額外的可選/不可選狀態。
 func _simple_avatar_card(character: Character) -> Control:
 	return CharacterAvatarCard.new(character)
 
 
-## 兵營:技能傳授/被動訓練 Rank 上限跟著建築等級開放,不影響戰場 COST(固定 20)。訓練中
-## 名單顯示在最上面,底下是「指派角色訓練」入口——按下後疊出選人面板
-## (_open_trainee_picker()),確認選擇後回到這裡展開技能清單(_training_character)。
-func _build_barracks_section() -> void:
-	_add_label("可傳授/訓練最高 Rank：%s" % GameEnums.rank_label(BaseBuildingProgressStore.get_rank(_building.type)))
-	_add_label("戰場 COST 固定 20，不受兵營等級影響。")
-
-	var trainees := BarracksTrainingStore.get_trainees()
-	if not trainees.is_empty():
-		_add_label("訓練中：")
-		for character_id in trainees:
-			var character := BaseDispatchStore.find_character(character_id)
-			if character == null:
-				continue
-			var skill := BarracksTrainingStore.get_skill(character_id)
-			_add_label("%s 學習「%s」，%d 天後完成" % [
-				character.full_name, skill.name, BarracksTrainingStore.get_days_remaining(character_id)
-			])
-
-	if _training_character != null:
-		_build_skill_picker()
-		return
-
-	var button := Button.new()
-	button.text = "指派角色訓練"
-	_style_button(button)
-	button.pressed.connect(func() -> void: _open_trainee_picker())
-	add_child(button)
-
-
-## 只列出目前空閒(未受訓/未派駐其他建築)的未禁用角色——不比照生產建築的派遣清單顯示
-## 全部角色反灰,訓練是相對少發生的操作,直接濾掉不可選的人更清楚。疊加面板選定後直接
-## 沿用 self 寫回 _training_character、呼叫 _rebuild_body()。
-func _open_trainee_picker() -> void:
-	var characters: Array[Character] = []
-	for character in CharacterRosterStore.all_characteres:
-		if not character.is_disabled and not BarracksTrainingStore.is_training(character.id) and not BaseDispatchStore.is_character_dispatched(character.id):
-			characters.append(character)
-
-	var overlay := CharacterSelectOverlay.new()
-	get_tree().root.add_child(overlay)
-	overlay.open_picker("指派角色訓練", characters, _simple_avatar_card, -1, _on_trainee_confirmed)
-
-
-func _on_trainee_confirmed(character: Character) -> void:
-	_training_character = character
-	_rebuild_body()
-
-
-## 技能池取自 SkillLibrary.build()(主動/被動不分,方案 A:傳授新技能與訓練被動技能
-## 共用同一套規則),過濾條件只有兩個:Rank ≤ 兵營等級、角色還不會這個技能。
-func _build_skill_picker() -> void:
-	_add_label("為 %s 選擇要學習的技能：" % _training_character.full_name)
-
-	var rank_cap := BaseBuildingProgressStore.get_rank(_building.type)
-	var eligible: Array[Skill] = []
-	for skill in SkillLibrary.build():
-		if skill.rank <= rank_cap and not BarracksTraining.character_knows_skill(_training_character, skill):
-			eligible.append(skill)
-
-	if eligible.is_empty():
-		_add_label("沒有可學習的新技能")
-	else:
-		for skill in eligible:
-			add_child(_build_skill_row(skill))
-
-	if _barracks_error:
-		_add_label("資材不足")
-		_barracks_error = false
-
-	var cancel_button := Button.new()
-	cancel_button.text = "取消"
-	_style_button(cancel_button)
-	cancel_button.pressed.connect(func() -> void:
-		_training_character = null
-		_rebuild_body()
-	)
-	add_child(cancel_button)
-
-
-func _build_skill_row(skill: Skill) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-
-	var days := BarracksTraining.days_for_rank(skill.rank)
-	var cost := BarracksTraining.cost_for_rank(skill.rank)
-	var label := Label.new()
-	label.text = "%s（%s，耗材：%s，天數：%d 天）" % [skill.name, GameEnums.rank_label(skill.rank), _format_cost(cost), days]
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	row.add_child(label)
-
-	var button := Button.new()
-	button.text = "開始訓練"
-	_style_button(button)
-	var character := _training_character
-	button.pressed.connect(func() -> void:
-		if BarracksTrainingStore.start_training(character, skill):
-			_training_character = null
-			_rebuild_body()
-		else:
-			_barracks_error = true
-			_rebuild_body()
-	)
-	row.add_child(button)
-
-	return row
+## 兵營:六大項目(傳授/歷練/戰場擴充/戰術格開發/隊長訓練/變換隊形)整份交給獨立的
+## BarracksPanel(Scenes/Base/barracks_panel.gd)——自學訓練已被「傳授」(師徒制)完全
+## 取代,見 System/base/barracks_teaching_rule.gd。這裡只負責掛載,不像 WeaponCraftPanel
+## 那樣另開一層 ActionPanel 內容(兵營沒有「先看總覽表再點進子畫面」的需求,六個分頁本身
+## 就是兵營的全部內容)。
+func _build_barracks_panel() -> void:
+	var panel := BarracksPanel.new()
+	panel.setup(_building)
+	add_child(panel)
 
 
 ## 工匠坊:三種配方任選一種,月結算時依 WorkshopRecipeStore 目前選定的配方換算實際產出

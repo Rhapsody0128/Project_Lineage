@@ -22,6 +22,12 @@ static func grant_victory_exp(battle: Battle) -> void:
 static func exp_for_dispatch(rank_type: int) -> int:
 	return int(exp_for_rank(rank_type) * 0.1)
 
+## 兵營歷練用,給滿額(不像 exp_for_dispatch() 只給 10%)——歷練是「年」尺度(固定一年才
+## 結算一次),dispatch 是「月」尺度,不能直接沿用同一個折扣。沿用 RANK_EXP 表,不重新
+## 設計曲線。
+static func exp_for_expedition(rank_type: int) -> int:
+	return exp_for_rank(rank_type)
+
 ## RankType(F..SSS)分別對應的戰鬥勝利金錢獎勵/戰敗金錢損失。金錢庫存已無上限(見
 ## System/base/base_warehouse.gd,BaseResourceStore.add() 對 GOLD 特殊處理不再封頂),
 ## 曲線比 RANK_EXP 陡許多——遊蕩者難度(等級/人數,見 PartyController.RANK_LEVEL_RANGE/

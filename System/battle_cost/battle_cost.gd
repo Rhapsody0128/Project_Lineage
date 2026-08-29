@@ -45,3 +45,12 @@ func center_offset() -> Vector2i:
 	var min_c := bounds_min()
 	var max_c := bounds_max()
 	return Vector2i(roundi((min_c.x + max_c.x) / 2.0), roundi((min_c.y + max_c.y) / 2.0))
+
+## 把 cells 裡任一格重新當作佔位格(新原點),其餘格子重算相對偏移——輪廓/總格數不變,
+## 只是換一格當站立軸心。供「變換隊形→重抽佔位」使用(見 BattleCostController.reroll_anchor())。
+func rebase_anchor(new_anchor_index: int) -> BattleCost:
+	var anchor := cells[new_anchor_index]
+	var rebased: Array[Vector2i] = []
+	for cell in cells:
+		rebased.append(cell - anchor)
+	return BattleCost.new(rebased)

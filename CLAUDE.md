@@ -179,10 +179,77 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 `CharacterSelectOverlay`(`Scenes/CharacterSelect/character_select_overlay.gd`)是唯一
 例外——`extends CanvasLayer` 自成一層(layer 比 ActionPanel 高),不借用 ActionPanel,
 因為它經常需要疊加在「目前已開著的 ActionPanel 內容之上」而不取代它(例如根據地建築
-面板開著時彈出的派遣/受訓/領導人選人清單)。外觀沿用 ActionPanel 的視覺語言與
+面板開著時彈出的派遣/兵營/領導人選人清單)。外觀沿用 ActionPanel 的視覺語言與
 `DEFAULT_MIN_SIZE`,內部塞 `CharacterSelectPanel`(左側 `CharacterDetailView` + 右側
 `CharacterSelectBar`)。呼叫端 `new()` 塞進場景樹、呼叫 `open_picker(...)`,`close()`
 時自己 `queue_free()`——不是 autoload 單例,疊上來時底下的 ActionPanel 內容不受影響。
+
+## 兵營(System/base + Scenes/Base/barracks_*.gd)
+
+兵營六大項目——傳授/歷練/戰場擴充/戰術格開發(空殼)/隊長訓練/變換隊形——`BarracksPanel`
+只是嵌在 `base_action_panel.gd` 裡的總覽(`_build_barracks_panel()` 掛載,六顆按鈕列表,
+寫法比照 `_build_warehouse_section()` 直接把內容加進 `self`),**每顆按鈕各自呼叫
+`ActionPanel.open_custom()` 開一份全新內容**(比照 `_open_weapon_craft_panel()` 寫法,
+`on_close` 一律回 `BaseBuildingEvent.open_action_panel(building)`),不是原地切換內容——
+六個子畫面(`BarracksTeachPanel`/`BarracksExpeditionPanel`/`BarracksGridExpandPanel`/
+戰術格開發用的就地小 `content`/`BarracksLeaderTrainingPanel`/`BarracksFormationPanel`)
+各自獨立場景腳本。原本「角色自己單獨學技能」的自學訓練(`BarracksTrainingStore`/
+`BarracksTraining`)已整個刪除,被「傳授」(師徒制)完全取代。
+
+角色技能數量上限 `Character.MAX_SKILLS`(=4,`CharacterDetailView.SKILL_SLOT_COUNT` 引用
+同一個常數,不重複定義)是**規則層限制**,不只是 UI 固定畫 4 格。任何學技能的地方都要走
+唯一入口 `SkillLearnFlow.try_learn(character, skill, on_done)`:技能格未滿直接學會;已滿
+彈全域 autoload `SkillReplaceDialog`(CanvasLayer,純程式碼組節點無 `.tscn`,外殼比照
+`AskBattle` 的 DimBg+CenterContainer+PanelContainer 公式,`layer=40` 蓋過
+`CharacterSelectOverlay` 的 30)讓玩家選替換掉哪一個技能或放棄學習,替換/放棄都由
+`SkillReplaceDialog` 自己完成 `skill_list` 異動。`on_done(applied: bool)` 只有 `true`
+(真的學會/替換成功)才該執行有副作用的後續(師父 `has_taught_skill`、隊長訓練扣金幣),
+放棄學習不該有任何副作用。傳授/隊長訓練/歷練收成(見下)三個呼叫點共用同一套。
+
+- **傳授**(`BarracksTeachPanel`):左 `CharacterDetailView` + 右上師父/學生兩個槽位
+  (點擊開 `CharacterSelectOverlay.open_picker()` 換人)+ 槽位選定後展開的師父技能清單
+  (toggle 選取,不是點了就傳授),標題列(跟 × 同排)「傳授」鈕兩者+技能都選了才能按。
+  師父把自己 `skill_list` 裡的技能教給學生,立即生效(不花資源/天數)。三個限制:師父
+  一生只能傳授一次(`Character.has_taught_skill`,寫法比照 `is_protagonist`)、師父年齡
+  門檻(`BarracksTeachingRule.MIN_TEACHER_AGE_BY_RANK`,F~SSS 等差 -5:
+  40/45/50/55/60/65/70/75/80)、技能 rank ≤ 兵營等級。血統覺醒技(`SkillLibraryBlood`)
+  內部 `rank` 統一填 F 不代表難度,這裡跟隊長訓練都要用 `SkillRankRule.effective_rank()`
+  換算(血統技能一律當 A 級技能看待),不能直接讀 `skill.rank`。
+- **歷練**(`BarracksExpeditionPanel`,版面比照 `WorkerDispatchPanel` 三塊式——左詳情/
+  右上名額格/右下角色清單點卡片即派遣,但這裡本身已是獨立 ActionPanel 畫面,不用再包一層
+  `CharacterSelectOverlay`):派角色出去固定一年(`WorldTime.DAYS_PER_YEAR`),名額 = 兵營
+  等級(滿等 9 人,送出當下若角色在小隊裡且非隊長會自動移出小隊,寫法比照
+  `BaseDispatchStore.dispatch()`;隊長不能送去歷練)。`BarracksExpeditionStore`
+  (autoload)逐日倒數,天數歸零當下就結算好(技能池比照傳授的 rank cap 概念、
+  `randi_range(1,2)` 抽技能 + `BattleReward.exp_for_expedition()` 給滿額經驗,不像月結算
+  派駐只給 10%),但存進「待確認」桶,角色狀態顯示 `GameEnums.CharacterStatus.ON_EXPEDITION`,
+  要玩家自己點名額格(顯示「待確認」角標)才真正發技能/經驗、恢復可操作——技能發放要先
+  逐一跑過 `SkillLearnFlow`(一次可能 1~2 個,可能連續彈 `SkillReplaceDialog`)才呼叫
+  `BarracksExpeditionStore.finalize_collect()`,所以 `collect()` 拆成唯讀的
+  `get_completed_skills()` + `finalize_collect()`(只管經驗/清紀錄/發 NEWS)兩段。臨時
+  召回(`recall()`,點「剩 N 天」角標,`ConfirmDialog` 二次確認)不結算任何獎勵。偶遇事件
+  特性(trait)機制未接,這次刻意不實作,只在 `_roll_result()` 留掛勾點註解。
+- **戰場擴充**(`BarracksGridExpandPanel`):花科研點數(`GameEnums.ResourceType.RESEARCH`)
+  指定解鎖 `PartyStore.grid`(6x6 戰場編成格)的任一格,花費依已解鎖格數等差遞增
+  (`GridExpansionRule`,5/10/15/20……)。跟 `party_edit.gd` 的「加大格子(D)」DEMO 按鈕
+  (隨機解鎖、免費,純測試用)並存,兩者互不影響,`PartyEditGrid.unlock_cells()` 本身是
+  聯集寫入。這裡不重用 `PartyEditBoard`(那顆的座標常數是為 `party_edit.tscn` 滿版場景
+  量身訂做),自己用 `BoardTileRenderer` 畫一份縮小版棋盤,頁面上會顯示目前科研存量。
+- **隊長訓練**(`BarracksLeaderTrainingPanel`,版面比照傳授但只有一個角色槽位,技能清單
+  緊接在槽位下方同頁展開):花金錢(`LeaderTrainingRule.GOLD_COST_BY_RANK`)學會
+  `SkillLibraryLeader` 的隊長技能(增益/減益都算),不限定角色是否為現任隊長——隊長技能
+  誰都能學,只有戰鬥中 `BattleCharacter.is_leader` 才會被納入行動候選,兵營端不重複擋。
+  只有真的學會(含技能滿 4 替換成功)才扣金幣,放棄學習不扣款。
+- **變換隊形**(`BarracksFormationPanel`):頁面頂部顯示倉庫目前金錢存量,角色槽位選定後
+  展開 `BattleCostView` 隊形預覽 + 兩顆按鈕花金錢重抽角色的 `BattleCost`(戰場佔位形狀),
+  格數不變,不經過 `SkillLearnFlow`(跟學技能無關)。「重抽形狀」
+  (`BattleCostController.reroll_shape()`,花費 `FormationRerollRule.SHAPE_REROLL_COST`=100)
+  重新 flood-fill 長出全新連通形狀;「重抽佔位」(`reroll_anchor()`/
+  `BattleCost.rebase_anchor()`,花費 `ANCHOR_REROLL_COST`=50)形狀輪廓不變,只是換一格當
+  佔位格(`cells[0]`,站立/旋轉軸心)。重抽後若角色目前在 `PartyStore.grid` 上已有站位,
+  不主動核對/搬移合法性,比照「戰場擴充」額外解鎖格只聯集不核對現有站位的既有寬鬆慣例。
+- **戰術格開發**:`BarracksPanel` 按鈕 handler 就地建一個只顯示「開發中」的最小 content,
+  不另開檔案,之後有詳細設計再回來擴充/搬成獨立檔案。
 
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
@@ -251,8 +318,9 @@ battle_reward.gd` 的 `grant_victory_favor(battle)` 依 `enemy_rank_type` 查
 對應 `Scenes/News/news_list.gd` 的「重大」/「日常」分頁),呼叫端一律要明確指定,故意不給
 預設值——目前 `MAJOR` 是角色生老病死等重大人生事件(成年/衰老/懷孕/生產/結婚/死亡,見
 `WorldTimeEventLibrary`/`CharacterDeathController`/`BaseMarriageEvent`/
-`TownTavernEvent`),`DAILY` 目前只有學會技能(`BarracksTrainingStore`),之後會陸續加入
-更多瑣碎事件。委託完成(`QuestStore._grant_reward_and_complete()`)只跳 `MessageBar`
+`TownTavernEvent`),`DAILY` 目前只有兵營學會技能(傳授/歷練歸來,見
+`Scenes/Base/barracks_panel.gd`/`Scripts/Autoload/barracks_expedition_store.gd`),之後
+會陸續加入更多瑣碎事件。委託完成(`QuestStore._grant_reward_and_complete()`)只跳 `MessageBar`
 提示,刻意不寫進 `NewsController`——不算重大事件,也不想讓「日常」分頁被委託洗版。
 
 未讀機制:`NewsEntry.is_read` 新建時預設 `false`,`NewsStore.mark_category_read(category)`

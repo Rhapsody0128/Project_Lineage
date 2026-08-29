@@ -19,9 +19,10 @@ enum MapObjectType {TOWN, BASE, CASTLE}
 ## (未來城鎮駐守機制預留,目前沒有任何流程會產生這個值);IN_PARTY 編隊中(已編入
 ## PartyStore.party,跟 WORKING 互斥,見 BaseDispatchStore.dispatch());WORKING 派駐在
 ## 根據地建築生產中(顯示文字要內插建築名稱,不吃靜態 label,見 CharacterStatusRule);
-## DISMISSED 已被玩家解雇離隊;DEAD 已老死。祖譜/角色面板統一顯示這個狀態,取代舊版
-## 「年齡欄位加註(已故)」的寫法。
-enum CharacterStatus {ACTIVE, STATIONED, IN_PARTY, WORKING, DISMISSED, DEAD}
+## ON_EXPEDITION 兵營歷練中(見 BarracksExpeditionStore,一次固定一年,跟 STATIONED
+## 語意不同不能混用);DISMISSED 已被玩家解雇離隊;DEAD 已老死。祖譜/角色面板統一顯示
+## 這個狀態,取代舊版「年齡欄位加註(已故)」的寫法。
+enum CharacterStatus {ACTIVE, STATIONED, IN_PARTY, WORKING, ON_EXPEDITION, DISMISSED, DEAD}
 
 
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND/SHIELD 對我方(含自己)生效,

@@ -121,16 +121,26 @@ func _can_drop_data(at_position: Vector2, data) -> bool:
 	return _hover_valid
 
 
-## 拖放的角色目前若派駐在根據地某棟建築生產,不直接搶過來——先跳 ConfirmDialog 問玩家是否
-## 要召回改編入小隊,確定才真的 undispatch 舊建築、place() 到網格上(比照
-## Scenes/Base/worker_dispatch_panel.gd 的 _confirm_reassign() 同一套「跳確認才生效」寫法),
-## 取消的話網格維持原樣,不會出現角色卡在畫面上但資料沒真的放置的中間態。
+## 拖放的角色目前若派駐在根據地某棟建築生產,或正在歷練中,都不直接搶過來——先跳
+## ConfirmDialog 問玩家是否要召回/取消歷練改編入小隊,確定才真的清掉舊狀態、place() 到
+## 網格上(比照 Scenes/Base/worker_dispatch_panel.gd 的 _confirm_reassign() 同一套「跳確認
+## 才生效」寫法,兩邊互斥規則要一致,見 CLAUDE.md 這次需求),取消的話網格維持原樣,不會出現
+## 角色卡在畫面上但資料沒真的放置的中間態。派駐生產跟歷練中不會同時成立(見
+## BaseDispatchStore.dispatch()/BarracksExpeditionStore.send() 的互斥判斷),兩個分支互斥。
 func _drop_data(at_position: Vector2, data) -> void:
 	var shape: Array[Vector2i] = data["shape"]
 	var anchor := _anchor_cell_for(at_position, shape)
 	var character: Character = data["character"]
 	_hover_active = false
 	queue_redraw()
+
+	if BarracksExpeditionStore.is_on_expedition(character.id):
+		ConfirmDialog.ask("%s 目前歷練中，取消歷練不會有任何歷練獎勵，是否改編入隊伍？" % character.full_name, func() -> void:
+			BarracksExpeditionStore.recall(character.id)
+			grid.place(character, shape, anchor)
+			placement_changed.emit()
+		, Callable(), "確定", "取消")
+		return
 
 	var dispatched_building_type := BaseDispatchStore.get_dispatched_building_type(character.id)
 	if dispatched_building_type != -1:

@@ -38,8 +38,10 @@ extends VBoxContainer
 ## Container(搭配 SIZE_EXPAND_FILL)決定實際高度才對。
 const PANEL_WIDTH := 320.0
 
-## 技能格 2*2 排列,GridContainer columns=2。
-const SKILL_SLOT_COUNT := 4
+## 技能格 2*2 排列,GridContainer columns=2。技能數量上限本身是規則層常數
+## (Character.MAX_SKILLS,SkillLearnFlow 學技能滿了要跳替換/放棄彈窗共用同一個數字),
+## 這裡不重複定義。
+const SKILL_SLOT_COUNT := Character.MAX_SKILLS
 const SKILL_GRID_COLUMNS := 2
 const SKILL_SLOT_MIN_SIZE := Vector2(130, 44)
 const PORTRAIT_SIZE := Vector2(140, 140)

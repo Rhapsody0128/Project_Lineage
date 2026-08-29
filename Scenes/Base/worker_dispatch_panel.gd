@@ -176,15 +176,22 @@ func _build_slot(character: Character) -> Control:
 	return slot
 
 
-## 已在此工作/小隊隊長的卡片本身反灰擋掉點擊(見 _make_dispatch_card()),不會進到這裡;
-## 派駐在別的建築的人卡片維持可點,但不直接搶過來,先跳確認(_confirm_reassign())。已編入
-## 小隊的非隊長成員、以及其餘(目前沒有派駐任何建築也沒編隊)都是直接嘗試指派——
-## BaseDispatchStore.dispatch() 內部會自動把前者移出小隊,呼叫端不用另外判斷;滿額時
-## dispatch() 回傳 false、什麼都不變,不需要額外判斷或提示。滿額判斷要在跳確認之前先擋:
-## 不然玩家看到「是否改安排到 YYY 工作?」按下確定卻發現滿額被 dispatch() 無聲擋掉,一頭霧水
+## 已在此工作/小隊隊長/歷練歸來待確認的卡片本身反灰擋掉點擊(見 _make_dispatch_card()),
+## 不會進到這裡;歷練中的先跳確認(_confirm_recall_expedition())——跟派駐在別的建築同一套
+## 「反灰但可點、點下去先問過玩家才真的搶過來」慣例(見 CLAUDE.md 這次需求,兩個方向的操作
+## 要一致:BarracksExpeditionPanel 那邊反過來遇到派駐中的角色也是跳確認,見該檔案
+## _confirm_reassign_from_job())。派駐在別的建築的人卡片維持可點,但不直接搶過來,先跳確認
+## (_confirm_reassign())。已編入小隊的非隊長成員、以及其餘(目前沒有派駐任何建築也沒編隊)
+## 都是直接嘗試指派——BaseDispatchStore.dispatch() 內部會自動把前者移出小隊,呼叫端不用
+## 另外判斷;滿額時 dispatch() 回傳 false、什麼都不變,不需要額外判斷或提示。滿額判斷要在
+## 跳確認之前先擋:不然玩家看到確認訊息、按下確定卻發現滿額被 dispatch() 無聲擋掉,一頭霧水
 ## ——這裡直接整個不反應,連確認框都不跳。
 func _on_list_card_selected(character: Character) -> void:
 	if BaseDispatchStore.get_dispatched_character_ids(_building.type).size() >= BaseBuildingProgressStore.get_max_workers(_building.type):
+		return
+
+	if BarracksExpeditionStore.is_on_expedition(character.id):
+		_confirm_recall_expedition(character)
 		return
 
 	_detail_view.set_character(character)
@@ -197,6 +204,20 @@ func _on_list_card_selected(character: Character) -> void:
 	BaseDispatchStore.dispatch(_building.type, character.id)
 	_rebuild_slots()
 	_select_bar.refresh()
+
+
+## 「OOO 目前歷練中,取消歷練不會有任何歷練獎勵,是否改安排到YYY工作?」——確定才真的取消
+## 歷練(BarracksExpeditionStore.recall(),無任何獎勵,比照該 store 既有的臨時召回文案)、
+## 派駐到這裡。
+func _confirm_recall_expedition(character: Character) -> void:
+	var message := "%s 目前歷練中，取消歷練不會有任何歷練獎勵，是否改安排到%s工作？" % [character.full_name, _building.name]
+	ConfirmDialog.ask(message, func() -> void:
+		BarracksExpeditionStore.recall(character.id)
+		_detail_view.set_character(character)
+		BaseDispatchStore.dispatch(_building.type, character.id)
+		_rebuild_slots()
+		_select_bar.refresh()
+	, Callable(), "確定", "取消")
 
 
 ## 「OOO 目前在XXX工作,是否改安排到YYY工作?」——確定才真的把人從舊建築召回、指派到這裡
@@ -212,27 +233,35 @@ func _confirm_reassign(character: Character, current_building_type: int) -> void
 	, Callable(), "確定", "取消")
 
 
-## 完整素質資訊在左側 CharacterDetailView,卡片只需要負責「已在此工作/小隊隊長/派駐別的
-## 建築/已編入小隊(非隊長)」四種狀態——前兩者不可點(反灰),後兩者維持可點但視覺上一樣
-## 反灰(force_dim)示意非「目前沒派駐任何建築也沒編隊」的直接可指派狀態:派駐別的建築走
-## 確認流程(見 _on_list_card_selected()/_confirm_reassign()),已編入小隊的非隊長成員點下去
-## 直接指派——BaseDispatchStore.dispatch() 內部會自動把它移出小隊,小隊至少要留一位隊長,
-## 所以隊長本身不可點(見 CLAUDE.md 這次的雙向轉換規則)。tooltip 明確顯示原因,取代含糊的
-## 「在其他地方工作」。
+## 完整素質資訊在左側 CharacterDetailView,卡片只需要負責「已在此工作/小隊隊長/歷練歸來
+## 待確認/歷練中/派駐別的建築/已編入小隊(非隊長)」六種狀態——前三者不可點(反灰整個擋掉;
+## 待確認歸隊要先在兵營收獎勵才能重新指派,不像單純歷練中可以直接取消),後三者維持可點但
+## 視覺上一樣反灰(force_dim)示意非「目前沒派駐任何建築也沒編隊也沒歷練中」的直接可指派
+## 狀態:歷練中/派駐別的建築都走確認流程(見 _on_list_card_selected()/
+## _confirm_recall_expedition()/_confirm_reassign()),已編入小隊的非隊長成員點下去直接
+## 指派——BaseDispatchStore.dispatch() 內部會自動把它移出小隊,小隊至少要留一位隊長,所以
+## 隊長本身不可點(見 CLAUDE.md 這次的雙向轉換規則)。tooltip 明確顯示原因,取代含糊的「在
+## 其他地方工作」。
 func _make_dispatch_card(character: Character) -> Control:
 	var is_here := BaseDispatchStore.get_dispatched_character_ids(_building.type).has(character.id)
 	var dispatched_building_type := BaseDispatchStore.get_dispatched_building_type(character.id)
 	var is_elsewhere := not is_here and dispatched_building_type != -1
+	var is_on_expedition := BarracksExpeditionStore.is_on_expedition(character.id)
+	var is_awaiting_expedition_collection := BarracksExpeditionStore.is_awaiting_collection(character.id)
 	var is_party_leader := PartyStore.party != null and PartyStore.party.leader == character
 	var is_in_party := PartyStore.party != null and PartyStore.party.characteres.has(character)
-	var assignable := not is_here and not is_party_leader
+	var assignable := not is_here and not is_party_leader and not is_awaiting_expedition_collection
 	var unavailable_reason := ""
 	if is_here:
 		unavailable_reason = "在此工作"
 	elif is_party_leader:
 		unavailable_reason = "小隊隊長，無法派遣"
+	elif is_awaiting_expedition_collection:
+		unavailable_reason = "已歷練歸來待確認，請先在兵營收取獎勵"
+	elif is_on_expedition:
+		unavailable_reason = "歷練中，點擊可取消歷練改派工作"
 	elif is_elsewhere:
 		unavailable_reason = "在%s工作" % GameEnums.building_type_label(dispatched_building_type)
 	elif is_in_party:
 		unavailable_reason = "已編入小隊"
-	return CharacterAvatarCard.new(character, assignable, unavailable_reason, is_elsewhere or is_in_party)
+	return CharacterAvatarCard.new(character, assignable, unavailable_reason, is_elsewhere or is_in_party or is_on_expedition)

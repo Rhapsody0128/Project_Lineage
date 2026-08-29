@@ -1,6 +1,10 @@
 class_name Character
 extends RefCounted
 
+## 角色技能數量上限——UI(CharacterDetailView 技能格)跟規則層(SkillLearnFlow 學技能滿了
+## 要跳替換/放棄彈窗)共用同一個數字來源,不要各自維護一份。
+const MAX_SKILLS := 4
+
 ## 血量上限與 battle_cost 佔位格數掛勾(見 BattleCostController 的 MIN_CELLS/MAX_CELLS),
 ## 格數越多站位越大,血量上限越高
 const COST_HP_MAP := {
@@ -63,6 +67,9 @@ var is_dead: bool = false
 ## 同一套慣例:解雇後仍可能留在祖譜親族圖裡(靠 parent/mate/children 參照撐住),但已從
 ## CharacterRosterStore/AllCharacterStore 移除。狀態顯示見 CharacterStatusRule。
 var is_dismissed: bool = false
+## 是否已用掉一生一次的傳授資格(見 BarracksTeachingRule)。建立時預設 false,之後只會被
+## 設一次不會重置,寫法比照 is_protagonist。
+var has_taught_skill: bool = false
 
 func _init(
 	p_name: String,
@@ -122,6 +129,23 @@ func can_use_skill(skill: Skill) -> bool:
 		if bloodline.get_percentage(skill.required_bloodline_nation, skill.required_bloodline_rank) <= 0.0:
 			return false
 	return true
+
+## 角色是否已經學會這個技能——用名稱比對,不比對 id 或物件參照:Skill.id 是
+## Util.generate_uuid() 隨機產生(見 skill.gd _init()),SkillLibrary.build() 每次呼叫
+## 都是全新實例,同一支技能兩次 build() 出來的 id 也不會相同,id 比對一樣會誤判成
+## 「沒學過」。技能名稱在 SkillLibrary 裡本來就唯一(存檔/讀檔的 SkillController.get_by_name()
+## 已經是同一個假設),用名稱比對才會正確擋下重複學習。原本是
+## BarracksTraining.character_knows_skill(),現在傳授(A)/歷練(B)/隊長訓練(E)共用,收斂到
+## Character 本身。
+func knows_skill(skill: Skill) -> bool:
+	for known in skill_list:
+		if known.name == skill.name:
+			return true
+	return false
+
+## 直接學會一個技能,收斂原本散落各處的 skill_list.append() 寫法。
+func learn_skill(skill: Skill) -> void:
+	skill_list.append(skill)
 
 ## 是否學會守護技能(Skill.is_guard_skill,武器仍要相符/未綁定)——用旗標而非顯示名稱
 ## 字串比對,重新命名技能不會悄悄讓守護判定失效。CombatResolver.resolve_guard() 用。

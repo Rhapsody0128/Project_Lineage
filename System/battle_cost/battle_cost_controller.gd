@@ -35,3 +35,14 @@ static func _neighbors_not_in(cell: Vector2i, cells: Array[Vector2i], frontier: 
 		if not cells.has(neighbor) and not frontier.has(neighbor):
 			result.append(neighbor)
 	return result
+
+## 兵營「變換隊形→重抽形狀」:格數不變,重新 flood-fill 長出全新連通形狀(可能跟原本
+## 完全不同)。見 System/battle_cost/formation_reroll_rule.gd。
+static func reroll_shape(character: Character) -> void:
+	character.battle_cost = get_random_battle_cost(character.battle_cost.cells.size())
+
+## 兵營「變換隊形→重抽佔位」:形狀輪廓不變,只是隨機挑形狀裡的另一格當作新的佔位格
+## (旋轉軸心,見 BattleCost.rebase_anchor())。
+static func reroll_anchor(character: Character) -> void:
+	var index := randi_range(0, character.battle_cost.cells.size() - 1)
+	character.battle_cost = character.battle_cost.rebase_anchor(index)

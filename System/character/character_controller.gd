@@ -1,8 +1,8 @@
 class_name CharacterController
 extends RefCounted
 
-const MIN_AGE := 16
-const MAX_AGE := 40
+const MIN_AGE := 17
+const MAX_AGE := 45
 
 ## 隨機發放的武器池:角色一定會持有武器,涵蓋所有 WeaponType。並列最高素質時
 ## get_weapon_for_potential() 從這個池子篩出的並列項目裡抽一個。

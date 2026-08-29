@@ -34,15 +34,13 @@ static func craft_weapon(weapon_type: int, base_rank: int) -> WeaponInstance:
 	var rolled_rank := RankDrawTable.roll(base_rank)
 	return generate_random_weapon(weapon_type, rolled_rank)
 
-## 鐵匠鋪「變更武器」畫面用:幫角色把手持武器類型換成另一種。比照
-## System/academy/academy_rule.gd 的 enroll()(留學換武器同一套慣例)——換武器同時要重骰
-## 技能表,不然角色會帶著一批 bind_weapon 對不上新武器、can_use_skill() 永遠擋掉的死技能。
-## 換完立刻呼叫 WeaponStore.sync_character() 讓新類型目前的全域素質加成馬上生效。
+## 鐵匠鋪「變更武器」畫面用:幫角色把手持武器類型換成另一種。只換武器類型,**不**動
+## `skill_list`——`SkillController.get_random_initial_skill_list()` 是「創角色從 0 給
+## 技能」專用的抽選函式,跟變更武器是兩件事,遊戲內操作換武器不應該連帶重骰/清空角色已學
+## 的技能(即使因此帶著對不上新武器的 bind_weapon 技能,`can_use_skill()` 擋用即可,不代表
+## 要洗掉)。換完立刻呼叫 WeaponStore.sync_character() 讓新類型目前的全域素質加成馬上生效。
 static func change_weapon_type(character: Character, new_weapon_type: int) -> void:
 	character.weapon = new_weapon_type
-	character.skill_list = SkillController.get_random_initial_skill_list(
-		new_weapon_type, character.noble_bloodline_rank, character.bloodline
-	)
 	WeaponStore.sync_character(character)
 
 ## 加權骰選一個 GameEnums.PotentialType,寫法比照 RankDrawTable.roll() 的加權迴圈——

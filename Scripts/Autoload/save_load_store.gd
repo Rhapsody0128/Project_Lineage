@@ -71,7 +71,7 @@ func save_game(slot: int) -> bool:
 		"workshop_recipe": WorkshopRecipeStore.to_save_data(),
 		"exchange_orders": BaseExchangeStore.to_save_data(),
 		"unlocked_tech_ids": TechStore.to_save_data(),
-		"barracks_training": BarracksTrainingStore.to_save_data(),
+		"barracks_expedition": BarracksExpeditionStore.to_save_data(),
 		"news_entries": NewsStore.to_save_data(),
 		"map_session": MapSessionStore.to_save_data(),
 		"tavern": TavernStore.to_save_data(),
@@ -115,7 +115,7 @@ func load_game(slot: int) -> bool:
 	WorkshopRecipeStore.load_save_data(data.get("workshop_recipe", "wood"))
 	BaseExchangeStore.load_save_data(data.get("exchange_orders", {}))
 	TechStore.load_save_data(data.get("unlocked_tech_ids", []))
-	BarracksTrainingStore.load_save_data(data.get("barracks_training", {}))
+	BarracksExpeditionStore.load_save_data(data.get("barracks_expedition", {}))
 	NewsStore.load_save_data(data.get("news_entries", []))
 	MapSessionStore.load_save_data(data.get("map_session", {}))
 	TavernStore.load_save_data(data.get("tavern", {}), by_id)

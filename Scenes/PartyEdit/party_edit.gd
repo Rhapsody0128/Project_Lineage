@@ -163,22 +163,33 @@ func _refresh_all() -> void:
 	_update_finish_button_state()
 
 
-## 候補清單列出全部角色,包含已上陣的、已派駐根據地生產的——已上陣的整卡反灰、不能再拖去
-## 網格(只能點開看素質,人已經在場上了);已派駐根據地生產的視覺上一樣反灰示意非「直接可用」
-## 狀態,但仍可拖去網格,拖放後 party_edit_availability_layer.gd 的 _drop_data() 會先跳
-## ConfirmDialog 問玩家是否要召回改編入小隊(見該檔案),不是這裡直接擋掉。實際「能不能
-## 放置」規則仍在 PartyEditGrid,這裡只轉發 is_placed()/BaseDispatchStore 的查詢結果給
-## CharacterCard 決定要不要反灰/擋拖曳。
+## 候補清單列出全部角色,包含已上陣的、已派駐根據地生產的、歷練中的——已上陣的整卡反灰、
+## 不能再拖去網格(只能點開看素質,人已經在場上了);待確認歸隊(已歷練完成但還沒收獎勵)
+## 跟已上陣同樣整卡反灰擋掉拖曳,要先在兵營收獎勵才能重新編排。歷練「中」(還沒完成)的
+## 角色則比照已派駐根據地生產——視覺上一樣反灰示意非「直接可用」狀態,但仍可拖去網格,拖放
+## 後 party_edit_availability_layer.gd 的 _drop_data() 會先跳 ConfirmDialog 問玩家是否要
+## 取消歷練(無獎勵)改編入小隊,跟伐木場那種「派駐中先問過玩家才搶過來」同一套邏輯,不是這裡
+## 直接擋掉(見 CLAUDE.md 這次需求)。實際「能不能放置」規則仍在 PartyEditGrid,這裡只轉發
+## is_placed()/BaseDispatchStore/BarracksExpeditionStore 的查詢結果給 CharacterCard 決定
+## 要不要反灰/擋拖曳。
 func _refresh_roster() -> void:
 	for child in roster_list.get_children():
 		child.queue_free()
 	var candidates: Array[Character] = CharacterRosterStore.all_characteres.duplicate()
 	for character in sort_filter_bar.filter.apply(candidates):
 		var is_placed := grid.is_placed(character)
+		var is_on_expedition := BarracksExpeditionStore.is_on_expedition(character.id)
+		var is_awaiting_expedition_collection := BarracksExpeditionStore.is_awaiting_collection(character.id)
 		var dispatched_building_type := BaseDispatchStore.get_dispatched_building_type(character.id)
 		var is_dispatched := dispatched_building_type != -1
-		var disabled_reason := "在%s工作，拖曳可改編入隊伍" % GameEnums.building_type_label(dispatched_building_type) if is_dispatched else ""
-		roster_list.add_child(CharacterCard.new(character, is_placed, disabled_reason, is_dispatched))
+		var disabled_reason := ""
+		if is_awaiting_expedition_collection:
+			disabled_reason = "已歷練歸來待確認，請先在兵營收取獎勵"
+		elif is_on_expedition:
+			disabled_reason = "歷練中，拖曳可取消歷練改編入隊伍"
+		elif is_dispatched:
+			disabled_reason = "在%s工作，拖曳可改編入隊伍" % GameEnums.building_type_label(dispatched_building_type)
+		roster_list.add_child(CharacterCard.new(character, is_placed or is_awaiting_expedition_collection, disabled_reason, is_dispatched or is_on_expedition))
 
 
 func _refresh_placed_layer() -> void:

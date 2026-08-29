@@ -32,7 +32,13 @@ var _assignments: Dictionary = {}
 ## 成員派去工作會直接被移出小隊(grid/characteres/battle_cost_positions 一併清掉,比照
 ## CharacterDeathController.kill() 的既有寫法),跟 PartyEditGrid.place() 允許把已派駐角色
 ## 重新拖回小隊(見該檔案)是同一組雙向轉換,不再是完全互斥。
+##
+## 歷練中/待確認歸隊的角色一律擋下,不允許同時派去建築工作——跟「歷練」那邊反過來一樣
+## (BarracksExpeditionStore.send() 已經擋派駐中的角色去歷練),兩邊要互相擋才不會出現
+## 一個人同時「歷練中」又「在工廠上班」的矛盾狀態(見 CLAUDE.md 這次需求)。
 func dispatch(building_type: GameEnums.BuildingType, character_id: String) -> bool:
+	if BarracksExpeditionStore.is_on_expedition(character_id) or BarracksExpeditionStore.is_awaiting_collection(character_id):
+		return false
 	if PartyStore.party != null:
 		for character in PartyStore.party.characteres:
 			if character.id != character_id:

@@ -6,8 +6,8 @@ extends HBoxContainer
 # base_action_panel.gd 的 _open_weapon_equip_panel())——幫指定角色把手持武器類型換成
 # 另一種六大武器之一,比較的是「不同武器類型」的全域素質加成(例如法杖 → 劍,兩種類型
 # 各自的全域裝備模板數值不同,六大素質可能同時都有差異,不像打造武器只比較同類型
-# 新舊差異)。換裝後角色的技能表要重骰(bind_weapon 技能才會對得上新武器),寫法比照
-# System/academy/academy_rule.gd 的 enroll()(留學換武器同一套慣例),見
+# 新舊差異)。只換武器類型,不動角色技能表——`SkillController.
+# get_random_initial_skill_list()` 是創角色從 0 給技能專用,跟變更武器無關,見
 # WeaponLibrary.change_weapon_type()。
 #
 # 版面三塊(左/右上/右下):左——CharacterDetailView 顯示目前選定角色;右上——「變更為」

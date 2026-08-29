@@ -14,8 +14,8 @@ extends HBoxContainer
 # 師父/學生槽位 + 技能格三者排在同一列(justify-content: center),技能格樣式沿用
 # CharacterDetailView 的 SKILL_SLOT_* 常數,跟角色詳情頁「技能」分頁的格子長相一致。不能
 # 傳授的技能逐條列出卡住的原因(BarracksTeachingRule.teach_block_reasons()),不是一句話
-# 概括帶過。傳授成功後只清空師父/學生槽位,留在這一頁(不切回上一頁),方便連續幫其他人
-# 安排師徒。
+# 概括帶過。傳授成功後師父/學生槽位維持選定,留在這一頁(不切回上一頁),方便連續傳授
+# 同一組師徒多支技能。
 # =========================================================
 
 enum PickTarget { MASTER, STUDENT }
@@ -120,8 +120,9 @@ func _rebuild_top_area() -> void:
 		child.queue_free()
 
 	var rank_cap := BaseBuildingProgressStore.get_rank(_building.type)
+	var teach_count_text := "師父傳授次數：%d 次" % _master.taught_skill_count if _master != null else "師父傳授次數：（尚未選定師父）"
 	var cap_label := Label.new()
-	cap_label.text = "可傳授最高 Rank：%s｜師父傳授上限：一生 1 次" % GameEnums.rank_label(rank_cap)
+	cap_label.text = "可傳授最高 Rank：%s｜%s" % [GameEnums.rank_label(rank_cap), teach_count_text]
 	cap_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	_top_area.add_child(cap_label)
 
@@ -133,6 +134,7 @@ func _rebuild_top_area() -> void:
 	main_row.add_child(_build_person_slot("師父", _master, PickTarget.MASTER))
 	main_row.add_child(_build_person_slot("學生", _student, PickTarget.STUDENT))
 	main_row.add_child(_build_skill_area(rank_cap))
+	main_row.add_child(_build_student_skill_area())
 
 	_confirm_button.disabled = _master == null or _student == null or _selected_skill == null
 
@@ -163,6 +165,61 @@ func _build_skill_area(rank_cap: int) -> Control:
 	column.add_child(grid)
 
 	return column
+
+
+## 學生已學會的技能——純顯示(懸停看說明),不能點選,只是讓玩家傳授前先看一眼學生目前
+## 學了什麼,避免選到學生已經會的技能(見 CLAUDE.md 這次需求)。
+func _build_student_skill_area() -> Control:
+	var column := VBoxContainer.new()
+	column.add_theme_constant_override("separation", 6)
+
+	var skill_label := Label.new()
+	skill_label.text = "學生的技能："
+	skill_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	column.add_child(skill_label)
+
+	if _student == null:
+		column.add_child(_build_hint_label("請先選定學生"))
+		return column
+
+	if _student.skill_list.is_empty():
+		column.add_child(_build_hint_label("學生目前沒有已學會的技能"))
+		return column
+
+	var grid := GridContainer.new()
+	grid.columns = CharacterDetailView.SKILL_GRID_COLUMNS
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	for skill in _student.skill_list:
+		grid.add_child(_build_readonly_skill_frame(skill))
+	column.add_child(grid)
+
+	return column
+
+
+## 純顯示用技能格,樣式沿用 SKILL_SLOT_* 常數但固定用預設邊框(不會被選取變色),不接
+## gui_input——跟 _build_skill_frame() 的差別只在「不能點」。
+func _build_readonly_skill_frame(skill: Skill) -> Control:
+	var slot := PanelContainer.new()
+	slot.custom_minimum_size = CharacterDetailView.SKILL_SLOT_MIN_SIZE
+	slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	slot.add_theme_stylebox_override("panel", UiStyle.bordered_panel(
+		CharacterDetailView.SKILL_SLOT_BG, CharacterDetailView.SKILL_SLOT_BORDER, 2, 6
+	))
+
+	var label := Label.new()
+	label.text = "[%s] %s" % [GameEnums.rank_label(SkillRankRule.effective_rank(skill)), skill.name]
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD
+	label.add_theme_font_size_override("font_size", 13)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	slot.add_child(label)
+
+	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot.tooltip_text = "【%s】\n%s" % [skill.tag_label(), skill.description]
+
+	return slot
 
 
 func _build_hint_label(text: String) -> Label:
@@ -239,8 +296,11 @@ func _build_person_slot(caption_text: String, character: Character, target: int)
 	# 跟著被拉寬,頭像圖片因此被橫向拉伸變形。鎖成 SHRINK_CENTER 讓 slot 永遠維持
 	# SLOT_SIZE 正方形,只在 box 裡置中,不會被撐寬。
 	slot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	# content_margin 留一圈空隙——頭像 TextureRect 跟 slot 同尺寸(SLOT_SIZE)貼滿整個
+	# PanelContainer,margin=0 的話邊框會被頭像整個蓋住看不見(選了角色後就看不出目前
+	# ACTIVE 是哪一格),留白讓邊框露在頭像外側。
 	var border_color := ACTIVE_TARGET_BORDER if is_active else UiStyle.PARCHMENT_ROW_BORDER
-	slot.add_theme_stylebox_override("panel", UiStyle.parchment_row_style(border_color, 2 if is_active else 1, 8, 0.0, 0.0, 0))
+	slot.add_theme_stylebox_override("panel", UiStyle.parchment_row_style(border_color, 3 if is_active else 1, 8, 4.0, 4.0, 0))
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
 	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	slot.tooltip_text = "點擊放開並改選%s" % caption_text if character != null else "點擊切換為選擇%s" % caption_text
@@ -285,15 +345,15 @@ func _build_person_slot(caption_text: String, character: Character, target: int)
 	return box
 
 
-## 目前選擇目標(師父/學生)決定角色清單候選池:師父池排除已傳授過的人與目前選定的學生,
-## 學生池排除目前選定的師父。
+## 目前選擇目標(師父/學生)決定角色清單候選池:師父池排除目前選定的學生,學生池排除
+## 目前選定的師父。
 func _roster_for_target() -> Array[Character]:
 	var characters: Array[Character] = []
 	for character in CharacterRosterStore.all_characteres:
 		if character.is_disabled:
 			continue
 		if _pick_target == PickTarget.MASTER:
-			if character.has_taught_skill or character == _student:
+			if character == _student:
 				continue
 		else:
 			if character == _master:
@@ -305,8 +365,6 @@ func _roster_for_target() -> Array[Character]:
 func _on_list_card_selected(character: Character) -> void:
 	if _pick_target == PickTarget.MASTER:
 		_master = character
-		if _student == null:
-			_pick_target = PickTarget.STUDENT
 	else:
 		_student = character
 	_selected_skill = null
@@ -314,23 +372,18 @@ func _on_list_card_selected(character: Character) -> void:
 	_rebuild_all()
 
 
-## 傳授成功留在這一頁(不切回上一頁),只清空師父/學生槽位方便連續安排下一組師徒——左側
-## CharacterDetailView 改回預覽候選池第一位角色,不會空著(見 CLAUDE.md 這次需求)。放棄
-## 學習不算真的傳授,同樣留在原地讓玩家重選。
+## 傳授成功留在這一頁(不切回上一頁),師父/學生槽位維持選定不清空,方便連續傳授同一組
+## 師徒多支技能(見 CLAUDE.md 這次需求)。放棄學習不算真的傳授,同樣留在原地讓玩家重選。
 func _on_teach_pressed() -> void:
 	var master := _master
 	var student := _student
 	var skill := _selected_skill
 	SkillLearnFlow.try_learn(student, skill, func(applied: bool) -> void:
 		if applied:
-			master.has_taught_skill = true
+			master.taught_skill_count += 1
 			NewsController.post("%s 拜 %s 為師，習得「%s」。" % [student.full_name, master.full_name, skill.name], GameEnums.NewsCategory.DAILY)
-			_master = null
-			_student = null
-			_pick_target = PickTarget.MASTER
 		_selected_skill = null
 		_rebuild_all()
-		_preview_default()
 	)
 
 

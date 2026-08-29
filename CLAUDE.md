@@ -203,18 +203,20 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 `AskBattle` 的 DimBg+CenterContainer+PanelContainer 公式,`layer=40` 蓋過
 `CharacterSelectOverlay` 的 30)讓玩家選替換掉哪一個技能或放棄學習,替換/放棄都由
 `SkillReplaceDialog` 自己完成 `skill_list` 異動。`on_done(applied: bool)` 只有 `true`
-(真的學會/替換成功)才該執行有副作用的後續(師父 `has_taught_skill`、隊長訓練扣金幣),
-放棄學習不該有任何副作用。傳授/隊長訓練/歷練收成(見下)三個呼叫點共用同一套。
+(真的學會/替換成功)才該執行有副作用的後續(師父 `taught_skill_count` 遞增、隊長訓練扣
+金幣),放棄學習不該有任何副作用。傳授/隊長訓練/歷練收成(見下)三個呼叫點共用同一套。
 
 - **傳授**(`BarracksTeachPanel`):左 `CharacterDetailView` + 右上師父/學生兩個槽位
-  (點擊開 `CharacterSelectOverlay.open_picker()` 換人)+ 槽位選定後展開的師父技能清單
-  (toggle 選取,不是點了就傳授),標題列(跟 × 同排)「傳授」鈕兩者+技能都選了才能按。
-  師父把自己 `skill_list` 裡的技能教給學生,立即生效(不花資源/天數)。三個限制:師父
-  一生只能傳授一次(`Character.has_taught_skill`,寫法比照 `is_protagonist`)、師父年齡
-  門檻(`BarracksTeachingRule.MIN_TEACHER_AGE_BY_RANK`,F~SSS 等差 -5:
+  (點擊切換 `_pick_target` 再從下方 `CharacterSelectBar` 選人)+ 師父技能清單(可點選,
+  旁邊另有學生已學技能唯讀清單方便對照,不能選)+ 標題列(跟 × 同排)「傳授」鈕兩者+
+  技能都選了才能按。師父把自己 `skill_list` 裡的技能教給學生,立即生效(不花資源/天數)。
+  不限傳授次數(`Character.taught_skill_count` 只是累計次數,頁面上方顯示目前選定師父的
+  傳授次數供參考,不構成限制),只受兩個限制:師父年齡門檻
+  (`BarracksTeachingRule.MIN_TEACHER_AGE_BY_RANK`,F~SSS 等差 -5:
   40/45/50/55/60/65/70/75/80)、技能 rank ≤ 兵營等級。血統覺醒技(`SkillLibraryBlood`)
   內部 `rank` 統一填 F 不代表難度,這裡跟隊長訓練都要用 `SkillRankRule.effective_rank()`
-  換算(血統技能一律當 A 級技能看待),不能直接讀 `skill.rank`。
+  換算(血統技能一律當 A 級技能看待),不能直接讀 `skill.rank`。傳授成功後師父/學生槽位
+  維持選定不清空,方便連續傳授同一組師徒多支技能。
 - **歷練**(`BarracksExpeditionPanel`,版面比照 `WorkerDispatchPanel` 三塊式——左詳情/
   右上名額格/右下角色清單點卡片即派遣,但這裡本身已是獨立 ActionPanel 畫面,不用再包一層
   `CharacterSelectOverlay`):派角色出去固定一年(`WorldTime.DAYS_PER_YEAR`),名額 = 兵營

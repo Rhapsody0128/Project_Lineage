@@ -67,9 +67,9 @@ var is_dead: bool = false
 ## 同一套慣例:解雇後仍可能留在祖譜親族圖裡(靠 parent/mate/children 參照撐住),但已從
 ## CharacterRosterStore/AllCharacterStore 移除。狀態顯示見 CharacterStatusRule。
 var is_dismissed: bool = false
-## 是否已用掉一生一次的傳授資格(見 BarracksTeachingRule)。建立時預設 false,之後只會被
-## 設一次不會重置,寫法比照 is_protagonist。
-var has_taught_skill: bool = false
+## 累積傳授過幾次技能(見 BarracksTeachingRule)。不限次數,純粹供 UI 顯示師父目前傳授
+## 次數,建立時預設 0,每次成功傳授後遞增。
+var taught_skill_count: int = 0
 
 func _init(
 	p_name: String,
@@ -119,11 +119,14 @@ static func compute_noble_bloodline_rank(p_bloodline: Bloodline) -> int:
 		GameEnums.RankType.SS
 	)
 
-## 該技能目前是否能施放:未綁定特定武器(NO_WEAPON_BINDING)一律可用,綁了武器則要手持相符
-## 武器;另外血統覺醒技(Skill.required_bloodline_nation != -1)還要角色持有對應血統
+## 該技能目前是否能施放:未綁定特定武器(NO_WEAPON_BINDING)一律可用,綁了武器的「主動技」
+## 要手持相符武器才能用;武器被動(is_passive)例外——bind_weapon 只代表「預設學習時配哪把
+## 武器」,傳授學來的被動不論目前手持什麼武器都能觸發(見 BarracksTeachingRule 傳授不擋
+## 武器的既有設計,這裡讓被動的「打不出來」限制整個取消,不再只是暫時打不出來)。另外血統
+## 覺醒技(Skill.required_bloodline_nation != -1)還要角色持有對應血統
 ## (Bloodline.get_percentage() > 0),避免這類技能被派給沒有對應血統的角色。
 func can_use_skill(skill: Skill) -> bool:
-	if skill.bind_weapon != GameEnums.NO_WEAPON_BINDING and skill.bind_weapon != weapon:
+	if not skill.is_passive and skill.bind_weapon != GameEnums.NO_WEAPON_BINDING and skill.bind_weapon != weapon:
 		return false
 	if skill.required_bloodline_nation != -1:
 		if bloodline.get_percentage(skill.required_bloodline_nation, skill.required_bloodline_rank) <= 0.0:

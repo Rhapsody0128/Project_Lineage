@@ -14,6 +14,12 @@ extends HBoxContainer
 var _building: Building
 var _character: Character = null
 var _selected_skill: Skill = null
+## 開頁時建一次,之後重繪都重用同一批 Skill 實例——SkillLibrary.build() 每次呼叫都會
+## new 出全新物件,若每次 _rebuild_function() 重新 build() 一次,_selected_skill 存的
+## 舊實例會跟新列表裡的物件不是同一個參照,skill == _selected_skill 永遠比對不出來,
+## 選中的技能格邊框就變不了黃色(比照 BarracksTeachPanel 用 master.skill_list 固定
+## 陣列的作法)。
+var _leader_skills: Array[Skill] = []
 
 var _detail_view: CharacterDetailView
 var _function_column: VBoxContainer
@@ -29,6 +35,11 @@ func setup(building: Building) -> void:
 func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	for skill in SkillLibrary.build():
+		if skill.is_leader_skill:
+			_leader_skills.append(skill)
+	_leader_skills.sort_custom(func(a: Skill, b: Skill) -> bool: return a.rank < b.rank)
 
 	var detail_panel := PanelContainer.new()
 	detail_panel.add_theme_stylebox_override("panel", UiStyle.right_border_style())
@@ -118,19 +129,13 @@ func _rebuild_function() -> void:
 	skill_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	_function_column.add_child(skill_label)
 
-	var leader_skills: Array[Skill] = []
-	for skill in SkillLibrary.build():
-		if skill.is_leader_skill:
-			leader_skills.append(skill)
-	leader_skills.sort_custom(func(a: Skill, b: Skill) -> bool: return a.rank < b.rank)
-
 	# HFlowContainer:每個技能格維持固定寬度(跟 CharacterDetailView 的技能格一樣寬),
 	# 由左到右自動排列、一行放不下自動換到下一行(inline-block 效果),不是寫死一欄一個
 	# 或固定兩欄(見 CLAUDE.md 這次需求)。
 	var flow := HFlowContainer.new()
 	flow.add_theme_constant_override("h_separation", 8)
 	flow.add_theme_constant_override("v_separation", 8)
-	for skill in leader_skills:
+	for skill in _leader_skills:
 		flow.add_child(_build_skill_frame(skill, rank_cap))
 	_function_column.add_child(flow)
 

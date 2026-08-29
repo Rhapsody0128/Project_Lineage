@@ -579,9 +579,10 @@ func _update_exp_bar(level_system: LevelSystem) -> void:
 	exp_value_label.text = "%d / %d" % [level_system.exp, next_exp]
 
 
-## 技能格固定 4 格,角色技能不足 4 個時留空;技能綁定的武器跟目前手持武器不符時
-## (Character.can_use_skill 判斷),整格反灰並在提示文字加註需要的武器,而不是直接不顯示——
-## 玩家仍要看得到「學過這招,只是現在打不出來」。
+## 技能格固定 4 格,角色技能不足 4 個時留空;`Character.can_use_skill()` 判斷打不出來時
+## (武器主動技跟目前手持武器不符、或血統覺醒技角色沒有對應血統),整格反灰並在提示文字
+## 加註需要的武器,而不是直接不顯示——玩家仍要看得到「學過這招,只是現在打不出來」。武器
+## 被動不受此限,學會後不管目前手持什麼武器都正常顯示、正常觸發。
 func _populate_skills(character: Character) -> void:
 	for child in skill_row.get_children():
 		child.queue_free()

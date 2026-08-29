@@ -38,7 +38,7 @@ static func _sword_skills() -> Array[Skill]:
 		.build())
 
 	skills.append(SkillBuilder.new()
-		.name("熟練斬") # 既有(原「狂擊」),改為橫掃直線 2 格
+		.name("熟練斬")
 		.description("反覆鍛鍊出的橫掃步法,劍鋒掃過眼前一整排的敵人")
 		.rank(GameEnums.RankType.E)
 		.skill_range(1).area_shape(GameEnums.AreaShape.LINE).area_size(2)

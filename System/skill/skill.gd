@@ -76,10 +76,15 @@ func _init() -> void:
 ## 技能標籤:武器限定(有綁定武器才顯示)+ 類型(隊長技/血統覺醒技/被動技能/主動技能),
 ## 供 UI 顯示技能描述時標記用(見 character_detail_view.gd)。四種類型互斥,判斷優先序
 ## leader > bloodline > passive > active——目前 SkillLibrary 各檔資料沒有交集,不會誤判。
+## 武器被動不寫「限定」——Character.can_use_skill() 對被動技能不做武器守門,不管目前手持
+## 什麼武器都能觸發,這裡只是標示「預設學這把武器時會配到」,避免文案誤導成打不出來。
 func tag_label() -> String:
 	var tags: Array[String] = []
 	if bind_weapon != GameEnums.NO_WEAPON_BINDING:
-		tags.append("限定武器：%s" % GameEnums.weapon_label(bind_weapon))
+		if is_passive:
+			tags.append("武器被動：%s" % GameEnums.weapon_label(bind_weapon))
+		else:
+			tags.append("限定武器：%s" % GameEnums.weapon_label(bind_weapon))
 	if is_leader_skill:
 		tags.append("隊長技")
 	elif required_bloodline_nation != -1:

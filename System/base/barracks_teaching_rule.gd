@@ -2,9 +2,9 @@ class_name BarracksTeachingRule
 extends RefCounted
 
 ## 兵營「傳授」——師徒制,取代原本的自學訓練(BarracksTraining/BarracksTrainingStore 已
-## 整個刪除)。立即生效,不消耗資源、不花時間,只受三個限制:師父一生只能傳授一次
-## (Character.has_taught_skill)、師父年齡門檻(依 SkillRankRule.effective_rank() 查表,
-## 血統覺醒技當 A 級技能看待)、兵營等級上限。
+## 整個刪除)。立即生效,不消耗資源、不花時間,不限傳授次數(Character.taught_skill_count
+## 只是累計次數供 UI 顯示,不構成限制),只受兩個限制:師父年齡門檻(依
+## SkillRankRule.effective_rank() 查表,血統覺醒技當 A 級技能看待)、兵營等級上限。
 
 ## 師父年齡門檻,索引為 SkillRankRule.effective_rank()(F~SSS),等差 -5。
 const MIN_TEACHER_AGE_BY_RANK: Array[int] = [40, 45, 50, 55, 60, 65, 70, 75, 80]
@@ -27,8 +27,6 @@ static func teach_block_reasons(master: Character, student: Character, skill: Sk
 	var reasons: Array[String] = []
 	if master == student:
 		reasons.append("師父與學生不能是同一人")
-	if master.has_taught_skill:
-		reasons.append("師父一生只能傳授一次，已經用掉了")
 	if not master.knows_skill(skill):
 		reasons.append("師父尚未學會這個技能")
 	var required_rank := SkillRankRule.effective_rank(skill)
@@ -39,13 +37,11 @@ static func teach_block_reasons(master: Character, student: Character, skill: Sk
 		reasons.append("師父年齡不足（需求：%d 歲，目前：%d 歲）" % [required_age, master.age])
 	if student.knows_skill(skill):
 		reasons.append("學生已經學會這個技能")
-	# 武器不符不擋傳授——只是學會後暫時打不出來(CharacterDetailView 的技能格本來就會
-	# 反灰示意「學過但目前裝備打不出來」),不影響師徒傳授這個動作本身,故意只擋血統不符
-	# (那是永久性的,武器之後可能換裝備解開,見 CLAUDE.md 這次需求)。
-	if skill.required_bloodline_nation != -1:
-		var percentage := student.bloodline.get_percentage(skill.required_bloodline_nation, skill.required_bloodline_rank)
-		if percentage <= 0.0:
-			reasons.append("學生血統不符，無法使用這個技能")
+	# 武器/血統都不擋傳授。被動技能傳授後不管手持什麼武器都能直接觸發（Character.
+	# can_use_skill() 對被動技能不做武器守門，武器主動技才要求相符武器，見該函式註解）；
+	# 血統覺醒技則永久打不出來（CharacterDetailView 的技能格會反灰示意「學過但目前用不
+	# 出來」），不影響師徒傳授這個動作本身。血統覺醒技可以傳授給不同血統的角色，即使該角色
+	# 可能永遠無法實際施放（見 CLAUDE.md 這次需求）。
 	return reasons
 
 

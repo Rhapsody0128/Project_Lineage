@@ -10,7 +10,7 @@ static func build() -> Array[Skill]:
 	var skills: Array[Skill] = []
 
 	skills.append(SkillBuilder.new()
-		.name("捨身掩護") # 既有(原「守護」),沿用 guard_skill(),效果在 CombatResolver.resolve_guard()
+		.name("捨身掩護") 
 		.description("盾系角色的本能反應:友軍受到單體物理攻擊時,自己可能飛身頂替承受,傷害再減 30%")
 		.rank(GameEnums.RankType.F)
 		.skill_range(0).area_shape(GameEnums.AreaShape.SINGLE).area_size(1)

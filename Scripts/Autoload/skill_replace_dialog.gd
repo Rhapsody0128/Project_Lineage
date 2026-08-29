@@ -62,12 +62,26 @@ func ask(character: Character, new_skill: Skill, on_result: Callable = Callable(
 		child.queue_free()
 
 	var question := Label.new()
-	question.text = "%s 的技能已滿（上限 %d 個），要學會「%s」需要替換掉一個技能，或放棄學習。" % [
-		character.full_name, Character.MAX_SKILLS, new_skill.name
+	question.text = "%s 的技能已滿（上限 %d 個），要學會下方新技能需要替換掉一個現有技能，或放棄學習。" % [
+		character.full_name, Character.MAX_SKILLS
 	]
 	question.autowrap_mode = TextServer.AUTOWRAP_WORD
 	question.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	_content.add_child(question)
+
+	var new_skill_label := Label.new()
+	new_skill_label.text = "新技能："
+	new_skill_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	_content.add_child(new_skill_label)
+
+	var new_skill_row := CenterContainer.new()
+	new_skill_row.add_child(_build_skill_chip(new_skill))
+	_content.add_child(new_skill_row)
+
+	var replace_label := Label.new()
+	replace_label.text = "點擊下方要替換掉的技能："
+	replace_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
+	_content.add_child(replace_label)
 
 	var grid := GridContainer.new()
 	grid.columns = CharacterDetailView.SKILL_GRID_COLUMNS
@@ -90,15 +104,14 @@ func ask(character: Character, new_skill: Skill, on_result: Callable = Callable(
 	root.visible = true
 
 
-## 技能格樣式沿用 CharacterDetailView 的 SKILL_SLOT_* 常數,跟角色詳情頁「技能」分頁的
-## 格子同一套視覺,滑過去用 tooltip_text 顯示技能說明(見 CLAUDE.md 這次需求)——整格點擊
-## 即直接替換,不再另外排一顆獨立的「替換」鈕。
-func _build_replace_slot(index: int) -> Control:
-	var skill: Skill = _character.skill_list[index]
-
+## 技能格共用外觀:沿用 CharacterDetailView 的 SKILL_SLOT_* 常數,跟角色詳情頁「技能」分頁的
+## 格子同一套視覺,滑過去用 tooltip_text 顯示技能說明——「新技能」預覽格(ask() 頂部)跟下方
+## 「現有技能(點擊替換)」格外觀統一共用這支,不要把新技能名稱純文字塞進句子裡(見 CLAUDE.md
+## 這次需求)。
+func _build_skill_chip(skill: Skill) -> PanelContainer:
 	var slot := PanelContainer.new()
 	slot.custom_minimum_size = CharacterDetailView.SKILL_SLOT_MIN_SIZE
-	slot.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	slot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	slot.add_theme_stylebox_override("panel", UiStyle.bordered_panel(
 		CharacterDetailView.SKILL_SLOT_BG, CharacterDetailView.SKILL_SLOT_BORDER, 2, 6
 	))
@@ -113,6 +126,15 @@ func _build_replace_slot(index: int) -> Control:
 	slot.add_child(label)
 
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
+	slot.tooltip_text = "【%s】\n%s" % [skill.tag_label(), skill.description]
+	return slot
+
+
+## 整格點擊即直接替換,不再另外排一顆獨立的「替換」鈕。
+func _build_replace_slot(index: int) -> Control:
+	var skill: Skill = _character.skill_list[index]
+	var slot := _build_skill_chip(skill)
+	slot.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	slot.tooltip_text = "【%s】\n%s\n\n點擊替換為「%s」" % [skill.tag_label(), skill.description, _new_skill.name]
 	slot.gui_input.connect(func(event: InputEvent) -> void:

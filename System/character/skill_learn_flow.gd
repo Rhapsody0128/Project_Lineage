@@ -11,7 +11,7 @@ extends RefCounted
 ## 骰技能池)真的送進來時悄悄疊出重複技能。
 ##
 ## on_done(applied: bool) 學會/替換成功傳 true,放棄或擋下重複學習傳 false——呼叫端只有在
-## true 時才該執行有副作用的後續動作(師父 has_taught_skill 旗標、隊長訓練扣金幣),放棄
+## true 時才該執行有副作用的後續動作(師父 taught_skill_count 遞增、隊長訓練扣金幣),放棄
 ## 學習不該有任何副作用。
 static func try_learn(character: Character, skill: Skill, on_done: Callable = Callable()) -> void:
 	if character.knows_skill(skill):

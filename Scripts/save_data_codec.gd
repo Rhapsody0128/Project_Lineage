@@ -69,7 +69,7 @@ static func encode_character(character: Character) -> Dictionary:
 		"hp": character.hp,
 		"battle_cost_cells": cells,
 		"is_protagonist": character.is_protagonist,
-		"has_taught_skill": character.has_taught_skill,
+		"taught_skill_count": character.taught_skill_count,
 		"is_pregnant": character.is_pregnant,
 		"pregnancy_months": character.pregnancy_months,
 		"postpartum_months_remaining": character.postpartum_months_remaining,
@@ -140,7 +140,9 @@ static func decode_character_base(data: Dictionary) -> Character:
 	character.weapon_rank = int(data.get("weapon_rank", GameEnums.RankType.F))
 	character.weapon_stat_bonus = SaveDataCodec.str_keyed_to_int(data.get("weapon_stat_bonus", {}))
 	character.is_protagonist = data.get("is_protagonist", false)
-	character.has_taught_skill = data.get("has_taught_skill", false)
+	# 舊存檔只有 bool 版 has_taught_skill(一生一次上限已改成不限次數的計數,見
+	# BarracksTeachingRule),讀不到 taught_skill_count 時退回舊欄位換算成 0/1。
+	character.taught_skill_count = int(data.get("taught_skill_count", 1 if data.get("has_taught_skill", false) else 0))
 	character.is_pregnant = data.get("is_pregnant", false)
 	character.pregnancy_months = int(data.get("pregnancy_months", 0))
 	character.postpartum_months_remaining = int(data.get("postpartum_months_remaining", 0))

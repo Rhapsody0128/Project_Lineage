@@ -2,12 +2,14 @@ extends Control
 
 @onready var _map_button: Button = $CenterContainer/VBoxContainer/Map
 @onready var _load_game_button: Button = $CenterContainer/VBoxContainer/LoadGame
+@onready var _rhythm_button: Button = $CenterContainer/VBoxContainer/Rhythm
 @onready var _quit_button: Button = $CenterContainer/VBoxContainer/Quit
 
 func _ready() -> void:
 	_ensure_starting_party()
 	UiStyle.apply_wood_plaque_button(_map_button)
 	UiStyle.apply_wood_plaque_button(_load_game_button)
+	UiStyle.apply_wood_plaque_button(_rhythm_button)
 	UiStyle.apply_wood_plaque_button(_quit_button)
 
 
@@ -48,6 +50,14 @@ func _on_map_pressed() -> void:
 
 func _on_load_game_pressed() -> void:
 	SaveSlotPicker.open_load_menu()
+
+
+## 節奏小遊戲玩法測試用入口(見 Scenes/RhythmGame/），玩法定案、素材做好前先放主選單
+## 方便直接開,之後嵌進根據地生產建築面板後這顆按鈕可以拿掉。
+func _on_rhythm_pressed() -> void:
+	var error := get_tree().change_scene_to_file("res://Scenes/RhythmGame/rhythm_game_test.tscn")
+	if error != OK:
+		printerr("Error changing scene to rhythm game test: ", error)
 
 
 func _on_quit_pressed() -> void:

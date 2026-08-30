@@ -1,0 +1,50 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://Scenes/RhythmGame/rhythm_game_test.gd" id="1"]
+
+[node name="RhythmGameTest" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.12, 0.11, 0.1, 1)
+
+[node name="Title" type="Label" parent="."]
+layout_mode = 0
+offset_left = 32.0
+offset_top = 20.0
+offset_right = 700.0
+offset_bottom = 66.0
+theme_override_font_sizes/font_size = 30
+theme_override_colors/font_color = Color(0.95, 0.9, 0.72, 1)
+text = "節奏小遊戲測試"
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 32.0
+offset_top = 84.0
+offset_right = -32.0
+offset_bottom = -24.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BgmPlayer" type="AudioStreamPlayer" parent="."]
+
+[node name="HintSfxPlayer" type="AudioStreamPlayer" parent="."]
+
+[node name="TapSfxPlayer" type="AudioStreamPlayer" parent="."]

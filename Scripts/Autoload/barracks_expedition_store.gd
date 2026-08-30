@@ -103,7 +103,7 @@ func finalize_collect(character_id: String) -> void:
 	var entry: Dictionary = _completed[character_id]
 	if character != null:
 		character.gain_exp(int(entry["exp"]))
-		NewsController.post("%s 歷練歸來。" % character.full_name, GameEnums.NewsCategory.DAILY)
+		NewsController.post("%s 歷練歸來。" % character.display_name, GameEnums.NewsCategory.DAILY)
 	_completed.erase(character_id)
 	changed.emit()
 

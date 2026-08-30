@@ -156,7 +156,7 @@ func _build_slot(character_id: String) -> Control:
 
 	if is_awaiting:
 		status_label.text = "待確認"
-		slot.tooltip_text = "%s：已歷練歸來，點擊確認歸隊" % character.full_name
+		slot.tooltip_text = "%s：已歷練歸來，點擊確認歸隊" % character.display_name
 		slot.gui_input.connect(func(event: InputEvent) -> void:
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 				_on_collect_slot_clicked(character)
@@ -164,10 +164,10 @@ func _build_slot(character_id: String) -> Control:
 	else:
 		var days := BarracksExpeditionStore.get_days_remaining(character_id)
 		status_label.text = "剩%d天" % days
-		slot.tooltip_text = "%s：點擊臨時召回（無獎勵）" % character.full_name
+		slot.tooltip_text = "%s：點擊臨時召回（無獎勵）" % character.display_name
 		slot.gui_input.connect(func(event: InputEvent) -> void:
 			if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-				_on_recall_slot_clicked(character_id, character.full_name)
+				_on_recall_slot_clicked(character_id, character.display_name)
 		)
 
 	return box
@@ -222,7 +222,7 @@ func _on_list_card_selected(character: Character) -> void:
 ## undispatch_character() 清掉派駐紀錄再呼叫)。
 func _confirm_reassign_from_job(character: Character, building_type: int) -> void:
 	var building_name := GameEnums.building_type_label(building_type)
-	var message := "%s 目前在%s工作，是否改安排去歷練？" % [character.full_name, building_name]
+	var message := "%s 目前在%s工作，是否改安排去歷練？" % [character.display_name, building_name]
 	ConfirmDialog.ask(message, func() -> void:
 		BaseDispatchStore.undispatch_character(character.id)
 		_detail_view.set_character(character)

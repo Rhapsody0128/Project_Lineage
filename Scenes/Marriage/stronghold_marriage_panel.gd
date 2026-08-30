@@ -94,12 +94,12 @@ func _build_nation_panel() -> Control:
 	column.add_child(title)
 
 	var hint := Label.new()
-	hint.text = "好感度愈高,回信人選評級愈好。"
+	hint.text = "好感度達 C 以上才能寄信;回信人選評級依聯姻角色自身爵位與城鎮中心等級決定,跟好感度無關。"
 	hint.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
 	column.add_child(hint)
 
 	var grid := GridContainer.new()
-	grid.columns = 3
+	grid.columns = 6
 	grid.add_theme_constant_override("h_separation", 12)
 	grid.add_theme_constant_override("v_separation", 12)
 	column.add_child(grid)
@@ -111,14 +111,23 @@ func _build_nation_panel() -> Control:
 	return panel
 
 
-func _build_nation_button(nation: int) -> Button:
-	var button := Button.new()
-	var favor := NationFavorStore.get_favor(nation)
-	button.text = "%s國（好感度 %s）" % [GameEnums.bloodline_nation_label(nation), NationFavorRank.label_for_favor(favor)]
+func _build_nation_button(nation: int) -> TextureButton:
+	var button := TextureButton.new()
+	var can_send := MarriageRule.can_send_letter(nation)
+	button.texture_normal = load(GameEnums.bloodline_nation_flag_path(nation)) as Texture2D
+	button.ignore_texture_size = true
+	button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	button.custom_minimum_size = Vector2(140, 210)
 	button.toggle_mode = true
 	button.button_group = _nation_button_group
-	UiStyle.apply_wood_plaque_button(button, 12.0, 6.0)
-	button.add_theme_font_size_override("font_size", 15)
+	button.disabled = not can_send
+	button.tooltip_text = "%s國" % GameEnums.bloodline_nation_label(nation)
+	if can_send:
+		button.modulate = Color(1, 1, 1, 0.7)
+		button.toggled.connect(func(pressed: bool) -> void: button.modulate = Color.WHITE if pressed else Color(1, 1, 1, 0.7))
+	else:
+		button.tooltip_text += "(好感度不足,需達 C 以上才能寄信)"
+		button.modulate = Color(1, 1, 1, 0.35)
 	button.pressed.connect(func() -> void: _on_nation_selected(nation))
 	return button
 

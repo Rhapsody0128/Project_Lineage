@@ -83,7 +83,7 @@ func _ready() -> void:
 	content.add_child(info_column)
 
 	var name_label := Label.new()
-	name_label.text = character.full_name
+	name_label.text = character.display_name
 	name_label.add_theme_font_size_override("font_size", NAME_FONT_SIZE)
 	name_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	info_column.add_child(name_label)

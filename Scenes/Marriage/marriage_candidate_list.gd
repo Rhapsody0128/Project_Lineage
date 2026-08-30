@@ -58,7 +58,7 @@ func _build_row(candidate: Character) -> Control:
 	hbox.add_child(face)
 
 	var label := Label.new()
-	label.text = "%s　%d 歲" % [candidate.full_name, candidate.age]
+	label.text = "%s　%d 歲" % [candidate.display_name, candidate.age]
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.add_theme_font_size_override("font_size", 18)
 	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)

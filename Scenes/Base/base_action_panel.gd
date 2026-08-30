@@ -369,7 +369,7 @@ func _build_marriage_button() -> Button:
 ## 選人範圍是全部角色池(CharacterRosterStore.all_characteres),按鈕只要角色池不是空的
 ## 就能按——一定至少有主角,實務上不會發生沒人可選的狀況,但仍防呆。
 func _build_leader_change_section() -> void:
-	_add_label("目前整團領導人：%s" % LeaderStore.get_leader().full_name)
+	_add_label("目前整團領導人：%s" % LeaderStore.get_leader().display_name)
 
 	var button := Button.new()
 	button.text = "更換領導人"

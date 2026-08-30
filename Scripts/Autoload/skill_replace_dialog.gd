@@ -63,7 +63,7 @@ func ask(character: Character, new_skill: Skill, on_result: Callable = Callable(
 
 	var question := Label.new()
 	question.text = "%s 的技能已滿（上限 %d 個），要學會下方新技能需要替換掉一個現有技能，或放棄學習。" % [
-		character.full_name, Character.MAX_SKILLS
+		character.display_name, Character.MAX_SKILLS
 	]
 	question.autowrap_mode = TextServer.AUTOWRAP_WORD
 	question.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)

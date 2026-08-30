@@ -60,18 +60,18 @@ func _build_request_dialogue() -> Dialogue:
 	if _proposer == leader:
 		return _build_self_request_dialogue(leader)
 
-	var leader_speaker := DialogueSpeaker.new(leader.id, leader.full_name, leader.face_path, GameEnums.DialogueSide.RIGHT)
-	var proposer_speaker := DialogueSpeaker.new(_proposer.id, _proposer.full_name, _proposer.face_path, GameEnums.DialogueSide.LEFT)
+	var leader_speaker := DialogueSpeaker.new(leader.id, leader.title_full_name, leader.face_path, GameEnums.DialogueSide.RIGHT)
+	var proposer_speaker := DialogueSpeaker.new(_proposer.id, _proposer.title_full_name, _proposer.face_path, GameEnums.DialogueSide.LEFT)
 	var nation_label := GameEnums.bloodline_nation_label(_nation)
 	var lines: Array[DialogueLine] = [
-		DialogueLine.new(leader_speaker.id, "%s,你年紀也差不多也該結婚了,我替你向%s國寫封信吧,你有心儀的對象嗎?" % [_proposer.full_name, nation_label]),
+		DialogueLine.new(leader_speaker.id, "%s,你年紀也差不多也該結婚了,我替你向%s國寫封信吧,你有心儀的對象嗎?" % [_proposer.title_full_name, nation_label]),
 		DialogueLine.new(proposer_speaker.id, "這..."),
 	]
 	return Dialogue.new([leader_speaker, proposer_speaker], lines, GameEnums.base_building_background_path(_building.type))
 
 
 func _build_self_request_dialogue(leader: Character) -> Dialogue:
-	var leader_speaker := DialogueSpeaker.new(leader.id, leader.full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
+	var leader_speaker := DialogueSpeaker.new(leader.id, leader.title_full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(leader_speaker.id, "我曾有過一個心儀的對象...今天我決定寫信給他...."),
 	]
@@ -105,9 +105,11 @@ func _on_candidate_picked(candidate: Character) -> void:
 
 
 func _build_reaction_dialogue() -> Dialogue:
-	var candidate_speaker := DialogueSpeaker.new(_candidate.id, _candidate.full_name, _candidate.face_path, GameEnums.DialogueSide.RIGHT)
+	# 候選人(對方)是聯姻對象,對話裡不顯示姓氏(見使用者需求),名牌只用 given name;
+	# _proposer 是玩家自己的角色,正常顯示全名。
+	var candidate_speaker := DialogueSpeaker.new(_candidate.id, _candidate.name, _candidate.face_path, GameEnums.DialogueSide.RIGHT)
 	var text := (
-		"我就知道%s選擇的對象會記得我!我要去追尋真愛了!" % _proposer.full_name if _accepted
+		"我就知道%s選擇的對象會記得我!我要去追尋真愛了!" % _proposer.title_full_name if _accepted
 		else "這誰？"
 	)
 	var lines: Array[DialogueLine] = [DialogueLine.new(candidate_speaker.id, text)]
@@ -129,7 +131,7 @@ func _on_candidate_declined() -> void:
 
 
 func _build_decline_dialogue() -> Dialogue:
-	var proposer_speaker := DialogueSpeaker.new(_proposer.id, _proposer.full_name, _proposer.face_path, GameEnums.DialogueSide.LEFT)
+	var proposer_speaker := DialogueSpeaker.new(_proposer.id, _proposer.title_full_name, _proposer.face_path, GameEnums.DialogueSide.LEFT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(proposer_speaker.id, "感謝大人好意,目前沒有心儀的對象,也不打算成家。"),
 	]
@@ -141,16 +143,16 @@ func _finish() -> void:
 	var result_text: String
 
 	if _candidate == null:
-		result_text = "%s 婉拒了這次聯姻安排,本年度名額已用掉一個。" % _proposer.full_name
+		result_text = "%s 婉拒了這次聯姻安排,本年度名額已用掉一個。" % _proposer.title_full_name
 	elif _accepted:
 		_proposer.marry(_candidate)
 		AllCharacterStore.register(_candidate)
-		result_text = "%s 向%s國聯姻成功,與 %s 結婚了。" % [_proposer.full_name, nation_label, _candidate.full_name]
+		result_text = "%s 向%s國聯姻成功,與 %s 結婚了。" % [_proposer.title_full_name, nation_label, _candidate.title_full_name]
 		NewsController.post(result_text, GameEnums.NewsCategory.MAJOR)
 		MessageBar.show_message(result_text)
 		MoraleStore.record_event("角色結婚", MoraleStore.MARRIAGE_DELTA)
 	else:
-		result_text = "%s 向%s國寄出的聯姻信被拒絕了。" % [_proposer.full_name, nation_label]
+		result_text = "%s 向%s國寄出的聯姻信被拒絕了。" % [_proposer.title_full_name, nation_label]
 
 	BaseBuildingEvent.open_action_panel(_building, func(content: BaseBuildingPanelContent) -> void:
 		content._marriage_result_text = result_text

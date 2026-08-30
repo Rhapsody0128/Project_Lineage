@@ -170,8 +170,9 @@ func _on_name_changed(new_text: String) -> void:
 		_name_edit.text = truncated
 		_name_edit.caret_column = truncated.length()
 		return
+	var last_name := _character.last_name
 	_detail_view.name_label.text = (
-		"%s·%s" % [truncated, _character.last_name] if not truncated.is_empty() else _character.full_name
+		("%s·%s" % [truncated, last_name] if not last_name.is_empty() else truncated) if not truncated.is_empty() else _character.display_name
 	)
 
 
@@ -218,7 +219,7 @@ func _on_confirm_pressed() -> void:
 ## NewbornDiscardController.discard()),確認後才真的執行,避免手滑誤刪。
 func _on_discard_pressed() -> void:
 	ConfirmDialog.ask(
-		"確定要丟棄 %s 嗎？這個孩子將不會被記錄下來。" % _character.full_name,
+		"確定要丟棄 %s 嗎？這個孩子將不會被記錄下來。" % _character.display_name,
 		_on_discard_confirmed
 	)
 

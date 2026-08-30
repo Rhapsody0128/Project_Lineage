@@ -26,7 +26,7 @@ func _start(player_pos: Vector2) -> void:
 func _build_prompt(player_pos: Vector2, nation_type: int) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var player := LeaderStore.get_leader()
-	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
+	var player_speaker := DialogueSpeaker.new(player.id, player.title_full_name, player.face_path, GameEnums.DialogueSide.LEFT)
 
 	var can_afford := BaseResourceStore.can_afford({GameEnums.ResourceType.GOLD: RELIEF_COST})
 	var choices: Array[DialogueChoice] = []

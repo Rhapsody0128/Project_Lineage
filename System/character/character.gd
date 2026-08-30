@@ -21,13 +21,20 @@ var last_name: String
 var age: int
 var gender: GameEnums.Gender
 var face_path: String
-var traits: Array[CharacterTrait]
+var traits: Array[Trait]
 var potential: Potential
 var bloodline: Bloodline
 ## 高階血統(NOBLE)評分,GameEnums.RankType,見 _compute_noble_bloodline_rank()——
 ## 跟 Potential 的 xxx_rank 欄位同一套慣例:建立角色當下算好存欄位,不隨後續變動,
 ## UI 顯示端(CharacterDetailView 等)直接讀這個欄位,不自己再算一次。
 var noble_bloodline_rank: int
+## 身分/爵位(GameEnums.RankType),稱號對照見 NobleTitleRule.TITLE_LABELS——跟
+## noble_bloodline_rank(血統評分)是兩個獨立欄位,刻意不綁定,允許角色血統區間跟身分
+## 不同(例如高血民間平民、低血受封貴族)。隨機產生角色的初始身分依血統分布抽選(見
+## NobleTitleRule.rank_for_bloodline(),由 CharacterController 建立後指派);出生小孩
+## 改走世襲規則(見 give_birth()/NobleTitleRule.rank_for_inheritance())。預設平民,
+## 不在 _init() 內自動計算——各建立管道(隨機/主角/遺傳)各自決定怎麼指派這個欄位。
+var title_rank: int = GameEnums.RankType.F
 ## 目前手持的武器,決定哪些 bind_weapon 技能能施放
 var weapon: GameEnums.WeaponType
 ## 目前手持武器類型提供的素質加成(GameEnums.PotentialType -> 點數)。玩家角色由
@@ -77,7 +84,7 @@ func _init(
 	p_age: int,
 	p_gender: GameEnums.Gender,
 	p_face_path: String,
-	p_traits: Array[CharacterTrait],
+	p_traits: Array[Trait],
 	p_potential: Potential,
 	p_bloodline: Bloodline,
 	p_weapon: GameEnums.WeaponType,
@@ -171,8 +178,37 @@ func find_skill_with_mechanic(mechanic: int) -> Skill:
 			return s
 	return null
 
+## 姓氏是否顯示只看 last_name 本身是不是空字串,跟角色目前的 title_rank 沒有直接關係
+## (見 NobleTitleRule.has_last_name() 的呼叫端註解)——隨機生成角色當下依身分決定要不要
+## 抽一個姓氏(見 CharacterController.get_random_character()),小孩則直接繼承父親的
+## last_name(見 InheritanceController.create_child(),父親沒姓氏小孩自然也是空字串);
+## 之後角色身分升降都不會回頭補上或拔掉已經定下來的姓氏(例如玩家固定主角一開始就帶
+## 姓氏,不管他當下是不是騎士以上都要顯示)。
+## 出生時抽到的第一個特性(traits[0])固定當作這個人物的形容詞來源——AgingRule 掛的
+## 衰老特性一律 append() 加在陣列尾端(見 WorldTimeEventLibrary._process_aging()),
+## 不會頂替掉這個位置,所以「出生特性」跟「形容詞」永遠對得上同一個。
+var title_adjective: String:
+	get: return traits[0].title_adjective if not traits.is_empty() else ""
+
+var title_label: String:
+	get: return NobleTitleRule.label_for_rank(title_rank)
+
+## 只有 Dialogue 對話名牌/內文,以及聯姻(BaseMarriageEvent)、告白(TownTavernEvent 的
+## 搭訕/求婚流程)這兩個事件才呈現這個完整格式,不要自己拼字串:「形容詞+爵位稱號」用
+## 「」括起來接在姓名前面,例如「勇猛的騎士」威廉 · 華勒斯。其餘一般 UI(角色詳情/
+## 角色列表/酒館招募等)一律改讀 display_name,只顯示姓名不帶頭銜。
+var title_full_name: String:
+	get:
+		return "「%s%s」%s" % [title_adjective, title_label, full_name]
+
+## 一般 UI 顯示姓名用這個(角色詳情面板/角色列表/兵營各分頁/歷練/家族樹等),只顯示
+## given name,不含姓氏也不含形容詞+爵位頭銜(見使用者需求)——頭銜+姓氏只在 title_full_name
+## 呈現(見上方註解)。
+var display_name: String:
+	get: return name
+
 var full_name: String:
-	get: return "%s·%s" % [name, last_name]
+	get: return "%s · %s" % [name, last_name] if not last_name.is_empty() else name
 
 var hp_max: int:
 	get: return COST_HP_MAP.get(battle_cost.cells.size(), 600)
@@ -234,9 +270,11 @@ func advance_pregnancy() -> bool:
 ## (WorldTimeEventLibrary)處理。self 一定是母親(PregnancyRule.is_eligible() 限定
 ## gender == FEMALE 才能懷孕),mate 在懷孕當下已確保非 null,故不需要額外 null 分支。
 func give_birth() -> Character:
+	var birth_order := children.size() + 1
 	var child := InheritanceController.create_child(mate, self)
 	var new_parents: Array[Character] = [self, mate]
 	child.parent = new_parents
+	child.title_rank = NobleTitleRule.rank_for_inheritance(title_rank, mate.title_rank, birth_order)
 	children.append(child)
 	mate.children.append(child)
 	is_pregnant = false
@@ -256,7 +294,7 @@ func gain_exp(exp_amount: int) -> void:
 func _get_real_potential(initial_potential: float, ratio: float) -> float:
 	return (initial_potential + ratio * level_system.potential_level_constant) * _trait_stat_multiplier()
 
-## 全部特性 stat_multiplier 的連乘(見 CharacterTrait.stat_multiplier),目前只有
+## 全部特性 stat_multiplier 的連乘(見 Trait.stat_multiplier),目前只有
 ## AgingRule 建立的衰老特性會偏離 1.0——素質全面下降透過既有的 strength/agility/...
 ## getter 自動套用到戰鬥/生產/UI 全部讀取點，不用另外修改 CombatResolver/BaseProduction。
 func _trait_stat_multiplier() -> float:

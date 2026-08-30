@@ -202,6 +202,60 @@ static func bottom_border_style(content_margin: float = 16.0, border_width: int 
 	return style
 
 
+## 依字串(通常是姓氏)決定一個穩定的色相——家族旗幟美術貼圖尚未製作前的暫代色塊
+## (見 family_tree_canvas.gd/character_detail_view.gd/family_tree.gd 的家族旗幟區塊),
+## 同一個姓氏每次都算出同一個顏色,不同姓氏視覺上容易區分,之後貼圖做出來直接整段替換。
+## 沒有姓氏(平民/士紳,見 NobleTitleRule.has_last_name())回傳中性灰。
+static func color_from_seed(text: String) -> Color:
+	if text.is_empty():
+		return Color(0.4, 0.4, 0.42, 1)
+	var hue := (hash(text) % 360) / 360.0
+	return Color.from_hsv(hue, 0.55, 0.75)
+
+
+const FAMILY_BANNER_DIR := "res://Images/FamilyBanner/"
+const FAMILY_BANNER_NONE_PATH := FAMILY_BANNER_DIR + "none.png"
+
+## 依字串(通常是姓氏)決定一張穩定的家族旗幟貼圖,邏輯比照 color_from_seed()——同一個
+## 姓氏每次都選到同一張,不同姓氏視覺上容易區分。沒有姓氏(平民/士紳,見
+## NobleTitleRule.has_last_name())一律回傳 none.png(資料夾內代表「無家徽」的專用貼圖,
+## 不列入隨機池)。
+static func family_banner_path(text: String) -> String:
+	if text.is_empty():
+		return FAMILY_BANNER_NONE_PATH
+	var paths := _list_family_banner_paths()
+	if paths.is_empty():
+		return FAMILY_BANNER_NONE_PATH
+	return paths[hash(text) % paths.size()]
+
+## export_filter=all_resources 匯出後目錄列舉行為跟 FaceController._list_face_paths()
+## 同一個陷阱(xxx.png 會變成 xxx.png.import),寫法照抄。sort() 確保索引跨平台/跨次
+## 列舉穩定,不受檔案系統回傳順序影響。
+static func _list_family_banner_paths() -> Array[String]:
+	var dir := DirAccess.open(FAMILY_BANNER_DIR)
+	if dir == null:
+		return []
+
+	var seen: Dictionary = {}
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir():
+			var resource_name := file_name
+			if resource_name.get_extension().to_lower() == "import":
+				resource_name = resource_name.get_basename()
+			if resource_name.get_extension().to_lower() == "png" and resource_name != "none.png":
+				seen[resource_name] = true
+		file_name = dir.get_next()
+	dir.list_dir_end()
+
+	var paths: Array[String] = []
+	for resource_name in seen.keys():
+		paths.append(FAMILY_BANNER_DIR + resource_name)
+	paths.sort()
+	return paths
+
+
 const WOOD_BUTTON_NORMAL_TEXTURE := preload("res://Images/UI/button/wood_button_normal.png")
 const WOOD_BUTTON_HOVER_TEXTURE := preload("res://Images/UI/button/wood_button_hover.png")
 const WOOD_BUTTON_PRESSED_TEXTURE := preload("res://Images/UI/button/wood_button_pressed.png")

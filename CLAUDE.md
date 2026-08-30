@@ -37,7 +37,19 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
 
 大部分資料夾內容從名稱/檔名即可推知,不重複列舉,只記容易搞混的例外:
 
-- `trait/`:角色個性/特質資料模型(`CharacterTrait`+`TraitController`),機制目前**未接**,不要假設已生效。
+- `trait/`:角色個性/特質資料模型(`Trait`)+靜態總表(`TraitLibrary`)+隨機抽選
+  (`TraitController`),比照 `SkillLibrary`/`SkillController` 的分層慣例。機制效果(命中率/
+  戰鬥AI 傾向等)目前**未接**,不要假設已生效;只有 `Trait.title_adjective`(形容詞形態,
+  例如「勇猛」→「勇猛的」)已經接上——出生時抽到的第一個特性(`traits[0]`)固定當這個
+  人物的形容詞來源(見 `Character.title_adjective`),跟 `NobleTitleRule` 的爵位稱號組合
+  進 `Character.title_full_name`,格式「「形容詞+爵位稱號」姓 · 名」,例如「勇猛的騎士」
+  威廉 · 華勒斯。`AgingRule` 掛的衰老特性一律 `append()` 加在陣列尾端,不會頂替掉
+  `traits[0]` 這個形容詞來源。**`title_full_name` 只給 Dialogue 對話名牌/內文用**
+  (`BaseMarriageEvent`/`TownTavernEvent` 搭訕求婚流程的台詞與名牌),其餘一般 UI(角色
+  詳情/角色列表/兵營各分頁/酒館招募/聯姻`StrongholdMarriagePanel`與告白
+  `MarriageProposalPanel` 的 `CharacterDetailView`與 FaceOff 資訊等)一律改讀
+  `Character.display_name`(只有 given name,不含姓氏也不含頭銜)——`CharacterDetailView`
+  的 `show_title` 欄位已移除,不再有例外。
 - `nation/`:國家的靜態身分資料(名稱、稱呼),是資料定義層;玩家對各國好感度是動態資料,存在
   autoload `NationFavorStore`,不在這裡——見下方「國家好感度」。
 - `academy/`:留學規則(`AcademyRule`)——出生當下選國家留學,含國家↔武器對照表,見下方
@@ -372,7 +384,7 @@ CLINIC 建築等級提升而後退(數值見檔案內常數)。死亡機率曲�
 老死是機率自動觸發)。衰老特性掛上後不會因 CLINIC 升級、衰老線後退而摘除,是刻意的簡化
 (不做「回春」)。
 
-衰老特性透過 `CharacterTrait.stat_multiplier`(通用欄位,`is_aging` 旗標標記,不比對
+衰老特性透過 `Trait.stat_multiplier`(通用欄位,`is_aging` 旗標標記,不比對
 name 字串)套用,`Character._get_real_potential()` 乘上全部特性的 `stat_multiplier` 連乘
 ——之後其他特性做類似素質加成/減益都可直接重用這個欄位,不必只綁死給衰老特性。
 

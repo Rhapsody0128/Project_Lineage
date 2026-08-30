@@ -16,10 +16,11 @@ const CLINIC_LINE_BONUS_PER_LEVEL := 5
 ## 指數 > 1 是加速型(前期低、接近死亡線才陡升)。
 const DEATH_CHANCE_CURVE_EXPONENT := 2.0
 
-## 衰老特性:全素質固定打七折(不隨年齡繼續往下掉),透過 CharacterTrait.stat_multiplier
+## 衰老特性:全素質固定打七折(不隨年齡繼續往下掉),透過 Trait.stat_multiplier
 ## 套用,見 Character._trait_stat_multiplier()。
 const AGING_TRAIT_NAME := "衰老"
 const AGING_TRAIT_DESCRIPTION := "年老體衰，全素質下降"
+const AGING_TRAIT_ADJECTIVE := "衰老的"
 ## 「老當益壯」科技線(TechEffectType.AGING_STAT_MULTIPLIER_ADD)加在這個基準值上,
 ## clamp 上限 1.0(不會靠科技把衰老懲罰疊到變成正加成)。
 const AGING_STAT_MULTIPLIER := 0.7
@@ -70,8 +71,8 @@ static func has_aging_trait(character: Character) -> bool:
 	return false
 
 
-static func create_aging_trait() -> CharacterTrait:
-	var aging_trait := CharacterTrait.new(AGING_TRAIT_NAME, AGING_TRAIT_DESCRIPTION, GameEnums.TraitPolarity.NEGATIVE)
+static func create_aging_trait() -> Trait:
+	var aging_trait := Trait.new(AGING_TRAIT_NAME, AGING_TRAIT_DESCRIPTION, GameEnums.TraitPolarity.NEGATIVE, AGING_TRAIT_ADJECTIVE)
 	aging_trait.stat_multiplier = aging_stat_multiplier()
 	aging_trait.is_aging = true
 	return aging_trait

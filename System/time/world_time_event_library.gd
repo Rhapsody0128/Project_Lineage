@@ -35,7 +35,7 @@ static func _age_up() -> void:
 			continue
 		character.age_up()
 		if character.age == CharacterController.MIN_AGE and CharacterRosterStore.try_add(character):
-			NewsController.post("%s 成年了。" % character.full_name, GameEnums.NewsCategory.MAJOR)
+			NewsController.post("%s 成年了。" % character.display_name, GameEnums.NewsCategory.MAJOR)
 		_process_aging(character)
 
 
@@ -53,7 +53,7 @@ static func _process_aging(character: Character) -> void:
 	if not AgingRule.has_aging_trait(character):
 		character.traits.append(AgingRule.create_aging_trait())
 		if CharacterRosterStore.all_characteres.has(character):
-			var aging_text := "%s 已進入衰老期，各項素質開始衰退。" % character.full_name
+			var aging_text := "%s 已進入衰老期，各項素質開始衰退。" % character.display_name
 			NewsController.post(aging_text, GameEnums.NewsCategory.MAJOR)
 			MessageBar.show_message(aging_text)
 	if AgingRule.roll_death(character):
@@ -76,7 +76,7 @@ static func _roll_new_pregnancies() -> void:
 		processed_ids[wife.id] = true
 		if PregnancyRule.is_eligible(wife) and PregnancyRule.roll_pregnancy(wife):
 			wife.start_pregnancy()
-			var pregnancy_text := "%s 懷孕了。" % wife.full_name
+			var pregnancy_text := "%s 懷孕了。" % wife.display_name
 			NewsController.post(pregnancy_text, GameEnums.NewsCategory.MAJOR)
 			MessageBar.show_message(pregnancy_text)
 			new_pregnancy_count += 1
@@ -139,7 +139,7 @@ static func _advance_postpartum_recovery() -> void:
 static func _deliver_child(mother: Character) -> void:
 	var child := mother.give_birth()
 	AllCharacterStore.register(child)
-	NewsController.post("%s 誕下了孩子 %s。" % [mother.full_name, child.full_name], GameEnums.NewsCategory.MAJOR)
+	NewsController.post("%s 誕下了孩子 %s。" % [mother.display_name, child.display_name], GameEnums.NewsCategory.MAJOR)
 	LifeEventQueueStore.queue_child(child)
 
 

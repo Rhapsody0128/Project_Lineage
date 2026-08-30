@@ -227,9 +227,9 @@ static func get_knowledge() -> Array[TechNode]:
 	]))
 
 	nodes.append_array(_thread(branch, "孕育之道", "PregnancyRule.get_pregnancy_chance_percent()", "low", [
-		Entry.new(GameEnums.RankType.C, "孕育之學", "提升每月懷孕機率。", "每月懷孕機率基準 +3%(15%→18%)。", GameEnums.TechEffectType.PREGNANCY_CHANCE_ADD, 3.0),
-		Entry.new(GameEnums.RankType.A, "天賜麟兒", "機率再提升。", "機率再 +3%(累計 6%)。", GameEnums.TechEffectType.PREGNANCY_CHANCE_ADD, 3.0),
-		Entry.new(GameEnums.RankType.SS, "人丁興旺", "機率顯著提升,全鏈頂點。", "機率再 +5%(累計 11%)。", GameEnums.TechEffectType.PREGNANCY_CHANCE_ADD, 5.0),
+		Entry.new(GameEnums.RankType.C, "孕育之學", "提升每月懷孕機率。", "每月懷孕機率基準 +1%(10%→11%)。", GameEnums.TechEffectType.PREGNANCY_CHANCE_ADD, 1.0),
+		Entry.new(GameEnums.RankType.A, "天賜麟兒", "機率再提升。", "機率再 +1%(累計 2%)。", GameEnums.TechEffectType.PREGNANCY_CHANCE_ADD, 1.0),
+		Entry.new(GameEnums.RankType.SS, "人丁興旺", "機率顯著提升,全鏈頂點。", "機率再 2%(累計 4%)。", GameEnums.TechEffectType.PREGNANCY_CHANCE_ADD, 2.0),
 	]))
 
 	nodes.append_array(_thread(branch, "血統純化", "InheritanceConstants.BLOODLINE_MUTATION_CHANCES", "low", [

@@ -54,3 +54,12 @@ static func alliance_success_chance() -> float:
 
 static func roll_alliance_success() -> bool:
 	return Util.get_random_float(0.0, 100.0) < alliance_success_chance()
+
+
+## 寄信國家門檻:對某國好感度要達到 C 以上才能寄信求親——好感度只決定「能不能寄信」,
+## 不影響回信候選人評級(候選人評級改依 proposer 自身爵位決定,見
+## MarriageCandidateGenerator 檔頭註解)。
+const MIN_FAVOR_RANK_TO_SEND_LETTER := GameEnums.RankType.C
+
+static func can_send_letter(nation: int) -> bool:
+	return NationFavorRank.rank_for_favor(NationFavorStore.get_favor(nation)) >= MIN_FAVOR_RANK_TO_SEND_LETTER

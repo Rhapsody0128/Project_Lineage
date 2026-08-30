@@ -36,7 +36,7 @@ extends VBoxContainer
 ## (固定 840 高的 CharacterPanel、跟 RosterPanel 同高的 CharacterRoster 欄位、
 ## ActionPanel 內容區塊……),固定最小高度會在比較矮的容器裡把外層撐爆,交給父層
 ## Container(搭配 SIZE_EXPAND_FILL)決定實際高度才對。
-const PANEL_WIDTH := 320.0
+const PANEL_WIDTH := 350.0
 
 ## 技能格 2*2 排列,GridContainer columns=2。技能數量上限本身是規則層常數
 ## (Character.MAX_SKILLS,SkillLearnFlow 學技能滿了要跳替換/放棄彈窗共用同一個數字),
@@ -58,8 +58,15 @@ const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
 const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
 
 ## 家族分頁每個成員列的小頭像,比 header 的 PORTRAIT_SIZE 小一號——一行只需要
-## 辨識用,不需要跟主要立繪搶視覺。
-const FAMILY_PORTRAIT_SIZE := Vector2(60, 60)
+## 辨識用,不需要跟主要立繪搶視覺。長寬比刻意拉成 1.3(寬>高),不是正方形——使用者
+## 要求頭像加寬,其餘資訊欄照舊靠右排列(HBoxContainer 排版不受影響,只是頭像本身
+## 變寬)。祖譜卡片的頭像(family_tree_canvas.gd 的 PORTRAIT_SIZE)套用同一個比例。
+const FAMILY_PORTRAIT_SIZE := Vector2(140, 140)
+
+## 家族旗幟(暫代色塊,見 UiStyle.color_from_seed())——長寬比 1.5,比頭像更寬(旗幟
+## 本來就該是橫向的形狀,不是正方形),擺在家族分頁最上方。Scenes/FamilyTree 頂部橫幅
+## (family_tree.gd 的 BANNER_FLAG_SIZE)套用同一個比例。
+const FAMILY_FLAG_SIZE := Vector2(140, 140)
 
 ## 分頁內容跟 TabContainer 邊緣的內距,避免捲動內容貼邊
 const TAB_CONTENT_PADDING := 14
@@ -103,6 +110,11 @@ var trait_list: HFlowContainer
 var parent_list: VBoxContainer
 var mate_list: VBoxContainer
 var children_list: VBoxContainer
+var family_flag_rect: TextureRect
+var family_last_name_value_label: Label
+var family_title_value_label: Label
+var family_rank_value_label: Label
+var family_member_count_value_label: Label
 
 var current_character: Character
 
@@ -112,6 +124,14 @@ var current_character: Character
 ## StrongholdMarriagePanel,見兩者 _ready())要在 add_child() 進場景樹之前把這個設成
 ## false,分頁內容才不會多一層獨立捲動框搶走捲動手感。
 var scrollable_tabs: bool = true
+
+## CharacterPanel(彈出面板)專用:姓名區只顯示 given name,不顯示姓氏(見使用者需求,
+## 跟角色是否實際帶姓氏無關)——只有 character_panel.gd 的 _ready() 會把這個設成 true,
+## 其餘嵌用這顆元件的場景一律維持預設 false,正常顯示 Character.display_name。跟
+## scrollable_tabs 同一套「呼叫端 add_child() 之前先調欄位」慣例。
+##
+## 姓名區一律只顯示 Character.display_name
+var name_only: bool = false
 
 
 func _ready() -> void:
@@ -163,7 +183,7 @@ func set_character(character: Character, battle_character: BattleCharacter = nul
 		return
 
 	portrait_texture.texture = _load_face_texture(character.face_path)
-	name_label.text = character.full_name
+	name_label.text = character.name if name_only else character.display_name
 	age_label.text = "%d" % character.age
 	status_label.text = CharacterStatusRule.get_status_label(character)
 	gender_label.text = GameEnums.gender_symbol(character.gender)
@@ -241,12 +261,12 @@ func _build_stat_row(caption: String) -> Dictionary:
 
 
 ## 立繪(沿用放大的 Character.face_path 大頭貼,紙娃娃/全身立繪系統尚未製作,
-## 見遊戲企劃設定總整理.md 十一 紙娃娃系統)左半 + 姓名/年齡/性別/血統評級右半,
+## 見遊戲企劃設定總整理.md 十一 紙娃娃系統)左半 + 姓名/年齡/狀態/性別右半,
 ## 兩邊各佔 header 一半寬度(立繪置中不被撐大,比照 _build_attribute_tab() 的
-## battle_cost_frame+CenterContainer 寫法);右半四行都是 _build_stat_row() 的
+## battle_cost_frame+CenterContainer 寫法);右半各行都是 _build_stat_row() 的
 ## 「標題靠左、數值靠右」列(justify-content: space-between),跟下面素質分頁同一套
-## 排版語彙,不再是單純堆疊的純文字。血統評級(Character.noble_bloodline_rank)排在
-## 性別下面一列,是使用者指定的位置——緊貼頭像,不用切到血統分頁才看得到評級。
+## 排版語彙,不再是單純堆疊的純文字。血統評級(Character.noble_bloodline_rank)改排在
+## 屬性分頁「等級」上面(見 _build_attribute_tab()),不在這裡顯示。
 func _build_identity_header() -> Control:
 	var header := HBoxContainer.new()
 	header.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -287,10 +307,6 @@ func _build_identity_header() -> Control:
 	var gender_row := _build_stat_row("性別")
 	gender_label = gender_row["value_label"]
 	info_column.add_child(gender_row["row"])
-
-	var rank_row := _build_stat_row("評級")
-	bloodline_rank_value_label = rank_row["value_label"]
-	info_column.add_child(rank_row["row"])
 
 	return header
 
@@ -333,7 +349,9 @@ func _wrap_tab_content(tab_name: String, content: Control) -> Control:
 	return scroll
 
 
-## 「屬性」分頁:等級/武器/佔位形狀 + 六大素質 + 技能格。
+## 「屬性」分頁:評級/等級/武器/佔位形狀 + 六大素質 + 技能格。血統評級
+## (Character.noble_bloodline_rank)排在等級上面,是使用者指定的位置——原本緊貼頭像
+## 顯示,改成下放到這裡跟其他數值列放在一起。
 func _build_attribute_tab() -> Control:
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -366,6 +384,10 @@ func _build_attribute_tab() -> Control:
 	info_labels.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	info_labels.add_theme_constant_override("separation", 8)
 	info_row.add_child(info_labels)
+
+	var rank_row := _build_stat_row("評級")
+	bloodline_rank_value_label = rank_row["value_label"]
+	info_labels.add_child(rank_row["row"])
 
 	var level_row := _build_stat_row("等級")
 	level_value_label = level_row["value_label"]
@@ -503,13 +525,73 @@ func _build_bloodline_tab() -> Control:
 	return _wrap_tab_content("血統", column)
 
 
-## 「家族」分頁:父母/配偶/孩子三個區塊,各自一行一個成員(小頭像 + 姓名/年齡/性別),
-## 對照 Character.parent(0~2 筆)/mate(0~1 筆)/children(0~N 筆)。三個區塊的成員列表容器
+## 家族旗幟橫幅:圖片來自 Images/FamilyBanner/,依姓氏決定(見 UiStyle.family_banner_path())+
+## 姓氏/稱謂/家族階級/總成員四行。「稱謂」是 current_character 自己的稱謂
+## (Character.title_label),「家族階級」才是整個祖譜連通圖裡最高的稱謂——兩者刻意
+## 分開,不要混用同一個欄位。「家族階級」「總成員」都走 FamilyTreeBuilder.build()
+## (不是只看 current_character 自己的欄位),包含不在小隊裡的配偶(使用者需求)——
+## 實際數值在 _populate_family_banner() 依角色動態填入。
+func _build_family_banner() -> Control:
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 14)
+
+	family_flag_rect = TextureRect.new()
+	family_flag_rect.custom_minimum_size = FAMILY_FLAG_SIZE
+	family_flag_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	family_flag_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	family_flag_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	row.add_child(family_flag_rect)
+
+	var info_column := VBoxContainer.new()
+	info_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	info_column.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	info_column.add_theme_constant_override("separation", 4)
+	row.add_child(info_column)
+
+	var last_name_row := _build_stat_row("姓氏")
+	family_last_name_value_label = last_name_row["value_label"]
+	info_column.add_child(last_name_row["row"])
+
+	var title_row := _build_stat_row("稱謂")
+	family_title_value_label = title_row["value_label"]
+	info_column.add_child(title_row["row"])
+
+	var rank_row := _build_stat_row("家族階級")
+	family_rank_value_label = rank_row["value_label"]
+	info_column.add_child(rank_row["row"])
+
+	var count_row := _build_stat_row("總成員")
+	family_member_count_value_label = count_row["value_label"]
+	info_column.add_child(count_row["row"])
+
+	return row
+
+
+## 「家族」分頁:比照血統分頁「潛力/血統/特性」每個子區塊都有自己標題的排版慣例,
+## 這裡分兩個子區塊各自掛標題——「詳細」(家族旗幟橫幅)、「成員」(父母/配偶/孩子
+## 三個區塊,各自一行一個成員:小頭像 + 姓名/年齡/狀態/性別/稱謂),對照
+## Character.parent(0~2 筆)/mate(0~1 筆)/children(0~N 筆)。三個區塊的成員列表容器
 ## 在這裡建好存起來,實際內容在 _populate_family() 依角色資料動態填入。
 func _build_family_tab() -> Control:
 	var column := VBoxContainer.new()
 	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	column.add_theme_constant_override("separation", 6)
+
+	var detail_title := Label.new()
+	detail_title.text = "詳細"
+	detail_title.add_theme_font_size_override("font_size", 15)
+	detail_title.add_theme_color_override("font_color", _title_color())
+	column.add_child(detail_title)
+
+	column.add_child(_build_family_banner())
+	column.add_child(HSeparator.new())
+
+	var member_title := Label.new()
+	member_title.text = "成員"
+	member_title.add_theme_font_size_override("font_size", 15)
+	member_title.add_theme_color_override("font_color", _title_color())
+	column.add_child(member_title)
 
 	var parent_title := Label.new()
 	parent_title.text = "父母"
@@ -670,7 +752,7 @@ func _populate_bloodline(bloodline: Bloodline) -> void:
 		bloodline_list.add_child(entry_column)
 
 
-func _populate_traits(traits: Array[CharacterTrait]) -> void:
+func _populate_traits(traits: Array[Trait]) -> void:
 	for child in trait_list.get_children():
 		child.queue_free()
 
@@ -702,9 +784,24 @@ func _populate_traits(traits: Array[CharacterTrait]) -> void:
 ## 家族三區塊(父母/配偶/孩子)共用同一套填入邏輯:清空舊列表 → 沒有成員時顯示
 ## 「（無）」→ 有成員則每人一行(_build_family_member_row())。
 func _populate_family(character: Character) -> void:
+	_populate_family_banner(character)
 	_populate_family_section(parent_list, character.parent)
 	_populate_family_section(mate_list, [] if character.mate == null else [character.mate])
 	_populate_family_section(children_list, character.children)
+
+
+## 家族旗幟橫幅的數值:姓氏/稱謂直接讀 current_character 自己的欄位(last_name/
+## title_label),家族階級/總成員呼叫 FamilyTreeBuilder.build() 走一輪整個祖譜連通圖
+## (跟 Scenes/FamilyTree 頂部橫幅共用同一套規則層計算,只是這裡排版多「稱謂」「家族
+## 階級」兩行)。
+func _populate_family_banner(character: Character) -> void:
+	family_flag_rect.texture = load(UiStyle.family_banner_path(character.last_name))
+	family_last_name_value_label.text = character.last_name if not character.last_name.is_empty() else "-"
+	family_title_value_label.text = character.title_label
+
+	var units := FamilyTreeBuilder.build(character)
+	family_rank_value_label.text = NobleTitleRule.label_for_rank(FamilyTreeBuilder.highest_title_rank(units))
+	family_member_count_value_label.text = "%d" % FamilyTreeBuilder.count_members(units)
 
 
 func _populate_family_section(list: VBoxContainer, members: Array) -> void:
@@ -721,8 +818,9 @@ func _populate_family_section(list: VBoxContainer, members: Array) -> void:
 		list.add_child(_build_family_member_row(member as Character))
 
 
-## 家族分頁一行一個成員:左邊小頭像、右邊姓名/年齡/性別三行(比照 _build_identity_header()
-## 的排版語彙,只是頭像縮小、資訊欄改用較小字級)。
+## 家族分頁一行一個成員:左邊 FAMILY_PORTRAIT_SIZE 寬幅頭像、右邊姓名/年齡/狀態/
+## 性別/稱謂五行(比照 _build_identity_header() 的排版語彙,只是頭像縮小、資訊欄改用
+## 較小字級)。
 func _build_family_member_row(member: Character) -> Control:
 	var row := HBoxContainer.new()
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -730,6 +828,11 @@ func _build_family_member_row(member: Character) -> Control:
 
 	var portrait_frame := PanelContainer.new()
 	portrait_frame.custom_minimum_size = FAMILY_PORTRAIT_SIZE
+	# Control 預設 size_flags_vertical 是 SIZE_FILL,HBoxContainer 會把它撐到跟右邊
+	# info_column(5 行資訊)一樣高,頭像框被拉成細長條、完全看不出 FAMILY_PORTRAIT_SIZE
+	# 刻意加寬的比例——SHRINK_CENTER 讓它固定維持 FAMILY_PORTRAIT_SIZE,不跟著撐高
+	# (比照 family_tree_canvas.gd 的 portrait.size_flags_vertical 同一個修法)。
+	portrait_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	portrait_frame.mouse_filter = Control.MOUSE_FILTER_STOP
 	portrait_frame.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	portrait_frame.gui_input.connect(_on_family_portrait_gui_input.bind(member))
@@ -752,7 +855,7 @@ func _build_family_member_row(member: Character) -> Control:
 	row.add_child(info_column)
 
 	var name_row := _build_stat_row("姓名")
-	name_row["value_label"].text = member.full_name
+	name_row["value_label"].text = member.display_name
 	info_column.add_child(name_row["row"])
 
 	var age_row := _build_stat_row("年齡")
@@ -766,6 +869,10 @@ func _build_family_member_row(member: Character) -> Control:
 	var gender_row := _build_stat_row("性別")
 	gender_row["value_label"].text = GameEnums.gender_symbol(member.gender)
 	info_column.add_child(gender_row["row"])
+
+	var title_row := _build_stat_row("稱謂")
+	title_row["value_label"].text = member.title_label
+	info_column.add_child(title_row["row"])
 
 	return row
 

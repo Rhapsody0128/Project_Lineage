@@ -66,8 +66,8 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 	var has_party := self_party != null
 	var player := LeaderStore.get_leader()
 
-	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
-	var guard_speaker := DialogueSpeaker.new(guard.id, guard.full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)
+	var player_speaker := DialogueSpeaker.new(player.id, player.title_full_name, player.face_path, GameEnums.DialogueSide.LEFT)
+	var guard_speaker := DialogueSpeaker.new(guard.id, guard.title_full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)
 
 	var lines: Array[DialogueLine] = []
 
@@ -95,7 +95,7 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 next_scene_path 自動接手轉場。
 ## DRAW(平手)沒有另外的台詞,一律當作沒能闖進去,跟戰敗共用同一句「不要再來了」。
 func _build_result(won: bool) -> Dialogue:
-	var guard_speaker := DialogueSpeaker.new(guard.id, guard.full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)
+	var guard_speaker := DialogueSpeaker.new(guard.id, guard.title_full_name, guard.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(guard_speaker.id, "國王不會饒過你的..." if won else "不要再來了"),
 	]

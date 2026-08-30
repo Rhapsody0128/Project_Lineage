@@ -541,7 +541,7 @@ func _build_party_member_row(character: Character) -> Control:
 	row.add_child(info_column)
 
 	var name_label := Label.new()
-	name_label.text = character.full_name
+	name_label.text = character.display_name
 	name_label.add_theme_font_size_override("font_size", 15)
 	info_column.add_child(name_label)
 

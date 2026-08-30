@@ -337,7 +337,7 @@ func _build_person_slot(caption_text: String, character: Character, target: int)
 	box.add_child(slot)
 
 	var name_label := Label.new()
-	name_label.text = character.full_name if character != null else ""
+	name_label.text = character.display_name if character != null else ""
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
 	box.add_child(name_label)
@@ -381,7 +381,7 @@ func _on_teach_pressed() -> void:
 	SkillLearnFlow.try_learn(student, skill, func(applied: bool) -> void:
 		if applied:
 			master.taught_skill_count += 1
-			NewsController.post("%s 拜 %s 為師，習得「%s」。" % [student.full_name, master.full_name, skill.name], GameEnums.NewsCategory.DAILY)
+			NewsController.post("%s 拜 %s 為師，習得「%s」。" % [student.display_name, master.display_name, skill.name], GameEnums.NewsCategory.DAILY)
 		_selected_skill = null
 		_rebuild_all()
 	)

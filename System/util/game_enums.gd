@@ -360,6 +360,11 @@ static func resource_type_icon_path(resource_type: int) -> String:
 static func bloodline_nation_label(nation: int) -> String:
 	return BLOODLINE_NATION_LABELS[nation]
 
+## 國家旗幟圖示路徑(見 Images/NationFlag/),檔名對應 BloodlineNation enum 成員名稱,同
+## resource_type_icon_path() 的慣例。
+static func bloodline_nation_flag_path(nation: int) -> String:
+	return "res://Images/NationFlag/%s.png" % BloodlineNation.keys()[nation]
+
 static func bloodline_rank_label(rank: int) -> String:
 	return BLOODLINE_RANK_LABELS[rank]
 

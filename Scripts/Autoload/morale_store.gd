@@ -22,9 +22,10 @@ signal changed
 
 const START_VALUE := 60.0
 
-## 每名角色每月維持費,見 CLAUDE.md「三、CHARACTER_ROSTER 維持費」。
+## 每名角色每月糧食維持費,見 CLAUDE.md「三、CHARACTER_ROSTER 維持費」。薪水改依角色
+## 身分爵位查表(NobleTitleRule.wage_for_rank(),見 _total_wage_cost()),不再是齊頭式
+## 常數。
 const FOOD_PER_CHARACTER := 0.5
-const WAGE_PER_CHARACTER := 0.2
 
 ## 經濟健全(糧食/薪水都付得出來)時,戰績/事件造成的下跌不會把士氣打穿這條保護線——
 ## 只有真的缺糧/欠薪的那個月才能突破它往下掉,見 _apply_delta()/settle()。
@@ -168,10 +169,19 @@ func _apply_delta(delta: float) -> void:
 ## 註解。下面兩個 `if not available.has(...)` 只是給「直接單獨呼叫這支 store 的 settle()」
 ## 時的防呆,正常路徑一律已經補好值。付不出來的項目直接不放進結果,付不出來那個月本來就
 ## 不會真的扣款,預覽不該顯示一個不會發生的扣款。
+## 依每名角色的身分爵位(Character.title_rank)加總月薪,身分越高越貴(見
+## NobleTitleRule.wage_for_rank()),取代舊版齊頭式 WAGE_PER_CHARACTER 常數。
+func _total_wage_cost() -> float:
+	var total := 0.0
+	for character in CharacterRosterStore.all_characteres:
+		total += NobleTitleRule.wage_for_rank(character.title_rank)
+	return total
+
+
 func settle(apply: bool, available: Dictionary) -> Dictionary:
 	var roster_size := get_roster_size()
 	var food_cost := roundi(roster_size * FOOD_PER_CHARACTER)
-	var wage_cost := roundi(roster_size * WAGE_PER_CHARACTER)
+	var wage_cost := roundi(_total_wage_cost())
 
 	if not available.has(GameEnums.ResourceType.FOOD):
 		available[GameEnums.ResourceType.FOOD] = BaseResourceStore.get_amount(GameEnums.ResourceType.FOOD)

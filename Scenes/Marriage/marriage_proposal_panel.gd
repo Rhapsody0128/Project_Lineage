@@ -151,11 +151,12 @@ func _set_self_card(character: Character) -> void:
 	self_info_label.text = _character_info_text(character)
 
 
-## 姓名/年齡/性別各佔一行,顯示在 FaceOff 頭像右側,己方對方共用同一份格式。
+## 姓名/年齡/性別各佔一行,顯示在 FaceOff 頭像右側,己方對方共用同一份格式。姓名只顯示
+## Character.display_name,不顯示 title_full_name(見使用者需求)。
 func _character_info_text(character: Character) -> String:
 	if character == null:
 		return ""
-	return "%s\n%d 歲\n%s" % [character.full_name, character.age, GameEnums.gender_symbol(character.gender)]
+	return "%s\n%d 歲\n%s" % [character.display_name, character.age, GameEnums.gender_symbol(character.gender)]
 
 
 func _on_picker_character_selected(character: Character) -> void:

@@ -30,6 +30,7 @@ static func encode_character(character: Character) -> Dictionary:
 			"name": character_trait.name,
 			"description": character_trait.description,
 			"polarity": character_trait.polarity,
+			"title_adjective": character_trait.title_adjective,
 			"stat_multiplier": character_trait.stat_multiplier,
 			"is_aging": character_trait.is_aging,
 		})
@@ -62,6 +63,7 @@ static func encode_character(character: Character) -> Dictionary:
 		"bloodline_percentages": character.bloodline.percentages,
 		"weapon": character.weapon,
 		"weapon_rank": character.weapon_rank,
+		"title_rank": character.title_rank,
 		"weapon_stat_bonus": SaveDataCodec.int_keyed_to_str(character.weapon_stat_bonus),
 		"skill_names": skill_names,
 		"level": character.level_system.level,
@@ -100,9 +102,9 @@ static func _encode_potential(potential: Potential) -> Dictionary:
 ## 第一階段:建好角色本身(不含 parent/mate/children),id 沿用存檔裡的舊 id
 ## (Character._init() 內部會另外配一個新 UUID,建完要覆寫回去)。
 static func decode_character_base(data: Dictionary) -> Character:
-	var traits: Array[CharacterTrait] = []
+	var traits: Array[Trait] = []
 	for trait_data in data.get("traits", []):
-		var character_trait := CharacterTrait.new(trait_data["name"], trait_data["description"], int(trait_data["polarity"]))
+		var character_trait := Trait.new(trait_data["name"], trait_data["description"], int(trait_data["polarity"]), trait_data.get("title_adjective", ""))
 		character_trait.stat_multiplier = float(trait_data.get("stat_multiplier", 1.0))
 		character_trait.is_aging = trait_data.get("is_aging", false)
 		traits.append(character_trait)
@@ -138,6 +140,7 @@ static func decode_character_base(data: Dictionary) -> Character:
 	character.id = data["id"]
 	character.hp = int(data["hp"])
 	character.weapon_rank = int(data.get("weapon_rank", GameEnums.RankType.F))
+	character.title_rank = int(data.get("title_rank", GameEnums.RankType.F))
 	character.weapon_stat_bonus = SaveDataCodec.str_keyed_to_int(data.get("weapon_stat_bonus", {}))
 	character.is_protagonist = data.get("is_protagonist", false)
 	# 舊存檔只有 bool 版 has_taught_skill(一生一次上限已改成不限次數的計數,見

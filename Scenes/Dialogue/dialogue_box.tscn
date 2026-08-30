@@ -95,7 +95,6 @@ theme_override_constants/separation = 8
 layout_mode = 2
 theme_override_colors/font_color = Color(0.28, 0.16, 0.06, 1)
 theme_override_font_sizes/font_size = 20
-text = "……"
 
 [node name="DialogueLabel" type="Label" parent="TextBox/Margin/Content" unique_id=1647518912]
 layout_mode = 2
@@ -110,6 +109,7 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="ClickCatcher" type="Control" parent="." unique_id=454885620]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0

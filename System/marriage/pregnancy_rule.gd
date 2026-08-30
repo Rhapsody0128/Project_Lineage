@@ -6,19 +6,18 @@ extends RefCounted
 const MONTHS_TO_BIRTH := 10
 
 ## 每月懷孕機率的基準值(雙方都年輕、無子女時)。不是 100%——已婚不代表每月必中。
-const BASE_PREGNANCY_CHANCE_PERCENT := 15.0
-## 每多一個孩子，懷孕機率就乘上這個係數（指數衰減），
-## 模擬子女越多，生育意願越低。
-## 例如基準 15%、係數 0.75 時：
-## 0 個孩子=15%、1 個=11.25%、2 個=8.44%、3 個=6.33%……
-## 越生越難再懷孕，但不會直接歸零，交給機率自然趨近 0。
-const CHILD_COUNT_DESIRE_DECAY := 0.75
+const BASE_PREGNANCY_CHANCE_PERCENT := 6.0 
+## 每多一個孩子，懷孕機率就乘上這個係數（指數衰減）， 
+## 模擬子女越多，後續生育機率越低。 
+## 例如基準 6%、係數 0.5 時： ## 0 個孩子=6.00%、1 個=3%、2 個=1.5%、3 個=0.75%……
+## 越多孩子，懷孕機率越低，但不會直接歸零，會隨子女數增加逐步趨近 0。 
+const CHILD_COUNT_DESIRE_DECAY := 0.5
 
 ## 休產期(月):產下孩子後這段月數內不列入懷孕資格,模擬產後恢復期不會馬上又懷上下一胎。
 ## 見 Character.postpartum_months_remaining(give_birth() 設定初始值、
 ## advance_postpartum_recovery() 每月倒數,呼叫點見 WorldTimeEventLibrary
 ## ._advance_postpartum_recovery())。
-const POSTPARTUM_MONTHS := 3
+const POSTPARTUM_MONTHS := 12
 
 ## 「產後調理」科技線(TechEffectType.POSTPARTUM_MONTHS_SUB)在基準值上扣減,下限
 ## clamp 在 0(不會是負數月數)。

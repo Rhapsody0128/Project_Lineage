@@ -135,7 +135,7 @@ func _drop_data(at_position: Vector2, data) -> void:
 	queue_redraw()
 
 	if BarracksExpeditionStore.is_on_expedition(character.id):
-		ConfirmDialog.ask("%s 目前歷練中，取消歷練不會有任何歷練獎勵，是否改編入隊伍？" % character.full_name, func() -> void:
+		ConfirmDialog.ask("%s 目前歷練中，取消歷練不會有任何歷練獎勵，是否改編入隊伍？" % character.display_name, func() -> void:
 			BarracksExpeditionStore.recall(character.id)
 			grid.place(character, shape, anchor)
 			placement_changed.emit()
@@ -145,7 +145,7 @@ func _drop_data(at_position: Vector2, data) -> void:
 	var dispatched_building_type := BaseDispatchStore.get_dispatched_building_type(character.id)
 	if dispatched_building_type != -1:
 		var building_name := GameEnums.building_type_label(dispatched_building_type)
-		ConfirmDialog.ask("%s 目前在%s工作，是否改安排到隊伍中？" % [character.full_name, building_name], func() -> void:
+		ConfirmDialog.ask("%s 目前在%s工作，是否改安排到隊伍中？" % [character.display_name, building_name], func() -> void:
 			BaseDispatchStore.undispatch_character(character.id)
 			grid.place(character, shape, anchor)
 			placement_changed.emit()

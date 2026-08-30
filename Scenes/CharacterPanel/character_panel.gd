@@ -18,6 +18,10 @@ extends CanvasLayer
 
 func _ready() -> void:
 	root.visible = false
+	# 彈出面板姓名區只顯示 given name,不顯示姓氏(見使用者需求)——CharacterRoster 等
+	# 其餘嵌用 CharacterDetailView 的地方維持預設全名顯示,只有這顆彈出面板要收斂成
+	# 只顯示名字,在第一次 open_for_character() 呼叫 set_character() 之前設好即可。
+	detail_view.name_only = true
 	# PanelBox 擋在 DimBg 之上,點面板內容不會傳到這裡;只有點面板外的遮罩區域才會觸發。
 	dim_bg.gui_input.connect(_on_dim_bg_gui_input)
 	# PanelBox 的寬度來自子節點 DetailView 自己宣告的 custom_minimum_size.x

@@ -9,8 +9,8 @@ extends Control
 # ScrollContainer 底下,custom_minimum_size 撐開成整棵樹的實際範圍,ScrollContainer
 # 才滾得到全部內容。
 #
-# 卡片內容比照使用者需求:「本人 | 配偶」左右兩欄,每欄左上頭像、右上姓名/年齡/
-# 性別/血統評級(Character.noble_bloodline_rank)並排,下面一條分隔線接血統清單
+# 卡片內容比照使用者需求:「本人 | 配偶」左右兩欄,每欄左上正方形頭像、右上姓名/年齡/
+# 狀態/性別/稱謂(Character.title_label)並排,下面一條分隔線接血統清單
 # (含百分比計量表,資料來源/配色跟
 # CharacterDetailView._populate_bloodline() 一致;固定只留約 3~4 條的高度,超過用
 # ScrollContainer 內部捲動,不撐高卡片)。沒有配偶時卡片只有一欄、不留空欄——所以
@@ -27,10 +27,10 @@ extends Control
 # 範圍內也能按住拖曳平移(_input() 而非 _gui_input(),見下方拖曳段落)。
 # =========================================================
 
-## CARD_HEIGHT/CARD_WIDTH_*/COLUMN_WIDTH 比原本各拉高/拉寬一截,多留給新增的
-## 「血統評級」列(見 _build_person_column())——連接線的置中邏輯(_draw()/
-## render() 的 slot_center_x)完全是從這幾個常數即時算出來的,不是寫死座標,
-## 這裡調整不需要另外校正祖譜線。
+## CARD_HEIGHT/CARD_WIDTH_*/COLUMN_WIDTH 比原本各拉高/拉寬一截,多留給「稱謂」列
+## (見 _build_person_column())——連接線的置中邏輯(_draw()/render() 的
+## slot_center_x)完全是從這幾個常數即時算出來的,不是寫死座標,這裡調整不需要
+## 另外校正祖譜線。
 const CARD_HEIGHT := 272.0
 const CARD_WIDTH_SINGLE := 260.0
 const CARD_WIDTH_COUPLE := 520.0
@@ -38,16 +38,17 @@ const SLOT_GAP := 70.0
 const ROW_GAP := 90.0
 const CANVAS_MARGIN := 40.0
 const COLUMN_WIDTH := 230.0
-const PORTRAIT_SIZE := Vector2(56, 56)
+## 長寬比 1.1(寬=高),跟 CharacterDetailView.FAMILY_PORTRAIT_SIZE 同一個比例——
+## 使用者要求頭像加寬,其餘資訊欄照舊排在右邊。
+const PORTRAIT_SIZE := Vector2(96, 96)
 
 const PANEL_BG := Color(0.13, 0.15, 0.21, 0.95)
 const PANEL_BORDER := Color(0.36, 0.4, 0.56, 1)
 const LINE_COLOR := Color(0.95, 0.9, 0.72, 1)
 const LINE_WIDTH := 3.0
 
-## 血統評級文字色,跟 CharacterDetailView.BLOODLINE_RANK_COLOR 同一套金色,
-## 兩處都是「評級」語意,視覺語言統一。
-const BLOODLINE_RANK_COLOR := Color(1.0, 0.85, 0.3)
+## 稱謂文字色,沿用原本「評級」那一行的金色系,視覺語言統一。
+const TITLE_LABEL_COLOR := Color(1.0, 0.85, 0.3)
 
 const BLOODLINE_BAR_HEIGHT := 8.0
 const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
@@ -221,14 +222,14 @@ func _build_person_column(character: Character) -> Control:
 	info_column.add_theme_constant_override("separation", 2)
 	top_row.add_child(info_column)
 
-	info_column.add_child(_build_stat_row("姓名", character.full_name, 14))
+	info_column.add_child(_build_stat_row("姓名", character.display_name, 14))
 	info_column.add_child(_build_stat_row("年齡", "%d歲" % character.age, 12))
 	info_column.add_child(_build_stat_row("狀態", CharacterStatusRule.get_status_label(character), 12))
 	info_column.add_child(_build_stat_row("性別", GameEnums.gender_symbol(character.gender), 12))
 
-	var rank_row := _build_stat_row("血統評級", GameEnums.rank_label(character.noble_bloodline_rank), 12)
-	rank_row.get_child(1).add_theme_color_override("font_color", BLOODLINE_RANK_COLOR)
-	info_column.add_child(rank_row)
+	var title_row := _build_stat_row("稱謂", character.title_label, 12)
+	title_row.get_child(1).add_theme_color_override("font_color", TITLE_LABEL_COLOR)
+	info_column.add_child(title_row)
 
 	content.add_child(HSeparator.new())
 

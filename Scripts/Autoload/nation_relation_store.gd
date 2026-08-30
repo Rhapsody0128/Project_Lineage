@@ -67,6 +67,17 @@ func get_war_status(nation_a: int, nation_b: int) -> int:
 	return GameEnums.NationWarStatus.WAR if get_active_war_between(nation_a, nation_b) != null else GameEnums.NationWarStatus.PEACE
 
 
+## 疲憊值(War.war_exhaustion_a/b)只在雙方真的處於 ACTIVE 交戰狀態時才有意義,平時
+## (含未曾交戰/已停戰)一律回傳 0——跟 get_war_tension() 不同,張力平時就會累積,疲憊
+## 只在戰爭進行中才有數值。for_nation 決定回傳哪一方的疲憊(對應 NationRelations UI
+## 的邦交狀態頁面,見 nation_relations.gd _build_war_exhaustion_cell())。
+func get_war_exhaustion(nation_a: int, nation_b: int, for_nation: int) -> float:
+	var war := get_active_war_between(nation_a, nation_b)
+	if war == null:
+		return 0.0
+	return war.war_exhaustion_a if for_nation == war.attacker else war.war_exhaustion_b
+
+
 func is_at_war(nation_id: int) -> bool:
 	var count := 0
 	for war: War in wars.values():

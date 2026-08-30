@@ -75,8 +75,8 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 	var player := LeaderStore.get_leader()
 	var bandit := _enemy.party.leader
 
-	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
-	var bandit_speaker := DialogueSpeaker.new(bandit.id, bandit.full_name, bandit.face_path, GameEnums.DialogueSide.RIGHT)
+	var player_speaker := DialogueSpeaker.new(player.id, player.title_full_name, player.face_path, GameEnums.DialogueSide.LEFT)
+	var bandit_speaker := DialogueSpeaker.new(bandit.id, bandit.title_full_name, bandit.face_path, GameEnums.DialogueSide.RIGHT)
 
 	# 選「離開」不消耗敵人,只是暫時擋掉重複觸發,讓玩家可以晚點回頭再打——跟打輸/
 	# 平手同一套機制,見 _on_battle_result()。敵人只有在真的打贏時才會被 remove_enemy()。
@@ -152,7 +152,7 @@ func _build_stakes_text() -> String:
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 RETURN_SCENE_PATH 自動接手轉場。
 ## DRAW(平手)沒有另外的台詞,一律當作沒能擊退盜賊,跟戰敗共用同一句,比照 TownGateEvent。
 func _build_result(result: GameEnums.BattleResultType) -> Dialogue:
-	var bandit_speaker := DialogueSpeaker.new(_enemy.party.leader.id, _enemy.party.leader.full_name, _enemy.party.leader.face_path, GameEnums.DialogueSide.RIGHT)
+	var bandit_speaker := DialogueSpeaker.new(_enemy.party.leader.id, _enemy.party.leader.title_full_name, _enemy.party.leader.face_path, GameEnums.DialogueSide.RIGHT)
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var lines: Array[DialogueLine] = []
 	if result == GameEnums.BattleResultType.SELF_WIN:

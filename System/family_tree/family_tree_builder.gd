@@ -77,3 +77,75 @@ static func _find_parent_unit(character: Character, unit_by_character: Dictionar
 		if unit_by_character.has(parent_character):
 			return unit_by_character[parent_character]
 	return null
+
+
+## 家族統計:總成員數(含配偶,不論是否在小隊裡)——CharacterDetailView 家族分頁的
+## 家族旗幟區塊、Scenes/FamilyTree 頂部橫幅共用同一份計算,不要各自遍歷 units 累加。
+static func count_members(units: Array[FamilyTreeUnit]) -> int:
+	var count := 0
+	for unit in units:
+		count += 1
+		if unit.partner != null:
+			count += 1
+	return count
+
+
+## 家族統計:整個祖譜連通圖裡最高的稱謂(GameEnums.RankType,見 Character.title_rank/
+## NobleTitleRule),同上共用,刻意包含不在小隊裡的配偶。
+static func highest_title_rank(units: Array[FamilyTreeUnit]) -> int:
+	var highest := GameEnums.RankType.F
+	for unit in units:
+		highest = maxi(highest, unit.primary.title_rank)
+		if unit.partner != null:
+			highest = maxi(highest, unit.partner.title_rank)
+	return highest
+
+
+## 家族統計:整個祖譜連通圖裡還在世(is_dead == false)的成員數,搭配 count_members()
+## 在橫幅顯示「還在世的 / 全部」。
+static func count_alive_members(units: Array[FamilyTreeUnit]) -> int:
+	var count := 0
+	for unit in units:
+		if not unit.primary.is_dead:
+			count += 1
+		if unit.partner != null and not unit.partner.is_dead:
+			count += 1
+	return count
+
+
+## 家族統計:主血統——每個成員各自百分比最高的血統項目(Bloodline.get_nonzero_entries()
+## 排序後第一筆)出現次數最多的那一種(例如「龍血」「龍高血」),用來代表整個家族的血統
+## 傾向。沒有任何成員帶血統資料時回傳空字串,呼叫端自行決定要不要顯示這一行。
+static func dominant_bloodline_label(units: Array[FamilyTreeUnit]) -> String:
+	var counts: Dictionary = {}
+	var labels: Dictionary = {}
+	var order: Array[String] = []
+
+	var tally := func(character: Character) -> void:
+		if character.bloodline == null:
+			return
+		var entries := character.bloodline.get_nonzero_entries()
+		if entries.is_empty():
+			return
+		var top: Dictionary = entries[0]
+		var key := "%d_%d" % [top["nation"], top["rank"]]
+		if not counts.has(key):
+			counts[key] = 0
+			labels[key] = GameEnums.bloodline_full_label(top["nation"], top["rank"])
+			order.append(key)
+		counts[key] += 1
+
+	for unit in units:
+		tally.call(unit.primary)
+		if unit.partner != null:
+			tally.call(unit.partner)
+
+	if order.is_empty():
+		return ""
+
+	var best_key: String = order[0]
+	for key in order:
+		if counts[key] > counts[best_key]:
+			best_key = key
+
+	return labels[best_key]

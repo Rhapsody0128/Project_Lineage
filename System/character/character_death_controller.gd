@@ -45,6 +45,6 @@ static func kill(character: Character) -> void:
 
 	MoraleStore.record_event("角色死亡", MoraleStore.DEATH_DELTA)
 
-	var death_text := "%s 因年邁過世了。" % character.full_name
+	var death_text := "%s 因年邁過世了。" % character.display_name
 	NewsController.post(death_text, GameEnums.NewsCategory.MAJOR)
 	MessageBar.show_message(death_text)

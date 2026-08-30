@@ -56,7 +56,7 @@ func _ready() -> void:
 	custom_minimum_size = CARD_SIZE
 	expand_icon = true
 	if character != null:
-		tooltip_text = unavailable_reason if not unavailable_reason.is_empty() else character.full_name
+		tooltip_text = unavailable_reason if not unavailable_reason.is_empty() else character.display_name
 		if not character.face_path.is_empty():
 			icon = load(character.face_path) as Texture2D
 	disabled = not available

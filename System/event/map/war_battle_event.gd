@@ -62,7 +62,7 @@ func _start() -> void:
 func _build_intro_dialogue(war: War) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var leader := LeaderStore.get_leader()
-	var leader_speaker := DialogueSpeaker.new(leader.id, leader.full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
+	var leader_speaker := DialogueSpeaker.new(leader.id, leader.title_full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
 
 	var choices: Array[DialogueChoice] = [
 		DialogueChoice.new("支援 %s" % GameEnums.bloodline_nation_label(war.attacker), "", func(): _on_side_chosen(war, war.attacker)),
@@ -93,7 +93,7 @@ func _on_decline_chosen(war: War) -> void:
 
 func _build_decline_dialogue(war: War) -> Dialogue:
 	var leader := LeaderStore.get_leader()
-	var leader_speaker := DialogueSpeaker.new(leader.id, leader.full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
+	var leader_speaker := DialogueSpeaker.new(leader.id, leader.title_full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(leader_speaker.id, "（先觀察情勢,這次暫時不插手。）"),
 	]
@@ -105,7 +105,7 @@ func _build_decline_dialogue(war: War) -> Dialogue:
 func _build_battlefield_dialogue(war: War) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var leader := LeaderStore.get_leader()
-	var leader_speaker := DialogueSpeaker.new(leader.id, leader.full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
+	var leader_speaker := DialogueSpeaker.new(leader.id, leader.title_full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
 
 	var lines: Array[DialogueLine] = []
 
@@ -155,11 +155,16 @@ func _on_join_campaign(war: War) -> void:
 ## on_report 加碼欄位)。record_in_report_list 傳 false——這場戰報只掛在「戰爭戰報」
 ## 分類底下(見 _finish_campaign()),不重複出現在「一般戰鬥」清單;report_description
 ## 直接沿用 WarCampaignReport.title_for() 加上第幾場,跟父列一致,不是預設的
-## 「O級敵人遭遇戰」。
+## 「O級敵人遭遇戰」。敵方基準評級隨連戰場次墊高——每連勝 2 場 +1(第 1、2 場沿用戰場
+## 基準 rank_type,第 3、4 場 +1,以此類推),只 clamp 在 RankDrawTable.MAX_BASE_RANK、不
+## 提早卡在 SSS,再丟給 RankDrawTable.roll() 骰出實際評級——跟其他「基準評級→抽出評級」
+## 呼叫端(RoamingEnemySpawner/QuestLibrary/CastleSiegeEvent)同一套慣例。
 func _ask_next_campaign_battle() -> void:
 	_campaign_battle_number += 1
 	var enemy_nation := _enemy_nation(_campaign_war)
-	var enemy_party := PartyController.get_random_party(_battle.rank_type, enemy_nation)
+	var enemy_base_rank := mini(_battle.rank_type + (_campaign_battle_number - 1) / 2, RankDrawTable.MAX_BASE_RANK)
+	var enemy_rank := RankDrawTable.roll(enemy_base_rank)
+	var enemy_party := PartyController.get_random_party(enemy_rank, enemy_nation)
 	var description := "%s-%d" % [
 		WarCampaignReport.title_for(_campaign_war.player_side, enemy_nation), _campaign_battle_number,
 	]

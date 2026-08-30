@@ -131,7 +131,7 @@ func _rebuild_function() -> void:
 
 	if _character != null and _is_locked_by_party():
 		_function_body.add_child(_build_hint_label(
-			"%s 已編入小隊，需先在小隊編成畫面移出才能變換隊形（重抽/旋轉都會讓小隊記錄的站位跟角色形狀對不上）。" % _character.full_name
+			"%s 已編入小隊，需先在小隊編成畫面移出才能變換隊形（重抽/旋轉都會讓小隊記錄的站位跟角色形狀對不上）。" % _character.display_name
 		))
 
 	ActionPanel.set_title_action_button(_build_title_buttons())

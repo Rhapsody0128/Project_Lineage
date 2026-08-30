@@ -1,8 +1,8 @@
 class_name CharacterController
 extends RefCounted
 
-const MIN_AGE := 80
-const MAX_AGE := 90
+const MIN_AGE := 17
+const MAX_AGE := 45
 
 ## 隨機發放的武器池:角色一定會持有武器,涵蓋所有 WeaponType。並列最高素質時
 ## get_weapon_for_potential() 從這個池子篩出的並列項目裡抽一個。
@@ -66,7 +66,6 @@ static func get_random_character(rank_type: int = -1, nation: int = -1, gender: 
 		character_name = Util.get_random_from_array(GameEnums.FEMALE_CHARACTER_NAMES)
 	var face_path := FaceController.get_random_face_path(gender)
 
-	var last_name: String = Util.get_random_from_array(GameEnums.CHARACTER_LAST_NAMES)
 	var age := Util.get_random_int(MIN_AGE, MAX_AGE)
 	var traits := TraitController.get_random_traits(2)
 	var potential := PotentialController.get_random_potential(resolved_rank)
@@ -76,8 +75,15 @@ static func get_random_character(rank_type: int = -1, nation: int = -1, gender: 
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
 	var skill_list := SkillController.get_random_initial_skill_list(weapon, noble_rank, bloodline)
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))
+	var title_rank := NobleTitleRule.rank_for_bloodline(bloodline.get_total_noble_percentage())
+	# 只有騎士以上才會抽姓氏(見 NobleTitleRule.has_last_name()),平民/士紳的 last_name
+	# 直接留空字串——姓氏一旦定案就不隨身分升降改變(見 Character.title_full_name 註解),所以
+	# 這裡要用生成當下算好的 title_rank 決定,不能等角色之後身分變動再回頭補。
+	var last_name: String = Util.get_random_from_array(GameEnums.CHARACTER_LAST_NAMES) if NobleTitleRule.has_last_name(title_rank) else ""
 	# 加上男女抽池子了
-	return Character.new(character_name, last_name, age, gender, face_path, traits, potential, bloodline, weapon, skill_list, LevelSystem.new(), battle_cost)
+	var character := Character.new(character_name, last_name, age, gender, face_path, traits, potential, bloodline, weapon, skill_list, LevelSystem.new(), battle_cost)
+	character.title_rank = title_rank
+	return character
 
 ## 玩家固定主角:遊戲開始時直接建立、免經 PartyEdit 就加入初始小隊(見
 ## main.gd 的 _ensure_starting_party())。姓名/年齡/性別/武器先用佔位資料寫死,
@@ -99,6 +105,7 @@ static func get_fixed_protagonist() -> Character:
 	var battle_cost := BattleCostController.get_random_battle_cost(BattleCostController.cells_for_noble_rank(noble_rank))
 	var protagonist := Character.new(PROTAGONIST_NAME, PROTAGONIST_LAST_NAME, PROTAGONIST_AGE, PROTAGONIST_GENDER, face_path, traits, potential, bloodline, PROTAGONIST_WEAPON, skill_list, LevelSystem.new(), battle_cost)
 	protagonist.is_protagonist = true
+	protagonist.title_rank = NobleTitleRule.rank_for_bloodline(bloodline.get_total_noble_percentage())
 	return protagonist
 
 # TODO(設計待定): 結婚/生子邏輯待「玩家間聯姻」系統設計確定後再實作(見企劃文件 二十二~三十二)

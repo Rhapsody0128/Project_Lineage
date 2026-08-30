@@ -135,8 +135,10 @@ func _open_marriage_panel() -> void:
 ## 單句台詞沒有選項,播完由 goto_dialogue() 的 on_finished 直接接手疊加告白面板(見
 ## _start()/_open_marriage_panel())。
 func _build_approach() -> Dialogue:
-	var stranger_speaker := DialogueSpeaker.new(stranger.id, stranger.full_name, stranger.face_path, GameEnums.DialogueSide.RIGHT)
-	var courted_speaker := DialogueSpeaker.new(courted.id, courted.full_name, courted.face_path, GameEnums.DialogueSide.LEFT)
+	# stranger 是搭訕的對方,對話名牌不顯示姓氏(見使用者需求);courted 是玩家自己的
+	# 角色,正常顯示全名。
+	var stranger_speaker := DialogueSpeaker.new(stranger.id, stranger.name, stranger.face_path, GameEnums.DialogueSide.RIGHT)
+	var courted_speaker := DialogueSpeaker.new(courted.id, courted.title_full_name, courted.face_path, GameEnums.DialogueSide.LEFT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(stranger_speaker.id, "請問...",),
 		DialogueLine.new(stranger_speaker.id, "我可以請你喝一杯嗎?",),
@@ -146,7 +148,7 @@ func _build_approach() -> Dialogue:
 
 
 func _build_no_one_available() -> Dialogue:
-	var stranger_speaker := DialogueSpeaker.new(stranger.id, stranger.full_name, stranger.face_path, GameEnums.DialogueSide.RIGHT)
+	var stranger_speaker := DialogueSpeaker.new(stranger.id, stranger.name, stranger.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(stranger_speaker.id, "請問..."),
 		DialogueLine.new(stranger_speaker.id, "...不好意思,認錯人了。"),
@@ -182,7 +184,7 @@ func _resolve_acceptance(picked: Character, stranger_character: Character) -> vo
 		# (見 WorldTimeEventLibrary._age_up()),但配偶依設計不進 CharacterRosterStore
 		# (不可操控/上場),所以只註冊進 AllCharacterStore。
 		AllCharacterStore.register(stranger_character)
-		var marriage_text := "%s 與 %s 結婚了。" % [picked.full_name, stranger_character.full_name]
+		var marriage_text := "%s 與 %s 結婚了。" % [picked.title_full_name, stranger_character.title_full_name]
 		NewsController.post(marriage_text, GameEnums.NewsCategory.MAJOR)
 		MessageBar.show_message(marriage_text)
 		MoraleStore.record_event("角色結婚", MoraleStore.MARRIAGE_DELTA)
@@ -205,8 +207,8 @@ func _play_marriage_reaction(reaction: Dialogue, stranger_character: Character) 
 
 ## picked == courted 這一支的成親收尾:被搭訕的本人親自接受。
 func _build_accepted_reaction(picked: Character, stranger_character: Character) -> Dialogue:
-	var picked_speaker := DialogueSpeaker.new(picked.id, picked.full_name, picked.face_path, GameEnums.DialogueSide.LEFT)
-	var stranger_speaker := DialogueSpeaker.new(stranger_character.id, stranger_character.full_name, stranger_character.face_path, GameEnums.DialogueSide.RIGHT)
+	var picked_speaker := DialogueSpeaker.new(picked.id, picked.title_full_name, picked.face_path, GameEnums.DialogueSide.LEFT)
+	var stranger_speaker := DialogueSpeaker.new(stranger_character.id, stranger_character.name, stranger_character.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(picked_speaker.id, "這是我的榮幸。"),
 		# DialogueLine.new(stranger_speaker.id, ""),
@@ -218,9 +220,9 @@ func _build_accepted_reaction(picked: Character, stranger_character: Character) 
 ## 玩家選了不是 courted 的人反告白,20% 成功率骰中的收尾:courted 出面引薦 picked,
 ## stranger 也接受了這位替補人選(見 _resolve_acceptance())。
 func _build_change_but_accept_reaction(picked: Character, stranger_character: Character) -> Dialogue:
-	var courted_speaker := DialogueSpeaker.new(courted.id, courted.full_name, courted.face_path, GameEnums.DialogueSide.LEFT)
-	var picked_speaker := DialogueSpeaker.new(picked.id, picked.full_name, picked.face_path, GameEnums.DialogueSide.LEFT)
-	var stranger_speaker := DialogueSpeaker.new(stranger_character.id, stranger_character.full_name, stranger_character.face_path, GameEnums.DialogueSide.RIGHT)
+	var courted_speaker := DialogueSpeaker.new(courted.id, courted.title_full_name, courted.face_path, GameEnums.DialogueSide.LEFT)
+	var picked_speaker := DialogueSpeaker.new(picked.id, picked.title_full_name, picked.face_path, GameEnums.DialogueSide.LEFT)
+	var stranger_speaker := DialogueSpeaker.new(stranger_character.id, stranger_character.name, stranger_character.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(courted_speaker.id, "不太適合,但我有個適合的人選介紹給你,"),
 		DialogueLine.new(picked_speaker.id, "你好...請問我有這個榮幸請你喝一杯嗎?"),
@@ -232,9 +234,9 @@ func _build_change_but_accept_reaction(picked: Character, stranger_character: Ch
 ## 玩家選了不是 courted 的人反告白,20% 成功率沒骰中的收尾:stranger 婉拒這位
 ## 替補人選,真的告白失敗,不寫入 mate(見 _resolve_acceptance())。
 func _build_rejected_reaction(picked: Character, stranger_character: Character) -> Dialogue:
-	var courted_speaker := DialogueSpeaker.new(courted.id, courted.full_name, courted.face_path, GameEnums.DialogueSide.LEFT)
-	var picked_speaker := DialogueSpeaker.new(picked.id, picked.full_name, picked.face_path, GameEnums.DialogueSide.LEFT)
-	var stranger_speaker := DialogueSpeaker.new(stranger_character.id, stranger_character.full_name, stranger_character.face_path, GameEnums.DialogueSide.RIGHT)
+	var courted_speaker := DialogueSpeaker.new(courted.id, courted.title_full_name, courted.face_path, GameEnums.DialogueSide.LEFT)
+	var picked_speaker := DialogueSpeaker.new(picked.id, picked.title_full_name, picked.face_path, GameEnums.DialogueSide.LEFT)
+	var stranger_speaker := DialogueSpeaker.new(stranger_character.id, stranger_character.name, stranger_character.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(courted_speaker.id, "不太適合,但我有個適合的人選介紹給你,"),
 		DialogueLine.new(picked_speaker.id, "你好...請問我有這個榮幸請你喝一杯嗎?"),
@@ -244,7 +246,7 @@ func _build_rejected_reaction(picked: Character, stranger_character: Character) 
 
 
 func _build_declined_reaction(self_character: Character) -> Dialogue:
-	var speaker := DialogueSpeaker.new(self_character.id, self_character.full_name, self_character.face_path, GameEnums.DialogueSide.LEFT)
+	var speaker := DialogueSpeaker.new(self_character.id, self_character.title_full_name, self_character.face_path, GameEnums.DialogueSide.LEFT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(speaker.id, "這恐怕有點不合適..."),
 	]
@@ -306,7 +308,7 @@ func _build_recruit_item(hero: Character) -> ActionPanelItem:
 	var subtitle := "%d 歲" % hero.age
 	var already_recruited := CharacterRosterStore.all_characteres.has(hero)
 	var label := RECRUITED_BUTTON_LABEL if already_recruited else RECRUIT_BUTTON_LABEL
-	var item := ActionPanelItem.new(hero.full_name, label, func() -> bool: return _on_recruit_hero_selected(hero), hero.face_path, subtitle, true, already_recruited)
+	var item := ActionPanelItem.new(hero.display_name, label, func() -> bool: return _on_recruit_hero_selected(hero), hero.face_path, subtitle, true, already_recruited)
 	item.disabled_label = RECRUITED_BUTTON_LABEL
 	return item
 
@@ -334,7 +336,7 @@ func _build_special_recruit_item() -> ActionPanelItem:
 	var already_recruited := CharacterRosterStore.all_characteres.has(hero)
 	var available := TavernStore.special_recruit_available(_nation)
 	var label := RECRUITED_BUTTON_LABEL if already_recruited else SPECIAL_RECRUIT_BUTTON_LABEL
-	var item := ActionPanelItem.new(hero.full_name, label, func() -> bool: return _on_special_recruit_selected(hero), hero.face_path, subtitle, true, already_recruited or not available, true)
+	var item := ActionPanelItem.new(hero.display_name, label, func() -> bool: return _on_special_recruit_selected(hero), hero.face_path, subtitle, true, already_recruited or not available, true)
 	item.disabled_label = RECRUITED_BUTTON_LABEL
 	return item
 

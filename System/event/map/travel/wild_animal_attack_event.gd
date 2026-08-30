@@ -27,7 +27,7 @@ func _start(player_pos: Vector2) -> void:
 func _build_prompt(player_pos: Vector2, self_party: Party) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var player := LeaderStore.get_leader()
-	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
+	var player_speaker := DialogueSpeaker.new(player.id, player.title_full_name, player.face_path, GameEnums.DialogueSide.LEFT)
 
 	var has_party := self_party != null and not self_party.characteres.is_empty()
 	var lines: Array[DialogueLine] = []
@@ -62,7 +62,7 @@ func _build_result(player_pos: Vector2, self_party: Party, fight: bool) -> Dialo
 		var target: Character = Util.get_random_from_array(self_party.characteres)
 		target.take_damage(FIGHT_DAMAGE)
 		BaseResourceStore.add(GameEnums.ResourceType.GOLD, FIGHT_GOLD_REWARD)
-		lines = [DialogueLine.new(narrator.id, "（擊退了野獸,%s 受了點輕傷,搜刮到 %d 金錢。）" % [target.full_name, FIGHT_GOLD_REWARD])]
+		lines = [DialogueLine.new(narrator.id, "（擊退了野獸,%s 受了點輕傷,搜刮到 %d 金錢。）" % [target.title_full_name, FIGHT_GOLD_REWARD])]
 	else:
 		lines = [DialogueLine.new(narrator.id, "（繞了條遠路,平安避開了野獸。）")]
 

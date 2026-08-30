@@ -21,7 +21,7 @@ func _start(player_pos: Vector2) -> void:
 func _build_prompt(player_pos: Vector2) -> Dialogue:
 	var player := LeaderStore.get_leader()
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
-	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
+	var player_speaker := DialogueSpeaker.new(player.id, player.title_full_name, player.face_path, GameEnums.DialogueSide.LEFT)
 
 	# 兩個選項都靠 lambda 捕捉 self(event 物件),不能直接傳裸方法參照——這是 RefCounted
 	# 事件物件在 trigger() 返回後撐不住引用計數的既有陷阱,見 LocationEvent 檔頭註解。

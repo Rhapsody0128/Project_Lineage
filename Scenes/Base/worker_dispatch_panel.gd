@@ -156,7 +156,7 @@ func _build_slot(character: Character) -> Control:
 
 	slot.mouse_filter = Control.MOUSE_FILTER_STOP
 	slot.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	slot.tooltip_text = character.full_name
+	slot.tooltip_text = character.display_name
 
 	var face := TextureRect.new()
 	face.custom_minimum_size = AVATAR_SLOT_SIZE
@@ -210,7 +210,7 @@ func _on_list_card_selected(character: Character) -> void:
 ## 歷練(BarracksExpeditionStore.recall(),無任何獎勵,比照該 store 既有的臨時召回文案)、
 ## 派駐到這裡。
 func _confirm_recall_expedition(character: Character) -> void:
-	var message := "%s 目前歷練中，取消歷練不會有任何歷練獎勵，是否改安排到%s工作？" % [character.full_name, _building.name]
+	var message := "%s 目前歷練中，取消歷練不會有任何歷練獎勵，是否改安排到%s工作？" % [character.display_name, _building.name]
 	ConfirmDialog.ask(message, func() -> void:
 		BarracksExpeditionStore.recall(character.id)
 		_detail_view.set_character(character)
@@ -225,7 +225,7 @@ func _confirm_recall_expedition(character: Character) -> void:
 ## Scripts/Autoload/base_dispatch_store.gd,這裡不用自己先呼叫 undispatch())。
 func _confirm_reassign(character: Character, current_building_type: int) -> void:
 	var current_name := GameEnums.building_type_label(current_building_type)
-	var message := "%s 目前在%s工作，是否改安排到%s工作？" % [character.full_name, current_name, _building.name]
+	var message := "%s 目前在%s工作，是否改安排到%s工作？" % [character.display_name, current_name, _building.name]
 	ConfirmDialog.ask(message, func() -> void:
 		BaseDispatchStore.dispatch(_building.type, character.id)
 		_rebuild_slots()

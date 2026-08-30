@@ -70,9 +70,9 @@ func _on_dismiss_pressed() -> void:
 		return
 	var character := _selected_card.character
 	if _is_protected_from_dismissal(character):
-		MessageBar.show_message("%s 是主角、整團領導人或隊長,無法解雇" % character.full_name)
+		MessageBar.show_message("%s 是主角、整團領導人或隊長,無法解雇" % character.display_name)
 		return
-	ConfirmDialog.ask("確定要解雇 %s 嗎？" % character.full_name, func(): _dismiss_character(character))
+	ConfirmDialog.ask("確定要解雇 %s 嗎？" % character.display_name, func(): _dismiss_character(character))
 
 
 ## 三種角色不能解雇:玩家固定主角(Character.is_protagonist)、目前整團領導人

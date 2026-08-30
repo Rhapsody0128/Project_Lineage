@@ -15,7 +15,7 @@ extends RefCounted
 ## 學習不該有任何副作用。
 static func try_learn(character: Character, skill: Skill, on_done: Callable = Callable()) -> void:
 	if character.knows_skill(skill):
-		ConfirmDialog.notify("%s 已經學會「%s」，不能重複學習。" % [character.full_name, skill.name])
+		ConfirmDialog.notify("%s 已經學會「%s」，不能重複學習。" % [character.display_name, skill.name])
 		if on_done.is_valid():
 			on_done.call(false)
 		return

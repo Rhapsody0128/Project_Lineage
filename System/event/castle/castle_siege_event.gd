@@ -7,9 +7,12 @@ extends LocationEvent
 ## 由事件物件接管全部場景轉換,呼叫端只呼叫一次 trigger()。
 ##
 ## 三場戰鬥開口說話的固定是同一位「堡主」(_guard,trigger() 當下隨機挑一位、整個事件
-## 過程只挑這一次),但每一場實際交手的敵方小隊個別重骰(見 _start_battle()),對應需求
-## 「連續打三場對應等級的敵人」。中途戰敗或選離開不記錄進度,下次「聊天」重新從第一場
-## 開始——不存 wave 進度,只有全部三場都贏才呼叫 CastleStore.conquer()。
+## 過程只挑這一次),但每一場實際交手的敵方小隊個別重骰(見 _start_battle()),基準評級依
+## 第幾場遞增(_guard_rank + 第幾場,第一場 +1、第二場 +2、第三場 +3,只 clamp 在
+## RankDrawTable.MAX_BASE_RANK 避免超出 SSS + N 的表格範圍,不提早卡在 SSS)再丟給
+## RankDrawTable.roll() 骰出實際評級,不是三場同一個等級,對應「越打越硬」的需求。中途戰敗
+## 或選離開不記錄進度,下次「聊天」重新從第一場開始——不存 wave 進度,只有全部三場都贏才
+## 呼叫 CastleStore.conquer()。
 
 const BACKGROUND_PATH := GameEnums.CASTLE_INTERIOR_BACKGROUND_PATH
 const WAVE_COUNT := 3
@@ -48,7 +51,9 @@ func _start() -> void:
 
 
 func _start_battle() -> void:
-	var enemy_party := PartyController.get_random_party(_guard_rank, _map_object.nation)
+	var wave_base_rank := mini(_guard_rank + _wave_index + 1, RankDrawTable.MAX_BASE_RANK)
+	var wave_rank := RankDrawTable.roll(wave_base_rank)
+	var enemy_party := PartyController.get_random_party(wave_rank, _map_object.nation)
 	AskBattle.ask(
 		PartyStore.party, enemy_party,
 		"res://Scenes/Battle/battle.tscn", _return_scene_path,
@@ -77,8 +82,8 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 func _build_wave_intro() -> Dialogue:
 	var has_party := PartyStore.party != null
 	var player := LeaderStore.get_leader()
-	var player_speaker := DialogueSpeaker.new(player.id, player.full_name, player.face_path, GameEnums.DialogueSide.LEFT)
-	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
+	var player_speaker := DialogueSpeaker.new(player.id, player.title_full_name, player.face_path, GameEnums.DialogueSide.LEFT)
+	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.title_full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 
 	var speakers: Array[DialogueSpeaker] = [guard_speaker, player_speaker]
@@ -124,7 +129,7 @@ func _decline_line() -> String:
 
 
 func _build_defeat_dialogue() -> Dialogue:
-	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
+	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.title_full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(guard_speaker.id, "哈哈,滾回去舔傷口吧!"),
 	]
@@ -132,7 +137,7 @@ func _build_defeat_dialogue() -> Dialogue:
 
 
 func _build_victory_dialogue() -> Dialogue:
-	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
+	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.title_full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(guard_speaker.id, "不……這座城堡……我不甘心啊!"),

@@ -160,6 +160,7 @@ static func _record_child_born_morale(count: int) -> void:
 ## 當天就立刻退回沒有加成的回復量,不是「休息當天結算完才生效」)。
 static func _regen_hp() -> void:
 	var amount := Character.DAILY_HP_REGEN + BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
+	amount += int(TechStore.get_bonus(GameEnums.TechEffectType.HP_REGEN_DAILY_ADD))
 	if MapSessionStore.is_resting:
 		amount += Character.RESTING_HP_REGEN_BONUS
 	for character in CharacterRosterStore.all_characteres:

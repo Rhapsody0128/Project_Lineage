@@ -20,23 +20,33 @@ const DEATH_CHANCE_CURVE_EXPONENT := 2.0
 ## 套用,見 Character._trait_stat_multiplier()。
 const AGING_TRAIT_NAME := "衰老"
 const AGING_TRAIT_DESCRIPTION := "年老體衰，全素質下降"
+## 「老當益壯」科技線(TechEffectType.AGING_STAT_MULTIPLIER_ADD)加在這個基準值上,
+## clamp 上限 1.0(不會靠科技把衰老懲罰疊到變成正加成)。
 const AGING_STAT_MULTIPLIER := 0.7
 
+static func aging_stat_multiplier() -> float:
+	return minf(AGING_STAT_MULTIPLIER + TechStore.get_bonus(GameEnums.TechEffectType.AGING_STAT_MULTIPLIER_ADD), 1.0)
 
+
+## 「延年益壽」科技線(TechEffectType.AGING_DEATH_LINE_ADD)同時加在兩條線上。
 static func get_aging_line() -> int:
-	return BASE_AGING_LINE + CLINIC_LINE_BONUS_PER_LEVEL * BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
+	var base := BASE_AGING_LINE + CLINIC_LINE_BONUS_PER_LEVEL * BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
+	return base + int(TechStore.get_bonus(GameEnums.TechEffectType.AGING_DEATH_LINE_ADD))
 
 
 static func get_death_line() -> int:
-	return BASE_DEATH_LINE + CLINIC_LINE_BONUS_PER_LEVEL * BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
+	var base := BASE_DEATH_LINE + CLINIC_LINE_BONUS_PER_LEVEL * BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
+	return base + int(TechStore.get_bonus(GameEnums.TechEffectType.AGING_DEATH_LINE_ADD))
 
 
 static func is_aged(character: Character) -> bool:
 	return character.age >= get_aging_line()
 
 
-## 死亡機率(百分比)。未達衰老線 0%,達到/超過死亡線 100%,中間依 DEATH_CHANCE_CURVE_EXPONENT
-## 的加速曲線內插。
+## 死亡機率(百分比)。未達衰老線 0%,達到/超過死亡線 100%(封頂/封底不受科技影響,
+## 只有中間的加速曲線值會被「抗老醫理」科技線(TechEffectType.DEATH_CHANCE_CURVE_MULT,
+## 連乘,見 TechStore.get_multiplier())打折),中間依 DEATH_CHANCE_CURVE_EXPONENT 的
+## 加速曲線內插。
 static func get_death_chance_percent(character: Character) -> float:
 	var death_line := get_death_line()
 	if character.age >= death_line:
@@ -45,7 +55,8 @@ static func get_death_chance_percent(character: Character) -> float:
 	if character.age < aging_line:
 		return 0.0
 	var t := float(character.age - aging_line) / float(death_line - aging_line)
-	return pow(t, DEATH_CHANCE_CURVE_EXPONENT) * 100.0
+	var curve_mult := TechStore.get_multiplier(GameEnums.TechEffectType.DEATH_CHANCE_CURVE_MULT)
+	return pow(t, DEATH_CHANCE_CURVE_EXPONENT) * 100.0 * curve_mult
 
 
 static func roll_death(character: Character) -> bool:
@@ -61,6 +72,6 @@ static func has_aging_trait(character: Character) -> bool:
 
 static func create_aging_trait() -> CharacterTrait:
 	var aging_trait := CharacterTrait.new(AGING_TRAIT_NAME, AGING_TRAIT_DESCRIPTION, GameEnums.TraitPolarity.NEGATIVE)
-	aging_trait.stat_multiplier = AGING_STAT_MULTIPLIER
+	aging_trait.stat_multiplier = aging_stat_multiplier()
 	aging_trait.is_aging = true
 	return aging_trait

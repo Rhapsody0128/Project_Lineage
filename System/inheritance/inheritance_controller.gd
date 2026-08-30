@@ -27,7 +27,10 @@ static func create_child(father: Character, mother: Character) -> Character:
 	var potential := PotentialInheritance.inherit(father.potential, mother.potential)
 	potential = BloodlineLibrary.apply_to_potential(potential, bloodline)
 
-	var traits := TraitController.get_random_traits(2)
+	# 「血脈天賦」科技線(TechEffectType.NEWBORN_TRAIT_COUNT_ADD)加在基準值 2 上,
+	# 設計上限 5(見 TechLibrary 該節點註解)。
+	var trait_count := 2 + int(TechStore.get_bonus(GameEnums.TechEffectType.NEWBORN_TRAIT_COUNT_ADD))
+	var traits := TraitController.get_random_traits(trait_count)
 	var weapon := CharacterController.get_weapon_for_potential(potential)
 	var noble_rank := Character.compute_noble_bloodline_rank(bloodline)
 	# 出生時什麼技能都不會帶,之後靠「小孩慢慢學會技能」的流程逐步習得(尚未設計)。

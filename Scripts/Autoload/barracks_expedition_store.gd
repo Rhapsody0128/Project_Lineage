@@ -67,9 +67,16 @@ func send(character: Character) -> bool:
 			PartyStore.grid.remove(character)
 		PartyStore.party.characteres.erase(character)
 		PartyStore.party.battle_cost_positions.erase(character)
-	_expeditions[character.id] = {"days_remaining": WorldTime.DAYS_PER_YEAR}
+	_expeditions[character.id] = {"days_remaining": expedition_duration_days()}
 	changed.emit()
 	return true
+
+
+## 歷練固定天數,基準是一整年;「輕裝遠征」科技線(TechEffectType.EXPEDITION_DURATION_DAYS_SUB)
+## 在基準值上扣減,下限 clamp 在 30 天(至少留一個月,不會被扣到瞬間結束)。
+static func expedition_duration_days() -> int:
+	var reduced := WorldTime.DAYS_PER_YEAR - int(TechStore.get_bonus(GameEnums.TechEffectType.EXPEDITION_DURATION_DAYS_SUB))
+	return maxi(reduced, 30)
 
 
 ## 臨時召回:不結算任何獎勵,直接清除紀錄,角色立即恢復可用。

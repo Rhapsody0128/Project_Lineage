@@ -14,6 +14,48 @@ enum CharacterSortKey {LEVEL, TOTAL_POTENTIAL, CELL_COUNT, STRENGTH, VITALITY, A
 ## 大地圖上的地點類型,見 System/map/map_object.gd
 enum MapObjectType {TOWN, BASE, CASTLE}
 
+## 科技樹三大分類,見 System/tech/tech_library.gd。
+enum TechBranch {COMBAT, DOMESTIC, KNOWLEDGE}
+
+## 科技效果種類:每個 TechNode(System/tech/tech_node.gd)帶一個 effect_type +
+## effect_value,TechStore.get_bonus()/get_multiplier() 依此加總/連乘所有已解鎖節點的
+## 數值,呼叫端各自決定怎麼套用——同一機制鏈疊多層時,同一個 effect_type 的 value 會被
+## 加總(或連乘,見個別欄位註解)。一個 enum 值對應 TechLibrary 裡的一條機制鏈。
+enum TechEffectType {
+	WEAPON_CRAFT_ORE_COST_SUB,      ## 鍛造節約:打造武器耗鐵礦 -N(整數,套用處 clamp 下限)
+	CRIT_RATE_BASE_ADD,             ## 銳鋒精進:CombatResolver.CRIT_RATE_BASE 加成(百分點)
+	WEAPON_MAIN_STAT_WEIGHT_ADD,    ## 鍛造精研:WeaponLibrary.MAIN_STAT_WEIGHT_BONUS 加成
+	WEAPON_ROLL_COUNT_ADD,          ## 鍛造精研:WeaponLibrary.ROLL_COUNT_RANGE 抽點次數上限加成
+	TEACH_AGE_THRESHOLD_SUB,        ## 傳習革新:BarracksTeachingRule 年齡門檻整表 -N 歲
+	LEADER_TRAINING_COST_MULT_SUB,  ## 統御節流:LeaderTrainingRule 花費折扣(0.1 代表 -10%)
+	MOVE_SPEED_MULT_ADD,            ## 疾行軍略:大地圖移動速度加成(0.05 代表 +5%)
+	DODGE_RATE_BASE_ADD,            ## 戰陣迴避:CombatResolver.DODGE_RATE_BASE 加成(百分點)
+	CRIT_DAMAGE_MULTIPLIER_ADD,     ## 暴擊深化:CombatResolver.CRIT_DAMAGE_MULTIPLIER 加成
+	EXPEDITION_DURATION_DAYS_SUB,   ## 輕裝遠征:兵營歷練所需天數 -N
+	REACTIVE_TRIGGER_RATE_ADD,      ## 料敵先機:CombatResolver.judge_reactive_trigger() 觸發機率加成(百分點)
+	BUILDING_UPGRADE_DAYS_MULT_SUB, ## 營建效率:建築升級天數折扣(0.05 代表 -5%)
+	PRODUCTION_YIELD_MULT_ADD,      ## 產業精進:BaseProduction 月產出加成(0.03 代表 +3%)
+	BUILDING_UPGRADE_COST_MULT_SUB, ## 資材節約:建築升級耗材折扣
+	WAREHOUSE_CAPACITY_MULT_ADD,    ## 倉儲擴建:BaseWarehouse.get_capacity() 加成
+	RESIDENTIAL_CAPACITY_ADD,       ## 住宅規劃:住宅區容量固定加值
+	RELOCATION_COST_SUB,            ## 輕裝遷徙:BaseRelocationRule.COST 固定加值(節點存負數)
+	RECIPE_EXTRA_OUTPUT_ADD,        ## 配方革新:WorkshopRecipe 換算多產出固定量
+	CHARACTER_EFFICIENCY_BASE_ADD,  ## 匠人熟練:BaseProduction.character_efficiency() 基準加成
+	MAX_WORKERS_ADD,                ## 廣納賢才:BaseBuildingProgressStore.get_max_workers() 加成(含科學研究所)
+	MARKET_MARKUP_SUB,              ## 市集通商:Market.MARKUP_BY_RANK 整表加值(節點存負數)
+	HP_REGEN_DAILY_ADD,             ## 醫術精進:每日 HP 回復基準加成
+	MARRIAGE_QUOTA_ADD,             ## 婚姻禮制:MarriageQuotaRule 名額固定加值
+	MARRIAGE_SUCCESS_CHANCE_ADD,    ## 婚姻禮制:告白/聯姻成功率加成(百分點,同時套用兩個機制)
+	AGING_DEATH_LINE_ADD,           ## 延年益壽:衰老線/死亡線各加值(歲)
+	PREGNANCY_CHANCE_ADD,           ## 孕育之道:每月懷孕機率加成(百分點)
+	BLOODLINE_MUTATION_SHIFT_ADD,   ## 血統純化:變異機率偏移階數
+	DEATH_CHANCE_CURVE_MULT,        ## 抗老醫理:死亡機率曲線乘數,連乘(get_multiplier() 用,單節點值如 0.9)
+	NEWBORN_TRAIT_COUNT_ADD,        ## 血脈天賦:新生兒天生特質數量加成
+	POSTPARTUM_MONTHS_SUB,          ## 產後調理:休產期固定減少月數
+	AGING_STAT_MULTIPLIER_ADD,      ## 老當益壯:AgingRule.AGING_STAT_MULTIPLIER 加成
+	ACADEMY_REROLL_COUNT_ADD,       ## 遊學新制:留學初始技能重骰次數加成
+}
+
 ## 角色目前狀態,見 System/character/character_status_rule.gd(唯一判定/顯示入口)。
 ## ACTIVE 服役中(在角色池,沒有派遣/離隊/死亡/編隊以外的特殊狀態);STATIONED 駐守中
 ## (未來城鎮駐守機制預留,目前沒有任何流程會產生這個值);IN_PARTY 編隊中(已編入
@@ -117,7 +159,7 @@ enum BattleEventType {
 ## 對話仍照常一句句往下播,不是獨立流程。
 enum DialogueSide {LEFT, RIGHT, NARRATOR}
 ## 血統六大國家,對應血統代表色紅/白/黃/綠/藍/青,見 System/bloodline/
-enum BloodlineNation {LION, EAGLE, LEOPARD, BEAR, DRAGON, DEER}
+enum BloodlineNation {LION, BEAR, LEOPARD, EAGLE, DRAGON, DEER}
 ## 血統階級:平民血統/高階血統,同一國家內兩者是分開計量的獨立欄位
 enum TerrainType {PLAINS, MOUNTAINS, PLATEAU, FOREST, DESERT, ICEFIELD}
 # 對應六種國家所處的六種地理環境,見 Spec.md 六、血統國家與地理環境對照表,以及
@@ -225,7 +267,7 @@ const RESOURCE_STRING_LABELS: Array[String] = [
 ]
 
 ## 血統國家 UI 顯示用中文標籤,順序對應 BloodlineNation enum
-const BLOODLINE_NATION_LABELS: Array[String] = ["獅", "鷹", "豹", "熊", "龍", "鹿"]
+const BLOODLINE_NATION_LABELS: Array[String] = ["獅", "熊", "豹", "鷹", "龍", "鹿"]
 
 ## 血統階級 UI 顯示用中文標籤,順序對應 BloodlineRank enum,跟國家標籤相接組成
 ## 「獅血」「獅高血」這種完整血統名稱,見 bloodline_full_label()
@@ -406,9 +448,9 @@ static func mechanic_status_label(mechanic: SkillMechanic) -> String:
 ## 血統國家代表色(計量槽顏色),順序對應 BloodlineNation enum:獅紅/鷹白/豹黃/熊綠/龍藍/鹿青
 const BLOODLINE_NATION_COLORS: Array[Color] = [
 	Color(0.85, 0.2, 0.2), # 紅:獅
-	Color(0.92, 0.92, 0.92), # 白:鷹
-	Color(1.0, 0.85, 0.15), # 黃:豹
 	Color(0.35, 0.85, 0.35), # 綠:熊
+	Color(1.0, 0.85, 0.15), # 黃:豹
+	Color(0.92, 0.92, 0.92), # 白:鷹
 	Color(0.35, 0.55, 1.0), # 藍:龍
 	Color(0.3, 0.9, 0.9), # 青:鹿
 ]
@@ -419,8 +461,8 @@ static func bloodline_nation_color(nation: int) -> Color:
 ## 血統國家所屬地形,順序對應 BloodlineNation enum:獅→平原/鷹→森林/豹→沙漠/熊→山岳/
 ## 龍→冰原/鹿→高原,對照表見 Spec.md 六、血統國家與地理環境對照表。
 const BLOODLINE_NATION_TERRAINS: Array[TerrainType] = [
-	TerrainType.PLAINS, TerrainType.FOREST, TerrainType.DESERT,
-	TerrainType.MOUNTAINS, TerrainType.ICEFIELD, TerrainType.PLATEAU,
+	TerrainType.PLAINS, TerrainType.MOUNTAINS, TerrainType.DESERT,
+	TerrainType.FOREST,TerrainType.ICEFIELD, TerrainType.PLATEAU,
 ]
 
 static func bloodline_nation_terrain(nation: int) -> int:

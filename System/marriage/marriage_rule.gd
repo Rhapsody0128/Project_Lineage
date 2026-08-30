@@ -27,8 +27,13 @@ static func eligible_proposers(characters: Array[Character]) -> Array[Character]
 ## (等於是拿別人去反告白,不是對方原本想要的人)只有 20%——見
 ## System/event/town/town_tavern_event.gd 的告白後續分支,沒骰中就是真的告白失敗,
 ## 沒有補骰的餘地。
+## 「婚姻禮制」科技線(TechEffectType.MARRIAGE_SUCCESS_CHANCE_ADD)加在反告白基準值上,
+## 跟 ALLIANCE_SUCCESS_CHANCE_PERCENT 共用同一個加成來源,clamp 在 100% 封頂。選中
+## intended_target 本來就 100% 接受,加成對這個分支沒有意義,不需要另外套用。
 static func acceptance_chance(picked_character: Character, intended_target: Character) -> float:
-	return 100.0 if picked_character == intended_target else 20.0
+	if picked_character == intended_target:
+		return 100.0
+	return minf(20.0 + TechStore.get_bonus(GameEnums.TechEffectType.MARRIAGE_SUCCESS_CHANCE_ADD), 100.0)
 
 
 ## 依 acceptance_chance() 骰一次,回傳這次告白是否成功。
@@ -42,5 +47,10 @@ static func roll_acceptance(picked_character: Character, intended_target: Charac
 ## 玩家」的對象),不論選中哪一位都固定 50%,不骰第二次。
 const ALLIANCE_SUCCESS_CHANCE_PERCENT := 50.0
 
+## 「婚姻禮制」科技線同一個加成來源(見 acceptance_chance() 註解),clamp 在 100% 封頂。
+static func alliance_success_chance() -> float:
+	return minf(ALLIANCE_SUCCESS_CHANCE_PERCENT + TechStore.get_bonus(GameEnums.TechEffectType.MARRIAGE_SUCCESS_CHANCE_ADD), 100.0)
+
+
 static func roll_alliance_success() -> bool:
-	return Util.get_random_float(0.0, 100.0) < ALLIANCE_SUCCESS_CHANCE_PERCENT
+	return Util.get_random_float(0.0, 100.0) < alliance_success_chance()

@@ -21,12 +21,13 @@ extends RefCounted
 ## ——絕不會消耗超過 available 裡實際有的量。原料完全枯竭(available 為 0)時回傳 0/空
 ## 字典,不會硬生出負庫存。
 static func resolve(recipe: WorkshopRecipe, theoretical_output: int, available: Dictionary) -> Dictionary:
-	if theoretical_output <= 0 or recipe.output_amount <= 0 or recipe.inputs.is_empty():
+	var output_amount := recipe.effective_output_amount()
+	if theoretical_output <= 0 or output_amount <= 0 or recipe.inputs.is_empty():
 		return {"output": 0.0, "consumed": {}}
 
 	var producible := float(theoretical_output)
 	for resource_type in recipe.inputs:
-		var input_per_output: float = float(recipe.inputs[resource_type]) / float(recipe.output_amount)
+		var input_per_output: float = float(recipe.inputs[resource_type]) / float(output_amount)
 		var affordable: float = float(available.get(resource_type, 0)) / input_per_output
 		producible = minf(producible, affordable)
 
@@ -35,6 +36,6 @@ static func resolve(recipe: WorkshopRecipe, theoretical_output: int, available: 
 
 	var consumed: Dictionary = {}
 	for resource_type in recipe.inputs:
-		consumed[resource_type] = producible * float(recipe.inputs[resource_type]) / float(recipe.output_amount)
+		consumed[resource_type] = producible * float(recipe.inputs[resource_type]) / float(output_amount)
 
 	return {"output": producible, "consumed": consumed}

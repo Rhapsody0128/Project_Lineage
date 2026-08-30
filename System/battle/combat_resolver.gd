@@ -32,8 +32,13 @@ const CRIT_RATE_MAX := 70.0
 const CRIT_RATE_MIN := 5.0
 const CRIT_RATE_UP_SCALE := (CRIT_RATE_MAX - CRIT_RATE_BASE) / 200.0
 const CRIT_RATE_DOWN_SCALE := (CRIT_RATE_BASE - CRIT_RATE_MIN) / 200.0
-## 暴擊傷害倍率:成功暴擊時,原傷害直接乘上這個倍率。
+## 暴擊傷害倍率:成功暴擊時,原傷害直接乘上這個倍率。「暴擊深化」科技線
+## (TechEffectType.CRIT_DAMAGE_MULTIPLIER_ADD)在這個基準值上疊加,呼叫端一律讀
+## crit_damage_multiplier(),不要直接讀這個常數。
 const CRIT_DAMAGE_MULTIPLIER := 1.6
+
+static func crit_damage_multiplier() -> float:
+	return CRIT_DAMAGE_MULTIPLIER + TechStore.get_bonus(GameEnums.TechEffectType.CRIT_DAMAGE_MULTIPLIER_ADD)
 
 ## B. 守護:盾系角色的反應式能力,在「單體」物理攻擊命中判定前檢查——魔法攻擊無視
 ## (跟閃避/一般判定同一套設計)。original_target 存活隊友(allies,含自己這隊,不含
@@ -54,8 +59,10 @@ static func judge_dodge(attacker: BattleCharacter, defender: BattleCharacter) ->
 		var magic_detail := "%s 使用魔法攻擊,無視閃避判定,必定命中" % attacker.name
 		return DodgeResult.new(false, magic_detail)
 
+	## 「戰陣迴避」科技線(TechEffectType.DODGE_RATE_BASE_ADD)直接加在基礎值上。
+	var dodge_base := DODGE_RATE_BASE + TechStore.get_bonus(GameEnums.TechEffectType.DODGE_RATE_BASE_ADD)
 	var dodge_rate: float = clampf(
-		DODGE_RATE_BASE
+		dodge_base
 		+ defender.agility * DODGE_RATE_SCALE
 		- attacker.dexterity * DODGE_RATE_SCALE,
 		DODGE_RATE_MIN,
@@ -71,7 +78,7 @@ static func judge_dodge(attacker: BattleCharacter, defender: BattleCharacter) ->
 		"結果:%s"
 	) % [
 		attacker.name, roll, dodge_rate, defender.name,
-		DODGE_RATE_BASE, defender.name, defender.agility, DODGE_RATE_SCALE,
+		dodge_base, defender.name, defender.agility, DODGE_RATE_SCALE,
 		attacker.name, attacker.dexterity, DODGE_RATE_SCALE,
 		DODGE_RATE_MIN, DODGE_RATE_MAX,
 		("閃避成功" if dodged else "未閃避,命中"),
@@ -90,7 +97,9 @@ static func judge_crit(attacker: BattleCharacter, defender: BattleCharacter) -> 
 	var resist_label := "MEN(信仰)" if is_magic else "VIT(體質)"
 	var diff: float = attacker.dexterity - resist_value
 	var scale := CRIT_RATE_UP_SCALE if diff >= 0.0 else CRIT_RATE_DOWN_SCALE
-	var crit_rate: float = clampf(CRIT_RATE_BASE + diff * scale, CRIT_RATE_MIN, CRIT_RATE_MAX)
+	## 「銳鋒精進」科技線(TechEffectType.CRIT_RATE_BASE_ADD)直接加在基礎值上。
+	var crit_base := CRIT_RATE_BASE + TechStore.get_bonus(GameEnums.TechEffectType.CRIT_RATE_BASE_ADD)
+	var crit_rate: float = clampf(crit_base + diff * scale, CRIT_RATE_MIN, CRIT_RATE_MAX)
 
 	var roll := Util.get_random_float(0.0, 100.0)
 	var critical := roll < crit_rate
@@ -101,7 +110,7 @@ static func judge_crit(attacker: BattleCharacter, defender: BattleCharacter) -> 
 		"結果:%s"
 	) % [
 		attacker.name, roll, crit_rate,
-		CRIT_RATE_BASE, attacker.name, attacker.dexterity, defender.name, resist_label, resist_value, scale,
+		crit_base, attacker.name, attacker.dexterity, defender.name, resist_label, resist_value, scale,
 		CRIT_RATE_MIN, CRIT_RATE_MAX,
 		("觸發暴擊！" if critical else "未觸發暴擊"),
 	]
@@ -142,12 +151,16 @@ static func judge_status_resist(defender: BattleCharacter) -> StatusResistResult
 ## 各自寫一個判定函式再各自组一份 detail 字串。呼叫端(SkillEffectLibrary)自己決定發動
 ## 後實際要做什麼(反擊傷害/治療量/追加一擊/擴大範圍)。
 static func judge_reactive_trigger(actor_name: String, trigger_rate: float) -> ReactiveTriggerResult:
+	## 「料敵先機」科技線(TechEffectType.REACTIVE_TRIGGER_RATE_ADD)統一加在呼叫端傳入的
+	## 基礎機率上——所有反應式判定(守護/會心反擊/完美閃避/持續治療等)共用同一個入口,
+	## 加在這裡就對全部生效,不用逐一修改每個武器被動各自的 base_chance。
+	var effective_rate := trigger_rate + TechStore.get_bonus(GameEnums.TechEffectType.REACTIVE_TRIGGER_RATE_ADD)
 	var roll := Util.get_random_float(0.0, 100.0)
-	var triggered := roll < trigger_rate
+	var triggered := roll < effective_rate
 
 	var detail := (
 		"%s 骰出 %.2f,需要小於觸發機率 %.2f%% 才會發動\n結果:%s"
-	) % [actor_name, roll, trigger_rate, ("發動！" if triggered else "未發動")]
+	) % [actor_name, roll, effective_rate, ("發動！" if triggered else "未發動")]
 
 	return ReactiveTriggerResult.new(triggered, detail)
 

@@ -289,9 +289,10 @@ func _process(delta: float) -> void:
 	# HeaderBar 按鈕切換,4 是 DEMO 用的 100 倍速)套用在這裡的 delta 上,移動速度跟
 	# 時間流逝維持同一套加速比例。
 	if WorldTimeStore.controller.is_playing:
-		# 士氣(MoraleStore)額外套用在移動速度上,跟世界時間倍速疊乘——高士氣走得快、
-		# 低士氣走得慢,見 System/morale/morale_rule.gd 的 map_move_speed_multiplier()。
-		var move_delta := delta * WorldTimeStore.play_speed_multiplier * (1.0 + MoraleRule.map_move_speed_multiplier(MoraleStore.value))
+		# 士氣(MoraleStore)、「疾行軍略」科技線(TechEffectType.MOVE_SPEED_MULT_ADD)
+		# 額外套用在移動速度上,跟世界時間倍速疊乘——高士氣走得快、低士氣走得慢,見
+		# System/morale/morale_rule.gd 的 map_move_speed_multiplier()。
+		var move_delta := delta * WorldTimeStore.play_speed_multiplier * (1.0 + MoraleRule.map_move_speed_multiplier(MoraleStore.value) + TechStore.get_bonus(GameEnums.TechEffectType.MOVE_SPEED_MULT_ADD))
 
 		if map_system.is_moving:
 			# 追蹤中的敵人每幀都在自己遊蕩,目的地要跟著重新瞄準牠目前的位置,不能只在
@@ -830,7 +831,7 @@ func _handle_relocation_click(world_pos: Vector2) -> void:
 	if not reason.is_empty():
 		ConfirmDialog.notify(reason)
 		return
-	if not BaseResourceStore.can_afford(BaseRelocationRule.COST):
+	if not BaseResourceStore.can_afford(BaseRelocationRule.cost()):
 		ConfirmDialog.notify("資材不足,無法遷移根據地")
 		return
 	ConfirmDialog.ask(
@@ -841,8 +842,8 @@ func _handle_relocation_click(world_pos: Vector2) -> void:
 
 func _format_relocation_cost() -> String:
 	var parts: Array[String] = []
-	for resource_type in BaseRelocationRule.COST:
-		parts.append("%s x%d" % [GameEnums.resource_string_label(resource_type), BaseRelocationRule.COST[resource_type]])
+	for resource_type in BaseRelocationRule.cost():
+		parts.append("%s x%d" % [GameEnums.resource_string_label(resource_type), BaseRelocationRule.cost()[resource_type]])
 	return "、".join(parts)
 
 
@@ -854,7 +855,7 @@ func _format_relocation_cost() -> String:
 ## 清空是因為玩家的頭像實際上還站在原地,根據地已經搬去別處,不能再被判定成「已經站在
 ## 根據地上」。
 func _apply_relocation(pos: Vector2) -> void:
-	BaseResourceStore.spend(BaseRelocationRule.COST)
+	BaseResourceStore.spend(BaseRelocationRule.cost())
 
 	var base_node := get_node_or_null(BASE_NODE_NAME)
 	if base_node != null:

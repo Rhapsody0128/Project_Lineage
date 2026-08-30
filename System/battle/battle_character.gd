@@ -180,7 +180,7 @@ func _resolve_basic_attack_hit(actual_target: BattleCharacter, guarded: bool, gu
 			crit_check = CritResult.new(true, "%s 發動被動技能「%s」,這次攻擊必定暴擊" % [name, crit_skill.name])
 			proc_skill_names.append(crit_skill.name)
 	if crit_check.critical:
-		damage *= CombatResolver.CRIT_DAMAGE_MULTIPLIER
+		damage *= CombatResolver.crit_damage_multiplier()
 	var armor_pierce_detail := ""
 	if armor_pierce and not is_armor_piercing:
 		var armor_pierce_skill := character.find_skill_with_mechanic(GameEnums.SkillMechanic.CHANCE_ARMOR_PIERCE)

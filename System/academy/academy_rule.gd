@@ -49,7 +49,24 @@ static func flavor_for_nation(nation: int) -> String:
 	return NATION_FLAVOR[nation]
 
 
+## 「遊學新制」科技線(TechEffectType.ACADEMY_REROLL_COUNT_ADD)讓初始技能表多骰幾次,
+## 系統自動取其中「總品階最高」的一份(見 _skill_list_score())——玩家看到的永遠是這幾次
+## 裡最好的結果,不用自己比較。
 static func enroll(character: Character, nation: int) -> void:
 	character.weapon = weapon_for_nation(nation)
 	var noble_rank := Character.compute_noble_bloodline_rank(character.bloodline)
-	character.skill_list = SkillController.get_random_initial_skill_list(character.weapon, noble_rank, character.bloodline)
+	var reroll_count := 1 + int(TechStore.get_bonus(GameEnums.TechEffectType.ACADEMY_REROLL_COUNT_ADD))
+
+	var best: Array[Skill] = SkillController.get_random_initial_skill_list(character.weapon, noble_rank, character.bloodline)
+	for i in range(reroll_count - 1):
+		var candidate := SkillController.get_random_initial_skill_list(character.weapon, noble_rank, character.bloodline)
+		if _skill_list_score(candidate) > _skill_list_score(best):
+			best = candidate
+	character.skill_list = best
+
+
+static func _skill_list_score(skill_list: Array[Skill]) -> int:
+	var total := 0
+	for skill in skill_list:
+		total += SkillRankRule.effective_rank(skill)
+	return total

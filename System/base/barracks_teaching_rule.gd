@@ -10,8 +10,12 @@ extends RefCounted
 const MIN_TEACHER_AGE_BY_RANK: Array[int] = [40, 45, 50, 55, 60, 65, 70, 75, 80]
 
 
+## 「傳習革新」科技線(TechEffectType.TEACH_AGE_THRESHOLD_SUB)在查表值上扣減,下限
+## clamp 在 0,不會扣成負數年齡。
 static func min_teacher_age(skill: Skill) -> int:
-	return MIN_TEACHER_AGE_BY_RANK[SkillRankRule.effective_rank(skill)]
+	var base := MIN_TEACHER_AGE_BY_RANK[SkillRankRule.effective_rank(skill)]
+	var reduced := base - int(TechStore.get_bonus(GameEnums.TechEffectType.TEACH_AGE_THRESHOLD_SUB))
+	return maxi(reduced, 0)
 
 
 ## barracks_rank:BaseBuildingProgressStore.get_rank(BuildingType.BARRACKS)。

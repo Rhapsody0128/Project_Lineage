@@ -17,7 +17,7 @@ static func inherit(father_bloodline: Bloodline, mother_bloodline: Bloodline) ->
 
 	var alignment_used_mutation := _align_to_step_grid(percentages)
 
-	var multiplier := int(Util.get_random_chance_item(InheritanceConstants.BLOODLINE_MUTATION_CHANCES))
+	var multiplier := int(Util.get_random_chance_item(InheritanceConstants.bloodline_mutation_chances()))
 	if alignment_used_mutation:
 		multiplier -= 1
 	if multiplier > 0:

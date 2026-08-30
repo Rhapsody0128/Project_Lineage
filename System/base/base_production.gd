@@ -12,9 +12,11 @@ const BUILDING_EFFICIENCY: Array[float] = [1.00, 1.10, 1.20, 1.35, 1.50, 1.70, 1
 
 
 ## 角色屬性 0~200(理論上限),0 也有 50% 底薪、200 封頂 150%,開根號讓漲幅前段快、
-## 後段慢,鼓勵把角色分散派到不同建築而不是全部堆一個屬性怪物身上。
+## 後段慢,鼓勵把角色分散派到不同建築而不是全部堆一個屬性怪物身上。「匠人熟練」科技線
+## (TechEffectType.CHARACTER_EFFICIENCY_BASE_ADD)直接加在 0.5 這個基準上。
 static func character_efficiency(attribute_value: float) -> float:
-	return 0.5 + sqrt(attribute_value / 200.0)
+	var base := 0.5 + TechStore.get_bonus(GameEnums.TechEffectType.CHARACTER_EFFICIENCY_BASE_ADD)
+	return base + sqrt(attribute_value / 200.0)
 
 
 static func building_efficiency(level: int) -> float:
@@ -22,10 +24,12 @@ static func building_efficiency(level: int) -> float:
 
 
 ## 回傳未四捨五入的浮點數,交給 compute_monthly_yield() 加總完再統一取整,避免逐人
-## 四捨五入的誤差累積。
+## 四捨五入的誤差累積。「產業精進」科技線(TechEffectType.PRODUCTION_YIELD_MULT_ADD)
+## 是最後一道乘數,套用在全部 12 棟生產建築(含科學研究所,見該節點註解)。
 static func monthly_yield_for_worker(building: Building, character: Character, level: int) -> float:
 	var attribute_value := character.get_potential(building.potential_type)
-	return building.base_yield * building_efficiency(level) * character_efficiency(attribute_value)
+	var yield_bonus := 1.0 + TechStore.get_bonus(GameEnums.TechEffectType.PRODUCTION_YIELD_MULT_ADD)
+	return building.base_yield * building_efficiency(level) * character_efficiency(attribute_value) * yield_bonus
 
 
 static func compute_monthly_yield(building: Building, characters: Array[Character], level: int) -> int:

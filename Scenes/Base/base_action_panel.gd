@@ -48,11 +48,10 @@ var _building: Building
 var _upgrade_error: bool = false
 var _build_error: bool = false
 
-## 祭壇/禁忌祭壇購買奧義、科技樹解鎖各自的單次錯誤提示旗標,用法同
-## _build_error/_upgrade_error——商隊站/黑市兌換改成每月自動執行,設定當下不會失敗,
-## 不需要對應的錯誤旗標。
+## 祭壇/禁忌祭壇購買奧義的單次錯誤提示旗標,用法同 _build_error/_upgrade_error——商隊站/
+## 黑市兌換改成每月自動執行,設定當下不會失敗,不需要對應的錯誤旗標。科技樹解鎖的錯誤
+## 提示改在 TechTreePanel 自己的畫面裡處理,不需要這裡的旗標。
 var _altar_error: bool = false
-var _tech_error: bool = false
 
 ## 城鎮中心:聯姻結果單次顯示,顯示完即消耗掉,同 _build_error/_upgrade_error 慣例。實際
 ## 選聯姻角色/寄信國家兩步驟已經整個交給 Scenes/Marriage/stronghold_marriage_panel.gd 的
@@ -985,58 +984,36 @@ func _add_ultimate_row(grid: GridContainer, ultimate: Ultimate, rank_cap: GameEn
 
 ## 科學研究所:15 格科技樹,依分類分組顯示,門檻/科研消耗見 TechLibrary。效果本身
 ## (升級耗材-10%、移動速度+10%等)目前只追蹤解鎖狀態,尚未接上實際加成邏輯。
+## 科技樹本體(90 個節點的樹狀圖)是獨立場景 Scenes/Tech/tech_tree.tscn(不是 ActionPanel
+## 疊加內容,樹狀圖太大,比照祖譜走全場景切換),這裡只放一顆進入鈕。
 func _build_tech_section() -> void:
-	_add_label("科技樹（花科研永久解鎖,依科學研究所等級解鎖對應門檻）：")
-	var level := BaseBuildingProgressStore.get_level(_building.type)
-
-	var by_category: Dictionary = {}
-	for tech in TechLibrary.get_all():
-		var list: Array = by_category.get(tech.category, [])
-		list.append(tech)
-		by_category[tech.category] = list
-
-	for category in by_category:
-		_add_label(category)
-		for tech in by_category[category]:
-			add_child(_build_tech_row(tech, level))
-
-	if _tech_error:
-		_add_label("門檻不足或科研不足")
-		_tech_error = false
+	_add_label("科技樹(花科研永久解鎖,依科學研究所等級與前置科技解鎖)。")
+	var open_button := Button.new()
+	open_button.text = "開啟科技樹"
+	_style_button(open_button)
+	open_button.pressed.connect(_open_tech_tree)
+	add_child(open_button)
 
 
-func _build_tech_row(tech: Tech, research_institute_level: int) -> Control:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-
-	var unlocked := TechStore.is_unlocked(tech.id)
-	var meets_level := research_institute_level >= TechLibrary.level_requirement(tech.tier)
-	var label := Label.new()
-	label.text = "%s：%s（科研 %d，需研究所 %s 級）" % [
-		tech.name, tech.description, tech.cost, GameEnums.rank_label(TechLibrary.level_requirement(tech.tier) - 1)
-	]
-	label.autowrap_mode = TextServer.AUTOWRAP_WORD
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.add_theme_color_override("font_color", UiStyle.PARCHMENT_TEXT_COLOR)
-	row.add_child(label)
-
-	var button := Button.new()
-	if unlocked:
-		button.text = "已解鎖"
-		button.disabled = true
-	elif not meets_level:
-		button.text = "等級不足"
-		button.disabled = true
-	else:
-		button.text = "解鎖"
-		button.pressed.connect(func() -> void:
-			_tech_error = not TechStore.unlock(tech)
-			_rebuild_body()
-		)
-	_style_button(button)
-	row.add_child(button)
-
-	return row
+## 先關掉這層 ActionPanel(它是持續存活的 autoload CanvasLayer,不關掉會疊在新場景上面),
+## 再切場景過去——返回時科技樹場景會用 SceneHandoffStore 交接回「要重開科學研究所」,
+## 見 Scenes/Tech/tech_tree.gd 開頭註解與 Scenes/Base/base_inner.gd 的接收端。
+##
+## 進根據地建築面板這趟本來就先繞去 Dialogue 場景播「你走進了...」(next_scene_path 留空,
+## 對話播完後畫面留在背景給 ActionPanel 疊加,見 BaseBuildingEvent),所以這裡是「先繞去
+## 中繼場景才抵達真正目的地」的情境(見 NavigationStore 開頭註解)——不能呼叫
+## NavigationStore.go_to(),它會在切場景當下自動抓 current_scene,抓到的會是那個 Dialogue
+## 而不是 base.tscn。比照 TownGateEvent/CastleSiegeEvent 的既有寫法:先手動
+## push_return_scene_path() 明講邏輯上的上一頁是 base.tscn,再用不記錄堆疊的
+## change_scene_to_file() 切過去,go_back() 才會直接回到根據地本體而不是回放那句舊對話
+## (那句對話的 SceneHandoffStore mailbox 是 peek() 不會清空,回放到還會再次觸發
+## on_finished 重新彈出這層 ActionPanel,造成「按 X 要點兩次」的假象)。
+func _open_tech_tree() -> void:
+	ActionPanel.close(false)
+	NavigationStore.push_return_scene_path("res://Scenes/Base/base.tscn")
+	var error := get_tree().change_scene_to_file("res://Scenes/Tech/tech_tree.tscn")
+	if error != OK:
+		printerr("Error changing scene to tech tree: ", error)
 
 
 func _format_cost(cost: Dictionary) -> String:

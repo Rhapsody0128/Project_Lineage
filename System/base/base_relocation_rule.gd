@@ -12,6 +12,17 @@ const COST: Dictionary = {
 	GameEnums.ResourceType.STONE: 500,
 }
 
+
+## 「輕裝遷徙」科技線(TechEffectType.RELOCATION_COST_SUB)在 COST 每一項上扣減,
+## 下限 clamp 在 0。呼叫端(Scenes/Map/world_inner.gd 選點流程)一律讀這支函式,不要
+## 直接讀 COST 常數。
+static func cost() -> Dictionary:
+	var reduction := TechStore.get_bonus(GameEnums.TechEffectType.RELOCATION_COST_SUB)
+	var result: Dictionary = {}
+	for resource_type in COST:
+		result[resource_type] = maxi(COST[resource_type] - int(reduction), 0)
+	return result
+
 ## 城鎮座標間距實際落在 1000~2000+ 之間(見 System/map/map_object.gd 的 get_all()),
 ## 800 大約是地圖尺寸(MapSystem.MAP_SIZE 8000x4500)的 1/10,足以避免根據地直接貼著
 ## 城鎮,又不會讓可選範圍過小。遊戲目前沒有獨立的「村莊」地點類型(只有

@@ -50,8 +50,12 @@ func is_unlocked(building_type: GameEnums.BuildingType) -> bool:
 	return get_level(building_type) > 0
 
 
+## 「廣納賢才」科技線(TechEffectType.MAX_WORKERS_ADD)加在等級上,套用全部 12 棟生產
+## 建築(含科學研究所,比照「產業精進」——見 BaseProduction.monthly_yield_for_worker()
+## 該節點註解——一併套用全體生產建築的既有慣例)。
 func get_max_workers(building_type: GameEnums.BuildingType) -> int:
-	return get_level(building_type)
+	var base := get_level(building_type)
+	return base + int(TechStore.get_bonus(GameEnums.TechEffectType.MAX_WORKERS_ADD))
 
 
 func is_active(building_type: GameEnums.BuildingType) -> bool:
@@ -73,9 +77,11 @@ func effective_max_level(building: Building) -> int:
 
 
 ## 角色總容量(招募/婚生子女的總數上限,跟戰場出戰人數上限是不同概念,見
-## AllCharacterStore)= 20 + 20×住宅等級,頂到 Lv9 的 200。
+## AllCharacterStore)= 20 + 20×住宅等級,頂到 Lv9 的 200,再加上「住宅規劃」科技線
+## (TechEffectType.RESIDENTIAL_CAPACITY_ADD)的固定加值。
 func get_character_capacity() -> int:
-	return 20 + 20 * get_level(GameEnums.BuildingType.RESIDENTIAL)
+	var base := 20 + 20 * get_level(GameEnums.BuildingType.RESIDENTIAL)
+	return base + int(TechStore.get_bonus(GameEnums.TechEffectType.RESIDENTIAL_CAPACITY_ADD))
 
 
 ## 回傳 GameEnums.RankType,0 級(尚未建成)回傳 -1,呼叫端要先用 is_unlocked() 判斷。
@@ -125,17 +131,29 @@ func can_upgrade(building: Building) -> bool:
 	return level > 0 and level < effective_max_level(building) and not is_upgrading(building.type)
 
 
-## can_upgrade() 為 false 回傳空字典/0。
+## can_upgrade() 為 false 回傳空字典/0。「資材節約」科技線(TechEffectType.
+## BUILDING_UPGRADE_COST_MULT_SUB)在查表值上打折,折扣值 clamp 在 [0,1]。
 func get_upgrade_cost(building: Building) -> Dictionary:
 	if not can_upgrade(building):
 		return {}
-	return building.upgrade_costs[get_level(building.type) - 1]
+	var base: Dictionary = building.upgrade_costs[get_level(building.type) - 1]
+	var discount := clampf(TechStore.get_bonus(GameEnums.TechEffectType.BUILDING_UPGRADE_COST_MULT_SUB), 0.0, 1.0)
+	if discount <= 0.0:
+		return base
+	var discounted: Dictionary = {}
+	for resource_type in base:
+		discounted[resource_type] = roundi(base[resource_type] * (1.0 - discount))
+	return discounted
 
 
+## 「營建效率」科技線(TechEffectType.BUILDING_UPGRADE_DAYS_MULT_SUB)在查表值上打折,
+## 折扣值 clamp 在 [0,1],下限保底 1 天(不會被折成 0 天瞬間完工)。
 func get_upgrade_days(building: Building) -> int:
 	if not can_upgrade(building):
 		return 0
-	return building.upgrade_days[get_level(building.type) - 1]
+	var base := building.upgrade_days[get_level(building.type) - 1]
+	var discount := clampf(TechStore.get_bonus(GameEnums.TechEffectType.BUILDING_UPGRADE_DAYS_MULT_SUB), 0.0, 1.0)
+	return maxi(roundi(base * (1.0 - discount)), 1)
 
 
 ## 資材不足或無法升級(未建成/已滿級/升級中)都回傳 false 且不扣款。升級開始不會馬上

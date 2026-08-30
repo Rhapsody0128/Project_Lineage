@@ -241,7 +241,7 @@ func give_birth() -> Character:
 	mate.children.append(child)
 	is_pregnant = false
 	pregnancy_months = 0
-	postpartum_months_remaining = PregnancyRule.POSTPARTUM_MONTHS
+	postpartum_months_remaining = PregnancyRule.postpartum_months()
 	return child
 
 ## 休產期每月倒數(見 WorldTimeEventLibrary._advance_postpartum_recovery()),歸零後不再

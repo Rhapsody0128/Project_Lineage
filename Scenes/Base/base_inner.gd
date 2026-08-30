@@ -39,6 +39,23 @@ func _ready() -> void:
 	_fit_background_to_viewport()
 	get_viewport().size_changed.connect(_fit_background_to_viewport)
 
+	_reopen_building_panel_if_requested()
+
+
+## 從 Scenes/Tech/tech_tree.gd 返回時,用 SceneHandoffStore 交接「要重開哪一棟建築的
+## ActionPanel」——go_back() 是整個場景重新載入,ActionPanel 本身雖然是 autoload 不會被
+## 釋放,但內容已經被 _open_tech_tree() 清掉了,要重新呼叫 open_action_panel() 才會
+## 看起來「依然在科學研究所」。
+func _reopen_building_panel_if_requested() -> void:
+	var handoff := SceneHandoffStore.take(TechTree.REOPEN_BUILDING_MAILBOX_KEY)
+	if handoff == null:
+		return
+	var building_type: int = handoff.payload
+	for building in _buildings:
+		if building.type == building_type:
+			BaseBuildingEvent.open_action_panel(building)
+			return
+
 
 ## 依根據地在大地圖上的實際座標(BaseLocationStore,見該檔案檔頭註解——根據地之後會開放
 ## 玩家遷移,不是 MapObject.get_all() 那種寫死快照)查 MapTerrainMask 判定地形,換成對應的

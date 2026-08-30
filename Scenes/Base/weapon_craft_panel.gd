@@ -76,7 +76,7 @@ func _build_header_row() -> Control:
 	row.add_child(_stock_label)
 
 	var cost_label := Label.new()
-	cost_label.text = "每次打造花費：%d 鐵礦" % WeaponLibrary.CRAFT_ORE_COST
+	cost_label.text = "每次打造花費：%d 鐵礦" % _current_cost()
 	cost_label.add_theme_color_override("font_color", UiStyle.PARCHMENT_SUBTITLE_COLOR)
 	row.add_child(cost_label)
 
@@ -93,6 +93,13 @@ func _refresh_stock_label() -> void:
 	_stock_label.text = "鐵礦庫存：%d" % BaseResourceStore.get_display_amount(GameEnums.ResourceType.ORE)
 
 
+## 依鐵匠鋪目前品階查表(WeaponLibrary.CRAFT_ORE_COST_BY_RANK),已套用「鍛造節約」
+## 科技線的扣減——標題列顯示的花費跟按下「打造」實際扣的花費一定同一個數字。
+func _current_cost() -> int:
+	var base_rank := BaseBuildingProgressStore.get_rank(GameEnums.BuildingType.FORGE)
+	return WeaponLibrary.craft_ore_cost(base_rank)
+
+
 ## 打造武器畫面唯一入口。weapon_type 固定這個畫面只能打造哪一種類型(見
 ## base_action_panel.gd 的 _add_forge_weapon_row())。on_close 簽名 func() -> void,
 ## 「確定」套用完畢後呼叫,交給呼叫端關閉 ActionPanel 並重開鐵匠鋪面板。
@@ -103,13 +110,13 @@ func setup(weapon_type: int, on_close: Callable) -> void:
 
 
 func _on_craft_pressed() -> void:
-	var cost := {GameEnums.ResourceType.ORE: WeaponLibrary.CRAFT_ORE_COST}
+	var base_rank := BaseBuildingProgressStore.get_rank(GameEnums.BuildingType.FORGE)
+	var cost := {GameEnums.ResourceType.ORE: WeaponLibrary.craft_ore_cost(base_rank)}
 	if not BaseResourceStore.can_afford(cost):
 		MessageBar.show_message("資材不足")
 		return
 	BaseResourceStore.spend(cost)
 	_refresh_stock_label()
-	var base_rank := BaseBuildingProgressStore.get_rank(GameEnums.BuildingType.FORGE)
 	var candidate := WeaponLibrary.craft_weapon(_weapon_type, base_rank)
 	_add_candidate_card(candidate)
 

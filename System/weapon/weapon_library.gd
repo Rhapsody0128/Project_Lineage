@@ -1,8 +1,16 @@
 class_name WeaponLibrary
 extends RefCounted
 
-## 鐵匠鋪打造一把武器要花的鐵礦(GameEnums.ResourceType.ORE),調參集中在這一個常數。
-const CRAFT_ORE_COST := 5
+## 鐵匠鋪打造一把武器要花的鐵礦(GameEnums.ResourceType.ORE),依 Forge 判定出的品階
+## (base_rank,F~SSS)遞增——原本是不分品階的固定 5,跟其他系統「品階越高越貴」的慣例
+## 不一致,改成查表。「鍛造節約」科技線(TechEffectType.WEAPON_CRAFT_ORE_COST_SUB)在這個
+## 表格算完之後再扣減,下限 clamp 在 1,不會被扣到 0 以下。
+const CRAFT_ORE_COST_BY_RANK: Array[int] = [10, 12, 15, 18, 22, 27, 33, 40, 48]
+
+static func craft_ore_cost(base_rank: int) -> int:
+	var base := CRAFT_ORE_COST_BY_RANK[clampi(base_rank, 0, CRAFT_ORE_COST_BY_RANK.size() - 1)]
+	var reduced := base - int(TechStore.get_bonus(GameEnums.TechEffectType.WEAPON_CRAFT_ORE_COST_SUB))
+	return maxi(reduced, 1)
 
 ## 依 rank 抽點次數範圍(F=1~2...SSS=9~10),index 對應 GameEnums.RankType,寫法比照
 ## PartyController.RANK_LEVEL_RANGE——數值全部集中在這一個常數表方便之後調參。
@@ -13,13 +21,26 @@ const ROLL_COUNT_RANGE: Array[Vector2i] = [
 
 const MIN_POINTS_PER_ROLL := 1
 const MAX_POINTS_PER_ROLL := 5
-## 每次抽點骰中武器主屬性(GameEnums.weapon_main_stat())的機率相對權重提高多少
+## 每次抽點骰中武器主屬性(GameEnums.weapon_main_stat())的機率相對權重提高多少,「鍛造
+## 精研」科技線(TechEffectType.WEAPON_MAIN_STAT_WEIGHT_ADD)在這個基準值上疊加,呼叫端
+## 一律讀 main_stat_weight_bonus(),不要直接讀這個常數。
 const MAIN_STAT_WEIGHT_BONUS := 2
+
+static func main_stat_weight_bonus() -> float:
+	return MAIN_STAT_WEIGHT_BONUS + TechStore.get_bonus(GameEnums.TechEffectType.WEAPON_MAIN_STAT_WEIGHT_ADD)
+
+
+## 「鍛造精研」科技線(TechEffectType.WEAPON_ROLL_COUNT_ADD)疊加在查表值兩端,呼叫端
+## 一律讀這支函式,不要直接讀 ROLL_COUNT_RANGE。
+static func roll_count_range(rank_type: int) -> Vector2i:
+	var base: Vector2i = ROLL_COUNT_RANGE[rank_type]
+	var bonus := int(TechStore.get_bonus(GameEnums.TechEffectType.WEAPON_ROLL_COUNT_ADD))
+	return Vector2i(base.x + bonus, base.y + bonus)
 
 ## 直接依指定 rank_type 抽出一把武器(不經 RankDrawTable):抽點次數依 ROLL_COUNT_RANGE
 ## 骰一個次數,每次骰一種素質(武器主屬性權重 +30%)、加 1~5 點,同一素質可被抽中多次疊加。
 static func generate_random_weapon(weapon_type: int, rank_type: int) -> WeaponInstance:
-	var roll_range := ROLL_COUNT_RANGE[rank_type]
+	var roll_range := roll_count_range(rank_type)
 	var roll_count := Util.get_random_int(roll_range.x, roll_range.y + 1)
 	var stat_points: Dictionary = {}
 	for i in range(roll_count):
@@ -51,7 +72,7 @@ static func _roll_stat_type(weapon_type: int) -> int:
 	var weights: Array[float] = []
 	var total := 0.0
 	for potential_type in potential_types:
-		var weight := 1.0 + MAIN_STAT_WEIGHT_BONUS if potential_type == main_stat else 1.0
+		var weight := 1.0 + main_stat_weight_bonus() if potential_type == main_stat else 1.0
 		weights.append(weight)
 		total += weight
 	var picked := Util.get_random_float(0.0, total)

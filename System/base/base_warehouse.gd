@@ -31,10 +31,12 @@ const LEVEL_MULTIPLIER: Array[float] = [1.0, 1.5, 2.0, 2.75, 3.5, 4.5, 5.5, 7.0,
 ## 金錢(GOLD)不受倉庫等級限制,回傳 -1 代表「無上限」——遊蕩者戰鬥獎懲(見
 ## System/battle/battle_reward.gd)會讓金錢大量進出,卡在倉庫容量沒有意義。呼叫端
 ## (BaseResourceStore.add()/is_full()、Scenes/Base/base_action_panel.gd 的倉庫容量
-## 顯示)看到 -1 都要視為「無上限」特殊處理。
+## 顯示)看到 -1 都要視為「無上限」特殊處理。「倉儲擴建」科技線(TechEffectType.
+## WAREHOUSE_CAPACITY_MULT_ADD)是查表結果之後再疊加的最後一道乘數。
 static func get_capacity(resource_type: int, warehouse_level: int) -> int:
 	if resource_type == GameEnums.ResourceType.GOLD:
 		return -1
 	var base: int = TIER_BASE.get(resource_type, 0)
 	var multiplier := LEVEL_MULTIPLIER[clampi(warehouse_level, 0, LEVEL_MULTIPLIER.size() - 1)]
-	return roundi(base * multiplier / 10.0) * 10
+	var tech_bonus := 1.0 + TechStore.get_bonus(GameEnums.TechEffectType.WAREHOUSE_CAPACITY_MULT_ADD)
+	return roundi(base * multiplier * tech_bonus / 10.0) * 10

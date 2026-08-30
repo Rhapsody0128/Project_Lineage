@@ -178,7 +178,7 @@ static func _resolve_attack_hit(self_character: BattleCharacter, enemy_character
 	else:
 		crit_check = CombatResolver.judge_crit(self_character, enemy_character)
 	if crit_check.critical:
-		damage *= CombatResolver.CRIT_DAMAGE_MULTIPLIER
+		damage *= CombatResolver.crit_damage_multiplier()
 
 	var armor_pierce_detail := ""
 	if armor_pierce and not skill.mechanics.has(GameEnums.SkillMechanic.ARMOR_PIERCE) and not self_character.is_armor_piercing:

@@ -23,11 +23,12 @@ extends LocationEvent
 ## 收掉,會一直疊在 Dialogue 畫面最上層,所以這裡的候選人盲選清單能直接沿用同一個已經空出
 ## 來的 ActionPanel,不需要另開一層。選完/婉拒各自負責 ActionPanel.close(false)(見
 ## _on_candidate_picked()/_on_candidate_declined())。演出結束後改呼叫
-## BaseBuildingEvent.open_action_panel() 開一份全新的面板顯示結果,不去嘗試復用切場景前
-## 那份舊的 BaseBuildingPanelContent。
+## BaseBuildingEvent.open_action_panel() 開一份全新的面板,不去嘗試復用切場景前那份舊的
+## BaseBuildingPanelContent——婚姻是否成立不再立刻結婚也不顯示結果banner(見
+## _on_accepted()/_finish()),真正結婚要等 WeddingQueueStore 倒數 30 天後才發生。
 
 const THRONE_ROOM_NOBLE_THRESHOLD := 50.0
-const CANDIDATE_PANEL_TITLE := "回信人選"
+const CANDIDATE_PANEL_TITLE := "聯姻人選"
 
 var _building: Building
 var _proposer: Character
@@ -64,7 +65,7 @@ func _build_request_dialogue() -> Dialogue:
 	var proposer_speaker := DialogueSpeaker.new(_proposer.id, _proposer.title_full_name, _proposer.face_path, GameEnums.DialogueSide.LEFT)
 	var nation_label := GameEnums.bloodline_nation_label(_nation)
 	var lines: Array[DialogueLine] = [
-		DialogueLine.new(leader_speaker.id, "%s,你年紀也差不多也該結婚了,我替你向%s國寫封信吧,你有心儀的對象嗎?" % [_proposer.title_full_name, nation_label]),
+		DialogueLine.new(leader_speaker.id, "%s,你年紀也差不多也該結婚了,前幾天我替你向%s國寫了封信,你看看有沒有你心儀的對象..." % [_proposer.name, nation_label]),
 		DialogueLine.new(proposer_speaker.id, "這..."),
 	]
 	return Dialogue.new([leader_speaker, proposer_speaker], lines, GameEnums.base_building_background_path(_building.type))
@@ -101,7 +102,12 @@ func _on_candidate_picked(candidate: Character) -> void:
 	_candidate = candidate
 	_accepted = MarriageRule.roll_alliance_success()
 	ActionPanel.close(false)
-	goto_dialogue(_build_reaction_dialogue(), "", func(): _finish())
+	goto_dialogue(_build_reaction_dialogue(), "", func() -> void:
+		if _accepted:
+			_on_accepted()
+		else:
+			_finish()
+	)
 
 
 func _build_reaction_dialogue() -> Dialogue:
@@ -109,7 +115,7 @@ func _build_reaction_dialogue() -> Dialogue:
 	# _proposer 是玩家自己的角色,正常顯示全名。
 	var candidate_speaker := DialogueSpeaker.new(_candidate.id, _candidate.name, _candidate.face_path, GameEnums.DialogueSide.RIGHT)
 	var text := (
-		"我就知道%s選擇的對象會記得我!我要去追尋真愛了!" % _proposer.title_full_name if _accepted
+		"我就知道%s會記得我!我要去追尋真愛了!" % _proposer.name if _accepted
 		else "這誰？"
 	)
 	var lines: Array[DialogueLine] = [DialogueLine.new(candidate_speaker.id, text)]
@@ -127,7 +133,8 @@ func _candidate_background_path() -> String:
 ## 形成無謂的重入。
 func _on_candidate_declined() -> void:
 	ActionPanel.close(false)
-	goto_dialogue(_build_decline_dialogue(), "", func(): _finish())
+	var dialogue := _build_self_decline_dialogue() if _proposer == LeaderStore.get_leader() else _build_decline_dialogue()
+	goto_dialogue(dialogue, "", func(): _finish())
 
 
 func _build_decline_dialogue() -> Dialogue:
@@ -138,22 +145,29 @@ func _build_decline_dialogue() -> Dialogue:
 	return Dialogue.new([proposer_speaker], lines, GameEnums.base_building_background_path(_building.type))
 
 
-func _finish() -> void:
+func _build_self_decline_dialogue() -> Dialogue:
+	var leader := LeaderStore.get_leader()
+	var leader_speaker := DialogueSpeaker.new(leader.id, leader.title_full_name, leader.face_path, GameEnums.DialogueSide.LEFT)
+	var lines: Array[DialogueLine] = [
+		DialogueLine.new(leader_speaker.id, "...我看還是算了"),
+	]
+	return Dialogue.new([leader_speaker], lines, GameEnums.base_building_background_path(_building.type))
+
+
+## 候選人反應對話播完、確定接受(_accepted)時才呼叫這裡:不立刻結婚,改呼叫
+## WeddingQueueStore.queue_wedding() 記錄下來,DELAY_DAYS 天後才真正 marry()/播婚禮
+## Dialogue/彈新配偶 CharacterPanel/發結婚 MESSAGE(見 System/marriage/wedding_event.gd)
+## ——只有這個分支會呼叫 WeddingQueueStore,跟下面沒有婚姻成立的 _finish() 分開,不共用
+## 同一個 if/else 分支,避免像先前那樣改壞其中一邊時另一邊被誤觸發(見使用者需求)。
+func _on_accepted() -> void:
 	var nation_label := GameEnums.bloodline_nation_label(_nation)
-	var result_text: String
+	var announcement_text := "%s 向%s國聯姻成功,與 %s 結婚了。" % [_proposer.name, nation_label, _candidate.name]
+	WeddingQueueStore.queue_wedding(_proposer, _candidate, announcement_text)
+	BaseBuildingEvent.open_action_panel(_building)
 
-	if _candidate == null:
-		result_text = "%s 婉拒了這次聯姻安排,本年度名額已用掉一個。" % _proposer.title_full_name
-	elif _accepted:
-		_proposer.marry(_candidate)
-		AllCharacterStore.register(_candidate)
-		result_text = "%s 向%s國聯姻成功,與 %s 結婚了。" % [_proposer.title_full_name, nation_label, _candidate.title_full_name]
-		NewsController.post(result_text, GameEnums.NewsCategory.MAJOR)
-		MessageBar.show_message(result_text)
-		MoraleStore.record_event("角色結婚", MoraleStore.MARRIAGE_DELTA)
-	else:
-		result_text = "%s 向%s國寄出的聯姻信被拒絕了。" % [_proposer.title_full_name, nation_label]
 
-	BaseBuildingEvent.open_action_panel(_building, func(content: BaseBuildingPanelContent) -> void:
-		content._marriage_result_text = result_text
-	)
+## 沒選人(婉拒)/選了但被拒絕的共用收尾:沒有婚姻成立,不需要另外顯示結果banner文字,
+## 直接重開城鎮中心面板即可。
+func _finish() -> void:
+	BaseBuildingEvent.open_action_panel(_building)
+

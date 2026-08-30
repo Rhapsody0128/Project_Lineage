@@ -554,6 +554,10 @@ const TOWN_RESIDENTIAL_BACKGROUND_PATH := "res://Images/Dialogue/Town/town_resid
 ## 王座廳、平民站在住宅區(跟 TOWN_RESIDENTIAL_BACKGROUND_PATH 共用同一張圖)。
 const TOWN_THRONE_ROOM_BACKGROUND_PATH := "res://Images/Dialogue/Town/town_throne_room.png"
 
+## 婚禮儀式對話背景(見 System/marriage/wedding_ceremony_dialogue.gd),告白/聯姻兩條
+## 結婚流程共用同一張教堂圖,不分地點/國家。
+const WEDDING_CHURCH_BACKGROUND_PATH := "res://Images/Dialogue/Other/Church.png"
+
 ## 隊長標記圖示:疊在頭像/小人物右上角的小旗子,取代舊版變色遮罩。
 ## BattleUnitVisual(戰場角色)、BattlePartyRoster(頭像列)與 BattleCostView
 ## (PartyEdit/CharacterPanel 的 battle_cost 縮圖)共用同一張圖,標記邏輯要一致。

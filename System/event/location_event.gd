@@ -40,7 +40,14 @@ const DIALOGUE_MAILBOX_KEY := "dialogue"
 ## 要直接彈出 ActionPanel(疊加視窗,不用真的切場景),next_scene_path 留空、on_finished
 ## 接手開面板,見 dialogue_box.gd 的 _leave()。跟 DialogueChoice.on_selected 不同,這裡
 ## 不需要玩家額外點選項按鈕,純粹是「這段對話播完了」的通知。
+##
+## 一律先暫停世界時間——比照 world_inner.gd 抵達地點一律暫停時間的既有慣例,event 接管
+## 畫面演出時不該讓時間繼續跑。多數呼叫端觸發時本來就已經處於暫停場景(MapLocation/剛抵達
+## 地點的大地圖),這裡重複設成 false 不影響;真正吃到這行的是 WeddingEvent 這種在時間
+## 正在流動時（WorldTimeStore 的每日事件回呼)被動觸發的情境,播完 Dialogue 回到原場景
+## 後時間才不會憑空繼續跑。子類別不需要也不應該各自重複設定。
 func goto_dialogue(dialogue: Dialogue, next_scene_path: String, on_finished: Callable = Callable()) -> void:
+	WorldTimeStore.controller.is_playing = false
 	SceneHandoffStore.queue(DIALOGUE_MAILBOX_KEY, dialogue, next_scene_path, on_finished)
 	var tree := Engine.get_main_loop() as SceneTree
 	var error := tree.change_scene_to_file(DIALOGUE_SCENE_PATH)

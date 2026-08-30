@@ -43,11 +43,6 @@ const STAT_LABEL_COLUMN_WIDTH := 100.0
 const FAVOR_BAR_HEIGHT := 18.0
 const FAVOR_BAR_BG := Color(0.25, 0.18, 0.1)
 
-const WAR_STATUS_COLORS := {
-	GameEnums.NationWarStatus.PEACE: Color(0.1, 0.6, 0.1),
-	GameEnums.NationWarStatus.WAR: Color(0.75, 0.1, 0.1),
-}
-
 @onready var main_panel: PanelContainer = $MainPanel
 @onready var main_margin: MarginContainer = $MainPanel/Margin
 @onready var test_favor_button: Button = $TopBar/TestFavorButton
@@ -131,7 +126,7 @@ func _build_favor_view() -> Control:
 
 func _build_favor_rank_cell(nation: Nation) -> Control:
 	var favor := NationFavorStore.get_favor(nation.id)
-	return _build_stat_value_cell(NationFavorRank.label_for_favor(favor), GameEnums.bloodline_nation_color(nation.id))
+	return _build_stat_value_cell(NationFavorRank.label_for_favor(favor), UiStyle.PARCHMENT_TEXT_COLOR)
 
 
 func _build_favor_value_cell(nation: Nation) -> Control:
@@ -289,13 +284,12 @@ func _build_war_relation_table(selected_id: int, others: Array[Nation]) -> Contr
 
 func _build_war_status_cell(nation_a: int, nation_b: int) -> Control:
 	var status := NationRelation.get_status(nation_a, nation_b)
-	return _build_stat_value_cell(GameEnums.nation_war_status_label(status), WAR_STATUS_COLORS[status])
+	return _build_stat_value_cell(GameEnums.nation_war_status_label(status), UiStyle.PARCHMENT_TEXT_COLOR)
 
 
 func _build_war_tension_cell(nation_a: int, nation_b: int) -> Control:
 	var tension := NationRelation.get_tension(nation_a, nation_b)
-	var color := Color.WHITE.lerp(Color(0.75, 0.1, 0.1), tension / 100.0)
-	return _build_stat_value_cell("%.0f%%" % tension, color)
+	return _build_stat_value_cell("%.0f%%" % tension, UiStyle.PARCHMENT_TEXT_COLOR)
 
 
 ## 疲憊值只在雙方真的交戰中才有非 0 值(見 NationRelationStore.get_war_exhaustion()),
@@ -303,8 +297,7 @@ func _build_war_tension_cell(nation_a: int, nation_b: int) -> Control:
 ## 下直接回傳 0、顯示「0%」,不特別另外顯示「-」(語意上「沒在打就不會累」)。
 func _build_war_exhaustion_cell(selected_id: int, other_id: int) -> Control:
 	var exhaustion := NationRelation.get_exhaustion(selected_id, other_id, other_id)
-	var color := Color.WHITE.lerp(Color(0.75, 0.1, 0.1), exhaustion / 100.0)
-	return _build_stat_value_cell("%.0f%%" % exhaustion, color)
+	return _build_stat_value_cell("%.0f%%" % exhaustion, UiStyle.PARCHMENT_TEXT_COLOR)
 
 
 func _build_table_blank_cell(min_width: float) -> Control:

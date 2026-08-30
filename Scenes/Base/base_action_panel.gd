@@ -53,13 +53,6 @@ var _build_error: bool = false
 ## 提示改在 TechTreePanel 自己的畫面裡處理,不需要這裡的旗標。
 var _altar_error: bool = false
 
-## 城鎮中心:聯姻結果單次顯示,顯示完即消耗掉,同 _build_error/_upgrade_error 慣例。實際
-## 選聯姻角色/寄信國家兩步驟已經整個交給 Scenes/Marriage/stronghold_marriage_panel.gd 的
-## StrongholdMarriagePanel(見 _open_stronghold_marriage_panel()),候選人盲選跟後續
-## Dialogue 演出則在 System/event/base/base_marriage_event.gd,這裡不再需要自己存流程
-## 中途狀態。
-var _marriage_result_text: String = ""
-
 
 func _init(p_building: Building) -> void:
 	_building = p_building
@@ -333,11 +326,6 @@ func _build_residential_section() -> void:
 ## StrongholdMarriagePanel,這裡不再自己存流程中途狀態。
 func _build_stronghold_section() -> void:
 	_build_leader_change_section()
-
-	if not _marriage_result_text.is_empty():
-		_add_label(_marriage_result_text)
-		_marriage_result_text = ""
-
 	add_child(_build_marriage_button())
 
 

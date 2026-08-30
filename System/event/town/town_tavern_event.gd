@@ -35,12 +35,14 @@ extends LocationEvent
 ## 城鎮基礎評級 +1(封頂 SSS,見 TavernStore._special_recruit_rank());基礎評級已經是 SSS
 ## 時沒有更高評級可探,按鈕直接 initial_disabled。
 ##
-## 招募(一般清單/特殊推薦)確定成功、或告白流程確定結婚成功時,都會立刻跳出
-## CharacterPanel.open_for_character() 讓玩家直接看到剛到手這位角色的完整資料——比照
-## 「玩家剛拿到一個新角色,理應馬上能看清楚」的體驗,不用玩家自己再手動去角色列表點開。
+## 招募(一般清單/特殊推薦)確定成功時會立刻跳出 CharacterPanel.open_for_character()
+## 讓玩家直接看到剛到手這位角色的完整資料——比照「玩家剛拿到一個新角色,理應馬上能看
+## 清楚」的體驗,不用玩家自己再手動去角色列表點開。告白流程確定成功則不是立刻結婚,
+## 只呼叫 WeddingQueueStore.queue_wedding() 記錄下來,真正 marry()/婚禮 Dialogue/
+## CharacterPanel/結婚 MESSAGE 都要等 30 天後才觸發(見 System/marriage/wedding_event.gd)。
 ##
 ## 玩家在告白面板(MarriageProposalPanel,見 Scenes/Marriage/marriage_proposal_panel.gd)
-## 按下「接受」/「婉拒」後的結果,以及最終要不要寫入 Character.mate,都由這個事件的
+## 按下「接受」/「婉拒」後的結果,以及最終要不要排進婚禮倒數,都由這個事件的
 ## _on_proposal_result() 收尾決定,面板本身不寫任何角色資料。
 ##
 ## 「接受」後還有一輪成功率判定(見 MarriageRule.roll_acceptance()):玩家在告白面板
@@ -178,29 +180,22 @@ func _on_proposal_result(accepted: bool, self_character: Character, target_chara
 ## 又沒骰中時,就是真的告白失敗,不寫入 mate,劇情文案見 _build_rejected_reaction()。
 func _resolve_acceptance(picked: Character, stranger_character: Character) -> void:
 	if MarriageRule.roll_acceptance(picked, courted):
-		picked.marry(stranger_character)
-		# stranger_character 是 CharacterController.get_random_character() 生成的一次性
-		# NPC,結婚前不屬於玩家任何角色池;成親後變成配偶,年紀要跟著世界時間增長
-		# (見 WorldTimeEventLibrary._age_up()),但配偶依設計不進 CharacterRosterStore
-		# (不可操控/上場),所以只註冊進 AllCharacterStore。
-		AllCharacterStore.register(stranger_character)
-		var marriage_text := "%s 與 %s 結婚了。" % [picked.title_full_name, stranger_character.title_full_name]
-		NewsController.post(marriage_text, GameEnums.NewsCategory.MAJOR)
-		MessageBar.show_message(marriage_text)
-		MoraleStore.record_event("角色結婚", MoraleStore.MARRIAGE_DELTA)
 		var reaction := _build_accepted_reaction(picked, stranger_character) if picked == courted else _build_change_but_accept_reaction(picked, stranger_character)
-		_play_marriage_reaction(reaction, stranger_character)
+		_play_marriage_reaction(reaction, picked, stranger_character)
 	else:
 		_goto_bartender_after(_build_rejected_reaction(picked, stranger_character))
 
 
-## 成親反應對話播完(玩家點過去)當下就跳出新配偶的 CharacterPanel,不是等接續的酒館
-## 老闆招呼詞也播完才顯示——這裡先單獨播 reaction 這段對話(不跟酒館老闆的招呼詞合併成
-## 同一次播放),播完立刻彈 CharacterPanel,再接著呼叫 _goto_bartender_after() 用空
-## Dialogue 續播老闆招呼詞、走原本「播完接開招募面板」的路。
-func _play_marriage_reaction(reaction: Dialogue, stranger_character: Character) -> void:
+## 成親反應對話播完(玩家點過去)接著呼叫這裡:不再立刻 marry()/播婚禮 Dialogue,改呼叫
+## WeddingQueueStore.queue_wedding() 記錄下來,DELAY_DAYS 天後才真正結婚(見
+## System/marriage/wedding_event.gd)——stranger_character 這位新配偶 NPC 在
+## queue_wedding() 當下就會被註冊進 AllCharacterStore(見該檔案),不用這裡另外呼叫。
+## 接著直接續播老闆招呼詞(_goto_bartender_after() 用空 Dialogue),走原本「播完接開招募
+## 面板」的路。
+func _play_marriage_reaction(reaction: Dialogue, picked: Character, stranger_character: Character) -> void:
 	goto_dialogue(reaction, "", func() -> void:
-		CharacterPanel.open_for_character(stranger_character)
+		var marriage_text := "%s 與 %s 結婚了。" % [picked.name, stranger_character.name]
+		WeddingQueueStore.queue_wedding(picked, stranger_character, marriage_text)
 		_goto_bartender_after(Dialogue.new([], [], BACKGROUND_PATH))
 	)
 

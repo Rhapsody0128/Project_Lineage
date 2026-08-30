@@ -20,6 +20,7 @@ extends Control
 @onready var dismiss_button: Button = $MainRow/DetailColumn/ActionButtonRow/DismissButton
 @onready var view_family_tree_button: Button = $MainRow/DetailColumn/ActionButtonRow/ViewFamilyTreeButton
 @onready var roster_panel: PanelContainer = $MainRow/RosterPanel
+@onready var roster_title: Label = $MainRow/RosterPanel/RosterVBox/RosterTitle
 @onready var roster_scroll_container: ScrollContainer = $MainRow/RosterPanel/RosterVBox/ScrollContainer
 @onready var sort_filter_bar: CharacterSortFilterBar = $MainRow/RosterPanel/RosterVBox/SortFilterBar
 @onready var roster_grid: HFlowContainer = $MainRow/RosterPanel/RosterVBox/ScrollContainer/RosterGrid
@@ -124,6 +125,7 @@ func _on_view_family_tree_pressed() -> void:
 ## 卡片頂替——傳入解雇前那個角色在清單裡的排序位置,讓選取自然滑到「下一位」(遞補上來
 ## 頂替原本位置的角色),而不是每次都跳回清單第一張。
 func _refresh_grid(fallback_index: int = 0) -> void:
+	_update_roster_title()
 	var previously_selected_character: Character = _selected_card.character if _selected_card != null else null
 	for child in roster_grid.get_children():
 		roster_grid.remove_child(child)
@@ -145,6 +147,15 @@ func _refresh_grid(fallback_index: int = 0) -> void:
 	elif _selected_card == null:
 		_detail_view.set_character(null)
 		_update_action_buttons()
+
+
+## 標題附上目前角色數/上限,跟 base_action_panel.gd 住宅區「目前角色數」同一組數字
+## (AllCharacterStore.all_characteres.size() / BaseBuildingProgressStore.
+## get_character_capacity())——上限是全角色池的容量,不是這裡篩選後的顯示數量。
+func _update_roster_title() -> void:
+	var current := AllCharacterStore.all_characteres.size()
+	var capacity := BaseBuildingProgressStore.get_character_capacity()
+	roster_title.text = "全部角色 (%d/%d)" % [current, capacity]
 
 
 func _on_character_selected(character: Character) -> void:

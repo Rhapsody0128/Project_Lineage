@@ -156,9 +156,25 @@ func _build_title_action_row() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	row.add_child(_build_active_toggle_button())
+	row.add_child(_build_auto_dispatch_button())
 	if construction_button != null:
 		row.add_child(construction_button)
 	return row
+
+
+## 依 AutoDispatchRule 規則,把目前完全閒置的人力(排除小隊成員/派駐中/歷練中,見該檔案
+## 開頭註解)依這棟建築的素質需求由高到低塞滿空缺工作格,填完立即 _rebuild_body() 讓工作
+## 角色格/目前效率數字同步刷新——跟點空格開 WorkerDispatchPanel 手動指派是同一份
+## BaseDispatchStore.dispatch(),只是候選人跟目標格由規則自動配對。
+func _build_auto_dispatch_button() -> Button:
+	var button := Button.new()
+	button.text = "自動派遣"
+	_style_button(button)
+	button.pressed.connect(func() -> void:
+		AutoDispatchRule.auto_dispatch(_building)
+		_rebuild_body()
+	)
+	return button
 
 
 ## 關閉後 BaseDispatchStore 月結算整棟跳過(不產出、不消耗、角色也不會拿到派遣經驗,
@@ -768,20 +784,35 @@ func _build_resource_icon(resource_type: int, size: Vector2 = Vector2(26, 26)) -
 
 
 ## 商隊站/黑市:被動生產(AGI→金錢/贓物)維持不變,這裡是疊加上去的「每月自動兌換」——
-## 玩家設定方向(買入/賣出)/資源/拉桿選的資材數量(1~200,買賣共用同一把尺,不像舊版
-## 拉桿選抽象「單位數」再乘上各資源不同的 buy_output,導致不同資源封頂能買到的量不一致,
-## 見 BaseExchangeStore 開頭註解),每月結算時自動執行一次;來源資源不夠時整個月不換
-## (不會部分兌換、不會扣成負數),目標資源倉庫快滿時改成只買/賣到剛好塞滿、花費跟著
-## 等比例減少(不會整月不換,也不會超買後被倉庫上限吃掉浪費的部分)。拉桿拖曳中只更新
-## 預覽跟即時寫回 BaseExchangeStore,不整包 _rebuild_body(),避免拖曳被打斷。
+## 每棟建築可能同時開好幾條「貿易路線」(見 System/base/base_exchange.gd route_count(),
+## 「市集通商」科技線加成,基礎 1 條、最多再 +4 條),路線之間各自獨立、可同時交易不同
+## 資材,不共用額度;每條路線的交易量上限不是寫死的,是「目前派駐人數 × 20」(見
+## BaseExchange.route_capacity()),沒派人就是 0。每月結算時自動執行一次;來源資源不夠時
+## 整個月不換(不會部分兌換、不會扣成負數),目標資源倉庫快滿時改成只買/賣到剛好塞滿、
+## 花費跟著等比例減少(不會整月不換,也不會超買後被倉庫上限吃掉浪費的部分)。拉桿拖曳中
+## 只更新預覽跟即時寫回 BaseExchangeStore,不整包 _rebuild_body(),避免拖曳被打斷。
 func _build_exchange_section() -> void:
 	var building_type := _building.type
+	var worker_count := BaseDispatchStore.get_dispatched_characters(building_type).size()
+	var capacity := BaseExchange.route_capacity(worker_count)
+	var route_count := BaseExchange.route_count()
+
+	_add_label("每月自動兌換（來源資源不夠時該月不換；目標倉庫快滿時只買/賣到剛好塞滿，花費等比例減少）：")
+	_add_label("目前派駐 %d 人，每條貿易路線交易量上限 %d，共 %d 條路線同時生效（見「市集通商」科技線）：" % [worker_count, capacity, route_count])
+
+	for route_index in range(route_count):
+		if route_index > 0:
+			add_child(HSeparator.new())
+		_build_exchange_route_row(building_type, route_index, capacity)
+
+
+func _build_exchange_route_row(building_type: GameEnums.BuildingType, route_index: int, capacity: int) -> void:
 	var currency := BaseExchange.currency_for(building_type)
 	var currency_icon := load(GameEnums.resource_type_icon_path(currency)) as Texture2D
 	var options := BaseExchange.options_for(building_type)
-	var order := BaseExchangeStore.get_order(building_type)
+	var order := BaseExchangeStore.get_order(building_type, route_index)
 
-	_add_label("每月自動兌換（來源資源不夠時該月不換；目標倉庫快滿時只買/賣到剛好塞滿，花費等比例減少）：")
+	_add_label("路線 %d：" % (route_index + 1))
 
 	var direction_group := ButtonGroup.new()
 	var direction_row := HBoxContainer.new()
@@ -834,7 +865,7 @@ func _build_exchange_section() -> void:
 
 	var slider := HSlider.new()
 	slider.min_value = 0
-	slider.max_value = 200
+	slider.max_value = capacity
 	slider.step = 1
 	slider.value = order.get("units", 0)
 	slider.custom_minimum_size = Vector2(320, 0)
@@ -857,10 +888,10 @@ func _build_exchange_section() -> void:
 		var resource := resource_dropdown.get_selected_id()
 		var units := int(slider.value)
 		units_label.text = "x%d" % units
-		BaseExchangeStore.set_order(building_type, is_buy, resource, units)
+		BaseExchangeStore.set_order(building_type, route_index, is_buy, resource, units)
 		for child in preview_row.get_children():
 			child.queue_free()
-		var result := BaseExchangeStore.preview(building_type)
+		var result := BaseExchangeStore.preview(building_type, route_index)
 		if result.source_amount <= 0:
 			preview_row.add_child(_build_preview_text("尚未設定兌換數量"))
 			return

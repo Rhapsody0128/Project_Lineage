@@ -42,7 +42,7 @@ enum TechEffectType {
 	RECIPE_EXTRA_OUTPUT_ADD,        ## 配方革新:WorkshopRecipe 換算多產出固定量
 	CHARACTER_EFFICIENCY_BASE_ADD,  ## 匠人熟練:BaseProduction.character_efficiency() 基準加成
 	MAX_WORKERS_ADD,                ## 廣納賢才:BaseBuildingProgressStore.get_max_workers() 加成(含科學研究所)
-	MARKET_MARKUP_SUB,              ## 市集通商:Market.MARKUP_BY_RANK 整表加值(節點存負數)
+	EXCHANGE_ROUTE_COUNT_ADD,       ## 市集通商:BaseExchange 商隊站/黑市可同時開的貿易路線數量加成
 	HP_REGEN_DAILY_ADD,             ## 醫術精進:每日 HP 回復基準加成
 	MARRIAGE_QUOTA_ADD,             ## 婚姻禮制:MarriageQuotaRule 名額固定加值
 	MARRIAGE_SUCCESS_CHANCE_ADD,    ## 婚姻禮制:告白/聯姻成功率加成(百分點,同時套用兩個機制)
@@ -236,34 +236,35 @@ const MAP_OBJECT_TYPE_LABELS: Array[String] = ["城鎮", "根據地", "城堡"]
 
 ## 根據地建築類型,見 System/base/building/building_library.gd 與
 ## 遊戲企劃設定總整理.md 六十八節。前六種(城鎮中心~鐵匠鋪)是非生產類建築,功能尚未
-## 實作;後十二種是生產類建築,每種對應六大素質之一。其中 6 種(採石場/採礦場/黑市/
-## 抄書院/科學研究所/禁忌祭壇)月結算會額外消耗固定資源才能產出(見 Building.fixed_recipe),
-## 工匠坊則是玩家自選三種配方之一(見 WorkshopRecipeLibrary),其餘 5 種不消耗任何資源。
+## 實作;後十二種是生產類建築,每種對應六大素質之一,依產出難易度(Building.base_yield)
+## 由易到難(多到少)排列——BuildingLibrary.get_all() 的陣列順序、
+## System/base/auto_dispatch_rule.gd 的「全部派遣」優先序都沿用這個順序,不另外維護第二份
+## 排序。其中 6 種(採石場/採礦場/黑市/抄書院/科學研究所/禁忌祭壇)月結算會額外消耗固定
+## 資源才能產出(見 Building.fixed_recipe),工匠坊則是玩家自選三種配方之一(見
+## WorkshopRecipeLibrary),其餘 5 種不消耗任何資源。
 enum BuildingType {
 	STRONGHOLD, RESIDENTIAL, CLINIC, WAREHOUSE, BARRACKS, FORGE,
-	LUMBER_MILL, QUARRY, FARM, MINE, CARAVAN, BLACK_MARKET,
-	HUNTING_GROUND, WORKSHOP, SCRIPTORIUM, RESEARCH_INSTITUTE,
-	ALTAR, FORBIDDEN_ALTAR,
+	LUMBER_MILL, HUNTING_GROUND, CARAVAN, FARM, SCRIPTORIUM, ALTAR,
+	QUARRY, MINE, BLACK_MARKET, WORKSHOP, RESEARCH_INSTITUTE, FORBIDDEN_ALTAR,
 }
 
 ## 根據地建築 UI 顯示用中文標籤,順序對應 BuildingType enum
 const BUILDING_TYPE_LABELS: Array[String] = [
 	"城鎮中心", "住宅區", "醫療所", "倉庫", "兵營", "鐵匠鋪",
-	"伐木場", "採石場", "農田", "採礦場", "商隊站", "黑市",
-	"狩獵場", "工匠坊", "抄書院", "科學研究所",
-	"祭壇", "禁忌祭壇",
+	"伐木場", "狩獵場", "商隊站", "農田", "抄書院", "祭壇",
+	"採石場", "採礦場", "黑市", "工匠坊", "科學研究所", "禁忌祭壇",
 ]
 
 ## 根據地資源類型,見 System/base/base_production.gd / Scripts/Autoload/base_resource_store.gd
 enum ResourceType {
-	WOOD, STONE, FOOD, ORE, GOLD, CONTRABAND, FUR, TOOL,
-	BOOK, RESEARCH, FAITH, CURSE,
+	WOOD, FUR, GOLD, FOOD, BOOK, FAITH,
+	STONE, ORE, CONTRABAND, TOOL, RESEARCH, CURSE,
 }
 
 ## 根據地資源 UI 顯示用中文標籤,順序對應 ResourceType enum
 const RESOURCE_STRING_LABELS: Array[String] = [
-	"木材", "石材", "糧食", "鐵礦", "金錢", "贓物", "毛皮", "工具",
-	"書本", "科研", "信仰", "詛咒",
+	"木材", "毛皮", "金錢", "糧食", "書本", "信仰",
+	"石材", "鐵礦", "贓物", "工具", "科研", "詛咒",
 ]
 
 ## 血統國家 UI 顯示用中文標籤,順序對應 BloodlineNation enum

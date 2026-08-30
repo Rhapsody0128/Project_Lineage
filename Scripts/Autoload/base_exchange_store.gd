@@ -3,10 +3,15 @@ extends Node
 # =========================================================
 # 商隊站/黑市「每月自動兌換」的目前設定(autoload,見 project.godot)。跟工匠坊配方
 # 選擇同一種模式:玩家設定一筆方向(買入/賣出)/資源/數量(拉桿選的「資材數量」,買入時
-# 是想買到的資材量、賣出時是想賣掉的資材量,兩個方向都是同一把上限 1~200 的尺,不像舊版
-# 拉桿選的是抽象「單位數」再乘上每種資源不同的 buy_output,導致木材封頂只能買到 200、
-# 書本卻能買到 1500 這種不一致)——月結算時自動執行一次,資源不夠就整個月不換(不會部分
-# 兌換、不會扣成負數),沒有另外的每月額度上限,純粹看玩家有多少庫存。
+# 是想買到的資材量、賣出時是想賣掉的資材量)——月結算時自動執行一次,資源不夠就整個月不換
+# (不會部分兌換、不會扣成負數)。
+#
+# 每棟建築可能同時開好幾條「貿易路線」(見 System/base/base_exchange.gd 的
+# route_count()/route_capacity(),「市集通商」科技線加成):每條路線各自一筆獨立訂單、
+# 互不共用額度,可以同時交易不同資材。單條路線的交易量上限不是寫死的,是「該建築目前派駐
+# 人數 × TRADE_UNITS_PER_ROUTE_WORKER」(BaseExchange.route_capacity()),沒派人就是 0——
+# _resolve() 換算價格前一律先夾這個上限,UI 滑桿上限只是輔助顯示,玩家調完滑桿後召回角色
+# 也不會讓已存的訂單繞過上限。
 #
 # 單價由 BaseExchange.buy_unit_price()/sell_unit_price() 依建築等級算(隨等級朝「公平
 # 價值比」收斂但保證不會跨過,見該檔案開頭註解),這裡只負責「數量 × 單價」換算跟月結算
@@ -21,17 +26,25 @@ extends Node
 
 signal changed
 
-## building_type -> {"is_buy": bool, "resource": int, "units": int}——"units" 是拉桿選的
-## 資材數量(見上方檔頭註解),買入時代表想買到的資材量、賣出時代表想賣掉的資材量。
+## building_type -> Array[{"is_buy": bool, "resource": int, "units": int}]——陣列索引即
+## 路線編號(route_index),"units" 是拉桿選的資材數量(見上方檔頭註解),買入時代表想買到
+## 的資材量、賣出時代表想賣掉的資材量。
 var _orders: Dictionary = {}
 
 
-func get_order(building_type: GameEnums.BuildingType) -> Dictionary:
-	return _orders.get(building_type, {"is_buy": true, "resource": -1, "units": 0})
+func get_order(building_type: GameEnums.BuildingType, route_index: int) -> Dictionary:
+	var routes: Array = _orders.get(building_type, [])
+	if route_index < routes.size():
+		return routes[route_index]
+	return {"is_buy": true, "resource": -1, "units": 0}
 
 
-func set_order(building_type: GameEnums.BuildingType, is_buy: bool, resource: int, units: int) -> void:
-	_orders[building_type] = {"is_buy": is_buy, "resource": resource, "units": maxi(units, 0)}
+func set_order(building_type: GameEnums.BuildingType, route_index: int, is_buy: bool, resource: int, units: int) -> void:
+	var routes: Array = _orders.get(building_type, [])
+	while routes.size() <= route_index:
+		routes.append({"is_buy": true, "resource": -1, "units": 0})
+	routes[route_index] = {"is_buy": is_buy, "resource": resource, "units": maxi(units, 0)}
+	_orders[building_type] = routes
 	changed.emit()
 
 
@@ -39,14 +52,14 @@ func set_order(building_type: GameEnums.BuildingType, is_buy: bool, resource: in
 ## 執行的算法完全一致(共用 _resolve())。目標資源倉庫剩多少空間這裡改讀即時庫存(不像
 ## settle() 要共用固定快照)——這只是玩家調拉桿當下的即時參考,不需要跟月結算那樣保證
 ## apply=true/false 兩條路徑逐項比對得起來。
-func preview(building_type: GameEnums.BuildingType) -> Dictionary:
-	var order := get_order(building_type)
+func preview(building_type: GameEnums.BuildingType, route_index: int) -> Dictionary:
+	var order := get_order(building_type, route_index)
 	if order.get("units", 0) <= 0 or order.get("resource", -1) == -1:
-		return _resolve(building_type)
+		return _resolve(building_type, route_index)
 	var target_resource: int = (
 		order.get("resource") if order.get("is_buy", true) else BaseExchange.currency_for(building_type)
 	)
-	return _resolve(building_type, BaseResourceStore.remaining_capacity(target_resource))
+	return _resolve(building_type, route_index, BaseResourceStore.remaining_capacity(target_resource))
 
 
 ## `target_capacity` 是目標資源「還放得下多少」,-1 代表無上限(比照
@@ -55,10 +68,15 @@ func preview(building_type: GameEnums.BuildingType) -> Dictionary:
 ## 從「目標貨幣還放得下多少」反推最多能賣幾個資材,兩者都不是先算好全額再事後打折,砍下來
 ## 的部分不會多花錢/多耗資材——比照 WorkshopProduction.resolve() 原料不足時等比例打折
 ## 產出的精神。
-func _resolve(building_type: GameEnums.BuildingType, target_capacity: int = -1) -> Dictionary:
+##
+## `amount` 換算價格前先夾一次「這條路線的交易量上限」(該建築目前派駐人數 × 20,見
+## System/base/base_exchange.gd route_capacity())——這是真正的伺服器端防呆,UI 滑桿上限
+## 只是輔助顯示,玩家調完滑桿後召回角色也不會讓已存的訂單繞過上限。
+func _resolve(building_type: GameEnums.BuildingType, route_index: int, target_capacity: int = -1) -> Dictionary:
 	var empty := {"source_resource": -1, "source_amount": 0, "target_resource": -1, "target_amount": 0}
-	var order := get_order(building_type)
-	var amount: int = order.get("units", 0)
+	var order := get_order(building_type, route_index)
+	var worker_count := BaseDispatchStore.get_dispatched_characters(building_type).size()
+	var amount: int = mini(order.get("units", 0), BaseExchange.route_capacity(worker_count))
 	var resource: int = order.get("resource", -1)
 	if amount <= 0 or resource == -1:
 		return empty
@@ -122,32 +140,40 @@ func load_save_data(data: Dictionary) -> void:
 ## 目標資源快滿倉時不再像舊版整筆整月不換(玩家花了對應整筆的錢,超過倉庫上限的部分卻被
 ## BaseResourceStore.add() 直接捨棄、白白浪費)——改成只買/賣到剛好塞滿倉庫的量,來源
 ## 花費/資材跟著等比例減少,見 _resolve() 的 target_capacity 參數。
+##
+## 建築暫停(BaseBuildingProgressStore.is_active() == false)時整棟跳過,不兌換——跟
+## BaseDispatchStore.settle() 的既有慣例一致(玩家用 ActionPanel 標題列開關鈕關掉生產,
+## 貿易路線也要一起停,不只是被動生產停)。
 func settle(apply: bool, available: Dictionary, remaining_capacity: Dictionary) -> Dictionary:
 	var delta: Dictionary = {}
 	for building_type in _orders.keys():
 		if not BaseBuildingProgressStore.is_unlocked(building_type):
 			continue
-		var order := get_order(building_type)
-		if order.get("units", 0) <= 0 or order.get("resource", -1) == -1:
+		if not BaseBuildingProgressStore.is_active(building_type):
 			continue
-		var target_resource: int = (
-			order.get("resource") if order.get("is_buy", true) else BaseExchange.currency_for(building_type)
-		)
-		if not remaining_capacity.has(target_resource):
-			remaining_capacity[target_resource] = BaseResourceStore.remaining_capacity(target_resource)
-		var result := _resolve(building_type, remaining_capacity[target_resource])
-		if result.source_amount <= 0:
-			continue
-		if not available.has(result.source_resource):
-			available[result.source_resource] = BaseResourceStore.get_amount(result.source_resource)
-		if available[result.source_resource] < result.source_amount:
-			continue
-		available[result.source_resource] -= result.source_amount
-		if remaining_capacity[result.target_resource] >= 0:
-			remaining_capacity[result.target_resource] -= result.target_amount
-		delta[result.source_resource] = delta.get(result.source_resource, 0) - result.source_amount
-		delta[result.target_resource] = delta.get(result.target_resource, 0) + result.target_amount
-		if apply:
-			BaseResourceStore.spend({result.source_resource: result.source_amount})
-			BaseResourceStore.add(result.target_resource, result.target_amount)
+		var routes: Array = _orders[building_type]
+		for route_index in range(routes.size()):
+			var order: Dictionary = routes[route_index]
+			if order.get("units", 0) <= 0 or order.get("resource", -1) == -1:
+				continue
+			var target_resource: int = (
+				order.get("resource") if order.get("is_buy", true) else BaseExchange.currency_for(building_type)
+			)
+			if not remaining_capacity.has(target_resource):
+				remaining_capacity[target_resource] = BaseResourceStore.remaining_capacity(target_resource)
+			var result := _resolve(building_type, route_index, remaining_capacity[target_resource])
+			if result.source_amount <= 0:
+				continue
+			if not available.has(result.source_resource):
+				available[result.source_resource] = BaseResourceStore.get_amount(result.source_resource)
+			if available[result.source_resource] < result.source_amount:
+				continue
+			available[result.source_resource] -= result.source_amount
+			if remaining_capacity[result.target_resource] >= 0:
+				remaining_capacity[result.target_resource] -= result.target_amount
+			delta[result.source_resource] = delta.get(result.source_resource, 0) - result.source_amount
+			delta[result.target_resource] = delta.get(result.target_resource, 0) + result.target_amount
+			if apply:
+				BaseResourceStore.spend({result.source_resource: result.source_amount})
+				BaseResourceStore.add(result.target_resource, result.target_amount)
 	return delta

@@ -20,7 +20,7 @@ extends RefCounted
 ## ——同一棟建築內買了馬上賣一定虧 50%,跨兩棟建築組成的迴圈(例如金錢→贓物→金錢)也
 ## 因為每一步都是「买贵卖贱」而必然虧損。
 ##
-## 價值點數對照(K=60 ÷ base_yield,四捨五入):木材5、糧食5、毛皮7、書本8、信仰9、
+## 價值點數對照(K=60 ÷ base_yield,四捨五入):木材5、毛皮5、糧食7、書本8、信仰9、
 ## 石材10、鐵礦12、金錢6、工藝品20×2=40(額外拉高)、科研30、贓物15、詛咒60。
 ##
 ## 建築等級加成:見下方 LEVEL_FAIRNESS_SHRINK 開頭註解——不是直接灌到拿到的數量上,
@@ -66,9 +66,9 @@ static func caravan_options() -> Array[ExchangeOption]:
 	return [
 		ExchangeOption.new(GameEnums.ResourceType.BOOK, 8, 5, 5, 4),
 		ExchangeOption.new(GameEnums.ResourceType.WOOD, 1, 1, 2, 1),
-		ExchangeOption.new(GameEnums.ResourceType.FOOD, 1, 1, 2, 1),
+		ExchangeOption.new(GameEnums.ResourceType.FUR, 1, 1, 2, 1),
 		ExchangeOption.new(GameEnums.ResourceType.FAITH, 9, 5, 10, 9),
-		ExchangeOption.new(GameEnums.ResourceType.FUR, 7, 5, 10, 7),
+		ExchangeOption.new(GameEnums.ResourceType.FOOD, 7, 5, 10, 7),
 		ExchangeOption.new(GameEnums.ResourceType.CONTRABAND, 3, 1, 2, 3),
 	]
 
@@ -100,6 +100,23 @@ static func find_option(building_type: GameEnums.BuildingType, resource: int) ->
 ## 商隊站的貨幣是金錢,黑市的貨幣是贓物——即該建築自己的被動產出資源(Building.produces)。
 static func currency_for(building_type: GameEnums.BuildingType) -> int:
 	return GameEnums.ResourceType.GOLD if building_type == GameEnums.BuildingType.CARAVAN else GameEnums.ResourceType.CONTRABAND
+
+
+## 「每月自動兌換」貿易路線規則(見 Scripts/Autoload/base_exchange_store.gd):商隊站/
+## 黑市預設各有 1 條路線,「市集通商」科技線(TechEffectType.EXCHANGE_ROUTE_COUNT_ADD)
+## 每階再開一條(最多 4 階,頂點共 5 條)——兩棟建築共用同一份科技加成,不分開算。路線
+## 之間各自獨立、互不共用額度,每條路線的交易量上限只看該建築「目前」派駐人數
+## (BaseDispatchStore.get_dispatched_characters()),不是建築等級或全域配額。
+const TRADE_UNITS_PER_ROUTE_WORKER := 20
+const BASE_ROUTE_COUNT := 1
+
+
+static func route_count() -> int:
+	return BASE_ROUTE_COUNT + int(TechStore.get_bonus(GameEnums.TechEffectType.EXCHANGE_ROUTE_COUNT_ADD))
+
+
+static func route_capacity(worker_count: int) -> int:
+	return worker_count * TRADE_UNITS_PER_ROUTE_WORKER
 
 
 ## 「買貴賣賤」(Lv1 賣出永遠是 Lv1 買入的一半價值)保證同一棟建築內來回兌換必虧 50%;

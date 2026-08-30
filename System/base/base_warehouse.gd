@@ -6,14 +6,14 @@ extends RefCounted
 ## BaseResourceStore.add() 呼叫 get_capacity() 幫產出的資源封頂,倉庫只管儲存上限,
 ## 不影響生產/效率/交易。
 
-## T1 大宗(木材/糧食)/T2 中量(毛皮/書本/信仰)/T3 少量(石材/鐵礦/贓物)/
+## T1 大宗(木材/毛皮)/T2 中量(糧食/書本/信仰)/T3 少量(石材/鐵礦/贓物)/
 ## T4 稀有(工具/科研/詛咒)——分級依據是各資源的月產量基準(見
 ## System/base/building/building_library.gd 12 棟生產建築的 base_yield)。金錢
 ## (GOLD)不在這張表裡,見 get_capacity() 開頭的特殊處理。
 const TIER_BASE: Dictionary = {
 	GameEnums.ResourceType.WOOD: 200,
-	GameEnums.ResourceType.FOOD: 200,
-	GameEnums.ResourceType.FUR: 150,
+	GameEnums.ResourceType.FUR: 200,
+	GameEnums.ResourceType.FOOD: 150,
 	GameEnums.ResourceType.BOOK: 150,
 	GameEnums.ResourceType.FAITH: 150,
 	GameEnums.ResourceType.STONE: 120,

@@ -187,14 +187,14 @@ static func get_domestic() -> Array[TechNode]:
 	]))
 
 	nodes.append_array(_thread(branch, "廣納賢才", "BaseBuildingProgressStore.get_max_workers()", "low", [
-		Entry.new(GameEnums.RankType.S, "廣納賢才", "提升生產建築派駐人數上限。", "全 12 棟生產建築(含科學研究所)可派駐人數上限額外 +1。", GameEnums.TechEffectType.MAX_WORKERS_ADD, 1.0),
-		Entry.new(GameEnums.RankType.SSS, "任賢舉能", "上限再提升,全鏈頂點。", "上限再 +1(累計 +2)。", GameEnums.TechEffectType.MAX_WORKERS_ADD, 1.0),
+		Entry.new(GameEnums.RankType.SSS, "廣納賢才", "提升生產建築派駐人數上限。", "全 12 棟生產建築(含科學研究所)可派駐人數上限額外 +1。", GameEnums.TechEffectType.MAX_WORKERS_ADD, 1.0),
 	]))
 
-	nodes.append_array(_thread(branch, "市集通商", "Market.MARKUP_BY_RANK", "low", [
-		Entry.new(GameEnums.RankType.D, "市集通商", "降低城鎮市集加價。", "城鎮市集全資源加價倍率各 -0.05。", GameEnums.TechEffectType.MARKET_MARKUP_SUB, 0.05),
-		Entry.new(GameEnums.RankType.B, "薄利多銷", "加價再降低。", "加價倍率再各 -0.05(累計 -0.10)。", GameEnums.TechEffectType.MARKET_MARKUP_SUB, 0.05),
-		Entry.new(GameEnums.RankType.SSS, "貨暢其流", "加價再降低,全鏈頂點。", "加價倍率再各 -0.05(累計 -0.15)。", GameEnums.TechEffectType.MARKET_MARKUP_SUB, 0.05),
+	nodes.append_array(_thread(branch, "市集通商", "BaseExchange.route_count()/route_capacity()", "mid", [
+		Entry.new(GameEnums.RankType.D, "市集通商", "商隊站與黑市各自新增一條自動兌換路線。", "「每月自動兌換」路線數量 +1(基礎 1 條→2 條),新路線可與既有路線同時交易不同資材,互不共用額度。", GameEnums.TechEffectType.EXCHANGE_ROUTE_COUNT_ADD, 1.0),
+		Entry.new(GameEnums.RankType.B, "八方商道", "貿易路線再增開一條。", "路線數量再 +1(累計 3 條)。", GameEnums.TechEffectType.EXCHANGE_ROUTE_COUNT_ADD, 1.0),
+		Entry.new(GameEnums.RankType.S, "萬商雲集", "貿易路線再增開一條。", "路線數量再 +1(累計 4 條)。", GameEnums.TechEffectType.EXCHANGE_ROUTE_COUNT_ADD, 1.0),
+		Entry.new(GameEnums.RankType.SSS, "貨暢其流", "貿易路線增至上限,全鏈頂點。", "路線數量再 +1(累計 5 條:基礎 1 條 + 科技 4 條)。", GameEnums.TechEffectType.EXCHANGE_ROUTE_COUNT_ADD, 1.0),
 	]))
 
 	return nodes

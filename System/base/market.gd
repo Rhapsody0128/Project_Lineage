@@ -15,12 +15,8 @@ extends RefCounted
 const MARKUP_BY_RANK: Array[float] = [2.20, 2.10, 2.00, 1.90, 1.80, 1.70, 1.60, 1.55, 1.50]
 
 
-## 「市集通商」科技線(TechEffectType.MARKET_MARKUP_SUB)在查表值上扣減,下限 clamp 在
-## 1.0(公平價值比本身,不會讓市集比貿易划算,見類別開頭註解的設計初衷)。
 static func markup_for_rank(favor_rank: int) -> float:
-	var base := MARKUP_BY_RANK[clampi(favor_rank, 0, MARKUP_BY_RANK.size() - 1)]
-	var reduction := TechStore.get_bonus(GameEnums.TechEffectType.MARKET_MARKUP_SUB)
-	return maxf(base - reduction, 1.0)
+	return MARKUP_BY_RANK[clampi(favor_rank, 0, MARKUP_BY_RANK.size() - 1)]
 
 
 class MarketOption:

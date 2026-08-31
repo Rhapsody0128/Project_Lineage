@@ -265,6 +265,27 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 - **戰術格開發**:`BarracksPanel` 按鈕 handler 就地建一個只顯示「開發中」的最小 content,
   不另開檔案,之後有詳細設計再回來擴充/搬成獨立檔案。
 
+## 節奏小遊戲(System/rhythm + Scenes/RhythmGame)
+
+`RhythmChart`(`hint_beats`/`correct_beats` 兩條「相對音樂開頭秒數」時間戳陣列)+
+`RhythmChartStore`(每個生產建築一份 JSON,存在 `System/rhythm/charts/<BuildingType 大寫
+拼法>.json`,同一檔內再分 `regular`(常規版)/`variation`(變奏版)兩個完整子譜,見
+`RhythmChartStore.VARIANTS`)是資料層;`RhythmGameTest` 獨立測試場景(F6 直接跑)底下
+A(打提示譜)/B(打玩家正確譜)/C(觀看,播提示音)/D(遊玩,不播提示音)四個模式,靠
+`Scenes/RhythmGame/rhythm_record_view.gd`/`rhythm_play_view.gd` 錄製與試玩,見兩支檔案
+檔頭註解。玩法定案、素材做好後才嵌入根據地生產建築面板,目前跟根據地系統還沒整合。
+
+**譜面設計鐵律:hint 一律是「先示範、玩家隔一小段時間後才作答」的召喚應答結構**,不能讓
+`hint_beats`/`correct_beats` 兩條時間戳重疊或無時間差(那樣提示音等於直接把答案唸在同一拍
+上,見 C 模式「觀看」檔頭註解)。同一個樂句的 hint 音符數與 correct 音符數要一一對應——hint
+樂句播完間隔一小段固定時間,對應的 correct 樂句才開始,兩者旋律形狀一致(同一組節奏往後平移
+一段固定間隔),不是各自獨立、互不相干的節奏。`regular`/`variation` 兩個版本都要遵守這套
+「先示範、後打擊」結構,差別只在密度:`regular` 維持穩定的主拍(quarter beat 等距、不切分),
+`variation` 在同一套召喚應答骨架不變的前提下,音符密度與裝飾音/切分音要明顯比 `regular` 多
+(見 `RhythmChartStore` 檔頭「變奏版切分音/裝飾音較多、更有節奏遊戲感,但音符仍量化在同一套
+節奏格上,不會跑掉節奏」的既有設計描述)。手刻/佔位譜面照這個公式排出時間戳即可;真正要對準
+實際 BGM 拍點,還是要靠 A(打提示譜)/B(打玩家正確譜)兩個模式對正式音樂實際錄一遍取代。
+
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
 入口只有一處:角色列表最上方「觀看祖譜」按鈕,對目前選取的那張卡片開啟,走

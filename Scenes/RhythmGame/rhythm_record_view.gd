@@ -5,20 +5,23 @@ extends Control
 ## (此處即設計者本人)按 Space 或滑鼠左鍵打拍子,系統記錄當下時間戳,結束後存檔。
 ## A 模式(is_hint_mode=true)只播 BGM,錄下的時間戳存成提示譜;B 模式額外播放已存的
 ## 提示譜提示音當參考,錄下的時間戳存成玩家正確譜——兩模式共用同一套「播放+記錄」邏輯,
-## 差別只在要不要播提示音、存檔存去哪個欄位。
+## 差別只在要不要播提示音、存檔存去哪個欄位。variant(RhythmChartStore.VARIANT_REGULAR/
+## VARIANT_VARIATION)決定讀寫哪一份版本的譜面,由呼叫端(RhythmBuildingPanel)選定後傳入。
 
 signal back_requested
 
 const DURATION_SEC := RhythmChart.CHART_DURATION_SEC
-## 提示音/點擊音效共用同一個暫代檔案,之後有專屬素材時把這個常數換成對應資源路徑即可。
-## BGM 改用 RhythmChartStore.bgm_path_for(building_type) 依建築查專屬素材,不是固定路徑。
-const HINT_SFX_PATH := "res://Sound/Base/RhythmGame/hint.mp3"
+## 提示音/點擊音效改用 RhythmChartStore.hit_sfx_path_for(building_type) 依建築查專屬
+## 特效音(res://Sound/Base/hit/<建築>.mp3),取代舊版全建築共用的暫代 hint.mp3。
+## BGM 同樣用 RhythmChartStore.bgm_path_for(building_type) 依建築查專屬素材。
 
 var _building_type: GameEnums.BuildingType = -1
 var _is_hint_mode: bool = true
+var _variant: String = RhythmChartStore.VARIANT_REGULAR
 var _bgm_player: AudioStreamPlayer
 var _hint_sfx_player: AudioStreamPlayer
 var _tap_sfx_player: AudioStreamPlayer
+var _hit_sfx_path: String = ""
 
 var _hint_beats: Array[float] = []
 var _recorded_beats: Array[float] = []
@@ -36,17 +39,20 @@ var _retry_button: Button
 func setup(
 	building_type: GameEnums.BuildingType,
 	is_hint_mode: bool,
+	variant: String,
 	bgm_player: AudioStreamPlayer,
 	hint_sfx_player: AudioStreamPlayer,
 	tap_sfx_player: AudioStreamPlayer
 ) -> void:
 	_building_type = building_type
 	_is_hint_mode = is_hint_mode
+	_variant = variant
 	_bgm_player = bgm_player
 	_hint_sfx_player = hint_sfx_player
 	_tap_sfx_player = tap_sfx_player
+	_hit_sfx_path = RhythmChartStore.hit_sfx_path_for(building_type)
 	if not _is_hint_mode:
-		_hint_beats = RhythmChartStore.load_chart(building_type).hint_beats.duplicate()
+		_hint_beats = RhythmChartStore.load_chart(building_type, _variant).hint_beats.duplicate()
 	_build_layout()
 
 
@@ -58,9 +64,10 @@ func _build_layout() -> void:
 	column.add_theme_constant_override("separation", 12)
 	add_child(column)
 
+	var variant_label := "常規版" if _variant == RhythmChartStore.VARIANT_REGULAR else "變奏版"
 	var title := Label.new()
-	title.text = "正在錄製：%s（Space 或滑鼠左鍵打拍子，共 %.0f 秒）" % [
-		"提示譜" if _is_hint_mode else "玩家正確譜", DURATION_SEC
+	title.text = "正在錄製：%s・%s（Space 或滑鼠左鍵打拍子，共 %.0f 秒）" % [
+		variant_label, "提示譜" if _is_hint_mode else "玩家正確譜", DURATION_SEC
 	]
 	title.add_theme_font_size_override("font_size", 20)
 	column.add_child(title)
@@ -139,7 +146,7 @@ func _process(_delta: float) -> void:
 
 	if not _is_hint_mode:
 		while _next_hint_index < _hint_beats.size() and _hint_beats[_next_hint_index] <= t:
-			_hint_sfx_player.stream = load(HINT_SFX_PATH)
+			_hint_sfx_player.stream = load(_hit_sfx_path)
 			_hint_sfx_player.play()
 			_next_hint_index += 1
 
@@ -169,7 +176,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 
 	_recorded_beats.append(t)
-	_tap_sfx_player.stream = load(HINT_SFX_PATH)
+	_tap_sfx_player.stream = load(_hit_sfx_path)
 	_tap_sfx_player.play()
 	_update_list_label()
 
@@ -186,9 +193,9 @@ func _update_list_label() -> void:
 
 func _on_save_pressed() -> void:
 	if _is_hint_mode:
-		RhythmChartStore.save_hint_beats(_building_type, _recorded_beats)
+		RhythmChartStore.save_hint_beats(_building_type, _variant, _recorded_beats)
 	else:
-		RhythmChartStore.save_correct_beats(_building_type, _recorded_beats)
+		RhythmChartStore.save_correct_beats(_building_type, _variant, _recorded_beats)
 	back_requested.emit()
 
 

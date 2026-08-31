@@ -133,6 +133,8 @@ func _ready() -> void:
 	# 預設關閉的 2D 物理揀選要開啟這個事件才會送到 Area2D.input_event。
 	get_viewport().physics_object_picking = true
 
+	BgmStore.play_battle()
+
 	for button in [pause_button, skip_button, back_button, log_toggle_button, replay_button, dialog_back_button, log_dialog_close_button]:
 		UiStyle.apply_wood_plaque_button(button, 16.0, 8.0)
 		button.add_theme_font_size_override("font_size", 18)
@@ -523,8 +525,10 @@ func _on_pause_pressed() -> void:
 
 ## 保險:場景以任何方式離開樹(返回上一頁、播放中被切走)都要確保把全域的
 ## SceneTree.paused 還原成 false,否則暫停狀態會帶到下一個場景,把整個遊戲卡住。
+## 同時淡出戰鬥音樂,避免音樂被瞬間切斷的割裂感——見 BgmStore.fade_out()。
 func _exit_tree() -> void:
 	get_tree().paused = false
+	BgmStore.fade_out()
 
 
 ## 10 回合結算:總大將(隊長)死活決定勝負,雙方隊長都撐過 10 回合直接判平手,不比較 HP。

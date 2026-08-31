@@ -1,19 +1,27 @@
 class_name RhythmPlayView
 extends Control
 
-## C 模式:實際試玩畫面。播放 BGM(依建築查專屬素材,見 RhythmChartStore.bgm_path_for())
-## + 既有提示譜的提示音,玩家按 Space 或滑鼠左鍵打拍子。每次點擊當下立刻用
+## C(觀看)/D(遊玩)共用的試玩畫面。播放 BGM(依建築查專屬素材,見
+## RhythmChartStore.bgm_path_for()),玩家按 Space 或滑鼠左鍵打拍子。每次點擊當下立刻用
 ## RhythmScorer.judge() 對「誤差最小、還沒配對過」的正確譜音符給出 PERFECT/GREAT/GOOD/MISS
 ## 即時判定(見 _judge_tap()),同步更新旁邊的累計分數;結束後另外呼叫 RhythmScorer.score()
 ## 算一次最終總分——那個是事後批次比對,會額外把「玩家完全沒點到」的音符算進 MISS,即時
-## 判定當下看不到那種漏拍,兩者非同一份配對結果、數字可能有些微落差是正常的。
+## 判定當下看不到那種漏拍,兩者非同一份配對結果、數字可能有些微落差是正常的。variant
+## (RhythmChartStore.VARIANT_REGULAR/VARIANT_VARIATION)決定測試哪一份版本的譜面,由
+## 呼叫端(RhythmBuildingPanel)選定後傳入。
+##
+## play_hint_sfx 控制要不要在提示譜(hint_beats)的時間點播放提示音效:C(觀看)開啟——
+## 提示音精準對在玩家正確譜同一拍上,等於直接把答案唸出來,適合設計者核對譜面本身對不對,
+## 不適合拿來測「聽音樂打拍子」的真實手感;D(遊玩)關閉,只播 BGM,玩家得自己聽音樂打拍,
+## 才是實際上線後玩家會遇到的體驗——兩者共用同一份判定/計分邏輯,差別只在要不要播這個
+## 音效提示。
 
 signal back_requested
 
 const DURATION_SEC := RhythmChart.CHART_DURATION_SEC
-## 提示音/點擊音效共用同一個暫代檔案,之後有專屬素材時把這個常數換成對應資源路徑即可。
-## BGM 改用 RhythmChartStore.bgm_path_for(building_type) 依建築查專屬素材,不是固定路徑。
-const HINT_SFX_PATH := "res://Sound/Base/RhythmGame/hint.mp3"
+## 提示音/點擊音效改用 RhythmChartStore.hit_sfx_path_for(building_type) 依建築查專屬
+## 特效音(res://Sound/Base/hit/<建築>.mp3),取代舊版全建築共用的暫代 hint.mp3。
+## BGM 同樣用 RhythmChartStore.bgm_path_for(building_type) 依建築查專屬素材。
 
 const _JUDGEMENT_COLORS := {
 	"PERFECT": Color(1.0, 0.85, 0.2),
@@ -32,9 +40,12 @@ const _CHARACTER_STATE_CANDIDATES := [
 ]
 
 var _building_type: GameEnums.BuildingType = -1
+var _variant: String = RhythmChartStore.VARIANT_REGULAR
+var _play_hint_sfx: bool = true
 var _bgm_player: AudioStreamPlayer
 var _hint_sfx_player: AudioStreamPlayer
 var _tap_sfx_player: AudioStreamPlayer
+var _hit_sfx_path: String = ""
 
 var _chart: RhythmChart
 var _player_taps: Array[float] = []
@@ -65,18 +76,27 @@ var _current_character_state: String = ""
 ## -INF(永遠不觸發)。見 _judge_tap()/_update_character_state()。
 var _fail_display_until := -INF
 
+## 缺角色動作圖素材的建築改顯示節奏預測圈(見 RhythmBeatIndicator),同樣用玩家正確譜
+## 驅動。_character_textures 非空時 _beat_indicator 維持 null,不建立這塊區域。
+var _beat_indicator: RhythmBeatIndicator
+
 
 func setup(
 	building_type: GameEnums.BuildingType,
+	variant: String,
+	play_hint_sfx: bool,
 	bgm_player: AudioStreamPlayer,
 	hint_sfx_player: AudioStreamPlayer,
 	tap_sfx_player: AudioStreamPlayer
 ) -> void:
 	_building_type = building_type
+	_variant = variant
+	_play_hint_sfx = play_hint_sfx
 	_bgm_player = bgm_player
 	_hint_sfx_player = hint_sfx_player
 	_tap_sfx_player = tap_sfx_player
-	_chart = RhythmChartStore.load_chart(building_type)
+	_hit_sfx_path = RhythmChartStore.hit_sfx_path_for(building_type)
+	_chart = RhythmChartStore.load_chart(building_type, _variant)
 	_sorted_correct_beats = _chart.correct_beats.duplicate()
 	_sorted_correct_beats.sort()
 	_load_character_textures()
@@ -115,8 +135,10 @@ func _build_layout() -> void:
 	column.add_theme_constant_override("separation", 12)
 	add_child(column)
 
+	var variant_label := "常規版" if _variant == RhythmChartStore.VARIANT_REGULAR else "變奏版"
+	var mode_label := "觀看（播提示音）" if _play_hint_sfx else "遊玩（不播提示音）"
 	var title := Label.new()
-	title.text = "測試：Space 或滑鼠左鍵打拍子，共 %.0f 秒" % DURATION_SEC
+	title.text = "%s：%s・Space 或滑鼠左鍵打拍子，共 %.0f 秒" % [mode_label, variant_label, DURATION_SEC]
 	title.add_theme_font_size_override("font_size", 20)
 	column.add_child(title)
 
@@ -155,13 +177,17 @@ func _build_layout() -> void:
 		_character_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		_character_rect.texture = _character_textures[RhythmCharacterState.HOLD]
 		column.add_child(_character_rect)
+	else:
+		_beat_indicator = RhythmBeatIndicator.new()
+		_beat_indicator.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		column.add_child(_beat_indicator)
 
 	var button_row := HBoxContainer.new()
 	button_row.add_theme_constant_override("separation", 12)
 	column.add_child(button_row)
 
 	_start_button = Button.new()
-	_start_button.text = "開始測試"
+	_start_button.text = "開始"
 	UiStyle.apply_wood_plaque_button(_start_button, 20.0, 10.0)
 	_start_button.pressed.connect(_on_start_pressed)
 	button_row.add_child(_start_button)
@@ -215,11 +241,14 @@ func _process(_delta: float) -> void:
 	_progress_bar.value = clampf(t / DURATION_SEC, 0.0, 1.0) * 100.0
 
 	while _next_hint_index < _chart.hint_beats.size() and _chart.hint_beats[_next_hint_index] <= t:
-		_hint_sfx_player.stream = load(HINT_SFX_PATH)
-		_hint_sfx_player.play()
+		if _play_hint_sfx:
+			_hint_sfx_player.stream = load(_hit_sfx_path)
+			_hint_sfx_player.play()
 		_next_hint_index += 1
 
 	_update_character_state(t)
+	if _beat_indicator != null:
+		_beat_indicator.update_time(t, _sorted_correct_beats)
 
 	if t >= DURATION_SEC:
 		_finish_test()
@@ -264,7 +293,7 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	_player_taps.append(t)
 	_tap_count_label.text = "已點擊 %d 次" % _player_taps.size()
-	_tap_sfx_player.stream = load(HINT_SFX_PATH)
+	_tap_sfx_player.stream = load(_hit_sfx_path)
 	_tap_sfx_player.play()
 
 	_judge_tap(t)

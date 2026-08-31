@@ -42,3 +42,11 @@ func _ready() -> void:
 	var header_bar := HeaderBar.new()
 	add_child(header_bar)
 	header_bar.add_status_button()
+
+	BgmStore.play_map()
+
+
+## 場景離開(切去 MapLocation/Battle 等任何其他場景)時淡出音樂,避免音樂被瞬間切斷
+## 的割裂感——見 BgmStore.fade_out()。
+func _exit_tree() -> void:
+	BgmStore.fade_out()

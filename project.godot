@@ -55,6 +55,7 @@ MonthlySettlementStore="*res://Scripts/Autoload/monthly_settlement_store.gd"
 NationRelationStore="*res://Scripts/Autoload/nation_relation_store.gd"
 BaseLocationStore="*res://Scripts/Autoload/base_location_store.gd"
 SkillReplaceDialog="*res://Scripts/Autoload/skill_replace_dialog.gd"
+BgmStore="*res://Scripts/Autoload/bgm_store.gd"
 
 [display]
 

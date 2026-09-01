@@ -15,6 +15,15 @@ extends Control
 ## 不適合拿來測「聽音樂打拍子」的真實手感;D(遊玩)關閉,只播 BGM,玩家得自己聽音樂打拍,
 ## 才是實際上線後玩家會遇到的體驗——兩者共用同一份判定/計分邏輯,差別只在要不要播這個
 ## 音效提示。
+##
+## breakpoint_mode 是「斷點遊玩」(見 RhythmBuildingPanel 的 F 按鈕)專用旗標:玩家正確譜
+## 不是靜態存檔資料,改用 RhythmChartStore.load_break_points() + 選定 variant 的真實提示譜
+## (RhythmChartStore.load_chart(building_type, variant).hint_beats,設計者用 A 模式聽 BGM
+## 錄的,音符本來就卡在真實節奏上)交給 RhythmBreakpointChartGenerator.generate_hybrid()
+## 計算出來——把每個教學段(奇數斷點段)裡的提示譜音符,依段內相對比例位置等比例縮放到
+## 緊接著的應答段(偶數斷點段),見該檔檔頭註解。同一組斷點/提示譜每次算出來的結果都一樣,
+## 不會每輪隨機變動。斷點遊玩固定示範再應答,沒有「不給提示音」的變化,呼叫端一律傳
+## play_hint_sfx=true。
 
 signal back_requested
 
@@ -42,6 +51,9 @@ const _CHARACTER_STATE_CANDIDATES := [
 var _building_type: GameEnums.BuildingType = -1
 var _variant: String = RhythmChartStore.VARIANT_REGULAR
 var _play_hint_sfx: bool = true
+var _breakpoint_mode: bool = false
+var _break_points: Array[float] = []
+var _source_hint_beats: Array[float] = []
 var _bgm_player: AudioStreamPlayer
 var _hint_sfx_player: AudioStreamPlayer
 var _tap_sfx_player: AudioStreamPlayer
@@ -87,20 +99,31 @@ func setup(
 	play_hint_sfx: bool,
 	bgm_player: AudioStreamPlayer,
 	hint_sfx_player: AudioStreamPlayer,
-	tap_sfx_player: AudioStreamPlayer
+	tap_sfx_player: AudioStreamPlayer,
+	breakpoint_mode: bool = false
 ) -> void:
 	_building_type = building_type
 	_variant = variant
 	_play_hint_sfx = play_hint_sfx
+	_breakpoint_mode = breakpoint_mode
 	_bgm_player = bgm_player
 	_hint_sfx_player = hint_sfx_player
 	_tap_sfx_player = tap_sfx_player
 	_hit_sfx_path = RhythmChartStore.hit_sfx_path_for(building_type)
-	_chart = RhythmChartStore.load_chart(building_type, _variant)
-	_sorted_correct_beats = _chart.correct_beats.duplicate()
-	_sorted_correct_beats.sort()
+	if _breakpoint_mode:
+		_break_points = RhythmChartStore.load_break_points(building_type)
+		_source_hint_beats = RhythmChartStore.load_chart(building_type, _variant).hint_beats
+		_chart = RhythmBreakpointChartGenerator.generate_hybrid(_break_points, _source_hint_beats)
+	else:
+		_chart = RhythmChartStore.load_chart(building_type, _variant)
+	_refresh_sorted_correct_beats()
 	_load_character_textures()
 	_build_layout()
+
+
+func _refresh_sorted_correct_beats() -> void:
+	_sorted_correct_beats = _chart.correct_beats.duplicate()
+	_sorted_correct_beats.sort()
 
 
 ## 逐一嘗試載入每張候選圖,缺的就跳過(不同建築素材組合不一定一致,例如只有一張 HOLD、
@@ -136,7 +159,9 @@ func _build_layout() -> void:
 	add_child(column)
 
 	var variant_label := "常規版" if _variant == RhythmChartStore.VARIANT_REGULAR else "變奏版"
-	var mode_label := "觀看（播提示音）" if _play_hint_sfx else "遊玩（不播提示音）"
+	var mode_label := "斷點遊玩" if _breakpoint_mode else (
+		"觀看（播提示音）" if _play_hint_sfx else "遊玩（不播提示音）"
+	)
 	var title := Label.new()
 	title.text = "%s：%s・Space 或滑鼠左鍵打拍子，共 %.0f 秒" % [mode_label, variant_label, DURATION_SEC]
 	title.add_theme_font_size_override("font_size", 20)
@@ -198,8 +223,15 @@ func _build_layout() -> void:
 	back_button.pressed.connect(func() -> void: back_requested.emit())
 	button_row.add_child(back_button)
 
-	if _chart.correct_beats.is_empty():
-		_result_label.text = "這個建築還沒有玩家正確譜，請先用 B 模式錄製。"
+	if _breakpoint_mode and _break_points.is_empty():
+		_result_label.text = "這個建築還沒有斷點，請先用「斷點設定」標出斷點。"
+		_start_button.disabled = true
+	elif _breakpoint_mode and _source_hint_beats.is_empty():
+		_result_label.text = "這個版本還沒有提示譜，請先用 A 模式錄製提示譜。"
+		_start_button.disabled = true
+	elif _chart.correct_beats.is_empty():
+		_result_label.text = "這個建築還沒有玩家正確譜，請先用 B 模式錄製。" if not _breakpoint_mode \
+			else "斷點跟提示譜對不太起來，算不出任何正確譜音符，請調整斷點位置。"
 		_start_button.disabled = true
 
 

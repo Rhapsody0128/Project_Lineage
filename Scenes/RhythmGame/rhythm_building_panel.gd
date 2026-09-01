@@ -15,6 +15,11 @@ signal record_hint_requested(variant: String)
 signal record_correct_requested(variant: String)
 signal watch_requested(variant: String)
 signal play_requested(variant: String)
+## E「斷點設定」不帶 variant(斷點是同一份 BGM 素材本身的段落結構,常規版/變奏版共用,
+## 見 System/rhythm/rhythm_breakpoint_chart_generator.gd);F「斷點遊玩」帶 variant,決定
+## 生成器的音符密度風格。
+signal breakpoint_edit_requested
+signal breakpoint_play_requested(variant: String)
 
 const _VARIANT_LABELS := {
 	RhythmChartStore.VARIANT_REGULAR: "常規版",
@@ -72,6 +77,8 @@ func _build_layout() -> void:
 	column.add_child(_make_button("B　打玩家正確譜", func() -> void: record_correct_requested.emit(_variant)))
 	column.add_child(_make_button("C　觀看（播提示音）", func() -> void: watch_requested.emit(_variant)))
 	column.add_child(_make_button("D　遊玩（不播提示音）", func() -> void: play_requested.emit(_variant)))
+	column.add_child(_make_button("E　斷點設定", func() -> void: breakpoint_edit_requested.emit()))
+	column.add_child(_make_button("F　斷點遊玩", func() -> void: breakpoint_play_requested.emit(_variant)))
 	column.add_child(_make_button("← 返回建築列表", func() -> void: back_requested.emit()))
 
 
@@ -91,6 +98,7 @@ func _on_variant_selected(variant: String) -> void:
 
 func _refresh_status() -> void:
 	var chart := RhythmChartStore.load_chart(_building_type, _variant)
-	_status_label.text = "%s　提示譜音符數：%d　玩家正確譜音符數：%d" % [
-		_VARIANT_LABELS[_variant], chart.hint_beats.size(), chart.correct_beats.size()
+	var break_point_count := RhythmChartStore.load_break_points(_building_type).size()
+	_status_label.text = "%s　提示譜音符數：%d　玩家正確譜音符數：%d　斷點數：%d" % [
+		_VARIANT_LABELS[_variant], chart.hint_beats.size(), chart.correct_beats.size(), break_point_count
 	]

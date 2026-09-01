@@ -286,6 +286,27 @@ A(打提示譜)/B(打玩家正確譜)/C(觀看,播提示音)/D(遊玩,不播提�
 節奏格上,不會跑掉節奏」的既有設計描述)。手刻/佔位譜面照這個公式排出時間戳即可;真正要對準
 實際 BGM 拍點,還是要靠 A(打提示譜)/B(打玩家正確譜)兩個模式對正式音樂實際錄一遍取代。
 
+**斷點式教學/應答(另一套機制,跟上面 A~D 的靜態譜面並存,不互相影響)**:`RhythmBuildingPanel`
+另外多兩顆按鈕——E(斷點設定)/F(斷點遊玩)。斷點(`break_points`,一個 `Array[float]`,存在
+`RhythmChartStore` 同一份 JSON 的頂層 key,跟 `regular`/`variation` 同層但不分變體,因為兩個
+變體共用同一份 BGM 素材)描述的是**歌曲本身的樂句/段落分界**,由 E
+(`Scenes/RhythmGame/rhythm_breakpoint_editor_view.gd`,骨架比照 `RhythmRecordView`,聽 BGM
+手動打點存檔)人工標定,也可以先用 `Tools/rhythm/detect_breakpoints.py`(離線 Python 工具,
+librosa 結構分段,預設不覆蓋已有斷點的建築)批次跑出初稿再人工微調。
+
+F(`RhythmPlayView` 的 `breakpoint_mode=true`)的正確譜不是存檔資料,改由
+`RhythmBreakpointChartGenerator.generate_hybrid()`(`System/rhythm/
+rhythm_breakpoint_chart_generator.gd`)用計算的方式算出來——**不是憑空亂數生成音符**
+(早期版本這樣做過,結果音符沒卡在音樂節奏上,已改掉),而是吃選定 variant 已經用 A 模式
+錄好的真實提示譜(`RhythmChartStore.load_chart(...).hint_beats`,音符本來就落在真實音樂
+節奏上)當教學段內容來源。斷點把 `[0, CHART_DURATION_SEC]` 切成一段段,奇數段(第 1、3、
+5…段)當教學段、偶數段(第 2、4、6…段)當應答段,兩兩配對:把落在教學段內(扣掉頭尾
+`BOUNDARY_MARGIN` 秒緩衝)的提示譜音符,依「在教學段內的相對比例位置(0~1)」等比例縮放
+對應到緊接應答段的可用空間,算出 `correct_beats`——兩段長度不一定相等也不會超出範圍。
+同一組斷點+提示譜每次算出來的結果完全相同(先求音符準確卡在節奏上,不要求像 A~D 以外的
+早期構想那樣每輪隨機)。斷點總數是奇數、最後落單一段沒有配對應答段時,那一段不生成任何
+音符(已知簡化)。
+
 ## 祖譜(System/family_tree + Scenes/FamilyTree)
 
 入口只有一處:角色列表最上方「觀看祖譜」按鈕,對目前選取的那張卡片開啟,走

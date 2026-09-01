@@ -9,6 +9,11 @@ extends Control
 ## 對應版本的譜面。玩法定案、素材做好後再嵌入 Scenes/Base 的根據地生產建築面板,不在這裡
 ## 處理跟根據地系統的整合。
 ##
+## E(斷點設定)/F(斷點遊玩)是另一套機制(見 System/rhythm/
+## rhythm_breakpoint_chart_generator.gd):E → RhythmBreakpointEditorView(記錄斷點,不吃
+## variant);F → RhythmPlayView 的 breakpoint_mode=true(每次「開始」都即時生成一份新的
+## 教學/應答節奏,不讀靜態譜面)。
+##
 ## BgmPlayer/HintSfxPlayer/TapSfxPlayer 三個 AudioStreamPlayer 常駐在根節點,傳給每個子
 ## 畫面共用,避免每次切換畫面都新增/釋放播放器節點。
 
@@ -65,6 +70,12 @@ func _show_building_panel(building_type: GameEnums.BuildingType) -> void:
 	panel.play_requested.connect(
 		func(variant: String) -> void: _start_play(building_type, variant, false)
 	)
+	panel.breakpoint_edit_requested.connect(
+		func() -> void: _start_breakpoint_edit(building_type)
+	)
+	panel.breakpoint_play_requested.connect(
+		func(variant: String) -> void: _start_breakpoint_play(building_type, variant)
+	)
 	_content_root.add_child(panel)
 
 
@@ -82,6 +93,24 @@ func _start_play(building_type: GameEnums.BuildingType, variant: String, play_hi
 
 	var view := RhythmPlayView.new()
 	view.setup(building_type, variant, play_hint_sfx, _bgm_player, _hint_sfx_player, _tap_sfx_player)
+	view.back_requested.connect(func() -> void: _show_building_panel(building_type))
+	_content_root.add_child(view)
+
+
+func _start_breakpoint_edit(building_type: GameEnums.BuildingType) -> void:
+	_clear_content()
+
+	var view := RhythmBreakpointEditorView.new()
+	view.setup(building_type, _bgm_player, _tap_sfx_player)
+	view.back_requested.connect(func() -> void: _show_building_panel(building_type))
+	_content_root.add_child(view)
+
+
+func _start_breakpoint_play(building_type: GameEnums.BuildingType, variant: String) -> void:
+	_clear_content()
+
+	var view := RhythmPlayView.new()
+	view.setup(building_type, variant, true, _bgm_player, _hint_sfx_player, _tap_sfx_player, true)
 	view.back_requested.connect(func() -> void: _show_building_panel(building_type))
 	_content_root.add_child(view)
 

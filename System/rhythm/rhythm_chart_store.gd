@@ -78,6 +78,28 @@ static func save_correct_beats(
 	_save(building_type, variant, chart)
 
 
+## 斷點(樂句/段落分界)是同一份 BGM 素材本身的結構,常規版/變奏版共用同一首 BGM
+## (見 bgm_path_for()),不分 variant,所以存成跟 "regular"/"variation" 同層的頂層 key
+## "break_points",不走 load_chart()/_save() 那套 variant 包裝——見
+## RhythmBreakpointChartGenerator 如何消費這份資料。
+static func load_break_points(building_type: GameEnums.BuildingType) -> Array[float]:
+	var data := _load_all_raw(building_type)
+	var points: Array[float] = []
+	if data.has("break_points"):
+		for value in data["break_points"]:
+			points.append(float(value))
+	return points
+
+
+static func save_break_points(building_type: GameEnums.BuildingType, points: Array[float]) -> void:
+	DirAccess.make_dir_recursive_absolute(CHART_DIR)
+	var data := _load_all_raw(building_type)
+	data["break_points"] = points.duplicate()
+	var file := FileAccess.open(_path_for(building_type), FileAccess.WRITE)
+	file.store_string(JSON.stringify(data, "\t"))
+	file.close()
+
+
 ## 讀出整份 JSON(所有 variant)的原始 Dictionary,不存在的檔案回傳空字典——內部共用,
 ## 存檔時要先讀出其他 variant 的資料才不會覆蓋掉。
 static func _load_all_raw(building_type: GameEnums.BuildingType) -> Dictionary:

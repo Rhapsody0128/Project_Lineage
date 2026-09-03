@@ -136,7 +136,7 @@ func _roll_result(character_id: String) -> Dictionary:
 		return {"skills": skills, "exp": exp}
 
 	var pool: Array[Skill] = []
-	for skill in SkillLibrary.build():
+	for skill in SkillController.get_skill_list():
 		if SkillRankRule.effective_rank(skill) <= rank_cap and character.can_use_skill(skill) and not character.knows_skill(skill):
 			pool.append(skill)
 

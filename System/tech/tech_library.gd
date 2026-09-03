@@ -265,12 +265,19 @@ static func get_knowledge() -> Array[TechNode]:
 	return nodes
 
 
+## 90 個節點是寫死的靜態資料,建置一次後快取,不用每次呼叫都重新 new 一輪
+## TechNode——TechStore.get_bonus()/get_multiplier() 對每個已解鎖科技各呼叫一次
+## get_by_id(),而這兩個函式在戰鬥模擬/地圖 _process() 都是熱路徑呼叫點。
+static var _all_nodes_cache: Array[TechNode] = []
+static var _id_index_cache: Dictionary = {}
+
+
 static func get_all() -> Array[TechNode]:
-	var nodes: Array[TechNode] = []
-	nodes.append_array(get_combat())
-	nodes.append_array(get_domestic())
-	nodes.append_array(get_knowledge())
-	return nodes
+	if _all_nodes_cache.is_empty():
+		_all_nodes_cache.append_array(get_combat())
+		_all_nodes_cache.append_array(get_domestic())
+		_all_nodes_cache.append_array(get_knowledge())
+	return _all_nodes_cache
 
 
 static func get_by_branch(branch: GameEnums.TechBranch) -> Array[TechNode]:
@@ -284,7 +291,7 @@ static func get_by_branch(branch: GameEnums.TechBranch) -> Array[TechNode]:
 
 
 static func get_by_id(id: String) -> TechNode:
-	for node in get_all():
-		if node.id == id:
-			return node
-	return null
+	if _id_index_cache.is_empty():
+		for node in get_all():
+			_id_index_cache[node.id] = node
+	return _id_index_cache.get(id)

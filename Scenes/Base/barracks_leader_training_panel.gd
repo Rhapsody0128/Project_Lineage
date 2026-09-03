@@ -36,7 +36,7 @@ func _ready() -> void:
 	add_theme_constant_override("separation", 16)
 	size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	for skill in SkillLibrary.build():
+	for skill in SkillController.get_skill_list():
 		if skill.is_leader_skill:
 			_leader_skills.append(skill)
 	_leader_skills.sort_custom(func(a: Skill, b: Skill) -> bool: return a.rank < b.rank)

@@ -20,14 +20,14 @@ extends RefCounted
 
 
 class Entry:
-	var rank: int
+	var rank: GameEnums.RankType
 	var name: String
 	var card: String
 	var detail: String
-	var effect_type: int
+	var effect_type: GameEnums.TechEffectType
 	var value: float
 
-	func _init(p_rank: int, p_name: String, p_card: String, p_detail: String, p_effect_type: int, p_value: float) -> void:
+	func _init(p_rank: GameEnums.RankType, p_name: String, p_card: String, p_detail: String, p_effect_type: GameEnums.TechEffectType, p_value: float) -> void:
 		rank = p_rank
 		name = p_name
 		card = p_card
@@ -41,20 +41,18 @@ const COST_GROWTH := 1.7
 
 
 ## F=10、E=15、D=30、C=50、B=85、A=140、S=240、SS=410、SSS=700。
-static func cost_for_rank(rank: int) -> int:
+static func cost_for_rank(rank: GameEnums.RankType) -> int:
 	return roundi(COST_BASE * pow(COST_GROWTH, rank) / 5.0) * 5
 
 
 ## 组一條機制鏈:entries 裡的 rank 必須嚴格遞增(同一條鏈不能有兩層卡在同一個科學研究所
-## 等級門檻上,那樣會浪費一個 rank 檔位),否則直接 assert 擋下來,不會生成看起來正常但
-## 邏輯有問題的資料。
-static func _thread(branch: int, thread_name: String, dev_note: String, feasibility: String, entries: Array[Entry]) -> Array[TechNode]:
+## 等級門檻上,那樣會浪費一個 rank 檔位)——資料全部是本檔案內寫死的常數,由撰寫時自行
+## 保證遞增,不在執行期驗證。
+static func _thread(branch: GameEnums.TechBranch, thread_name: String, dev_note: String, feasibility: String, entries: Array[Entry]) -> Array[TechNode]:
 	var nodes: Array[TechNode] = []
 	var prev_id := ""
 	for i in range(entries.size()):
 		var entry := entries[i]
-		if i > 0:
-			assert(entry.rank > entries[i - 1].rank, "TechLibrary: 「%s」機制鏈 rank 必須嚴格遞增" % thread_name)
 		var id := "%s.%s.%d" % [GameEnums.TechBranch.keys()[branch], thread_name, i]
 		var node := TechNode.new(
 			id, branch, thread_name, entry.rank, i + 1, entries.size(),

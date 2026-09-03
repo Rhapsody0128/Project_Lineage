@@ -7,16 +7,16 @@ extends RefCounted
 
 var battle_id: String
 var war_id: String
-var nation_a: int
-var nation_b: int
-var grade: int   # GameEnums.BattleSettlementGrade,nation_a 視角
+var nation_a: GameEnums.BloodlineNation
+var nation_b: GameEnums.BloodlineNation
+var grade: GameEnums.BattleSettlementGrade   ## nation_a 視角
 var final_progress: float
 var exhaustion_gain_a: float
 var exhaustion_gain_b: float
 
 
-func _init(p_battle_id: String, p_war_id: String, p_nation_a: int, p_nation_b: int,
-		p_grade: int, p_final_progress: float, p_exhaustion_gain_a: float,
+func _init(p_battle_id: String, p_war_id: String, p_nation_a: GameEnums.BloodlineNation, p_nation_b: GameEnums.BloodlineNation,
+		p_grade: GameEnums.BattleSettlementGrade, p_final_progress: float, p_exhaustion_gain_a: float,
 		p_exhaustion_gain_b: float) -> void:
 	battle_id = p_battle_id
 	war_id = p_war_id
@@ -31,5 +31,5 @@ func _init(p_battle_id: String, p_war_id: String, p_nation_a: int, p_nation_b: i
 ## BattleSettlementGrade 是對稱宣告(DECISIVE_VICTORY(0)↔DECISIVE_DEFEAT(6)、
 ## VICTORY(1)↔DEFEAT(5)、NARROW_VICTORY(2)↔NARROW_DEFEAT(4)、STALEMATE(3)↔自己),
 ## 鏡像換算直接用總數相減即可,不需要另開一張對照表。
-static func mirror_grade(grade: int) -> int:
+static func mirror_grade(grade: GameEnums.BattleSettlementGrade) -> GameEnums.BattleSettlementGrade:
 	return GameEnums.BattleSettlementGrade.DECISIVE_DEFEAT - grade

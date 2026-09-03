@@ -12,17 +12,17 @@ extends RefCounted
 var battle_id: String
 var war_id: String
 var position: Vector2
-var nation_a: int
-var nation_b: int
+var nation_a: GameEnums.BloodlineNation
+var nation_b: GameEnums.BloodlineNation
 var battle_power_a: float
 var battle_power_b: float
 ## -100..+100,正值 = nation_a 優勢,負值 = nation_b 優勢,0 = 僵持。
 var battle_progress: float = 0.0
 var duration_months: int = 0
-var status: int = GameEnums.WarBattleStatus.ACTIVE
-## 這個戰場自己的難度等級(GameEnums.RankType,F~SSS),生成時均勻隨機骰出,見
+var status: GameEnums.WarBattleStatus = GameEnums.WarBattleStatus.ACTIVE
+## 這個戰場自己的難度等級(F~SSS),生成時均勻隨機骰出,見
 ## WarBattleRankRule.pick_random_rank()——決定玩家挑戰的敵方 Party 強度、初始戰力乘數、
 ## 結算前最長月數,不再依附戰爭規模(已移除)。
-var rank_type: int
+var rank_type: GameEnums.RankType
 ## 結算前最長月數,生成當下依 rank_type 查表定值,見 WarBattleRankRule.max_duration_months()。
 var max_duration_months: int

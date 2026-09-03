@@ -14,14 +14,14 @@ const SIDE_UNDECIDED := -1
 const SIDE_NOT_PARTICIPATING := -2
 
 var war_id: String
-var attacker: int   # GameEnums.BloodlineNation
-var defender: int
+var attacker: GameEnums.BloodlineNation
+var defender: GameEnums.BloodlineNation
 var started_date: String
 var war_exhaustion_a: float = 0.0
 var war_exhaustion_b: float = 0.0
 var battle_power_a: float = 0.0
 var battle_power_b: float = 0.0
-var status: int = GameEnums.WarStatus.ACTIVE
+var status: GameEnums.WarStatus = GameEnums.WarStatus.ACTIVE
 ## 同一場戰爭最多同時存在 WarBattleSpawner.MAX_CONCURRENT_BATTLES 個戰場,見
 ## war_battle_spawner.gd/war_world_time_events.gd。
 var active_battles: Array[WarBattle] = []
@@ -38,9 +38,9 @@ var player_side: int = SIDE_UNDECIDED
 var player_war_contribution: int = 0
 
 
-func other_nation(nation_id: int) -> int:
+func other_nation(nation_id: GameEnums.BloodlineNation) -> GameEnums.BloodlineNation:
 	return defender if nation_id == attacker else attacker
 
 
-func exhaustion_for(nation_id: int) -> float:
+func exhaustion_for(nation_id: GameEnums.BloodlineNation) -> float:
 	return war_exhaustion_a if nation_id == attacker else war_exhaustion_b

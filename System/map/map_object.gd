@@ -10,7 +10,7 @@ var id: String
 var name: String
 var texture: Texture2D
 var position: Vector2
-var type: int
+var type: GameEnums.MapObjectType
 ## 該地點所屬勢力的領土邊界(世界座標,PackedVector2Array 多邊形頂點),供 territory
 ## 渲染/點擊判定使用(見 MapSystem.pick_object())。position 是這個多邊形的外框中心點
 ## (bounding box center),同一個世界座標系,兩者對得上。
@@ -19,10 +19,10 @@ var territory_polygon: PackedVector2Array
 ## 該城鎮所屬的文明國家;BASE(玩家根據地)目前借用 LION 當預設外觀,玩家還沒有可選的
 ## 自身國家血統,等那個功能接上再改成真正的選擇結果。CASTLE 不屬於特定國家(同一地形
 ## 有兩座),這裡純粹借該地形對應的 nation 當查表 key,不代表城堡效忠哪個國家。
-var nation: int
+var nation: GameEnums.BloodlineNation
 
 
-func _init(p_id: String, p_name: String, p_texture: Texture2D, p_position: Vector2, p_type: int, p_nation: int, p_territory_polygon: PackedVector2Array = PackedVector2Array()) -> void:
+func _init(p_id: String, p_name: String, p_texture: Texture2D, p_position: Vector2, p_type: GameEnums.MapObjectType, p_nation: GameEnums.BloodlineNation, p_territory_polygon: PackedVector2Array = PackedVector2Array()) -> void:
 	id = p_id
 	name = p_name
 	texture = p_texture
@@ -118,7 +118,7 @@ const TYPE_SUB_LOCATIONS: Dictionary = {
 ## 攻下後才開放,呼叫端(Scenes/MapLocation/map_location.gd)依 CastleStore.is_conquered()
 ## 決定要傳 true 還是 false,這裡不直接依賴 CastleStore(System/ 不碰 Scripts/Autoload
 ## 的 session 狀態,比照 NationFavorRank 只吃參數的慣例)。
-static func get_sub_locations(type: int, castle_conquered: bool = true) -> Array[String]:
+static func get_sub_locations(type: GameEnums.MapObjectType, castle_conquered: bool = true) -> Array[String]:
 	if type == GameEnums.MapObjectType.CASTLE and not castle_conquered:
 		return ["聊天"]
 	var labels: Array[String] = []

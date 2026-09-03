@@ -46,9 +46,10 @@
   `Character.COST_HP_MAP` 依 `battle_cost.cells.size()`(佔位格數 3~7)換算:600/700/800/
   900/1000,還沒有依素質/等級計算的公式)。
   `CombatResolver.apply_damage()` 傷害直接扣 `character.hp`,歸零視為戰敗(`DefeatedEvent`)。
-  `Character.hp` 跨戰鬥持續累積(`Battle._attach_battle_characteres()` 不再開戰前強制回滿),只能
-  靠大地圖世界時間流逝按 `Character.HP_REGEN_PER_DAY`(目前 30/天)自然回復,見
-  `Character.advance_hp_regen()`(`Scenes/Map/map.gd` 的 `_process()` 逐幀呼叫)。城鎮選單的
+  `Character.hp` 跨戰鬥持續累積(`Battle._attach_battle_characteres()` 不再開戰前強制回滿),
+  靠世界時間每天觸發的 `WorldTimeEventLibrary._regen_hp()` 自然回復(呼叫
+  `Character.regen_daily_hp()`,基準值 `Character.DAILY_HP_REGEN`=3+醫療所目前等級+科技
+  加成,休息中再疊加 `Character.RESTING_HP_REGEN_BONUS`=10),不是逐幀累積。城鎮選單的
   「休息」選項(`Scenes/MapLocation/map_location.gd`)直接退回大地圖並強制開始播放時間,
   方便玩家停在原地等回血。
 - 勝負:固定跑 `Battle.TOTAL_ROUND=10` 回合。總大將沿用現有隊長機制(`Party.leader`/
@@ -147,6 +148,8 @@ GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
   總整理.md 八、「武器統一素質」)。目前是非生產類建築(比照 CLINIC/BARRACKS,只有
   資料定義+`base_inner.tscn` 裡的正式 `territory_polygon`),素質加成機制本身還沒接,
   只有建造/升級的資源數值框架
+- `System/character/character_controller.gd:111` 標註:玩家間聯姻的結婚/生子邏輯待
+  「玩家間聯姻」系統設計確定後再實作(見遊戲企劃設定總整理.md 二十二~三十二)
 
 ## 六、血統國家與地理環境對照表
 

@@ -13,9 +13,15 @@ Godot 4.7(GL Compatibility)遊戲專案「Project L」,主場景 `Scenes/main.ts
 ## 驗證方式
 
 ```
-GODOT="/d/Godot_v4.7.1-stable_win64.exe/Godot_v4.7.1-stable_win64_console.exe"
+GODOT="<實際安裝路徑依機器調整,例如 .../Godot_v4.7.x-stable_win64[_console].exe>"
 "$GODOT" --headless --editor --quit-after 10   # 全專案語法掃描
 ```
+
+執行檔路徑/版本因機器而異,不寫死絕對路徑;沒有 `_console` 版本時,一般 `_win64.exe`
+搭配 shell 的 stdout/stderr 重導向(`> log 2>&1`)一樣能正常擷取語法掃描結果。乾淨掃描
+會印出專案初始化進度條、以無害的 `WARNING: Scan thread aborted...` 結尾;若額外看到
+`Parse Error`/`SCRIPT ERROR` 或指向 `res://System`、`res://Scenes` 的錯誤行,才代表有
+語法問題。
 
 寫完邏輯就好,不用主動寫 `_test_*.gd` 自證——交給使用者實際跑遊戲測試,拿到回報再針對性 debug。
 
@@ -363,6 +369,63 @@ battle_reward.gd` 的 `grant_victory_favor(battle)` 依 `enemy_rank_type` 查
 (平原→強盜/山地→山賊/高原→異端/森林→綠林者/沙漠→沙匪/冰原→浪跡者)換算文案,城堡
 攻略(`CastleSiegeEvent`)、討伐委託文案(`QuestLibrary`)共用同一份對照表
 (`GameEnums.bandit_label_for_nation()`)。
+
+## 國際戰爭(System/war + NationRelationStore)
+
+跟「國家好感度」(玩家→國家)刻意分開的另一條軸線:國與國之間會不會開戰、打得如何,
+是動態的國家關係資料,存在 autoload `NationRelationStore`
+(`Scripts/Autoload/nation_relation_store.gd`)——跟 `NationFavorStore` 同一套慣例,這裡
+只負責持有資料/讀寫入口/發 News/存檔,實際的機率與數值規則全部是 `System/war/` 底下的
+純 `RefCounted` 類別。
+
+- **`WarTension`**(0~100,`NationRelationStore.tension`,`min_id_max_id` 字串組 key)是
+  每組國家對「有沒有理由開戰」的長期壓力值,唯一改動入口是
+  `NationRelationStore.modify_war_tension()`。開局每組國家對給一個 0~
+  `WarTensionRule.INITIAL_TENSION_MAX` 的隨機起始值(不是全部從 0 開始,否則幾十年都爬
+  不到宣戰門檻),沒有戰爭的國家對每月疊加一次 `±MONTHLY_RANDOM_DRIFT_RANGE` 隨機波動
+  (邊境摩擦簡化版)、每年再扣一次 `PEACETIME_YEARLY_DECAY`——兩者同時存在是刻意設計:
+  decay 是長期拉回和平的系統性力道,drift 是疊在上面有正有負的短期雜訊,兩者一起才會讓
+  張力自然爬升,不會只單調下降。正在交戰的國家對張力改由戰場結果推動,不跑這兩個
+  月/年例行處理。
+- **`War`**(`System/war/war.gd`)是一整場戰爭的容器,`attacker`/`defender`
+  +`battle_power_a/b`(宣戰當下定值的**國力基準**,不會被玩家個別戰場的貢獻改動)+
+  `war_exhaustion_a/b`(0~100,只在交戰中才有意義)+`active_battles`
+  (`Array[WarBattle]`)。玩家對整場戰爭最多選邊一次(`player_side`,
+  `NationRelationStore.set_player_side()` 是唯一入口),`player_war_contribution` 只反映
+  這場 War 期間的戰功,停戰時歸零、不跨戰爭累積。
+- **`WarBattle`**(`war_battle.gd`)是地圖上實際看得到的戰場物件,同一場 War 最多同時
+  `WarBattleSpawner.MAX_CONCURRENT_BATTLES`(4)個,命名刻意避開
+  `System/battle/battle.gd` 的 `Battle`(單場戰鬥模擬),兩者不是同一種東西。生成時
+  (`WarBattleSpawner.spawn_battle()`)自己的 `battle_power_a/b` 由 War 的國力基準乘上
+  `WarBattleRankRule` 依隨機骰出的 `rank_type`(F~SSS,決定敵方強度/初始戰力倍率/結算前
+  最長月數,不再依附戰爭規模——舊版 WarScale 已移除)換算出來,之後兩者各自獨立漂移,
+  不會再跟國力基準同步。`battle_progress`(-100~100,正值 nation_a 優勢)由
+  `WarBattleSimulation.advance_month()` 每月自動演化(領先方戰力損耗打折,讓優勢方越打
+  越穩),達到 `SETTLEMENT_PROGRESS_THRESHOLD` 或拖到 `max_duration_months` 由
+  `BattleResultGrader.grade()` 判出七級戰果(壓倒性勝利…壓倒性失敗),換算成雙方
+  `WarExhaustionRule` 疲憊增量,呼叫 `NationRelationStore.settle_battle()` 結算——單一
+  戰場結算不影響 War 本身,`WarBattleSpawner` 照樣會在額度內持續補新戰場進來,也不會
+  發 News(News 只留給整場 War 的宣戰/停戰)。
+- **停戰**:`war_world_time_events.gd` 每月用雙方平均疲憊查
+  `WarTruceRule.truce_probability()`(機率式,疲憊再高也不會 100% 必然停戰)骰一次,
+  骰中呼叫 `NationRelationStore.resolve_truce()`——結束這整場 War、把張力打折保留
+  (`WarTruceRule.post_truce_tension()`),並依雙方停戰當下疲憊值高低判斷玩家支援的一方
+  有沒有贏(疲憊較低視為相對佔優),贏才把累積戰功換算成金幣+好感度一次發放
+  (`WarContributionRule.money_for_contribution()`/`favor_for_contribution()`),沒贏
+  不發獎勵但戰功紀錄本身不因此消失,無論輸贏戰功都歸零。
+- **玩家連續作戰**(`WarCampaignController`,見 `System/event/map/war_battle_event.gd`
+  逐場呼叫):玩家投入戰場後最多連打 10 場個人戰鬥,只要連勝才能繼續往下打,一輸/平手
+  就停在那一場——流程橫跨多次 Dialogue↔Battle 場景切換是非同步的,不能寫成一次跑完的
+  同步迴圈,所以 `WarCampaignController` 只提供 `apply_contribution()`(單場結果換算成
+  這個 WarBattle 的 `battle_progress`/`battle_power` 位移+戰功)跟
+  `settle_battle_if_ready()` 給呼叫端逐場呼叫,自己不持有「跑一整輪」的迴圈。戰功公式
+  `rank_type + streak_count`(這一輪連續作戰內第幾場,每次玩家重新投入同一戰場都是全新
+  一輪從 1 重算),只有贏才有分。
+- **`WarDiplomacyAi`**(`war_world_time_events.gd` 的 `yearly_tick()` 呼叫):每年對每個
+  國家骰兩階段——Phase 1 用 `BASE_WANT_CHANCE`+對外最高 `WarTension`×`TENSION_SLOPE`
+  (封頂 `MAX_WANT_CHANCE`)骰「今年想不想開戰」,骰中才進 Phase 2,候選排除自己/已在
+  交戰的對象/張力低於 `WarTensionRule.DECLARE_CANDIDATE_TENSION_THRESHOLD` 的國家,再用
+  `WarTension` 當權重加權隨機選一個目標(不是永遠選張力最高的那個)。
 
 ## 消息(System/news + NewsStore)
 

@@ -48,8 +48,8 @@ func _init(self_party: Party, enemy_party: Party) -> void:
 	_capture_start_state()
 
 ## 小隊裡的每個角色,在戰場上各自佔一格獨立作戰。不再開戰前強制回滿血——Character.hp 是
-## 跨多場戰鬥持續累積的殘血(例如 PartyEdit 編成的角色),只能靠大地圖時間流逝按
-## Character.HP_REGEN_PER_DAY 自然回復(見 Scenes/Map/map.gd 的 _process()),重傷後立刻
+## 跨多場戰鬥持續累積的殘血(例如 PartyEdit 編成的角色),只能靠大地圖時間流逝,每天由
+## WorldTimeEventLibrary._regen_hp() 自然回復(見 Character.regen_daily_hp()),重傷後立刻
 ## 再戰一場會直接帶著殘血上場。唯一例外是已經 0 血(戰敗)的角色:不用等時間流逝
 ## 自然回血,開戰當下直接把殘血墊到 1,以極限殘血狀態硬撐著再戰一場,而不是連場
 ## 上都站不了。

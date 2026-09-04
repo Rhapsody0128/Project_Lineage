@@ -18,7 +18,6 @@ extends RefCounted
 ## - card_description 刻意不寫確切數值(卡片只給方向感),確切數值/機率寫在
 ##   effect_detail,給之後可能的詳情面板或工具提示用。
 
-
 class Entry:
 	var rank: GameEnums.RankType
 	var name: String
@@ -35,15 +34,12 @@ class Entry:
 		effect_type = p_effect_type
 		value = p_value
 
-
 const COST_BASE := 10.0
 const COST_GROWTH := 1.7
-
 
 ## F=10、E=15、D=30、C=50、B=85、A=140、S=240、SS=410、SSS=700。
 static func cost_for_rank(rank: GameEnums.RankType) -> int:
 	return roundi(COST_BASE * pow(COST_GROWTH, rank) / 5.0) * 5
-
 
 ## 组一條機制鏈:entries 裡的 rank 必須嚴格遞增(同一條鏈不能有兩層卡在同一個科學研究所
 ## 等級門檻上,那樣會浪費一個 rank 檔位)——資料全部是本檔案內寫死的常數,由撰寫時自行
@@ -62,7 +58,6 @@ static func _thread(branch: GameEnums.TechBranch, thread_name: String, dev_note:
 		nodes.append(node)
 		prev_id = id
 	return nodes
-
 
 static func get_combat() -> Array[TechNode]:
 	var branch := GameEnums.TechBranch.COMBAT
@@ -130,7 +125,6 @@ static func get_combat() -> Array[TechNode]:
 
 	return nodes
 
-
 static func get_domestic() -> Array[TechNode]:
 	var branch := GameEnums.TechBranch.DOMESTIC
 	var nodes: Array[TechNode] = []
@@ -196,7 +190,6 @@ static func get_domestic() -> Array[TechNode]:
 	]))
 
 	return nodes
-
 
 static func get_knowledge() -> Array[TechNode]:
 	var branch := GameEnums.TechBranch.KNOWLEDGE
@@ -264,13 +257,11 @@ static func get_knowledge() -> Array[TechNode]:
 
 	return nodes
 
-
 ## 90 個節點是寫死的靜態資料,建置一次後快取,不用每次呼叫都重新 new 一輪
 ## TechNode——TechStore.get_bonus()/get_multiplier() 對每個已解鎖科技各呼叫一次
 ## get_by_id(),而這兩個函式在戰鬥模擬/地圖 _process() 都是熱路徑呼叫點。
 static var _all_nodes_cache: Array[TechNode] = []
 static var _id_index_cache: Dictionary = {}
-
 
 static func get_all() -> Array[TechNode]:
 	if _all_nodes_cache.is_empty():
@@ -279,16 +270,15 @@ static func get_all() -> Array[TechNode]:
 		_all_nodes_cache.append_array(get_knowledge())
 	return _all_nodes_cache
 
-
+## 從 get_all() 的快取結果篩選,不要再各自呼叫 get_combat()/get_domestic()/get_knowledge()
+## ——那樣每次呼叫都重新 new 一輪 90 個 TechNode,完全繞過下面 get_all() 的快取,
+## 跟這份快取當初想省掉的成本一樣貴(見 _all_nodes_cache 開頭註解)。
 static func get_by_branch(branch: GameEnums.TechBranch) -> Array[TechNode]:
-	match branch:
-		GameEnums.TechBranch.COMBAT:
-			return get_combat()
-		GameEnums.TechBranch.DOMESTIC:
-			return get_domestic()
-		_:
-			return get_knowledge()
-
+	var result: Array[TechNode] = []
+	for node in get_all():
+		if node.branch == branch:
+			result.append(node)
+	return result
 
 static func get_by_id(id: String) -> TechNode:
 	if _id_index_cache.is_empty():

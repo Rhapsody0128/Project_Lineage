@@ -9,7 +9,8 @@ extends RefCounted
 ## 每條「機制鏈」(thread)是一串同一個 effect_type 在不同 rank 疊層的節點,鏈內第一層
 ## prerequisite_id 是空字串,之後每層的前置是鏈內前一層的 id。同一條鏈內 rank 必須嚴格
 ## 遞增(不重複),否則會有兩個節點同時卡在同一個科學研究所等級門檻上,浪費一個 rank 檔位
-## ——TechLibrary.build_thread() 已經用 assert 擋這件事。
+## ——資料全部是 TechLibrary 內寫死的常數,由撰寫時自行保證遞增,不在執行期驗證
+## (見 TechLibrary._thread() 開頭註解)。
 
 var id: String
 var branch: GameEnums.TechBranch
@@ -31,7 +32,6 @@ var cost: int
 ## 掛勾點備註/實作難度,純開發用,不會顯示給玩家看。
 var dev_note: String
 var feasibility: String  ## "low" | "mid"
-
 
 func _init(
 	p_id: String,
@@ -66,11 +66,9 @@ func _init(
 	dev_note = p_dev_note
 	feasibility = p_feasibility
 
-
 ## 解鎖需要的科學研究所等級:F=Lv1、E=Lv2……SSS=Lv9,直接沿用建築現有 1~9 級,不另外設計換算表。
 func required_institute_level() -> int:
 	return rank + 1
-
 
 func has_prerequisite() -> bool:
 	return not prerequisite_id.is_empty()

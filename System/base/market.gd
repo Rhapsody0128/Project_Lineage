@@ -14,10 +14,8 @@ extends RefCounted
 ## 「還是貴」。
 const MARKUP_BY_RANK: Array[float] = [2.20, 2.10, 2.00, 1.90, 1.80, 1.70, 1.60, 1.55, 1.50]
 
-
 static func markup_for_rank(favor_rank: int) -> float:
 	return MARKUP_BY_RANK[clampi(favor_rank, 0, MARKUP_BY_RANK.size() - 1)]
-
 
 class MarketOption:
 	var resource: int
@@ -32,7 +30,6 @@ class MarketOption:
 		currency = p_currency
 		base_unit_price = p_base_unit_price
 
-
 ## 市集賣的 10 種資材:BaseExchange 的商隊站/黑市清單各自扣掉「把對方貨幣當商品買賣」
 ## 那一筆(商隊站的贓物、黑市的金錢是貨幣本身,不是資材,市集不賣)。
 static func options() -> Array[MarketOption]:
@@ -46,7 +43,6 @@ static func options() -> Array[MarketOption]:
 			continue
 		result.append(MarketOption.new(option.resource, GameEnums.ResourceType.CONTRABAND, float(option.buy_cost) / option.buy_output))
 	return result
-
 
 ## 無條件進位——市集價格不會因為四捨五入變得比貿易基準價還便宜。
 static func unit_price(base_unit_price: float, favor_rank: int) -> int:

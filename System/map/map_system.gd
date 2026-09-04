@@ -29,12 +29,10 @@ var speed: float
 ## set_destination() 的單點直線移動不會用到,固定是空陣列。
 var path_queue: Array[Vector2] = []
 
-
 func _init(p_start_position: Vector2, p_speed: float) -> void:
 	position = p_start_position
 	target_position = p_start_position
 	speed = p_speed
-
 
 ## Party 全體成員的平均 AGI(0~200),用 character.agility(等級加成後的算後值),
 ## 不是 character.potential.agility(未加成的原始值)。
@@ -46,18 +44,15 @@ static func compute_average_agi(party: Party) -> float:
 		total += character.agility
 	return clamp(total / party.characteres.size(), 0.0, 200.0)
 
-
 ## AGI 0~200 之間線性內插移動速度。
 static func compute_speed(avg_agi: float) -> float:
 	var clamped: float = clamp(avg_agi, 0.0, 200.0)
 	return lerp(SPEED_AT_AGI_0, SPEED_AT_AGI_200, clamped / 200.0) * PLAYER_SPEED_MULTIPLIER
 
-
 func set_destination(p_target: Vector2) -> void:
 	target_position = p_target
 	path_queue.clear()
 	is_moving = true
-
 
 ## 依序走訪一串路徑點(見 MapPathfinder.find_path()):第一個點設為目前 target_position,
 ## 其餘存進 path_queue 接力,advance() 抵達每個中繼點時自動切換下一個,直到 path_queue
@@ -69,7 +64,6 @@ func set_path(waypoints: Array[Vector2]) -> void:
 	path_queue = waypoints.duplicate()
 	target_position = path_queue.pop_front()
 	is_moving = true
-
 
 ## 每 frame 呼叫,依目前速度 x delta 逐幀逼近目的地,從不預先計算/寫死
 ## 某段路線該花多久——移動時間永遠等於「距離 / 速度」的自然結果。用 while 迴圈消耗這一幀
@@ -96,7 +90,6 @@ func advance(delta: float) -> void:
 			target_position = path_queue.pop_front()
 		else:
 			is_moving = false
-
 
 ## 找出 world_pos 命中的 MapObject:有 territory_polygon 的物件用多邊形範圍
 ## 判定(整塊領土都能點),沒有的物件才退回用 position 附近 radius 內最近命中。

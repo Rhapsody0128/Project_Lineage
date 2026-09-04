@@ -8,10 +8,8 @@ extends RefCounted
 static func get_status(nation_a: int, nation_b: int) -> int:
 	return NationRelationStore.get_war_status(nation_a, nation_b)
 
-
 static func get_tension(nation_a: int, nation_b: int) -> float:
 	return NationRelationStore.get_war_tension(nation_a, nation_b)
-
 
 static func get_exhaustion(nation_a: int, nation_b: int, for_nation: int) -> float:
 	return NationRelationStore.get_war_exhaustion(nation_a, nation_b, for_nation)

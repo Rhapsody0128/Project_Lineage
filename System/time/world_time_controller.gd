@@ -23,22 +23,17 @@ var _day_events: Array[Callable] = []
 var _month_events: Array[Callable] = []
 var _year_events: Array[Callable] = []
 
-
 func _init(p_world_time: WorldTime = null) -> void:
 	world_time = p_world_time if p_world_time != null else WorldTime.new()
-
 
 func register_day_event(callback: Callable) -> void:
 	_day_events.append(callback)
 
-
 func register_month_event(callback: Callable) -> void:
 	_month_events.append(callback)
 
-
 func register_year_event(callback: Callable) -> void:
 	_year_events.append(callback)
-
 
 ## 依真實時間流逝推進——is_playing 為 false(暫停中)時整段不動作,時間跟固定事件
 ## 都一起凍結。
@@ -54,7 +49,6 @@ func advance(delta: float) -> void:
 			_dispatch(_month_events)
 		if day_count % WorldTime.DAYS_PER_YEAR == 0:
 			_dispatch(_year_events)
-
 
 func _dispatch(callbacks: Array[Callable]) -> void:
 	for callback in callbacks:

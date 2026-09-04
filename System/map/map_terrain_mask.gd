@@ -39,13 +39,17 @@ const MASK_PATH := "res://Images/Map/map_terrain.png"
 ## Texture2D.get_image() 每次呼叫都會重新解壓一份新的 Image,還是快取起來比較好)。
 static var _image: Image = null
 
+## Vector2i(像素座標) → nation_at() 結果快取。mask 圖是靜態美術資源,同一像素的顏色/
+## 最近國家永遠不變,一算好就能沿用整個執行期——clamp_segment_to_walkable() 的對分搜尋
+## 一次呼叫最多查 13 次 is_walkable(),世界座標解析度遠比 mask 圖片素細,鄰近的查詢點
+## 常常落在同一個像素,不快取的話每次都要重跑六色距離比對。
+static var _nation_cache: Dictionary = {}
 
 static func _get_image() -> Image:
 	if _image == null:
 		var texture: Texture2D = load(MASK_PATH)
 		_image = texture.get_image()
 	return _image
-
 
 ## 世界座標 → mask 圖片像素座標。x/y 分別依圖片實際寬高對 MapSystem.MAP_SIZE 的比例
 ## 換算(兩軸分開算,不要求圖片跟地圖長寬比完全一致)。
@@ -55,32 +59,35 @@ static func _world_to_pixel(pos: Vector2) -> Vector2i:
 	var py := int(clamp(pos.y / MapSystem.MAP_SIZE.y * image.get_height(), 0, image.get_height() - 1))
 	return Vector2i(px, py)
 
-
 ## 這個世界座標所屬的血統國家,落在不可行走的地方(山岳鏤空/海面/地圖外)回傳 -1。
 static func nation_at(pos: Vector2) -> int:
-	var color := _get_image().get_pixelv(_world_to_pixel(pos))
-	if color.a < ALPHA_BLOCKED_THRESHOLD:
-		return -1
-	var best_nation := -1
-	var best_dist := INF
-	for nation in NATION_COLORS:
-		var dist: float = _color_distance(color, NATION_COLORS[nation])
-		if dist < best_dist:
-			best_dist = dist
-			best_nation = nation
-	return best_nation
+	var pixel := _world_to_pixel(pos)
+	if _nation_cache.has(pixel):
+		return _nation_cache[pixel]
 
+	var result := -1
+	var color := _get_image().get_pixelv(pixel)
+	if color.a >= ALPHA_BLOCKED_THRESHOLD:
+		var best_nation := -1
+		var best_dist := INF
+		for nation in NATION_COLORS:
+			var dist: float = _color_distance(color, NATION_COLORS[nation])
+			if dist < best_dist:
+				best_dist = dist
+				best_nation = nation
+		result = best_nation
+
+	_nation_cache[pixel] = result
+	return result
 
 ## 只比對 RGB,忽略 alpha——mask 圖邊緣抗鋸齒的半透明像素,顏色本身仍應歸類到最接近的
 ## 那個國家色,alpha 只用來擋全透明的背景/鏤空(見 nation_at() 的門檻判斷)。
 static func _color_distance(a: Color, b: Color) -> float:
 	return (a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2
 
-
 ## 這個世界座標可不可以站/走——查不到國家(山岳/海面/地圖外)就是不可行走。
 static func is_walkable(pos: Vector2) -> bool:
 	return nation_at(pos) != -1
-
 
 ## 從已知可行走的 from_pos,沿線段往 to_pos 方向逼近,回傳最後仍可行走的座標(對分搜尋
 ## 固定迭代次數,邊界誤差小到看不出來)——用於玩家/遊蕩敵人的移動目的地卡在陸地範圍內,

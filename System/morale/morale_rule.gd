@@ -23,37 +23,29 @@ const TIER_ATTACK_WEIGHT_MULTIPLIERS: Array[float] = [1.3, 1.15, 1.0, 0.85, 0.7]
 const TIER_ESCAPE_WEIGHT_MULTIPLIERS: Array[float] = [0.5, 0.75, 1.0, 1.4, 1.8]
 const TIER_DAZE_WEIGHT_MULTIPLIERS: Array[float] = [0.5, 0.75, 1.0, 1.3, 1.6]
 
-
 static func _tier_index(value: float) -> int:
 	for i in TIER_THRESHOLDS.size():
 		if value >= TIER_THRESHOLDS[i]:
 			return i
 	return TIER_THRESHOLDS.size() - 1
 
-
 static func tier_label(value: float) -> String:
 	return TIER_LABELS[_tier_index(value)]
-
 
 static func combat_stat_multiplier(value: float) -> float:
 	return TIER_STAT_MULTIPLIERS[_tier_index(value)]
 
-
 static func map_move_speed_multiplier(value: float) -> float:
 	return TIER_STAT_MULTIPLIERS[_tier_index(value)]
-
 
 static func ai_attack_weight_multiplier(value: float) -> float:
 	return TIER_ATTACK_WEIGHT_MULTIPLIERS[_tier_index(value)]
 
-
 static func ai_escape_weight_multiplier(value: float) -> float:
 	return TIER_ESCAPE_WEIGHT_MULTIPLIERS[_tier_index(value)]
 
-
 static func ai_daze_weight_multiplier(value: float) -> float:
 	return TIER_DAZE_WEIGHT_MULTIPLIERS[_tier_index(value)]
-
 
 static func ai_tendency_label(value: float) -> String:
 	var idx := _tier_index(value)
@@ -63,7 +55,6 @@ static func ai_tendency_label(value: float) -> String:
 		return "持平"
 	return "保守"
 
-
 static func escape_tendency_label(value: float) -> String:
 	var idx := _tier_index(value)
 	if idx <= 1:
@@ -71,7 +62,6 @@ static func escape_tendency_label(value: float) -> String:
 	if idx == 2:
 		return "正常"
 	return "提高"
-
 
 ## Header tooltip「目前效果」區塊用,固定順序:大地圖移動速度/戰鬥素質/戰鬥 AI 傾向/
 ## 撤退傾向,對齊 CLAUDE.md「二、HEADER 顯示」的 tooltip 版型。
@@ -82,7 +72,6 @@ static func effect_description_lines(value: float) -> Array[String]:
 	lines.append("戰鬥 AI 傾向：%s" % ai_tendency_label(value))
 	lines.append("撤退傾向：%s" % escape_tendency_label(value))
 	return lines
-
 
 static func _format_percent(multiplier: float) -> String:
 	if is_equal_approx(multiplier, 0.0):

@@ -16,15 +16,12 @@ const RETURN_SCENE_PATH := "res://Scenes/Map/map.tscn"
 
 var _enemy: RoamingEnemy
 
-
 func _init(p_enemy: RoamingEnemy) -> void:
 	_enemy = p_enemy
-
 
 static func trigger(enemy: RoamingEnemy) -> void:
 	var event := RoamingEnemyEvent.new(enemy)
 	event._start()
-
 
 ## 遭遇當下重新依敵人「目前座標」所在地圖色塊指派所屬國家,覆寫生成當下的舊值——敵人
 ## 生成後會原地遊蕩(見 System/map/roaming_enemy.gd 的 WANDER_RADIUS),可能已經漂出
@@ -37,6 +34,8 @@ func _start() -> void:
 	var current_nation := MapTerrainMask.nation_at(_enemy.position)
 	if current_nation != -1:
 		_enemy.party.nation_type = current_nation
+	else:
+		push_error("RoamingEnemyEvent._start(): 敵人目前座標查不到所屬國家,理論上不會發生")
 
 	var self_party := PartyStore.party
 	var dialogue := _build_challenge(self_party, func():
@@ -47,7 +46,6 @@ func _start() -> void:
 		)
 	)
 	goto_dialogue(dialogue, RETURN_SCENE_PATH)
-
 
 ## 只有真的打贏才把敵人從地圖上消耗掉;戰敗或平手都算沒能擊退盜賊,敵人留在原地——
 ## 跟選「離開」共用同一套 decline_encounter() 暫時擋重觸發機制,避免播完結果對話回到
@@ -63,7 +61,6 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 	else:
 		RoamingEnemyStore.spawner.decline_encounter(_enemy)
 	goto_dialogue(_build_result(result), RETURN_SCENE_PATH)
-
 
 ## self_party 可能是 null(玩家還沒去 PartyEdit 按過「完成編輯」)——這種情況不生一支假的
 ## 隨機小隊頂替,直接不給「戰鬥」選項,只能「離開」,比照 TownGateEvent._build_challenge。
@@ -107,7 +104,6 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 
 	return Dialogue.new([bandit_speaker, player_speaker], lines, _background_path())
 
-
 ## 依 party.nation_type(見 _start() 已在遭遇當下覆寫成「目前座標」所在國家)換算成地形
 ## 對應的強盜稱呼(GameEnums.terrain_bandit_label()),-1(理論上不會發生)時 fallback 回
 ## 中性的「強盜」。
@@ -116,7 +112,6 @@ func _bandit_label() -> String:
 	if nation_type == -1:
 		return "強盜"
 	return GameEnums.bandit_label_for_nation(nation_type)
-
 
 ## 遭遇對話背景圖優先看敵人目前座標在地圖色塊 mask(見 System/map/map_terrain_mask.gd)
 ## 上屬於哪個地形——不管敵人 party 所屬國家是哪國(例如遊蕩到冰原範圍裡的其他國家盜賊,
@@ -133,7 +128,6 @@ func _background_path() -> String:
 	var terrain_type := GameEnums.bloodline_nation_terrain(nation_type) if nation_type != -1 else GameEnums.TerrainType.PLAINS
 	return GameEnums.terrain_background_path(terrain_type)
 
-
 ## 開戰前先告知玩家這場遭遇的評級/金錢與好感度利害關係(見 System/battle/battle_reward.gd
 ## 的三張 RankType 查表)。_enemy.party.nation_type 一律由 _start() 依遭遇當下座標
 ## (MapTerrainMask.nation_at())指派,理論上不會是 -1,但仍防呆處理。
@@ -147,7 +141,6 @@ func _build_stakes_text() -> String:
 	var nation_label := GameEnums.bloodline_nation_label(nation_type)
 	var favor := BattleReward.favor_for_rank(_enemy.rank)
 	return "（看起來是 %s 國附近、%s 級的對手,打贏能拿到 %d 金錢與 %s 好感度 +%d,打輸會被搶走 %d 金錢。）" % [nation_label, rank_label, reward, nation_label, favor, penalty]
-
 
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 RETURN_SCENE_PATH 自動接手轉場。
 ## DRAW(平手)沒有另外的台詞,一律當作沒能擊退盜賊,跟戰敗共用同一句,比照 TownGateEvent。

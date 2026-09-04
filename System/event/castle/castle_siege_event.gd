@@ -23,16 +23,13 @@ var _guard_rank: int
 var _guard: Character
 var _wave_index: int = 0
 
-
 func _init(p_map_object: MapObject, p_return_scene_path: String) -> void:
 	_map_object = p_map_object
 	_return_scene_path = p_return_scene_path
 
-
 static func trigger(map_object: MapObject, return_scene_path: String) -> void:
 	var event := CastleSiegeEvent.new(map_object, return_scene_path)
 	event._start()
-
 
 func _start() -> void:
 	if CastleStore.is_conquered(_map_object.id):
@@ -49,7 +46,6 @@ func _start() -> void:
 	NavigationStore.push_return_scene_path(_return_scene_path)
 	goto_dialogue(_build_wave_intro(), _return_scene_path)
 
-
 func _start_battle() -> void:
 	var wave_base_rank := mini(_guard_rank + _wave_index + 1, RankDrawTable.MAX_BASE_RANK)
 	var wave_rank := RankDrawTable.roll(wave_base_rank)
@@ -59,7 +55,6 @@ func _start_battle() -> void:
 		"res://Scenes/Battle/battle.tscn", _return_scene_path,
 		"", _on_battle_result
 	)
-
 
 ## AskBattle 打完(不管是選「是」跳過戰鬥、還是選「否」走完即時戰鬥)呼叫這裡收尾:
 ## 沒贏就當這趟攻城失敗,回原場景、不記錄進度;三場都贏才真正呼叫 CastleStore.conquer()。
@@ -73,7 +68,6 @@ func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 		goto_dialogue(_build_victory_dialogue(), _return_scene_path)
 	else:
 		goto_dialogue(_build_wave_intro(), _return_scene_path)
-
 
 ## self_party(PartyStore.party)可能是 null(玩家還沒去 PartyEdit 按過「完成編輯」)——
 ## 比照 TownGateEvent/RoamingEnemyEvent,不生一支假的隨機小隊頂替,直接不給挑戰選項,
@@ -113,13 +107,11 @@ func _build_wave_intro() -> Dialogue:
 
 	return Dialogue.new(speakers, lines, BACKGROUND_PATH)
 
-
 func _accept_line() -> String:
 	match _wave_index:
 		0: return "無恥的%s,我是來伸張正義的!" % _bandit_label()
 		1: return "廢話少說,放馬過來!"
 		_: return "這次也不會輸!"
-
 
 func _decline_line() -> String:
 	match _wave_index:
@@ -127,14 +119,12 @@ func _decline_line() -> String:
 		1: return "三十六計走為上策。"
 		_: return "我還是先撤退好了……"
 
-
 func _build_defeat_dialogue() -> Dialogue:
 	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.title_full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(guard_speaker.id, "哈哈,滾回去舔傷口吧!"),
 	]
 	return Dialogue.new([guard_speaker], lines, BACKGROUND_PATH)
-
 
 func _build_victory_dialogue() -> Dialogue:
 	var guard_speaker := DialogueSpeaker.new(_guard.id, _guard.title_full_name, _guard.face_path, GameEnums.DialogueSide.RIGHT)
@@ -145,13 +135,11 @@ func _build_victory_dialogue() -> Dialogue:
 	]
 	return Dialogue.new([guard_speaker, narrator], lines, BACKGROUND_PATH)
 
-
 ## 這座城堡所屬國家(_map_object.nation,靜態寫死,見 System/map/map_object.gd)換算成
 ## 地形對應的強盜稱呼(GameEnums.terrain_bandit_label()),跟遊蕩者(見
 ## System/event/map/roaming_enemy_event.gd 的 _bandit_label())共用同一份對照表。
 func _bandit_label() -> String:
 	return GameEnums.bandit_label_for_nation(_map_object.nation)
-
 
 ## 佔領後每次「聊天」都是同一段固定內容,產出量是確定性算式,不需要另存「上個月」快照,
 ## 見 CastleStore.monthly_yield_for()。

@@ -78,7 +78,6 @@ func _init(battle: Battle) -> void:
 	enemy_character_rows = _build_character_rows(battle, battle.enemy_characteres, final_hp)
 	end_reason_text = _end_reason_text(battle, result, defeated_characteres)
 
-
 static func _result_text(p_result: GameEnums.BattleResultType) -> String:
 	match p_result:
 		GameEnums.BattleResultType.SELF_WIN:
@@ -87,7 +86,6 @@ static func _result_text(p_result: GameEnums.BattleResultType) -> String:
 			return "戰敗"
 		_:
 			return "平手"
-
 
 static func _build_character_rows(battle: Battle, battle_characteres: Array[BattleCharacter], final_hp: Dictionary) -> Array[Dictionary]:
 	var rows: Array[Dictionary] = []
@@ -102,7 +100,6 @@ static func _build_character_rows(battle: Battle, battle_characteres: Array[Batt
 		})
 	return rows
 
-
 ## 依次數取最高的一筆,回傳 [name, value];沒有任何記錄時回傳 ["", 0]。
 static func _pick_top(counts: Dictionary) -> Array:
 	var best_name := ""
@@ -113,7 +110,6 @@ static func _pick_top(counts: Dictionary) -> Array:
 			best_value = value
 			best_name = actor_name
 	return [best_name, best_value]
-
 
 ## 平手一律是撐滿 10 回合(見 Battle.result 註解);勝負分明時,再看輸的一方是被打到
 ## 全滅、還是只有隊長(總大將)陣亡就分出勝負。

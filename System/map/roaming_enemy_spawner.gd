@@ -21,6 +21,11 @@ const MIN_DISTANCE_FROM_MAP_OBJECT := 260.0
 const DECLINED_CLEAR_RADIUS := 150.0
 
 var enemies: Array[RoamingEnemy] = []
+## enemies 陣列每次新增/移除就遞增,world_inner.gd 的 _sync_enemy_visuals() 靠比對這個
+## 數字決定要不要重新跑一輪 diff(見該檔案),不用每幀都重建 Dictionary 比對——敵人數量
+## 一多,原本每幀配置+雙迴圈的成本會隨規模惡化,實際上生成/消失一幀內只會發生在
+## _try_spawn_in_cell()/remove_enemy()/_despawn_far() 這三處,不需要每幀都重算。
+var mutation_count: int = 0
 ## Vector2i(cell) -> true,已經擲過骰的格子不再重擲,見 _spawn_around()。
 var _rolled_cells: Dictionary = {}
 ## 剛被玩家在對話裡選「離開」放過的敵人 id——這隻敵人不會被移除(見
@@ -30,7 +35,6 @@ var _declined_enemy_id: String = ""
 ## sentinel:確保第一次呼叫 update() 一定會跑一次生成判定。
 var _last_player_cell: Vector2i = Vector2i(999999, 999999)
 var _map_objects: Array[MapObject] = MapObject.get_all()
-
 
 ## RoamingEnemyStore(autoload)全程只持有一個 spawner 實例,_map_objects 因此只在
 ## 這裡初始化那一刻拍過 MapObject.get_all() 一次快照,而那份快照裡的根據地座標本來就是
@@ -43,7 +47,6 @@ func update_base_position(new_pos: Vector2) -> void:
 		if obj.type == GameEnums.MapObjectType.BASE:
 			obj.position = new_pos
 			return
-
 
 ## map.gd 每幀呼叫。玩家跨到新格子才重新丟骰生成;敵人自身的遊蕩位移與離玩家太遠的
 ## 消失判定則每幀都要做(敵人數量少,逐一檢查很便宜)。
@@ -58,25 +61,22 @@ func update(player_pos: Vector2, delta: float) -> void:
 
 	_despawn_far(player_pos)
 
-
 func is_visible_to_player(enemy: RoamingEnemy, player_pos: Vector2) -> bool:
 	return enemy.position.distance_to(player_pos) <= VISION_RADIUS
-
 
 ## 實際開打(玩家在遭遇對話選「戰鬥」)當下呼叫,讓這隻敵人從地圖上消耗掉。選「離開」
 ## 不算數——那隻敵人要繼續留在地圖上,見 decline_encounter()。
 func remove_enemy(enemy: RoamingEnemy) -> void:
 	enemies.erase(enemy)
+	mutation_count += 1
 	_rolled_cells.erase(_cell_of(enemy.anchor))
 	if _declined_enemy_id == enemy.id:
 		_declined_enemy_id = ""
-
 
 ## 玩家在遭遇對話選「離開」時呼叫(見 RoamingEnemyEvent._build_challenge()):這隻敵人
 ## 不從地圖上移除,只記下 id,讓 should_skip_encounter() 暫時擋掉重觸發。
 func decline_encounter(enemy: RoamingEnemy) -> void:
 	_declined_enemy_id = enemy.id
-
 
 ## 玩家直接點擊瞄準這隻敵人再出發(見 map.gd 的 _handle_click_to_move())時呼叫:點擊
 ## 本身就是明確想再次交手的意圖,不必等玩家先走遠 DECLINED_CLEAR_RADIUS 才解除——否則
@@ -85,7 +85,6 @@ func decline_encounter(enemy: RoamingEnemy) -> void:
 func clear_declined(enemy: RoamingEnemy) -> void:
 	if _declined_enemy_id == enemy.id:
 		_declined_enemy_id = ""
-
 
 ## map.gd 的 _check_roaming_encounters() 每幀呼叫:剛被放過的那隻敵人,玩家還沒走遠
 ## (DECLINED_CLEAR_RADIUS 內)之前都跳過,避免同一幀/下一幀立刻又黏上去重新觸發同一場
@@ -98,10 +97,8 @@ func should_skip_encounter(enemy: RoamingEnemy, player_pos: Vector2) -> bool:
 		return false
 	return true
 
-
 func _cell_of(pos: Vector2) -> Vector2i:
 	return Vector2i(floori(pos.x / CELL_SIZE), floori(pos.y / CELL_SIZE))
-
 
 func _spawn_around(player_pos: Vector2) -> void:
 	var player_cell := _cell_of(player_pos)
@@ -119,7 +116,6 @@ func _spawn_around(player_pos: Vector2) -> void:
 
 			_rolled_cells[cell] = true
 			_try_spawn_in_cell(cell)
-
 
 func _try_spawn_in_cell(cell: Vector2i) -> void:
 	if Util.get_random_float(0.0, 1.0) > SPAWN_CHANCE_PER_CELL:
@@ -145,7 +141,7 @@ func _try_spawn_in_cell(cell: Vector2i) -> void:
 	var party := PartyController.get_random_party(rank, nation)
 	var enemy := RoamingEnemy.new(Util.generate_uuid(), spawn_pos, party, party.rank_type)
 	enemies.append(enemy)
-
+	mutation_count += 1
 
 func _is_too_close_to_map_object(pos: Vector2) -> bool:
 	for obj in _map_objects:
@@ -153,10 +149,10 @@ func _is_too_close_to_map_object(pos: Vector2) -> bool:
 			return true
 	return false
 
-
 func _despawn_far(player_pos: Vector2) -> void:
 	for i in range(enemies.size() - 1, -1, -1):
 		var enemy: RoamingEnemy = enemies[i]
 		if enemy.position.distance_to(player_pos) > DESPAWN_RADIUS:
 			enemies.remove_at(i)
+			mutation_count += 1
 			_rolled_cells.erase(_cell_of(enemy.anchor))

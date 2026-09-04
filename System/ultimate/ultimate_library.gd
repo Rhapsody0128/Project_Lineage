@@ -14,7 +14,6 @@ extends RefCounted
 static var _self_cache: Array[Ultimate] = []
 static var _enemy_cache: Array[Ultimate] = []
 
-
 ## 對己方生效的奧義(祭壇購買),F~SSS 共 9 個,設計依據見「奧義擴充設計」章節——刻意讓
 ## 每個 Rank 走不同效果軸線(治療/護盾/素質增益/淨化/破防/必定暴擊…),不是同一效果加大
 ## 數字,避免高階單純輾壓低階。
@@ -33,7 +32,6 @@ static func self_ultimates() -> Array[Ultimate]:
 			ultimate.category = GameEnums.UltimateCategory.BLESSING
 	return _self_cache
 
-
 ## 對敵方生效的奧義(禁忌祭壇購買),F~SSS 共 9 個,低中階刻意留幾個「純控場、不傷血」
 ## 的奧義(凋零詛咒/絕望迷霧/夜嚎凶兆/萬鬼緘默),對付特定敵方陣型時比高階傷害奧義更好用,
 ## 高階奧義才開始把傷害跟控場疊在一起。
@@ -51,7 +49,6 @@ static func enemy_ultimates() -> Array[Ultimate]:
 		for ultimate in _enemy_cache:
 			ultimate.category = GameEnums.UltimateCategory.CALAMITY
 	return _enemy_cache
-
 
 static func build() -> Array[Ultimate]:
 	var library: Array[Ultimate] = []
@@ -95,7 +92,6 @@ static func _tornado() -> Ultimate:
 		.effect_ratio(0.2)
 		.resolve_action(Callable(UltimateEffectLibrary, "tornado_resolve"))
 		.build())
-
 
 # =========================================================
 # 自身BUFF奧義 E~SSS(祭壇購買),F 級是既有的天降甘霖
@@ -210,7 +206,6 @@ static func _genesis_goddess() -> Ultimate:
 		.duration_rounds(1)
 		.resolve_action(Callable(UltimateEffectLibrary, "genesis_goddess_resolve"))
 		.build())
-
 
 # =========================================================
 # 傷害敵人奧義 E~SSS(禁忌祭壇購買),F 級是既有的龍捲風

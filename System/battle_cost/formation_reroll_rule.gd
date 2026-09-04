@@ -7,7 +7,6 @@ extends RefCounted
 const SHAPE_REROLL_COST := 100
 const ANCHOR_REROLL_COST := 50
 
-
 ## 已編入小隊(PartyStore.grid.is_placed())的角色不能變換隊形——PartyEditGrid.place() 存進
 ## 網格的形狀是放置當下的快照(見 party_edit_availability_layer.gd 的 _drop_data()),不是
 ## 即時參照 Character.battle_cost,這裡如果還讓玩家改動 battle_cost(重抽形狀/重抽佔位/

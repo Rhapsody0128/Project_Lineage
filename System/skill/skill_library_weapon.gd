@@ -21,7 +21,6 @@ static func build() -> Array[Skill]:
 	library.append_array(_dream_skills())
 	return library
 
-
 static func _sword_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
 
@@ -135,8 +134,7 @@ static func _sword_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "sword_attack"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_weapon_active(skills)
 
 static func _bow_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -251,8 +249,7 @@ static func _bow_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "bow_attack"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_weapon_active(skills)
 
 static func _shield_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -371,8 +368,7 @@ static func _shield_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "shield"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_weapon_active(skills)
 
 static func _dagger_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -490,8 +486,7 @@ static func _dagger_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "dagger_attack"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_weapon_active(skills)
 
 static func _staff_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -609,8 +604,7 @@ static func _staff_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "staff_attack"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_weapon_active(skills)
 
 static func _dream_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -727,4 +721,4 @@ static func _dream_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "heal_with_cleanse"))
 		.build())
 
-	return skills
+	return SkillIdentity.stamp_weapon_active(skills)

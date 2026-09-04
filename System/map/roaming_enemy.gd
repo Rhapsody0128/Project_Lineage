@@ -32,7 +32,6 @@ var _wander_target: Vector2
 var _is_paused: bool = true
 var _pause_timer: float = 0.0
 
-
 func _init(p_id: String, p_position: Vector2, p_party: Party, p_rank: GameEnums.RankType) -> void:
 	id = p_id
 	position = p_position
@@ -41,7 +40,6 @@ func _init(p_id: String, p_position: Vector2, p_party: Party, p_rank: GameEnums.
 	rank = p_rank
 	wander_speed = MapSystem.compute_speed(MapSystem.compute_average_agi(p_party))
 	_pause_timer = Util.get_random_float(WANDER_PAUSE_MIN, WANDER_PAUSE_MAX)
-
 
 ## 每幀呼叫,推進原地遊蕩;回傳這一步的位移量(Vector2.ZERO 代表沒有移動),
 ## 供畫面端判斷走路方向/播放對應動畫。

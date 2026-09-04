@@ -21,7 +21,6 @@ var territory_polygon: PackedVector2Array
 ## 有兩座),這裡純粹借該地形對應的 nation 當查表 key,不代表城堡效忠哪個國家。
 var nation: GameEnums.BloodlineNation
 
-
 func _init(p_id: String, p_name: String, p_texture: Texture2D, p_position: Vector2, p_type: GameEnums.MapObjectType, p_nation: GameEnums.BloodlineNation, p_territory_polygon: PackedVector2Array = PackedVector2Array()) -> void:
 	id = p_id
 	name = p_name
@@ -31,13 +30,11 @@ func _init(p_id: String, p_name: String, p_texture: Texture2D, p_position: Vecto
 	nation = p_nation
 	territory_polygon = p_territory_polygon
 
-
 ## 這個地點代表的地理環境,由 nation 對照 GameEnums.bloodline_nation_terrain() 換算——
 ## Scenes/MapLocation/map_location.gd 進到 TOWN 地點選單挑對應地形背景圖(見
 ## GameEnums.town_background_path())時呼叫這裡,不要自己重複查表。
 func terrain_type() -> int:
 	return GameEnums.bloodline_nation_terrain(nation)
-
 
 ## 目前所有地圖物件的集中定義(六座城鎮+玩家根據地+十二座城堡,每種地形兩座)。
 ## texture 暫時給 null。
@@ -86,7 +83,6 @@ static func get_all() -> Array[MapObject]:
 		MapObject.new("IcefieldCastle2", "冰原城堡2", null, Vector2(2239.0, 693.0), GameEnums.MapObjectType.CASTLE, GameEnums.BloodlineNation.DRAGON),
 	]
 
-
 ## 各地點類型底下的子地點清單(見 Scenes/MapLocation/)。地點不一定是城鎮(之後會有
 ## 村莊/遺跡等其他 type),子地點內容一律照 type 查表決定,不要在 Scenes/MapLocation/
 ## 寫死特定地點類型的選項文字。TOWN:城門/酒館/市集是佔位按鈕,聊天已接上
@@ -111,7 +107,6 @@ const TYPE_SUB_LOCATIONS: Dictionary = {
 	GameEnums.MapObjectType.BASE: ["進入根據地", "休息", "長休", "遷移根據地"],
 	GameEnums.MapObjectType.CASTLE: ["聊天", "駐軍", "休息"],
 }
-
 
 ## castle_conquered 只在 type == CASTLE 時有意義:城堡還沒被玩家攻下時,子選單只留
 ## 「聊天」(觸發 System/event/castle/castle_siege_event.gd 的攻城流程),駐軍/休息要等

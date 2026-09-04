@@ -40,15 +40,12 @@ var _campaign_war: War
 var _campaign_battle_number: int = 0
 var _campaign_fight_reports: Array[BattleReport] = []
 
-
 func _init(p_battle: WarBattle) -> void:
 	_battle = p_battle
-
 
 static func trigger(battle: WarBattle) -> void:
 	var event := WarBattleEvent.new(battle)
 	event._start()
-
 
 func _start() -> void:
 	var war := NationRelationStore.find_war(_battle.war_id)
@@ -56,7 +53,6 @@ func _start() -> void:
 		goto_dialogue(_build_intro_dialogue(war), RETURN_SCENE_PATH)
 	else:
 		goto_dialogue(_build_battlefield_dialogue(war), RETURN_SCENE_PATH)
-
 
 ## 「看起來 O 國跟 X 國發生了衝突,你決定——」三選一:支援攻方/支援守方/不插手。
 func _build_intro_dialogue(war: War) -> Dialogue:
@@ -78,18 +74,15 @@ func _build_intro_dialogue(war: War) -> Dialogue:
 	]
 	return Dialogue.new([narrator, leader_speaker], lines, _background_path(war))
 
-
 ## 選了支援某一國:永久鎖定這整場戰爭的 player_side,接著直接進戰場選項畫面。
 func _on_side_chosen(war: War, side: int) -> void:
 	NationRelationStore.set_player_side(war, side)
 	goto_dialogue(_build_battlefield_dialogue(war), RETURN_SCENE_PATH)
 
-
 ## 選了不插手:不動 player_side(維持 SIDE_UNDECIDED),播一句收尾台詞後回地圖——下次
 ## 遇到這場戰爭的任何戰場都會重新問一次選邊敘事。
 func _on_decline_chosen(war: War) -> void:
 	goto_dialogue(_build_decline_dialogue(war), RETURN_SCENE_PATH)
-
 
 func _build_decline_dialogue(war: War) -> Dialogue:
 	var leader := LeaderStore.get_leader()
@@ -98,7 +91,6 @@ func _build_decline_dialogue(war: War) -> Dialogue:
 		DialogueLine.new(leader_speaker.id, "（先觀察情勢,這次暫時不插手。）"),
 	]
 	return Dialogue.new([leader_speaker], lines, _background_path(war))
-
 
 ## 戰場選項畫面:精簡成一句「看起來是 %s 級的戰場,你決定——」接三個選項,不再另外秀
 ## VS 對戰國/戰局佔優/支援對象這些前情提要,見檔頭註解。
@@ -124,13 +116,11 @@ func _build_battlefield_dialogue(war: War) -> Dialogue:
 
 	return Dialogue.new([narrator, leader_speaker], lines, _background_path(war))
 
-
 ## 見指揮官:一句風味台詞播完,由 on_finished 接手重新打開戰場選項畫面(比照
 ## System/event/town/town_tavern_event.gd 老闆招呼詞「播完接手開下一段」的慣例),不是真的
 ## 離開,玩家選完這個選項還能接著選 B/C。
 func _on_meet_commander(war: War) -> void:
 	goto_dialogue(_build_commander_dialogue(war), "", func(): goto_dialogue(_build_battlefield_dialogue(war), RETURN_SCENE_PATH))
-
 
 ## 只給一句固定的風味台詞,不依疲憊/戰局挑語氣——那些是刻意隱藏的內部數值,不該連間接
 ## 透過指揮官語氣變化透露給玩家,見檔頭註解。
@@ -139,7 +129,6 @@ func _build_commander_dialogue(war: War) -> Dialogue:
 	var lines: Array[DialogueLine] = [DialogueLine.new(commander.id, "辛苦你了,還請你多加把勁。")]
 	return Dialogue.new([commander], lines, _background_path(war))
 
-
 ## 投入戰場:啟動這一輪連續作戰(streak 從 1 重算),第一場直接問 AskBattle——不是背景
 ## 一次跑完,見檔頭註解與 _ask_next_campaign_battle()。
 func _on_join_campaign(war: War) -> void:
@@ -147,7 +136,6 @@ func _on_join_campaign(war: War) -> void:
 	_campaign_battle_number = 0
 	_campaign_fight_reports = []
 	_ask_next_campaign_battle()
-
 
 ## 生一個隨機敵方 Party 問玩家 AskBattle(坐鎮指揮/親臨戰場),結果一律回到
 ## _on_campaign_battle_result()。on_report 把這場的完整 BattleReport 收進
@@ -177,7 +165,6 @@ func _ask_next_campaign_battle() -> void:
 		false, description, false
 	)
 
-
 ## 贏了且還沒打滿 BATTLE_COUNT 場:播連勝台詞,由 on_finished 接手問下一場(留在同一輪連續
 ## 作戰內,不回地圖)。輸/平手,或連勝打滿 BATTLE_COUNT 場:播對應收尾台詞後結束這一輪。
 func _on_campaign_battle_result(result: GameEnums.BattleResultType) -> void:
@@ -192,7 +179,6 @@ func _on_campaign_battle_result(result: GameEnums.BattleResultType) -> void:
 	else:
 		goto_dialogue(progress_dialogue, "", func(): _finish_campaign())
 
-
 ## 只播「連勝/戰敗/平手」的定性台詞,不秀戰功等內部數字(streak 是玩家看得到的連勝場數,
 ## 不是隱藏的戰功分數,見檔頭註解)。
 func _build_campaign_progress_dialogue(result: GameEnums.BattleResultType, streak: int, reached_cap: bool) -> Dialogue:
@@ -206,7 +192,6 @@ func _build_campaign_progress_dialogue(result: GameEnums.BattleResultType, strea
 		text = "打成平手,雙方都退了下來……"
 	return Dialogue.new([narrator], [DialogueLine.new(narrator.id, text)], _background_path(_campaign_war))
 
-
 ## 這一輪連續作戰結束(不管是輸/平手中斷,還是連勝打滿):把累積的戰報包成
 ## WarCampaignReport 存進戰報列表的「戰爭戰報」分類,順便檢查這場戰場是否達到結算門檻
 ## (見 WarCampaignController.settle_battle_if_ready()),最後播結果總結回地圖。
@@ -218,10 +203,8 @@ func _finish_campaign() -> void:
 	WarCampaignController.settle_battle_if_ready(war, _battle)
 	goto_dialogue(_build_campaign_result_dialogue(war, report), RETURN_SCENE_PATH)
 
-
 func _enemy_nation(war: War) -> int:
 	return _battle.nation_b if war.player_side == _battle.nation_a else _battle.nation_a
-
 
 func _build_campaign_result_dialogue(war: War, report: WarCampaignReport) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
@@ -230,7 +213,6 @@ func _build_campaign_result_dialogue(war: War, report: WarCampaignReport) -> Dia
 		DialogueLine.new(narrator.id, "(詳細戰報可在戰報列表的「戰爭戰報」分類查看。)"),
 	]
 	return Dialogue.new([narrator], lines, _background_path(war))
-
 
 ## 對話背景圖優先看戰場座標落在 MapTerrainMask 的哪個國家色塊範圍內,查不到(山岳/海面/
 ## 地圖外)才 fallback 用攻方國家的地形,比照 RoamingEnemyEvent._background_path() 的

@@ -247,4 +247,4 @@ static func build() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "reactive_passive_noop"))
 		.build())
 
-	return skills
+	return SkillIdentity.stamp_generic_passive(skills)

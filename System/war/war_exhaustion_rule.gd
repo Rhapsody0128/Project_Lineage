@@ -15,14 +15,12 @@ const GAIN_BY_MARGIN: Dictionary = {
 }
 const STALEMATE_GAIN := 4.0
 
-
 static func gain_for_grade(grade: int) -> Dictionary:
 	var margin := absi(grade - GameEnums.BattleSettlementGrade.STALEMATE)
 	if margin == 0:
 		return {"winner_gain": STALEMATE_GAIN, "loser_gain": STALEMATE_GAIN, "stalemate_gain": STALEMATE_GAIN}
 	var row: Dictionary = GAIN_BY_MARGIN[margin]
 	return {"winner_gain": row["winner"], "loser_gain": row["loser"], "stalemate_gain": STALEMATE_GAIN}
-
 
 static func decay(exhaustion: float) -> float:
 	return clampf(exhaustion - PEACETIME_MONTHLY_DECAY, 0.0, 100.0)

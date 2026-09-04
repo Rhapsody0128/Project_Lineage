@@ -24,7 +24,6 @@ var resource_amount: int
 ## 其他任務類型不使用,固定 -1。
 var destination_nation: GameEnums.BloodlineNation
 
-
 func _init(p_id: String, p_quest_type: GameEnums.QuestType, p_category: GameEnums.QuestCategory, p_rank: GameEnums.RankType, p_nation: GameEnums.BloodlineNation, p_accepted_day: int, p_deadline_day: int, p_resource_type: GameEnums.ResourceType = -1, p_resource_amount: int = 0, p_destination_nation: GameEnums.BloodlineNation = -1) -> void:
 	id = p_id
 	quest_type = p_quest_type

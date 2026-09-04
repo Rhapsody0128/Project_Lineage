@@ -28,11 +28,9 @@ extends LocationEvent
 ## 串接「這天還有下一場婚禮排隊」的收尾,不需要撐過存讀檔(每次都是同一個 session 內
 ## 現建的 closure,不會被序列化,見該檔案)。
 
-
 static func trigger(own_character: Character, spouse_character: Character, announcement_text: String, return_scene_path: String, on_done: Callable = Callable()) -> void:
 	var event := WeddingEvent.new()
 	event._start(own_character, spouse_character, announcement_text, return_scene_path, on_done)
-
 
 func _start(own_character: Character, spouse_character: Character, announcement_text: String, return_scene_path: String, on_done: Callable) -> void:
 	# 暫停時間已經統一收進 LocationEvent.goto_dialogue()(見該檔案),這裡不用重複設定。

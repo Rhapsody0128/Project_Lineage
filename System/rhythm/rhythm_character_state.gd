@@ -39,7 +39,6 @@ const FAIL := "FAIL"
 const ACTION_INTERVAL := 0.5
 const HIT_HOLD_DURATION := 0.1
 
-
 ## beats 不要求呼叫端先排序,這裡自己排——時間戳照理是遞增的,但防呆一下不吃虧。
 static func state_for(t: float, beats: Array[float], available: Dictionary) -> String:
 	if beats.is_empty():
@@ -64,7 +63,6 @@ static func state_for(t: float, beats: Array[float], available: Dictionary) -> S
 			return HIT
 
 	return _idle_state(t, available)
-
 
 static func _idle_state(t: float, available: Dictionary) -> String:
 	if not available.has(HOLD2):

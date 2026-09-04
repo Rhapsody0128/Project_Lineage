@@ -26,7 +26,6 @@ const LINE_CHECK_STEP := CELL_SIZE * 0.5
 ## is_walkable(),跟 MapTerrainMask._image 一樣沒必要重算)。
 static var _grid: AStarGrid2D = null
 
-
 static func _get_grid() -> AStarGrid2D:
 	if _grid == null:
 		_grid = AStarGrid2D.new()
@@ -45,14 +44,12 @@ static func _get_grid() -> AStarGrid2D:
 					_grid.set_point_solid(cell)
 	return _grid
 
-
 static func _world_to_cell(pos: Vector2) -> Vector2i:
 	var grid := _get_grid()
 	return Vector2i(
 		clampi(int(pos.x / CELL_SIZE), 0, grid.region.size.x - 1),
 		clampi(int(pos.y / CELL_SIZE), 0, grid.region.size.y - 1)
 	)
-
 
 ## 算出 from_pos → to_pos 之間繞過不可行走區域的路徑,回傳「接下來要依序走到」的世界座標
 ## 折線(不含 from_pos 本身,含終點)。to_pos 本身若不可行走(點在海上/山岳鏤空),終點會
@@ -83,7 +80,6 @@ static func find_path(from_pos: Vector2, to_pos: Vector2) -> Array[Vector2]:
 	waypoints[waypoints.size() - 1] = final_point
 	return _simplify_path(waypoints)
 
-
 static func _resolve_walkable_cell(cell: Vector2i) -> Vector2i:
 	var grid := _get_grid()
 	if not grid.is_point_solid(cell):
@@ -97,7 +93,6 @@ static func _resolve_walkable_cell(cell: Vector2i) -> Vector2i:
 				if grid.region.has_point(c) and not grid.is_point_solid(c):
 					return c
 	return Vector2i(-1, -1)
-
 
 ## 折線精簡(string pulling):從起點開始,每一步盡量找「直線可達且整段可行走」的最遠
 ## 一個路徑點直接連過去,跳過中間共線/近似共線的網格轉折,讓路徑貼近真正最短距離,
@@ -115,7 +110,6 @@ static func _simplify_path(waypoints: Array[Vector2]) -> Array[Vector2]:
 		result.append(waypoints[farthest])
 		anchor_index = farthest
 	return result
-
 
 ## 沿線段抽樣檢查是否整段可行走,直接查網格 solid 狀態(而非重新比對 mask 顏色),
 ## 抽樣次數雖多但都是既有網格資料的查表,成本很低。

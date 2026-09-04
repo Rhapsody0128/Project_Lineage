@@ -9,10 +9,17 @@ static func get_skill_list() -> Array[Skill]:
 static func get_skill(skill_index: int) -> Skill:
 	return _skill_library[skill_index]
 
-## 依名稱找技能:Skill.id 是隨機 UUID、重開遊戲會變(見 skill.gd _init()),存檔/讀檔
-## (Scripts/Autoload/save_load_store.gd)要還原角色技能表只能靠名稱比對——技能名稱在
-## SkillLibrary 裡本來就唯一,找不到回傳 null(技能改名/移除時讀舊存檔會遺漏該技能,
-## 呼叫端自行過濾 null)。
+## 依穩定 id 找技能(見 SkillIdentity),存檔/讀檔(Scripts/save_data_codec.gd)還原角色
+## 技能表的唯一入口,找不到回傳 null(技能移除時讀舊存檔會遺漏該技能,呼叫端自行過濾 null)。
+static func get_by_id(skill_id: String) -> Skill:
+	for skill in _skill_library:
+		if skill.id == skill_id:
+			return skill
+	return null
+
+## 依名稱找技能:只給讀取「skill_ids」欄位還沒出現的舊存檔相容用(見
+## Scripts/save_data_codec.gd decode_character_base()),技能名稱在 SkillLibrary 裡本來
+## 就唯一,找不到回傳 null。新存檔一律走 get_by_id(),不要在其他地方呼叫這支。
 static func get_by_name(skill_name: String) -> Skill:
 	for skill in _skill_library:
 		if skill.name == skill_name:
@@ -69,6 +76,7 @@ static func _draw_active_skill(weapon: GameEnums.WeaponType, noble_rank: GameEnu
 		if skill.bind_weapon == weapon and skill.rank == active_rank and not skill.is_passive and skill.required_bloodline_nation == -1:
 			pool.append(skill)
 	if pool.is_empty():
+		push_error("SkillController._draw_active_skill(): 武器 %d 評級 %d 抽不到任何主動技,理論上不會發生" % [weapon, active_rank])
 		return null
 	return Util.get_random_from_array(pool)
 

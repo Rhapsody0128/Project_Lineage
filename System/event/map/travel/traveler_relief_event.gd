@@ -10,17 +10,14 @@ const RETURN_SCENE_PATH := "res://Scenes/Map/map.tscn"
 const RELIEF_COST := 50
 const RELIEF_FAVOR_REWARD := 5
 
-
 static func trigger(player_pos: Vector2) -> void:
 	var event := TravelerReliefEvent.new()
 	event._start(player_pos)
-
 
 func _start(player_pos: Vector2) -> void:
 	var nation_type := MapNationLookup.nearest_town_nation(player_pos)
 	var dialogue := _build_prompt(player_pos, nation_type)
 	goto_dialogue(dialogue, RETURN_SCENE_PATH)
-
 
 ## 身上的 GOLD 不夠資助時,只給「愛莫能助」一個選項,不讓玩家選了資助卻扣出負數存量。
 func _build_prompt(player_pos: Vector2, nation_type: int) -> Dialogue:
@@ -40,10 +37,8 @@ func _build_prompt(player_pos: Vector2, nation_type: int) -> Dialogue:
 	]
 	return Dialogue.new([narrator, player_speaker], lines, _background_path(nation_type))
 
-
 func _on_choice_selected(player_pos: Vector2, nation_type: int, helped: bool) -> void:
 	goto_dialogue(_build_result(nation_type, helped), RETURN_SCENE_PATH)
-
 
 ## nation_type 為 -1(理論上不會發生,見 MapNationLookup 註解)時退回純粹的感謝詞,不發
 ## 好感度——沒有城鎮可歸屬,自然沒有國家能記你這份人情。
@@ -64,7 +59,6 @@ func _build_result(nation_type: int, helped: bool) -> Dialogue:
 
 	var lines: Array[DialogueLine] = [DialogueLine.new(narrator.id, text)]
 	return Dialogue.new([narrator], lines)
-
 
 ## 背景圖沿用最近城鎮的地形對話背景,比照 RoamingEnemyEvent._background_path()。
 func _background_path(nation_type: int) -> String:

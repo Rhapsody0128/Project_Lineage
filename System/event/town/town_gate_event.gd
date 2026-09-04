@@ -9,7 +9,6 @@ extends LocationEvent
 
 const BACKGROUND_PATH := "res://Images/Dialogue/Town/town_gate.png"
 
-
 var _return_scene_path: String
 var guard_party
 var guard: Character
@@ -19,14 +18,12 @@ func _init(p_return_scene_path: String = "") -> void:
 	guard_party = PartyController.get_random_party(GameEnums.RankType.B)
 	guard = guard_party.leader
 
-
 ## 呼叫端(map_location.gd)按下「城門」按鈕時呼叫這裡啟動整段事件。return_scene_path
 ## 是這個事件全程「回原地」的目的地——擋門對話選「離開」、或闖進去打完戰鬥依勝負秀完
 ## 台詞,最後都是回到這裡,不會停在事件中途繞去的 Dialogue/Battle 場景上。
 static func trigger(return_scene_path: String) -> void:
 	var event := TownGateEvent.new(return_scene_path)
 	event._start()
-
 
 func _start() -> void:
 	var self_party := PartyStore.party
@@ -45,13 +42,11 @@ func _start() -> void:
 	)
 	goto_dialogue(dialogue, _return_scene_path)
 
-
 ## AskBattle 打完城門守衛挑戰(不管是選「是」跳過戰鬥、還是選「否」走完即時戰鬥)呼叫
 ## 這裡收尾:依勝負繞去 Dialogue 場景秀同一位守衛的一句反應,播完回到 _return_scene_path。
 func _on_battle_result(result: GameEnums.BattleResultType) -> void:
 	var won := result == GameEnums.BattleResultType.SELF_WIN
 	goto_dialogue(_build_result(won), _return_scene_path)
-
 
 ## 玩家選「闖進去」、選「離開」回原本場景——「闖進去」不直接切場景(next_scene_path
 ## 傳空字串),改由 on_challenge_accepted(_start() 傳入的那個彈 AskBattle 的 Callable)
@@ -90,7 +85,6 @@ func _build_challenge(self_party: Party, on_challenge_accepted: Callable) -> Dia
 		]
 
 	return Dialogue.new([guard_speaker, player_speaker], lines, BACKGROUND_PATH)
-
 
 ## 單句台詞沒有選項,播完由 goto_dialogue() 傳的 next_scene_path 自動接手轉場。
 ## DRAW(平手)沒有另外的台詞,一律當作沒能闖進去,跟戰敗共用同一句「不要再來了」。

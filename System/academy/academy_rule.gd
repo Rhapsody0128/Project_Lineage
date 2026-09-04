@@ -30,10 +30,8 @@ const NATION_FLAVOR := {
 	GameEnums.BloodlineNation.DEER: "聖潔庇佑，撫平傷痛",
 }
 
-
 static func weapon_for_nation(nation: int) -> int:
 	return NATION_WEAPON[nation]
-
 
 ## 反查:武器→國家(新生兒命名畫面預設勾選出生當下已遺傳到的武器對應國家用,見
 ## Scenes/LifeEvent/life_event_scene.gd)。NATION_WEAPON 各國武器互不重複,查無對應時
@@ -44,10 +42,8 @@ static func nation_for_weapon(weapon: int) -> int:
 			return nation
 	return -1
 
-
 static func flavor_for_nation(nation: int) -> String:
 	return NATION_FLAVOR[nation]
-
 
 ## 「遊學新制」科技線(TechEffectType.ACADEMY_REROLL_COUNT_ADD)讓初始技能表多骰幾次,
 ## 系統自動取其中「總品階最高」的一份(見 _skill_list_score())——玩家看到的永遠是這幾次
@@ -63,7 +59,6 @@ static func enroll(character: Character, nation: int) -> void:
 		if _skill_list_score(candidate) > _skill_list_score(best):
 			best = candidate
 	character.skill_list = best
-
 
 static func _skill_list_score(skill_list: Array[Skill]) -> int:
 	var total := 0

@@ -364,7 +364,6 @@ static func _apply_stat_effect(targets: Array[BattleCharacter], potential_types:
 			target.add_stat_modifier(potential_type, multiplier, rounds)
 		target.battle.log_event(StatEffectEvent.new(target, potential_types, multiplier, rounds))
 
-
 # =========================================================
 # 武器綁定攻擊(六種武器共用同一套素質配對,見 _attack_value()/_defense_value())
 # =========================================================
@@ -388,7 +387,6 @@ static func weapon_attack_with_mechanic(self_character: BattleCharacter, target:
 	weapon_attack(self_character, target, skill, cast_detail, weapon)
 	_apply_status_mechanics(self_character, skill.resolve_targets(self_character, target), skill)
 
-
 # =========================================================
 # 不綁定單一武器的攻擊(血統覺醒技/雙修技,見 _generic_attack_value())
 # =========================================================
@@ -403,7 +401,6 @@ static func generic_attack_with_stat_debuff(self_character: BattleCharacter, tar
 static func generic_attack_with_mechanic(self_character: BattleCharacter, target: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
 	generic_attack(self_character, target, skill, cast_detail)
 	_apply_status_mechanics(self_character, skill.resolve_targets(self_character, target), skill)
-
 
 # =========================================================
 # 治療 / 護盾(HEAL / SHIELD 類型,自身為施法中心,不需要鎖定敵人)
@@ -448,7 +445,6 @@ static func heal_with_shield(self_character: BattleCharacter, primary_target: Ba
 static func heal_with_buff(self_character: BattleCharacter, primary_target: BattleCharacter, skill: Skill, cast_detail: String = "") -> void:
 	heal(self_character, primary_target, skill, cast_detail)
 	_apply_stat_effect(skill.resolve_targets(self_character, self_character), skill.buffed_potential_types, skill.skill_ratio, skill.duration_rounds)
-
 
 # =========================================================
 # 素質增益 / 減益(BUFF / DEBUFF 類型,不含攻擊)
@@ -501,7 +497,6 @@ static func mechanic_buff(self_character: BattleCharacter, primary_target: Battl
 	var targets := skill.resolve_targets(self_character, self_character)
 	_apply_status_mechanics(self_character, targets, skill)
 
-
 # =========================================================
 # 被動(開戰套用一次,見 BattleCharacter._apply_passive_skills()/Skill.apply_passive())
 # =========================================================
@@ -524,7 +519,6 @@ static func passive_status_resist_buff(self_character: BattleCharacter, skill: S
 ## Skill 建構子一個合法的 Callable 佔位,apply_passive() 呼叫到也不做任何事。
 static func reactive_passive_noop(self_character: BattleCharacter, skill: Skill) -> void:
 	pass
-
 
 # =========================================================
 # 六種武器攻擊入口(給 SkillBuilder.action() 綁定用,武器固定、不需要每次呼叫端自己傳)

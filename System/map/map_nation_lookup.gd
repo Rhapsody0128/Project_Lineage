@@ -19,4 +19,6 @@ static func nearest_town_nation(pos: Vector2) -> int:
 		if dist < nearest_dist:
 			nearest_dist = dist
 			nearest_nation = obj.nation
+	if nearest_nation == -1:
+		push_error("MapNationLookup.nearest_town_nation(): 地圖上找不到任何城鎮,理論上不會發生")
 	return nearest_nation

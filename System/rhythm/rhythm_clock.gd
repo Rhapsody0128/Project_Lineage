@@ -8,10 +8,8 @@ extends RefCounted
 
 var _start_usec: int = 0
 
-
 func start() -> void:
 	_start_usec = Time.get_ticks_usec()
-
 
 func elapsed() -> float:
 	return (Time.get_ticks_usec() - _start_usec) / 1_000_000.0

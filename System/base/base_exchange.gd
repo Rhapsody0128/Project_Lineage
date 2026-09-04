@@ -46,7 +46,6 @@ class ExchangeOption:
 		sell_cost = p_sell_cost
 		sell_output = p_sell_output
 
-
 ## index 0 = Lv1 ... index 8 = Lv9。舊版直接把這個數字乘在拿到的資源/貨幣數量上,結果
 ## 某些資源(例如毛皮)滿級後買入單價會跌破「公平價值比」(fair,見 buy_unit_price()/
 ## sell_unit_price()),等於玩家穩賺,不再是「买贵卖贱必虧」——已改掉。現在這個數字是
@@ -60,7 +59,6 @@ const LEVEL_FAIRNESS_SHRINK: Array[float] = [1.00, 0.94, 0.88, 0.82, 0.75, 0.65,
 const BUY_MARKUP_L1 := 1.2
 const SELL_RATIO_L1 := 0.6
 
-
 ## 商隊站:金錢↔5 種基礎資材 + 贓物(黑市貨幣,這裡當一般商品收購/賣出)。
 static func caravan_options() -> Array[ExchangeOption]:
 	return [
@@ -71,7 +69,6 @@ static func caravan_options() -> Array[ExchangeOption]:
 		ExchangeOption.new(GameEnums.ResourceType.FOOD, 7, 5, 10, 7),
 		ExchangeOption.new(GameEnums.ResourceType.CONTRABAND, 3, 1, 2, 3),
 	]
-
 
 ## 黑市:贓物↔5 種高階資材 + 金錢(商隊站貨幣,這裡當一般商品收購/賣出)。工藝品刻意
 ## 賣得比同稀缺度的資源貴(見類別註解的加倍說明)。
@@ -85,10 +82,8 @@ static func black_market_options() -> Array[ExchangeOption]:
 		ExchangeOption.new(GameEnums.ResourceType.GOLD, 1, 2, 4, 1),
 	]
 
-
 static func options_for(building_type: GameEnums.BuildingType) -> Array[ExchangeOption]:
 	return caravan_options() if building_type == GameEnums.BuildingType.CARAVAN else black_market_options()
-
 
 static func find_option(building_type: GameEnums.BuildingType, resource: int) -> ExchangeOption:
 	for option in options_for(building_type):
@@ -96,11 +91,9 @@ static func find_option(building_type: GameEnums.BuildingType, resource: int) ->
 			return option
 	return null
 
-
 ## 商隊站的貨幣是金錢,黑市的貨幣是贓物——即該建築自己的被動產出資源(Building.produces)。
 static func currency_for(building_type: GameEnums.BuildingType) -> int:
 	return GameEnums.ResourceType.GOLD if building_type == GameEnums.BuildingType.CARAVAN else GameEnums.ResourceType.CONTRABAND
-
 
 ## 「每月自動兌換」貿易路線規則(見 Scripts/Autoload/base_exchange_store.gd):商隊站/
 ## 黑市預設各有 1 條路線,「市集通商」科技線(TechEffectType.EXCHANGE_ROUTE_COUNT_ADD)
@@ -110,14 +103,11 @@ static func currency_for(building_type: GameEnums.BuildingType) -> int:
 const TRADE_UNITS_PER_ROUTE_WORKER := 20
 const BASE_ROUTE_COUNT := 1
 
-
 static func route_count() -> int:
 	return BASE_ROUTE_COUNT + int(TechStore.get_bonus(GameEnums.TechEffectType.EXCHANGE_ROUTE_COUNT_ADD))
 
-
 static func route_capacity(worker_count: int) -> int:
 	return worker_count * TRADE_UNITS_PER_ROUTE_WORKER
-
 
 ## 「買貴賣賤」(Lv1 賣出永遠是 Lv1 買入的一半價值)保證同一棟建築內來回兌換必虧 50%;
 ## 金錢↔贓物這組跨商隊站/黑市的雙向迴圈(商隊站買贓物→黑市買金錢、或反過來兩邊都賣)
@@ -132,7 +122,6 @@ static func buy_unit_price(option: ExchangeOption, level: int) -> float:
 	var fair := base / BUY_MARKUP_L1
 	var shrink := LEVEL_FAIRNESS_SHRINK[clampi(level, 1, LEVEL_FAIRNESS_SHRINK.size()) - 1]
 	return fair + (base - fair) * shrink
-
 
 ## 賣出單價(每賣 1 個資材拿到多少貨幣)。fair 同樣是從 Lv1 的 sell_cost/sell_output
 ## 反推(Lv1 賣出價 = fair × SELL_RATIO_L1);等級越高,實際單價越靠近 fair,但恆 < fair,

@@ -66,7 +66,6 @@ enum TechEffectType {
 ## 這個狀態,取代舊版「年齡欄位加註(已故)」的寫法。
 enum CharacterStatus {ACTIVE, STATIONED, IN_PARTY, WORKING, ON_EXPEDITION, DISMISSED, DEAD}
 
-
 ## 技能效果分類:ATTACK/DEBUFF 對敵方生效,BUFF/HEAL/DEFEND/SHIELD 對我方(含自己)生效,
 ## 由 Skill.resolve_targets() 依這個欄位決定候選名單要從 caster.enemies 還是
 ## caster.allies 挑,見 Spec.md。SHIELD(護盾)賦予目標一層獨立於 HP 之外的緩衝血量
@@ -306,73 +305,73 @@ const NEWS_CATEGORY_LABELS: Array[String] = ["重大", "日常", "戰爭"]
 ## 以下四個 label 靜態函式包一層陣列索引,畫面端(Scenes/)一律呼叫這幾個函式取標籤,
 ## 不要直接寫 GameEnums.XXX_LABELS[type]——直接索引在 enum 之後新增/調整順序時
 ## 不會有任何編譯期或執行期警告,悄悄對應錯標籤;呼叫函式至少能在這裡集中防呆。
-static func potential_label(potential_type: int) -> String:
+static func potential_label(potential_type: PotentialType) -> String:
 	return POTENTIAL_TYPE_LABELS[potential_type]
 
-static func rank_label(rank_type: int) -> String:
+static func rank_label(rank_type: RankType) -> String:
 	return RANK_TYPE_LABELS[rank_type]
 
-static func weapon_label(weapon_type: int) -> String:
+static func weapon_label(weapon_type: WeaponType) -> String:
 	return WEAPON_TYPE_LABELS[weapon_type]
 
-static func character_sort_key_label(sort_key: int) -> String:
+static func character_sort_key_label(sort_key: CharacterSortKey) -> String:
 	return CHARACTER_SORT_KEY_LABELS[sort_key]
 
-static func map_object_type_label(map_object_type: int) -> String:
+static func map_object_type_label(map_object_type: MapObjectType) -> String:
 	return MAP_OBJECT_TYPE_LABELS[map_object_type]
 
-static func quest_type_label(quest_type: int) -> String:
+static func quest_type_label(quest_type: QuestType) -> String:
 	return QUEST_TYPE_LABELS[quest_type]
 
-static func quest_status_label(quest_status: int) -> String:
+static func quest_status_label(quest_status: QuestStatus) -> String:
 	return QUEST_STATUS_LABELS[quest_status]
 
-static func quest_category_label(quest_category: int) -> String:
+static func quest_category_label(quest_category: QuestCategory) -> String:
 	return QUEST_CATEGORY_LABELS[quest_category]
 
-static func nation_war_status_label(war_status: int) -> String:
+static func nation_war_status_label(war_status: NationWarStatus) -> String:
 	return NATION_WAR_STATUS_LABELS[war_status]
 
-static func war_status_label(war_status: int) -> String:
+static func war_status_label(war_status: WarStatus) -> String:
 	return WAR_STATUS_LABELS[war_status]
 
-static func war_battle_status_label(war_battle_status: int) -> String:
+static func war_battle_status_label(war_battle_status: WarBattleStatus) -> String:
 	return WAR_BATTLE_STATUS_LABELS[war_battle_status]
 
-static func battle_settlement_grade_label(grade: int) -> String:
+static func battle_settlement_grade_label(grade: BattleSettlementGrade) -> String:
 	return BATTLE_SETTLEMENT_GRADE_LABELS[grade]
 
-static func news_category_label(news_category: int) -> String:
+static func news_category_label(news_category: NewsCategory) -> String:
 	return NEWS_CATEGORY_LABELS[news_category]
 
-static func building_type_label(building_type: int) -> String:
+static func building_type_label(building_type: BuildingType) -> String:
 	return BUILDING_TYPE_LABELS[building_type]
 
-static func resource_string_label(resource_type: int) -> String:
+static func resource_string_label(resource_type: ResourceType) -> String:
 	return RESOURCE_STRING_LABELS[resource_type]
 
 ## 資源圖示路徑(見 Images/ResourceType/),檔名對應 ResourceType enum 成員名稱,同
 ## weapon_icon_path()/base_building_background_path() 的慣例——取代舊版
 ## RESOURCE_TYPE_LABELS 那組 emoji,畫面一律改用 TextureRect 載入這裡回傳的路徑。
-static func resource_type_icon_path(resource_type: int) -> String:
+static func resource_type_icon_path(resource_type: ResourceType) -> String:
 	return "res://Images/ResourceType/%s.png" % ResourceType.keys()[resource_type]
 
-static func bloodline_nation_label(nation: int) -> String:
+static func bloodline_nation_label(nation: BloodlineNation) -> String:
 	return BLOODLINE_NATION_LABELS[nation]
 
 ## 國家旗幟圖示路徑(見 Images/NationFlag/),檔名對應 BloodlineNation enum 成員名稱,同
 ## resource_type_icon_path() 的慣例。
-static func bloodline_nation_flag_path(nation: int) -> String:
+static func bloodline_nation_flag_path(nation: BloodlineNation) -> String:
 	return "res://Images/NationFlag/%s.png" % BloodlineNation.keys()[nation]
 
-static func bloodline_rank_label(rank: int) -> String:
+static func bloodline_rank_label(rank: BloodlineRank) -> String:
 	return BLOODLINE_RANK_LABELS[rank]
 
-static func gender_symbol(gender: int) -> String:
+static func gender_symbol(gender: Gender) -> String:
 	return GENDER_SYMBOLS[gender]
 
 ## 組合國家+階級的完整血統名稱,例如「獅血」「獅高血」,UI 一律呼叫這個,不要自己串字串
-static func bloodline_full_label(nation: int, rank: int) -> String:
+static func bloodline_full_label(nation: BloodlineNation, rank: BloodlineRank) -> String:
 	return bloodline_nation_label(nation) + bloodline_rank_label(rank)
 
 ## BATTLE_COST 方塊外框色,依武器分色一眼辨識:大劍紅、弓箭手白、盾牌綠、
@@ -386,7 +385,7 @@ const WEAPON_BORDER_COLORS: Array[Color] = [
 	Color(0.3, 0.9, 0.9, 1), # 捕夢網:青
 ]
 
-static func weapon_border_color(weapon_type: int) -> Color:
+static func weapon_border_color(weapon_type: WeaponType) -> Color:
 	return WEAPON_BORDER_COLORS[weapon_type]
 
 ## 武器圖示路徑(見 Images/Weapon/),檔名對應 WeaponType enum 的成員名稱,
@@ -400,7 +399,7 @@ const WEAPON_ICON_PATHS: Array[String] = [
 	"res://Images/Weapon/DREAMCATCHER.svg",
 ]
 
-static func weapon_icon_path(weapon_type: int) -> String:
+static func weapon_icon_path(weapon_type: WeaponType) -> String:
 	return WEAPON_ICON_PATHS[weapon_type]
 
 ## 每種武器打造時的主屬性(WeaponLibrary 抽點時權重 +30%),順序對應 WeaponType enum
@@ -413,7 +412,7 @@ const WEAPON_MAIN_STAT: Array[PotentialType] = [
 	PotentialType.MENTALITY, # 捕夢網
 ]
 
-static func weapon_main_stat(weapon_type: int) -> int:
+static func weapon_main_stat(weapon_type: WeaponType) -> PotentialType:
 	return WEAPON_MAIN_STAT[weapon_type]
 
 ## 六大素質代表色(素質增益/減益箭頭、雷達圖等畫面共用同一份配色表),
@@ -427,7 +426,7 @@ const POTENTIAL_TYPE_COLORS: Array[Color] = [
 	Color(0.3, 0.9, 0.9), # 青:信仰
 ]
 
-static func potential_color(potential_type: int) -> Color:
+static func potential_color(potential_type: PotentialType) -> Color:
 	return POTENTIAL_TYPE_COLORS[potential_type]
 
 ## 場上/頭像列的特殊狀態文字標籤,只涵蓋「有持續回合、需要玩家看得到目前中了什麼」的
@@ -461,7 +460,7 @@ const BLOODLINE_NATION_COLORS: Array[Color] = [
 	Color(0.3, 0.9, 0.9), # 青:鹿
 ]
 
-static func bloodline_nation_color(nation: int) -> Color:
+static func bloodline_nation_color(nation: BloodlineNation) -> Color:
 	return BLOODLINE_NATION_COLORS[nation]
 
 ## 血統國家所屬地形,順序對應 BloodlineNation enum:獅→平原/鷹→森林/豹→沙漠/熊→山岳/
@@ -471,7 +470,7 @@ const BLOODLINE_NATION_TERRAINS: Array[TerrainType] = [
 	TerrainType.FOREST,TerrainType.ICEFIELD, TerrainType.PLATEAU,
 ]
 
-static func bloodline_nation_terrain(nation: int) -> int:
+static func bloodline_nation_terrain(nation: BloodlineNation) -> TerrainType:
 	return BLOODLINE_NATION_TERRAINS[nation]
 
 ## 各地形產出的強盜稱呼,索引對應 TerrainType:平原→強盜/山地→山賊/高原→異端/
@@ -479,36 +478,36 @@ static func bloodline_nation_terrain(nation: int) -> int:
 ## 稱呼,不要各自寫死「強盜」兩個字。
 const TERRAIN_BANDIT_LABELS: Array[String] = ["強盜", "山賊", "異端", "綠林者", "沙匪", "浪跡者"]
 
-static func terrain_bandit_label(terrain_type: int) -> String:
+static func terrain_bandit_label(terrain_type: TerrainType) -> String:
 	return TERRAIN_BANDIT_LABELS[terrain_type]
 
 ## nation 版本的強盜稱呼,查 bloodline_nation_terrain() 換算地形,不重複維護第二份
 ## nation→稱呼對照表。
-static func bandit_label_for_nation(nation: int) -> String:
+static func bandit_label_for_nation(nation: BloodlineNation) -> String:
 	return terrain_bandit_label(bloodline_nation_terrain(nation))
 
 ## 城鎮外觀對話背景圖(Images/Dialogue/Map/Town/town_<TERRAIN>.png)——檔名直接對應
 ## TerrainType enum 成員名稱,不另外維護一份路徑陣列(下面 base_building_background_path()
 ## 同理),見 System/map/map_object.gd 的 MapObject.terrain_type()。同時也是
 ## Scenes/MapLocation/map_location.gd 進到 TOWN 地點選單時的整頁背景圖。
-static func town_background_path(terrain_type: int) -> String:
+static func town_background_path(terrain_type: TerrainType) -> String:
 	return "res://Images/Dialogue/Map/Town/town_%s.png" % TerrainType.keys()[terrain_type]
 
 ## 城堡外觀背景圖(Images/Dialogue/Map/Castle/castle_<TERRAIN>.png),命名規則同
 ## town_background_path()——也是 Scenes/MapLocation/map_location.gd 進到 CASTLE
 ## 地點選單時的整頁背景圖。跟大地圖圖示 castle_map_icon_path() 是不同資料夾/不同美術
 ## (那份檔名沿用 CASTLE_DESSERT 等既有拼字,這份是正確拼字 DESERT),不要混用。
-static func castle_background_path(terrain_type: int) -> String:
+static func castle_background_path(terrain_type: TerrainType) -> String:
 	return "res://Images/Dialogue/Map/Castle/castle_%s.png" % TerrainType.keys()[terrain_type]
 
-static func terrain_background_path(terrain_type: int) -> String:
+static func terrain_background_path(terrain_type: TerrainType) -> String:
 	return "res://Images/Dialogue/Map/Terrain/%s.png" % TerrainType.keys()[terrain_type]
 
 ## 根據地內部場景背景圖(Images/Base/base_<TERRAIN>.jpg),見 Scenes/Base/base_inner.gd。
 ## 依根據地實際座標查 MapTerrainMask 判定地形,不吃 MapObject.nation 那個暫定 LION 的
 ## 預設值(見 MapObject.nation 註解)——這裡問的是「根據地座落在地圖上哪塊地形」,跟
 ## 玩家尚未開放的自身國家血統選擇是兩件事。
-static func base_interior_background_path(terrain_type: int) -> String:
+static func base_interior_background_path(terrain_type: TerrainType) -> String:
 	return "res://Images/Base/base_%s.jpg" % TerrainType.keys()[terrain_type]
 
 ## 大地圖城鎮圖示(Images/Map/MapObject/Town/),見 Scenes/MapObject/Town/town.gd。
@@ -519,7 +518,7 @@ const TOWN_MAP_ICON_FILENAMES: Array[String] = [
 	"TOWN_FOREST.png", "TOWN_DESSERT.png", "TOWN_ICEFIELD.png",
 ]
 
-static func town_map_icon_path(terrain_type: int) -> String:
+static func town_map_icon_path(terrain_type: TerrainType) -> String:
 	return "res://Images/Map/MapObject/Town/%s" % TOWN_MAP_ICON_FILENAMES[terrain_type]
 
 ## 大地圖城堡圖示(Images/Map/MapObject/Castle/),見 Scenes/MapObject/Castle/castle.gd。
@@ -529,7 +528,7 @@ const CASTLE_MAP_ICON_FILENAMES: Array[String] = [
 	"CASTLE_FOREST.png", "CASTLE_DESSERT.png", "CASTLE_ICEFIELD.png",
 ]
 
-static func castle_map_icon_path(terrain_type: int) -> String:
+static func castle_map_icon_path(terrain_type: TerrainType) -> String:
 	return "res://Images/Map/MapObject/Castle/%s" % CASTLE_MAP_ICON_FILENAMES[terrain_type]
 
 ## 根據地內部共用對話背景圖(不分地形),見 System/event/base/base_leave_event.gd
@@ -538,7 +537,7 @@ const CASTLE_INTERIOR_BACKGROUND_PATH := "res://Images/Dialogue/Castle/castle_in
 
 ## 根據地建築對話背景圖(Images/Dialogue/Base/Building/<BUILDING_TYPE>.png)——檔名對應
 ## BuildingType enum 成員名稱,見 System/event/base/base_building_event.gd。
-static func base_building_background_path(building_type: int) -> String:
+static func base_building_background_path(building_type: BuildingType) -> String:
 	return "res://Images/Dialogue/Base/Building/%s.png" % BuildingType.keys()[building_type]
 
 ## Scenes/MapLocation/map_location.gd 進到 BASE 地點選單時的整頁背景圖,玩家還沒有

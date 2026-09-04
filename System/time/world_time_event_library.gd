@@ -19,7 +19,6 @@ static func register_all(controller: WorldTimeController) -> void:
 	controller.register_month_event(func(): WarWorldTimeEvents.monthly_tick())
 	controller.register_year_event(func(): WarWorldTimeEvents.yearly_tick())
 
-
 ## 每年 1/1:所有角色年紀 +1(見 Character.age_up())。要跑 AllCharacterStore 而不是
 ## CharacterRosterStore——後者只有「可操控」角色,小孩(_deliver_child() 只註冊進
 ## AllCharacterStore)、配偶(TownTavernEvent 告白成功後只註冊進 AllCharacterStore)
@@ -37,7 +36,6 @@ static func _age_up() -> void:
 		if character.age == CharacterController.MIN_AGE and CharacterRosterStore.try_add(character):
 			NewsController.post("%s 成年了。" % character.display_name, GameEnums.NewsCategory.MAJOR)
 		_process_aging(character)
-
 
 ## 年紀跨過衰老線(AgingRule.get_aging_line(),受 CLINIC 等級影響)第一次掛上衰老特性
 ## (全素質 -30%,見 AgingRule.create_aging_trait());之後每年只要還在衰老線以上,
@@ -58,8 +56,6 @@ static func _process_aging(character: Character) -> void:
 			MessageBar.show_message(aging_text)
 	if AgingRule.roll_death(character):
 		CharacterDeathController.kill(character)
-
-
 
 ## 每月:符合資格(女性/已婚/未懷孕)的角色依 PregnancyRule.get_pregnancy_chance_percent()
 ## 機率骰懷孕——基準值 + 依子女數量指數衰減 + 父母任一方衰老直接歸零(見該函式註解),
@@ -82,7 +78,6 @@ static func _roll_new_pregnancies() -> void:
 			new_pregnancy_count += 1
 	_record_pregnancy_morale(new_pregnancy_count)
 
-
 ## 同一個月可能好幾名角色一起懷孕(角色數一多,機率湊在一起很常見)——士氣只加總算
 ## 一筆、套 MoraleStore.MAX_PREGNANCY_DELTA_PER_BATCH 封頂,不逐筆各自計入。label 固定
 ## 用同一個字串,不附加「x 幾人」——Header tooltip 按 label 分組加總顯示(見
@@ -94,7 +89,6 @@ static func _record_pregnancy_morale(count: int) -> void:
 		return
 	var delta := minf(count * MoraleStore.PREGNANCY_DELTA, MoraleStore.MAX_PREGNANCY_DELTA_PER_BATCH)
 	MoraleStore.record_event("角色懷孕", delta)
-
 
 ## 每月:懷孕中的角色累積月數(見 Character.advance_pregnancy()),滿了就產下孩子。
 ## 剛懷孕當月與 _roll_new_pregnancies() 同一個月邊界觸發,即計入第 1 個月,是刻意的簡化行為。
@@ -119,7 +113,6 @@ static func _advance_pregnancies() -> void:
 			newborn_count += 1
 	_record_child_born_morale(newborn_count)
 
-
 ## 每月:剛生產角色的休產期(見 PregnancyRule.POSTPARTUM_MONTHS)倒數,滿了才恢復懷孕
 ## 資格(見 PregnancyRule.is_eligible())。走 AllCharacterStore 而非
 ## CharacterRosterStore——理由同 _age_up(),生產的一方可能不在 roster 裡(見
@@ -127,7 +120,6 @@ static func _advance_pregnancies() -> void:
 static func _advance_postpartum_recovery() -> void:
 	for character in AllCharacterStore.all_characteres:
 		character.advance_postpartum_recovery()
-
 
 ## 產下孩子(見 Character.give_birth()),只註冊進 AllCharacterStore(讓孩子開始
 ## 隨世界時間長大),不直接進 CharacterRosterStore——小孩未滿 MIN_AGE 前不能操控/
@@ -142,7 +134,6 @@ static func _deliver_child(mother: Character) -> void:
 	NewsController.post("%s 誕下了孩子 %s。" % [mother.display_name, child.display_name], GameEnums.NewsCategory.MAJOR)
 	LifeEventQueueStore.queue_child(child)
 
-
 ## 同一個月可能好幾名角色一起生產——士氣只加總算一筆、套
 ## MoraleStore.MAX_CHILD_BORN_DELTA_PER_BATCH 封頂,label 同樣固定不附加人數,理由同
 ## _record_pregnancy_morale()。
@@ -151,7 +142,6 @@ static func _record_child_born_morale(count: int) -> void:
 		return
 	var delta := minf(count * MoraleStore.CHILD_BORN_DELTA, MoraleStore.MAX_CHILD_BORN_DELTA_PER_BATCH)
 	MoraleStore.record_event("角色誕下新生兒", delta)
-
 
 ## 每天:玩家擁有的所有角色 HP 回復(見 Character.regen_daily_hp(),取代舊版「僅出戰隊伍、
 ## 大地圖移動時逐幀累積回 30/天」機制)。回復量 = 基準值 3 + 醫療所目前等級(未建醫療所

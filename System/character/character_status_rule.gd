@@ -23,7 +23,6 @@ static func get_status_type(character: Character) -> GameEnums.CharacterStatus:
 		return GameEnums.CharacterStatus.ON_EXPEDITION
 	return GameEnums.CharacterStatus.ACTIVE
 
-
 ## WORKING 要內插目前派遣的建築名稱,不能只靠靜態 label 陣列,所以獨立成一個函式讓畫面端
 ## 統一呼叫這裡取得完整顯示文字,不要自己 match get_status_type() 再組字串。
 static func get_status_label(character: Character) -> String:

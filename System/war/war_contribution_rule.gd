@@ -17,7 +17,6 @@ const POWER_NUDGE_DRAW := 5.0
 const FAVOR_PER_CONTRIBUTION := 0.5
 const MONEY_PER_CONTRIBUTION := 15.0
 
-
 ## 玩家個人戰鬥結果轉成對這場 WarBattle 的 battle_progress 位移——只影響這場戰場,
 ## 不碰 War.battle_power_a/b(國家總戰力),見 spec「玩家介入不直接增加整個國家兵力」。
 ## 正值往 supported_side_is_a 那一方推。
@@ -25,10 +24,8 @@ static func progress_nudge_for(result: int, supported_side_is_a: bool) -> float:
 	var magnitude := _magnitude_for_result(result, PROGRESS_NUDGE_WIN, PROGRESS_NUDGE_DRAW)
 	return magnitude if supported_side_is_a else -magnitude
 
-
 static func power_nudge_for(result: int) -> float:
 	return _magnitude_for_result(result, POWER_NUDGE_WIN, POWER_NUDGE_DRAW)
-
 
 static func _magnitude_for_result(result: int, win_amount: float, draw_amount: float) -> float:
 	match result:
@@ -38,7 +35,6 @@ static func _magnitude_for_result(result: int, win_amount: float, draw_amount: f
 			return draw_amount
 		_:
 			return 0.0
-
 
 ## 玩家個人戰鬥表現 → war_contribution 分數,獨立於這場 WarBattle 最終誰贏
 ## (spec:即使支援方最終戰敗,玩家仍可取得戰功)。只有贏才有戰功——連續作戰打到輸/平手
@@ -55,10 +51,8 @@ static func war_contribution_for(result: int, rank_type: int, streak_count: int)
 		return 0
 	return rank_type + streak_count
 
-
 static func favor_for_contribution(contribution: int) -> int:
 	return maxi(0, roundi(contribution * FAVOR_PER_CONTRIBUTION))
-
 
 static func money_for_contribution(contribution: int) -> int:
 	return maxi(0, roundi(contribution * MONEY_PER_CONTRIBUTION))

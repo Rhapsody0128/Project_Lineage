@@ -12,7 +12,6 @@ const COST: Dictionary = {
 	GameEnums.ResourceType.STONE: 500,
 }
 
-
 ## 「輕裝遷徙」科技線(TechEffectType.RELOCATION_COST_SUB)在 COST 每一項上扣減,
 ## 下限 clamp 在 0。呼叫端(Scenes/Map/world_inner.gd 選點流程)一律讀這支函式,不要
 ## 直接讀 COST 常數。
@@ -29,7 +28,6 @@ static func cost() -> Dictionary:
 ## GameEnums.MapObjectType 的 TOWN/BASE/CASTLE,見 map_object.gd 開頭註解),這裡的
 ## 「城鎮」判斷只比對 TOWN,不含 CASTLE。
 const MIN_DISTANCE_TO_TOWN := 800.0
-
 
 ## 這個世界座標能不能當新根據地位置:回傳空字串代表合法,否則回傳給玩家看的理由文字。
 ## 不可通行(山岳鏤空/海面/地圖外,見 MapTerrainMask.is_walkable())或太靠近任一座城鎮

@@ -20,7 +20,6 @@ const PRIEST_NAME := "神父"
 const KISS_LINE_FORMAT := "%s,你現在可以親吻新娘了。"
 const VOW_TEXT_FORMAT := "我，%s，%s你%s為我的合法%s，從今天起，無論是好是壞、是富是窮、生病還是健康，我都將擁有你、持守你，直到死亡將我們分開。如果聖教會允許，我向你發誓我的忠誠。"
 
-
 static func build(own_character: Character, spouse_character: Character) -> Dialogue:
 	# own_character 是 MALE 就當新郎;own_character 不是 MALE 但 spouse_character 是 MALE
 	# 時新郎換成 spouse_character;兩人都不是 MALE(或都是 MALE)時退回 own_character
@@ -39,7 +38,6 @@ static func build(own_character: Character, spouse_character: Character) -> Dial
 		DialogueLine.new(priest_speaker.id, KISS_LINE_FORMAT % groom_character.name),
 	]
 	return Dialogue.new([groom_speaker, bride_speaker, priest_speaker], lines, GameEnums.WEDDING_CHURCH_BACKGROUND_PATH)
-
 
 static func _vow_text(speaker_name: String, spouse_name: String, is_groom: bool) -> String:
 	var verb := "娶" if is_groom else "嫁"

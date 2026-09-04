@@ -32,35 +32,28 @@ const SPRITE_DIR := "res://Images/Base/"
 ## 暫代 hint.mp3。
 const HIT_SFX_DIR := "res://Sound/Base/hit/"
 
-
 static func _path_for(building_type: GameEnums.BuildingType) -> String:
 	return CHART_DIR + _building_key(building_type) + ".json"
-
 
 static func bgm_path_for(building_type: GameEnums.BuildingType) -> String:
 	return BGM_DIR + _building_key(building_type) + ".mp3"
 
-
 static func hit_sfx_path_for(building_type: GameEnums.BuildingType) -> String:
 	return HIT_SFX_DIR + _building_key(building_type) + ".mp3"
 
-
 static func sprite_path_for(building_type: GameEnums.BuildingType, state: String) -> String:
 	return SPRITE_DIR + _building_key(building_type) + "/" + state + ".png"
-
 
 ## 直接吃 GameEnums.BuildingType enum key 的原始大寫拼法(例如 LUMBER_MILL)當檔名/
 ## 資料夾名——JSON 譜面、BGM、動作圖三種素材路徑一律用同一把 key,不做大小寫轉換。
 static func _building_key(building_type: GameEnums.BuildingType) -> String:
 	return GameEnums.BuildingType.keys()[building_type]
 
-
 static func load_chart(building_type: GameEnums.BuildingType, variant: String) -> RhythmChart:
 	var data := _load_all_raw(building_type)
 	if data.has(variant) and data[variant] is Dictionary:
 		return RhythmChart.from_dict(data[variant])
 	return RhythmChart.new()
-
 
 static func save_hint_beats(
 	building_type: GameEnums.BuildingType, variant: String, beats: Array[float]
@@ -69,14 +62,12 @@ static func save_hint_beats(
 	chart.hint_beats = beats.duplicate()
 	_save(building_type, variant, chart)
 
-
 static func save_correct_beats(
 	building_type: GameEnums.BuildingType, variant: String, beats: Array[float]
 ) -> void:
 	var chart := load_chart(building_type, variant)
 	chart.correct_beats = beats.duplicate()
 	_save(building_type, variant, chart)
-
 
 ## 斷點(樂句/段落分界)是同一份 BGM 素材本身的結構,常規版/變奏版共用同一首 BGM
 ## (見 bgm_path_for()),不分 variant,所以存成跟 "regular"/"variation" 同層的頂層 key
@@ -90,7 +81,6 @@ static func load_break_points(building_type: GameEnums.BuildingType) -> Array[fl
 			points.append(float(value))
 	return points
 
-
 static func save_break_points(building_type: GameEnums.BuildingType, points: Array[float]) -> void:
 	DirAccess.make_dir_recursive_absolute(CHART_DIR)
 	var data := _load_all_raw(building_type)
@@ -98,7 +88,6 @@ static func save_break_points(building_type: GameEnums.BuildingType, points: Arr
 	var file := FileAccess.open(_path_for(building_type), FileAccess.WRITE)
 	file.store_string(JSON.stringify(data, "\t"))
 	file.close()
-
 
 ## 讀出整份 JSON(所有 variant)的原始 Dictionary,不存在的檔案回傳空字典——內部共用,
 ## 存檔時要先讀出其他 variant 的資料才不會覆蓋掉。
@@ -113,7 +102,6 @@ static func _load_all_raw(building_type: GameEnums.BuildingType) -> Dictionary:
 
 	var parsed = JSON.parse_string(text)
 	return parsed if parsed is Dictionary else {}
-
 
 static func _save(building_type: GameEnums.BuildingType, variant: String, chart: RhythmChart) -> void:
 	DirAccess.make_dir_recursive_absolute(CHART_DIR)

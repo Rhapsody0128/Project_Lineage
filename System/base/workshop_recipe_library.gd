@@ -18,7 +18,6 @@ static func get_all() -> Array[WorkshopRecipe]:
 		WorkshopRecipe.new("ore", "鐵製工具", {GameEnums.ResourceType.ORE: 3}, 1),
 	]
 
-
 static func get_by_id(id: String) -> WorkshopRecipe:
 	for recipe in get_all():
 		if recipe.id == id:

@@ -13,7 +13,6 @@ extends RefCounted
 
 const BATTLE_COUNT := 10
 
-
 ## `streak_count` 是這一輪連續作戰內的第幾場(第 1 場=1,第 2 場=2……),見
 ## WarContributionRule.war_contribution_for() 的戰功公式。戰功只累加進
 ## war.player_war_contribution,不在這裡即時發好感度/金錢——換算成實際獎勵延後到整場
@@ -30,7 +29,6 @@ static func apply_contribution(
 		battle.battle_power_b += power_nudge
 
 	war.player_war_contribution += WarContributionRule.war_contribution_for(result, battle.rank_type, streak_count)
-
 
 ## 這一輪連續作戰結束(打到輸/平手,或連滿 BATTLE_COUNT 場)時呼叫一次:達到戰場結算門檻
 ## 就結算「這個戰場」(從 war.active_battles 移除、標記 ENDED),War 本身不受影響繼續進行

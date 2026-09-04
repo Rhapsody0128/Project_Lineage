@@ -22,7 +22,6 @@ static func build() -> Array[Skill]:
 	skills.append_array(_debuff_skills())
 	return skills
 
-
 static func _support_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
 
@@ -147,8 +146,7 @@ static func _support_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "stat_buff"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_leader(skills, "L_SUPPORT")
 
 static func _debuff_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -271,4 +269,4 @@ static func _debuff_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "stat_debuff_with_mechanic"))
 		.build())
 
-	return skills
+	return SkillIdentity.stamp_leader(skills, "L_DEBUFF")

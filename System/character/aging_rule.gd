@@ -28,21 +28,17 @@ const AGING_STAT_MULTIPLIER := 0.7
 static func aging_stat_multiplier() -> float:
 	return minf(AGING_STAT_MULTIPLIER + TechStore.get_bonus(GameEnums.TechEffectType.AGING_STAT_MULTIPLIER_ADD), 1.0)
 
-
 ## 「延年益壽」科技線(TechEffectType.AGING_DEATH_LINE_ADD)同時加在兩條線上。
 static func get_aging_line() -> int:
 	var base := BASE_AGING_LINE + CLINIC_LINE_BONUS_PER_LEVEL * BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
 	return base + int(TechStore.get_bonus(GameEnums.TechEffectType.AGING_DEATH_LINE_ADD))
 
-
 static func get_death_line() -> int:
 	var base := BASE_DEATH_LINE + CLINIC_LINE_BONUS_PER_LEVEL * BaseBuildingProgressStore.get_level(GameEnums.BuildingType.CLINIC)
 	return base + int(TechStore.get_bonus(GameEnums.TechEffectType.AGING_DEATH_LINE_ADD))
 
-
 static func is_aged(character: Character) -> bool:
 	return character.age >= get_aging_line()
-
 
 ## 死亡機率(百分比)。未達衰老線 0%,達到/超過死亡線 100%(封頂/封底不受科技影響,
 ## 只有中間的加速曲線值會被「抗老醫理」科技線(TechEffectType.DEATH_CHANCE_CURVE_MULT,
@@ -59,17 +55,14 @@ static func get_death_chance_percent(character: Character) -> float:
 	var curve_mult := TechStore.get_multiplier(GameEnums.TechEffectType.DEATH_CHANCE_CURVE_MULT)
 	return pow(t, DEATH_CHANCE_CURVE_EXPONENT) * 100.0 * curve_mult
 
-
 static func roll_death(character: Character) -> bool:
 	return Util.get_random_float(0.0, 100.0) < get_death_chance_percent(character)
-
 
 static func has_aging_trait(character: Character) -> bool:
 	for character_trait in character.traits:
 		if character_trait.is_aging:
 			return true
 	return false
-
 
 static func create_aging_trait() -> Trait:
 	var aging_trait := Trait.new(AGING_TRAIT_NAME, AGING_TRAIT_DESCRIPTION, GameEnums.TraitPolarity.NEGATIVE, AGING_TRAIT_ADJECTIVE)

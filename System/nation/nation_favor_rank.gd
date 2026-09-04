@@ -7,14 +7,12 @@ extends RefCounted
 ## 這個純規則層,實際數值仍存在 NationFavorStore(autoload)。
 const THRESHOLDS: Array[int] = [0, 10, 50, 200, 500, 1000, 2500, 5000, 10000]
 
-
 ## 由高到低找第一個達標的門檻,回傳對應 RankType。
 static func rank_for_favor(favor: int) -> int:
 	for rank in range(THRESHOLDS.size() - 1, -1, -1):
 		if favor >= THRESHOLDS[rank]:
 			return rank
 	return GameEnums.RankType.F
-
 
 static func label_for_favor(favor: int) -> String:
 	return GameEnums.rank_label(rank_for_favor(favor))

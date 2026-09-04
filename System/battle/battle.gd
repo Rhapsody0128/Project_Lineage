@@ -225,6 +225,7 @@ func _find_leader(battle_characteres: Array[BattleCharacter]) -> BattleCharacter
 	for battle_character in battle_characteres:
 		if battle_character.is_leader:
 			return battle_character
+	push_error("Battle._find_leader(): 隊伍裡找不到任何 is_leader 角色,理論上不會發生")
 	return null
 
 ## 勝負判定:只看雙方總大將(隊長)死活,不比較 HP。跑滿 10 回合時雙方隊長必定都還

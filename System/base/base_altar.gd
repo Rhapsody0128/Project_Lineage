@@ -19,7 +19,6 @@ extends RefCounted
 const COST_BY_RANK_FAITH: Array[int] = [15, 20, 25, 30, 35, 45, 55, 65, 80]
 const COST_BY_RANK_CURSE: Array[int] = [5, 10, 10, 15, 15, 20, 20, 25, 30]
 
-
 static func cost_for_rank(rank: GameEnums.RankType, building_type: GameEnums.BuildingType) -> int:
 	var table := COST_BY_RANK_CURSE if building_type == GameEnums.BuildingType.FORBIDDEN_ALTAR else COST_BY_RANK_FAITH
 	return table[clampi(rank, 0, table.size() - 1)]

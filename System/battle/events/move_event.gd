@@ -1,6 +1,12 @@
 class_name MoveEvent
 extends BattleEvent
 
+## actor 這次移動的座標紀錄,target 不是移動目的地本身,而是這次移動「相對誰」——
+## away=true 時 actor 正在遠離 target(撤退/保持距離),false 時正在靠近(進場攻擊/
+## 貼近施法距離),見 MovementPlanner 的呼叫端。path 是完整規劃路徑,to 是實際落腳點,
+## 兩者可能不同:最後一步若撞上己方角色所在格,會退回前一步停下(見
+## movement_planner.gd 開頭註解),path 仍記錄原本規劃的完整路線供戰報演出用。
+
 var actor: BattleCharacter
 var actor_name: String
 var target: BattleCharacter

@@ -30,7 +30,6 @@ const DIALOGUE_SCENE_PATH := "res://Scenes/Dialogue/dialogue_box.tscn"
 ## 常數存取,不要各自硬編字串 "dialogue"。
 const DIALOGUE_MAILBOX_KEY := "dialogue"
 
-
 ## 把 Dialogue 塞進 SceneHandoffStore、切去對話場景播放,播完由 next_scene_path 自動接手
 ## 轉場(見 Scripts/Autoload/scene_handoff_store.gd)。子類別要顯示任何一段對話都呼叫這裡,
 ## 不要自己重複寫一份「Engine.get_main_loop() 取代 get_tree()」。

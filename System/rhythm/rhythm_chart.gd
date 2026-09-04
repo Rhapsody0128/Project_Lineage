@@ -14,10 +14,8 @@ const CHART_DURATION_SEC := 60.0
 var hint_beats: Array[float] = []
 var correct_beats: Array[float] = []
 
-
 func to_dict() -> Dictionary:
 	return {"hint_beats": hint_beats, "correct_beats": correct_beats}
-
 
 static func from_dict(data: Dictionary) -> RhythmChart:
 	var chart := RhythmChart.new()

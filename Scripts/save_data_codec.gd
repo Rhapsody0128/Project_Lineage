@@ -39,9 +39,9 @@ static func encode_character(character: Character) -> Dictionary:
 	for cell in character.battle_cost.cells:
 		cells.append([cell.x, cell.y])
 
-	var skill_names: Array = []
+	var skill_ids: Array = []
 	for skill in character.skill_list:
-		skill_names.append(skill.name)
+		skill_ids.append(skill.id)
 
 	var parent_ids: Array = []
 	for parent_character in character.parent:
@@ -65,7 +65,7 @@ static func encode_character(character: Character) -> Dictionary:
 		"weapon_rank": character.weapon_rank,
 		"title_rank": character.title_rank,
 		"weapon_stat_bonus": SaveDataCodec.int_keyed_to_str(character.weapon_stat_bonus),
-		"skill_names": skill_names,
+		"skill_ids": skill_ids,
 		"level": character.level_system.level,
 		"exp": character.level_system.exp,
 		"hp": character.hp,
@@ -119,11 +119,20 @@ static func decode_character_base(data: Dictionary) -> Character:
 	percentages.assign(data["bloodline_percentages"])
 	var bloodline := Bloodline.new(percentages)
 
+	## 新存檔一律靠 skill_ids(SkillIdentity 穩定 id,見 skill_identity.gd)還原;
+	## 沒有 skill_ids 欄位的舊存檔(改版前存的)退回用 skill_names 靠名稱比對,兩者
+	## 不會同時出現在同一份存檔資料裡。
 	var skill_list: Array[Skill] = []
-	for skill_name in data.get("skill_names", []):
-		var skill := SkillController.get_by_name(skill_name)
-		if skill != null:
-			skill_list.append(skill)
+	if data.has("skill_ids"):
+		for skill_id in data["skill_ids"]:
+			var skill := SkillController.get_by_id(skill_id)
+			if skill != null:
+				skill_list.append(skill)
+	else:
+		for skill_name in data.get("skill_names", []):
+			var skill := SkillController.get_by_name(skill_name)
+			if skill != null:
+				skill_list.append(skill)
 
 	var cells: Array[Vector2i] = []
 	for cell_data in data["battle_cost_cells"]:

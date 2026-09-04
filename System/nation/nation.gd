@@ -10,7 +10,6 @@ var name: String
 var low_blood_label: String
 var high_blood_label: String
 
-
 func _init(p_id: int) -> void:
 	id = p_id
 	name = GameEnums.bloodline_nation_label(p_id)

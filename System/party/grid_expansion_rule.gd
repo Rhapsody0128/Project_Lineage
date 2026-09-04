@@ -7,6 +7,5 @@ extends RefCounted
 const COST_STEP := 5
 const DEFAULT_UNLOCKED_COUNT := 16
 
-
 static func cost_for_next_cell(currently_unlocked_count: int) -> int:
 	return COST_STEP * (maxi(0, currently_unlocked_count - DEFAULT_UNLOCKED_COUNT) + 1)

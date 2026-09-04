@@ -14,16 +14,13 @@ const MAX_DURATION_MONTHS_BY_RANK: Array[int] = [1, 1, 1, 1, 2, 2, 3, 3, 3]
 ## 戰力——RANK 越高代表雙方投入越多兵力在這裡交鋒。索引對應 RankType。
 const INITIAL_POWER_MULTIPLIER_BY_RANK: Array[float] = [0.3, 0.4, 0.5, 0.65, 0.8, 0.95, 1.1, 1.25, 1.4]
 
-
 ## 戰場 RANK 完全均勻隨機,不受戰爭本身任何數值影響(WarTension 只決定「要不要開戰」,
 ## 見 WarDiplomacyAi,不影響戰場強弱)。
 static func pick_random_rank() -> int:
 	return Util.get_random_enum_value(GameEnums.RankType)
 
-
 static func max_duration_months(rank_type: int) -> int:
 	return MAX_DURATION_MONTHS_BY_RANK[rank_type]
-
 
 static func initial_power_multiplier(rank_type: int) -> float:
 	return INITIAL_POWER_MULTIPLIER_BY_RANK[rank_type]

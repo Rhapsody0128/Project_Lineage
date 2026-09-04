@@ -29,7 +29,6 @@ const MAIN_STAT_WEIGHT_BONUS := 2
 static func main_stat_weight_bonus() -> float:
 	return MAIN_STAT_WEIGHT_BONUS + TechStore.get_bonus(GameEnums.TechEffectType.WEAPON_MAIN_STAT_WEIGHT_ADD)
 
-
 ## 「鍛造精研」科技線(TechEffectType.WEAPON_ROLL_COUNT_ADD)疊加在查表值兩端,呼叫端
 ## 一律讀這支函式,不要直接讀 ROLL_COUNT_RANGE。
 static func roll_count_range(rank_type: int) -> Vector2i:

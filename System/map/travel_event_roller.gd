@@ -15,7 +15,6 @@ var _last_player_pos: Vector2
 ## 距離就計進累積值,否則會把玩家剛出生的座標誤算成一段移動。
 var _has_last_pos: bool = false
 
-
 ## map.gd 每幀移動時呼叫(只在 map_system.is_moving 時呼叫,見 map.gd 註解)。回傳這一次
 ## 是否要觸發旅行事件。
 func check(player_pos: Vector2) -> bool:

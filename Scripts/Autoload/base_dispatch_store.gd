@@ -118,11 +118,10 @@ func load_save_data(data: Dictionary) -> void:
 	_assignments = SaveDataCodec.str_keyed_to_int(data)
 
 
+## 薄封裝轉呼叫 AllCharacterStore.get_by_id()(O(1) 字典查找),保留這個入口名稱是因為
+## wedding_queue_store.gd/barracks_expedition_store.gd 等既有呼叫端都習慣從這裡查角色。
 func find_character(character_id: String) -> Character:
-	for character in AllCharacterStore.all_characteres:
-		if character.id == character_id:
-			return character
-	return null
+	return AllCharacterStore.get_by_id(character_id)
 
 
 func _recipe_for(building: Building) -> WorkshopRecipe:

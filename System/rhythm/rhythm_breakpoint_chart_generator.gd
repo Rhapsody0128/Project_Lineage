@@ -19,7 +19,6 @@ extends RefCounted
 ## 音符被算進去,也不讓對應出來的正確譜音符貼著斷點。
 const BOUNDARY_MARGIN := 0.6
 
-
 ## break_points:段落分界時間戳(見 RhythmChartStore.load_break_points())。
 ## source_hint_beats:當教學內容來源的真實提示譜(見 RhythmChartStore.load_chart(...).
 ## hint_beats),呼叫端決定要吃哪個 variant 的提示譜。

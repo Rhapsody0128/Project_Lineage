@@ -140,16 +140,14 @@ func can_use_skill(skill: Skill) -> bool:
 			return false
 	return true
 
-## 角色是否已經學會這個技能——用名稱比對,不比對 id 或物件參照:Skill.id 是
-## Util.generate_uuid() 隨機產生(見 skill.gd _init()),SkillLibrary.build() 每次呼叫
-## 都是全新實例,同一支技能兩次 build() 出來的 id 也不會相同,id 比對一樣會誤判成
-## 「沒學過」。技能名稱在 SkillLibrary 裡本來就唯一(存檔/讀檔的 SkillController.get_by_name()
-## 已經是同一個假設),用名稱比對才會正確擋下重複學習。原本是
-## BarracksTraining.character_knows_skill(),現在傳授(A)/歷練(B)/隊長訓練(E)共用,收斂到
-## Character 本身。
+## 角色是否已經學會這個技能——用 id 比對,不比對物件參照或名稱:Skill.id 是
+## SkillIdentity.stamp_*() 依技能自身資料(武器/評級/血統國家)或所在 library 檔案裡的
+## 固定順序組出來的穩定字串(見 skill_identity.gd),跨執行期/跨存檔都不會變,技能改名
+## 也不影響比對結果。原本是 BarracksTraining.character_knows_skill(),現在傳授(A)/
+## 歷練(B)/隊長訓練(E)共用,收斂到 Character 本身。
 func knows_skill(skill: Skill) -> bool:
 	for known in skill_list:
-		if known.name == skill.name:
+		if known.id == skill.id:
 			return true
 	return false
 

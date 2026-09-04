@@ -10,6 +10,5 @@ static func get_all() -> Array[Nation]:
 		nations.append(Nation.new(nation_id))
 	return nations
 
-
 static func get_by_id(nation_id: int) -> Nation:
 	return Nation.new(nation_id)

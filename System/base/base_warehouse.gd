@@ -27,7 +27,6 @@ const TIER_BASE: Dictionary = {
 ## index i = 倉庫 Lv i(index 0 = 未建倉庫的 Lv0)。
 const LEVEL_MULTIPLIER: Array[float] = [1.0, 1.5, 2.0, 2.75, 3.5, 4.5, 5.5, 7.0, 9.0, 12.0]
 
-
 ## 金錢(GOLD)不受倉庫等級限制,回傳 -1 代表「無上限」——遊蕩者戰鬥獎懲(見
 ## System/battle/battle_reward.gd)會讓金錢大量進出,卡在倉庫容量沒有意義。呼叫端
 ## (BaseResourceStore.add()/is_full()、Scenes/Base/base_action_panel.gd 的倉庫容量

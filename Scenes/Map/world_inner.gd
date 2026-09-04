@@ -64,6 +64,10 @@ var _camera_following := true
 ## 跨場景不釋放),這個節點字典只是「目前這次進地圖畫面上掛了哪些對應的顯示節點」,
 ## 每次重新進 map.tscn 都要重建(見 _ready() 收尾呼叫的 _sync_enemy_visuals())。
 var _enemy_visuals: Dictionary = {}
+## 上次跑 diff 時讀到的 RoamingEnemySpawner.mutation_count,-1 確保第一次呼叫
+## _sync_enemy_visuals() 一定會跑;_trigger_roaming_encounter() 手動 erase 一筆時也會
+## 撥回 -1,強迫下一幀重新和 spawner.enemies 對一次(見該函式與 _sync_enemy_visuals() 註解)。
+var _enemy_visual_sync_token := -1
 
 ## 角色目前「所在」的 MapObject(非 null 代表就站在那個地點上,不是路過);
 ## 出發後清空,抵達目的地後才會指向新的地點。用來判斷「已經在王城,再點王城」
@@ -374,18 +378,32 @@ func _update_roaming_enemies(move_delta: float) -> void:
 ## 釋放對應 visual,其餘的同步位置/動畫,並依 VISION_RADIUS(隱藏可視範圍)決定
 ## 是否顯示——敵人資料本身在可視範圍外一樣存在/持續遊蕩,只是不畫出來,避免整張
 ## 地圖同時塞滿敵人。
+## 敵人位置每幀都在動,visual.update_visual()/visible 一律照跑;但「有沒有敵人新增/消失
+## 需要建立或收掉節點」不需要每幀都重新比對整份清單——只在 RoamingEnemySpawner.mutation_count
+## 變動時才跑 _rebuild_enemy_visual_set() 的 Dictionary diff,見該欄位與 _rebuild_enemy_visual_set() 註解。
 func _sync_enemy_visuals() -> void:
+	if RoamingEnemyStore.spawner.mutation_count != _enemy_visual_sync_token:
+		_enemy_visual_sync_token = RoamingEnemyStore.spawner.mutation_count
+		_rebuild_enemy_visual_set()
+
+	for enemy in RoamingEnemyStore.spawner.enemies:
+		var visual: RoamingEnemyVisual = _enemy_visuals.get(enemy.id)
+		if visual == null:
+			continue
+		visual.update_visual()
+		visual.visible = RoamingEnemyStore.spawner.is_visible_to_player(enemy, map_system.position)
+
+
+## 把 _enemy_visuals 這份顯示節點字典跟 spawner.enemies 這份資料對齊:少的補建、多的收掉。
+func _rebuild_enemy_visual_set() -> void:
 	var live_ids: Dictionary = {}
 	for enemy in RoamingEnemyStore.spawner.enemies:
 		live_ids[enemy.id] = true
-		var visual: RoamingEnemyVisual = _enemy_visuals.get(enemy.id)
-		if visual == null:
-			visual = RoamingEnemyVisual.new()
+		if not _enemy_visuals.has(enemy.id):
+			var visual := RoamingEnemyVisual.new()
 			roaming_enemy_layer.add_child(visual)
 			visual.setup(enemy)
 			_enemy_visuals[enemy.id] = visual
-		visual.update_visual()
-		visual.visible = RoamingEnemyStore.spawner.is_visible_to_player(enemy, map_system.position)
 
 	for id in _enemy_visuals.keys():
 		if not live_ids.has(id):
@@ -446,6 +464,10 @@ func _trigger_roaming_encounter(enemy: RoamingEnemy) -> void:
 	if visual != null:
 		visual.queue_free()
 		_enemy_visuals.erase(enemy.id)
+		## 手動 erase 沒有經過 RoamingEnemySpawner,mutation_count 不會變——強迫下一次
+		## _sync_enemy_visuals() 仍然跑一次 _rebuild_enemy_visual_set(),否則玩家選「離開」
+		## (敵人留在 spawner.enemies,只有這裡的顯示節點被收掉)時不會補回視覺節點。
+		_enemy_visual_sync_token = -1
 
 	RoamingEnemyEvent.trigger(enemy)
 

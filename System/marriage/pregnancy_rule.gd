@@ -25,7 +25,6 @@ static func postpartum_months() -> int:
 	var reduced := POSTPARTUM_MONTHS - int(TechStore.get_bonus(GameEnums.TechEffectType.POSTPARTUM_MONTHS_SUB))
 	return maxi(reduced, 0)
 
-
 ## 是否符合懷孕資格:女性、已婚(mate != null)、目前未懷孕、不在休產期內。年老導致機率
 ## 歸零(見 get_pregnancy_chance_percent())不算在「資格」裡,而是併入機率判定本身。
 static func is_eligible(character: Character) -> bool:
@@ -35,7 +34,6 @@ static func is_eligible(character: Character) -> bool:
 		and not character.is_pregnant
 		and character.postpartum_months_remaining <= 0
 	)
-
 
 ## 從配偶雙方裡解出懷孕判定該用的那一位(FEMALE 的一方)。CharacterRosterStore 只保證
 ## 「發起告白的一方」被加入(見 town_tavern_event.gd 的 stranger 未加入 roster 的已知
@@ -48,7 +46,6 @@ static func resolve_pregnancy_candidate(character: Character) -> Character:
 		return null
 	return character if character.gender == GameEnums.Gender.FEMALE else character.mate
 
-
 ## 懷孕機率(百分比)。父母任一方已進入衰老期(AgingRule.is_aged())直接視為 0%——
 ## 老年喪失生育能力,不再套用子女數量的指數衰減。否則以 BASE_PREGNANCY_CHANCE_PERCENT
 ## 為基準,依母親目前子女數量(wife.children.size())做指數衰減,見上方常數註解。
@@ -59,7 +56,6 @@ static func get_pregnancy_chance_percent(wife: Character) -> float:
 		return 0.0
 	var base := BASE_PREGNANCY_CHANCE_PERCENT * pow(CHILD_COUNT_DESIRE_DECAY, wife.children.size())
 	return base + TechStore.get_bonus(GameEnums.TechEffectType.PREGNANCY_CHANCE_ADD)
-
 
 static func roll_pregnancy(wife: Character) -> bool:
 	return Util.get_random_float(0.0, 100.0) < get_pregnancy_chance_percent(wife)

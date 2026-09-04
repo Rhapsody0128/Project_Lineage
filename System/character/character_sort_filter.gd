@@ -16,10 +16,8 @@ var sort_key: int = -1
 ## 選中的武器類型清單,空陣列代表不篩選(全部顯示)
 var weapon_filter: Array = []
 
-
 func apply(characteres: Array[Character]) -> Array[Character]:
 	return _sort(_filter(characteres))
-
 
 func _filter(characteres: Array[Character]) -> Array[Character]:
 	if weapon_filter.is_empty():
@@ -30,7 +28,6 @@ func _filter(characteres: Array[Character]) -> Array[Character]:
 			filtered.append(character)
 	return filtered
 
-
 func _sort(characteres: Array[Character]) -> Array[Character]:
 	if sort_key < 0:
 		return characteres
@@ -39,7 +36,6 @@ func _sort(characteres: Array[Character]) -> Array[Character]:
 		return _sort_value(a) > _sort_value(b)
 	)
 	return sorted
-
 
 func _sort_value(character: Character) -> float:
 	match sort_key:
@@ -63,7 +59,6 @@ func _sort_value(character: Character) -> float:
 			return character.mentality
 		_:
 			return 0.0
-
 
 func toggle_weapon_filter(weapon_type: int) -> void:
 	if weapon_filter.has(weapon_type):

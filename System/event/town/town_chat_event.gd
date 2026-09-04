@@ -14,16 +14,13 @@ extends LocationEvent
 
 var _return_scene_path: String
 
-
 static func trigger(return_scene_path: String) -> void:
 	var event := TownChatEvent.new()
 	event._start(return_scene_path)
 
-
 func _start(return_scene_path: String) -> void:
 	_return_scene_path = return_scene_path
 	goto_dialogue(_build_chat(), return_scene_path)
-
 
 func _build_chat() -> Dialogue:
 	var player := LeaderStore.get_leader()

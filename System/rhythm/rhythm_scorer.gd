@@ -30,7 +30,6 @@ const POINTS_BY_JUDGEMENT := {
 	JUDGEMENT_MISS: 0.0,
 }
 
-
 ## 依誤差(秒,絕對值)判斷落在哪個判定帶,誤差超過 MISS_WINDOW 一律回傳 MISS。
 static func judge(abs_diff: float) -> String:
 	if abs_diff <= PERFECT_WINDOW:
@@ -40,7 +39,6 @@ static func judge(abs_diff: float) -> String:
 	if abs_diff <= GOOD_WINDOW:
 		return JUDGEMENT_GOOD
 	return JUDGEMENT_MISS
-
 
 ## 回傳 {"note_scores"/"note_judgements": 每個音符的得分/判定陣列(順序對應排序後的
 ## correct_beats), "average": 平均分數(0~100), "hit_count": 非 MISS 音符數,

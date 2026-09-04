@@ -3,7 +3,6 @@ extends RefCounted
 
 ## WarBattle 結算門檻判定,見 war_battle_simulation.gd 呼叫。
 
-
 static func grade_for(progress: float) -> int:
 	if progress >= 80.0:
 		return GameEnums.BattleSettlementGrade.DECISIVE_VICTORY
@@ -18,7 +17,6 @@ static func grade_for(progress: float) -> int:
 	elif progress > -80.0:
 		return GameEnums.BattleSettlementGrade.DEFEAT
 	return GameEnums.BattleSettlementGrade.DECISIVE_DEFEAT
-
 
 static func grade(battle: WarBattle) -> BattleResult:
 	var grade_value := grade_for(battle.battle_progress)

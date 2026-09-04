@@ -25,7 +25,6 @@ extends RefCounted
 static func get_polygon(building_type: GameEnums.BuildingType) -> PackedVector2Array:
 	return _POLYGONS.get(building_type, PackedVector2Array())
 
-
 ## PackedVector2Array([...]) 是建構子呼叫,GDScript 的 const 只接受純常數表達式,
 ## 這裡改用 static var(類別載入時只初始化一次,語意上跟 const 一樣不會被外部改動,
 ## 呼叫端一律走 get_polygon() 不要直接碰這個字典)。

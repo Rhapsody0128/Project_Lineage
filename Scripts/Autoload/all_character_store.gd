@@ -25,6 +25,12 @@ extends Node
 
 var all_characteres: Array[Character] = []
 
+## id → Character 快取,陪同 all_characteres 一起維護(register()/load_save_data() 是
+## 僅有的兩個寫入點,角色不會被移除,見上方 is_dead 標記說明,不需要處理刪除)。
+## BaseDispatchStore.find_character() 等依 id 查角色的地方一律呼叫 get_by_id(),
+## 不要自己再跑一次 for all_characteres 線性掃描。
+var _by_id: Dictionary = {}
+
 
 ## 角色總容量是否已滿(見 BaseBuildingProgressStore.get_character_capacity())——
 ## register() 跟呼叫端(例如 CharacterRosterStore.is_full())共用同一個判斷式,
@@ -39,7 +45,12 @@ func register(character: Character) -> bool:
 	if is_full():
 		return false
 	all_characteres.append(character)
+	_by_id[character.id] = character
 	return true
+
+
+func get_by_id(character_id: String) -> Character:
+	return _by_id.get(character_id)
 
 
 ## 存檔用:整份角色池(含小孩/配偶)攤平成字典陣列,見 Scripts/save_data_codec.gd。
@@ -63,4 +74,5 @@ func load_save_data(data: Array) -> Dictionary:
 		all_characteres.append(character)
 	for entry in data:
 		SaveDataCodec.link_character_relations(by_id[entry["id"]], entry, by_id)
+	_by_id = by_id
 	return by_id

@@ -9,7 +9,6 @@ extends RefCounted
 ## 師父年齡門檻,索引為 SkillRankRule.effective_rank()(F~SSS),等差 -5。
 const MIN_TEACHER_AGE_BY_RANK: Array[int] = [40, 45, 50, 55, 60, 65, 70, 75, 80]
 
-
 ## 「傳習革新」科技線(TechEffectType.TEACH_AGE_THRESHOLD_SUB)在查表值上扣減,下限
 ## clamp 在 0,不會扣成負數年齡。
 static func min_teacher_age(skill: Skill) -> int:
@@ -17,11 +16,9 @@ static func min_teacher_age(skill: Skill) -> int:
 	var reduced := base - int(TechStore.get_bonus(GameEnums.TechEffectType.TEACH_AGE_THRESHOLD_SUB))
 	return maxi(reduced, 0)
 
-
 ## barracks_rank:BaseBuildingProgressStore.get_rank(BuildingType.BARRACKS)。
 static func can_teach(master: Character, student: Character, skill: Skill, barracks_rank: int) -> bool:
 	return teach_block_reasons(master, student, skill, barracks_rank).is_empty()
-
 
 ## 逐條列出這支技能現在不能傳授的原因(空陣列代表可以傳授)——UI 端(BarracksTeachPanel)
 ## 要把每一條卡住的規則個別顯示給玩家看,不是像 can_teach() 那樣只回傳單一 bool 疊成一句
@@ -47,7 +44,6 @@ static func teach_block_reasons(master: Character, student: Character, skill: Sk
 	# 出來」），不影響師徒傳授這個動作本身。血統覺醒技可以傳授給不同血統的角色，即使該角色
 	# 可能永遠無法實際施放（見 CLAUDE.md 這次需求）。
 	return reasons
-
 
 ## 師父可傳授給指定學生的技能池,僅限師父 skill_list 裡符合 can_teach() 的技能。
 static func teachable_skills(master: Character, student: Character, barracks_rank: int) -> Array[Skill]:

@@ -22,7 +22,6 @@ var game_time_text: String
 ## 複製那 3 行格式化邏輯,不特地拉一個共用函式(兩處都很小,抽象化不值得)。
 var system_time_text: String
 
-
 func _init(p_war_id: String, p_battle_id: String, p_supported_nation: int, p_enemy_nation: int,
 		p_fight_reports: Array[BattleReport]) -> void:
 	id = Util.generate_uuid()
@@ -36,7 +35,6 @@ func _init(p_war_id: String, p_battle_id: String, p_supported_nation: int, p_ene
 	var dt := Time.get_datetime_dict_from_system()
 	system_time_text = "%04d/%02d/%02d %02d:%02d:%02d" % [dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second]
 
-
 ## 獨立成靜態函式,讓 WarBattleEvent 逐場作戰時也能組出跟這裡一致的文字當每一場的
 ## description(例如「豹 VS 鷹 戰場戰報-1」「豹 VS 鷹 戰場戰報-2」),不用各自重複拼一次
 ## 字串導致兩邊格式兜不起來。
@@ -44,7 +42,6 @@ static func title_for(p_supported_nation: int, p_enemy_nation: int) -> String:
 	return "%s VS %s 戰場戰報" % [
 		GameEnums.bloodline_nation_label(p_supported_nation), GameEnums.bloodline_nation_label(p_enemy_nation),
 	]
-
 
 var win_count: int:
 	get: return fight_reports.filter(func(r: BattleReport) -> bool: return r.result == GameEnums.BattleResultType.SELF_WIN).size()

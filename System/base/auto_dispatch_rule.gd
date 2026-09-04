@@ -13,7 +13,6 @@ extends RefCounted
 ## BaseDispatchStore.dispatch() 會立即寫回派遣紀錄,下一棟建築重新查詢到的閒置人力自然
 ## 排除掉前一棟剛佔用的人,不需要額外傳遞候選池狀態,人力不夠時基礎易產的建築優先分配到人。
 
-
 static func auto_dispatch(building: Building) -> void:
 	var empty_slots := BaseBuildingProgressStore.get_max_workers(building.type) - BaseDispatchStore.get_dispatched_character_ids(building.type).size()
 	if empty_slots <= 0:
@@ -26,7 +25,6 @@ static func auto_dispatch(building: Building) -> void:
 	for i in range(mini(empty_slots, candidates.size())):
 		BaseDispatchStore.dispatch(building.type, candidates[i].id)
 
-
 static func auto_dispatch_all() -> void:
 	for building in BuildingLibrary.get_all():
 		if not building.is_production_building():
@@ -35,14 +33,12 @@ static func auto_dispatch_all() -> void:
 			continue
 		auto_dispatch(building)
 
-
 static func recall_all() -> void:
 	for building in BuildingLibrary.get_all():
 		if not building.is_production_building():
 			continue
 		for character_id in BaseDispatchStore.get_dispatched_character_ids(building.type):
 			BaseDispatchStore.undispatch(building.type, character_id)
-
 
 static func _idle_candidates() -> Array[Character]:
 	var idle: Array[Character] = []

@@ -11,7 +11,6 @@ const DRIFT_RANDOMNESS := 0.03
 const WINNING_SIDE_LOSS_DISCOUNT := 0.4
 const SETTLEMENT_PROGRESS_THRESHOLD := 60.0
 
-
 ## 回傳 null 代表這個月還沒分出勝負,繼續打;非 null 代表這個月結算,呼叫端要交給
 ## NationRelationStore.settle_battle() 處理。戰場拖太久(雙方戰力互相消磨到接近僵持卻
 ## 遲遲分不出勝負)強制結算,門檻讀 battle.max_duration_months(依戰場自己的 rank_type
@@ -27,13 +26,11 @@ static func advance_month(battle: WarBattle) -> BattleResult:
 		return BattleResultGrader.grade(battle)
 	return null
 
-
 static func _drift(is_leading: bool) -> float:
 	var amount := BASE_DRIFT_PCT + Util.get_random_float(-DRIFT_RANDOMNESS, DRIFT_RANDOMNESS)
 	if is_leading:
 		amount *= (1.0 - WINNING_SIDE_LOSS_DISCOUNT)
 	return maxf(0.0, amount)
-
 
 static func _progress_from_power(battle: WarBattle) -> float:
 	var total := battle.battle_power_a + battle.battle_power_b

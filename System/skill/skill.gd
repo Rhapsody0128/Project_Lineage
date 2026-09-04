@@ -4,6 +4,9 @@ extends RefCounted
 ## 技能資料:數值/描述由 SkillBuilder 組裝(見 skill_library.gd),實際效果
 ## (數值計算/戰鬥表現)一律寫在 SkillEffectLibrary,透過 action 這個 Callable 帶入。
 
+## SkillLibraryXxx 的 build()/_xxx_skills() 建完後一律呼叫 SkillIdentity.stamp_*() 蓋上
+## 跨執行期穩定的 id(見 skill_identity.gd),取代這裡 _init() 給的隨機 uuid——存檔/
+## Character.knows_skill() 一律比對這個欄位,不比對名稱。
 var id: String
 var name: String
 var description: String

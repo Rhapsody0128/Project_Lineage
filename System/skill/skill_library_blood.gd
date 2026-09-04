@@ -24,7 +24,6 @@ static func build() -> Array[Skill]:
 	skills.append_array(_deer_skills())
 	return skills
 
-
 static func _lion_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
 
@@ -82,8 +81,7 @@ static func _lion_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "heal"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_blood(skills, GameEnums.BloodlineNation.LION)
 
 static func _eagle_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -143,8 +141,7 @@ static func _eagle_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "stat_buff"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_blood(skills, GameEnums.BloodlineNation.EAGLE)
 
 static func _leopard_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -205,8 +202,7 @@ static func _leopard_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "stat_buff"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_blood(skills, GameEnums.BloodlineNation.LEOPARD)
 
 static func _bear_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -268,8 +264,7 @@ static func _bear_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "stat_buff"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_blood(skills, GameEnums.BloodlineNation.BEAR)
 
 static func _dragon_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -329,8 +324,7 @@ static func _dragon_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "generic_attack_with_mechanic"))
 		.build())
 
-	return skills
-
+	return SkillIdentity.stamp_blood(skills, GameEnums.BloodlineNation.DRAGON)
 
 static func _deer_skills() -> Array[Skill]:
 	var skills: Array[Skill] = []
@@ -389,4 +383,4 @@ static func _deer_skills() -> Array[Skill]:
 		.action(Callable(SkillEffectLibrary, "heal"))
 		.build())
 
-	return skills
+	return SkillIdentity.stamp_blood(skills, GameEnums.BloodlineNation.DEER)

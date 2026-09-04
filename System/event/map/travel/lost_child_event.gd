@@ -7,16 +7,13 @@ extends LocationEvent
 
 const RETURN_SCENE_PATH := "res://Scenes/Map/map.tscn"
 
-
 static func trigger(player_pos: Vector2) -> void:
 	var event := LostChildEvent.new()
 	event._start(player_pos)
 
-
 func _start(player_pos: Vector2) -> void:
 	var dialogue := _build_prompt(player_pos)
 	goto_dialogue(dialogue, RETURN_SCENE_PATH)
-
 
 func _build_prompt(player_pos: Vector2) -> Dialogue:
 	var player := LeaderStore.get_leader()
@@ -36,10 +33,8 @@ func _build_prompt(player_pos: Vector2) -> Dialogue:
 	]
 	return Dialogue.new([narrator, player_speaker], lines, _background_path(player_pos))
 
-
 func _on_choice_selected(helped: bool) -> void:
 	goto_dialogue(_build_result(helped), RETURN_SCENE_PATH)
-
 
 func _build_result(helped: bool) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
@@ -47,7 +42,6 @@ func _build_result(helped: bool) -> Dialogue:
 		else "（你猶豫了一下,還是決定先趕路——希望他能自己找到家人。）"
 	var lines: Array[DialogueLine] = [DialogueLine.new(narrator.id, text)]
 	return Dialogue.new([narrator], lines)
-
 
 ## 背景圖沿用最近城鎮的地形對話背景,比照 RoamingEnemyEvent._background_path()。
 func _background_path(player_pos: Vector2) -> String:

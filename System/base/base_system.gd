@@ -6,7 +6,6 @@ extends RefCounted
 ## 手繪的建築外框),不需要 MapSystem 那套「沒有 polygon 就退回半徑最近命中」的 fallback。
 ## 不處理畫面/攝影機。
 
-
 func pick_building(world_pos: Vector2, buildings: Array[Building]) -> Building:
 	for building in buildings:
 		if Geometry2D.is_point_in_polygon(world_pos, building.territory_polygon):

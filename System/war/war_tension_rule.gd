@@ -26,7 +26,6 @@ const INITIAL_TENSION_MAX := 50.0
 ## 太低,調大到 20.0 讓波動更明顯。
 const MONTHLY_RANDOM_DRIFT_RANGE := 20.0
 
-
 ## 七個 WarTension 區間標籤,供 debug/未來 UI 使用。
 static func band_for(tension: float) -> String:
 	if tension < 20.0:

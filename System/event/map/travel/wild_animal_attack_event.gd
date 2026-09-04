@@ -10,11 +10,9 @@ const RETURN_SCENE_PATH := "res://Scenes/Map/map.tscn"
 const FIGHT_DAMAGE := 15
 const FIGHT_GOLD_REWARD := 30
 
-
 static func trigger(player_pos: Vector2) -> void:
 	var event := WildAnimalAttackEvent.new()
 	event._start(player_pos)
-
 
 ## 沒有編隊(self_party 為 null,玩家還沒去 PartyEdit 按過「完成編輯」)時沒有角色可以
 ## 承受傷害,比照 RoamingEnemyEvent 的做法,直接只給「繞道」一個選項。
@@ -22,7 +20,6 @@ func _start(player_pos: Vector2) -> void:
 	var self_party := PartyStore.party
 	var dialogue := _build_prompt(player_pos, self_party)
 	goto_dialogue(dialogue, RETURN_SCENE_PATH)
-
 
 func _build_prompt(player_pos: Vector2, self_party: Party) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
@@ -49,10 +46,8 @@ func _build_prompt(player_pos: Vector2, self_party: Party) -> Dialogue:
 
 	return Dialogue.new([narrator, player_speaker], lines, _background_path(player_pos))
 
-
 func _on_choice_selected(player_pos: Vector2, self_party: Party, fight: bool) -> void:
 	goto_dialogue(_build_result(player_pos, self_party, fight), RETURN_SCENE_PATH)
-
 
 func _build_result(player_pos: Vector2, self_party: Party, fight: bool) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
@@ -67,7 +62,6 @@ func _build_result(player_pos: Vector2, self_party: Party, fight: bool) -> Dialo
 		lines = [DialogueLine.new(narrator.id, "（繞了條遠路,平安避開了野獸。）")]
 
 	return Dialogue.new([narrator], lines, _background_path(player_pos))
-
 
 ## 背景圖沿用最近城鎮的地形對話背景,比照 RoamingEnemyEvent._background_path()。
 func _background_path(player_pos: Vector2) -> String:

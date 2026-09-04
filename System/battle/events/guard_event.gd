@@ -1,6 +1,11 @@
 class_name GuardEvent
 extends BattleEvent
 
+## 守護技能(B. 守護,見 Character.knows_guard_skill())觸發:actor 是飛身頂替的
+## 守護者,target 是原本被鎖定的受害者,attacker 是發動攻擊的一方——三者都不同人,
+## 傷害實際會改記在 actor 身上而非 target,見 CombatResolver.resolve_guard()。
+## skill_name 目前固定是「捨身掩護」(唯一的守護技能),見 combat_resolver.gd 呼叫端。
+
 var actor: BattleCharacter
 var actor_name: String
 var target: BattleCharacter

@@ -21,7 +21,6 @@ extends RefCounted
 const BUILD_DAYS := 30
 const UPGRADE_DAYS: Array[int] = [41, 55, 74, 100, 135, 182, 245, 331]
 
-
 static func get_all() -> Array[Building]:
 	return [
 		Building.new(

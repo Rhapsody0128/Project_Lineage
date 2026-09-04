@@ -14,7 +14,6 @@ var final_progress: float
 var exhaustion_gain_a: float
 var exhaustion_gain_b: float
 
-
 func _init(p_battle_id: String, p_war_id: String, p_nation_a: GameEnums.BloodlineNation, p_nation_b: GameEnums.BloodlineNation,
 		p_grade: GameEnums.BattleSettlementGrade, p_final_progress: float, p_exhaustion_gain_a: float,
 		p_exhaustion_gain_b: float) -> void:
@@ -26,7 +25,6 @@ func _init(p_battle_id: String, p_war_id: String, p_nation_a: GameEnums.Bloodlin
 	final_progress = p_final_progress
 	exhaustion_gain_a = p_exhaustion_gain_a
 	exhaustion_gain_b = p_exhaustion_gain_b
-
 
 ## BattleSettlementGrade 是對稱宣告(DECISIVE_VICTORY(0)↔DECISIVE_DEFEAT(6)、
 ## VICTORY(1)↔DEFEAT(5)、NARROW_VICTORY(2)↔NARROW_DEFEAT(4)、STALEMATE(3)↔自己),

@@ -31,7 +31,6 @@ static func tornado_resolve(caster: BattleCharacter, ultimate: Ultimate) -> void
 		]
 		CombatResolver.apply_damage(target, damage_value, false, detail)
 
-
 # =========================================================
 # 共用小工具:F 級以上 16 個奧義共用的目標蒐集/套用邏輯,寫法比照
 # SkillEffectLibrary 的 _apply_stat_effect()/_apply_status_mechanics()。
@@ -85,7 +84,6 @@ static func _apply_resistible_mechanic_to_enemies(caster: BattleCharacter, mecha
 			GameEnums.SkillMechanic.HEAL_DOWN:
 				target.apply_heal_down(rounds)
 		target.battle.log_event(StatusMechanicEvent.new(target, mechanic, true, resist.detail))
-
 
 # =========================================================
 # 自身BUFF奧義(神殿／祭壇,消耗信仰)E~SSS,設計依據見「奧義擴充設計」章節
@@ -153,7 +151,6 @@ static func genesis_goddess_resolve(caster: BattleCharacter, ultimate: Ultimate)
 		_apply_shield_to_target(target, target.hp_max * ultimate.secondary_ratio, ultimate.name)
 		target.cleanse_one_status()
 	_apply_grant_mechanic_to(targets, GameEnums.SkillMechanic.GRANT_GUARANTEED_CRIT, ultimate.duration_rounds)
-
 
 # =========================================================
 # 傷害敵人奧義(黑暗神殿／禁忌祭壇,消耗詛咒)E~SSS

@@ -24,7 +24,6 @@ static func pick_position(nation_a: int, nation_b: int) -> Vector2:
 		clampf(midpoint.y + offset.y, 0.0, MapSystem.MAP_SIZE.y)
 	)
 
-
 static func _town_position(nation_id: int) -> Vector2:
 	for obj in MapObject.get_all():
 		if obj.type == GameEnums.MapObjectType.TOWN and obj.nation == nation_id:

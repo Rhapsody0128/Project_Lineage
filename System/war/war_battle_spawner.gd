@@ -8,7 +8,6 @@ const MAX_CONCURRENT_BATTLES := 4
 ## next_battle_spawn_day 註解),戰場結算與否不影響這個排程。
 const NEXT_BATTLE_SPAWN_DELAY_MONTHS := 1
 
-
 ## 無條件生成一個新戰場、加進 war.active_battles,並重新排定下一次補新戰場的天數——呼叫端
 ## (宣戰/月結生成檢查)要自己先確認還沒到 MAX_CONCURRENT_BATTLES 上限才呼叫這裡。
 static func spawn_battle(war: War) -> WarBattle:

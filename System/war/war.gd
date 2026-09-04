@@ -37,10 +37,8 @@ var player_side: int = SIDE_UNDECIDED
 ## NationRelationStore.resolve_truce()。
 var player_war_contribution: int = 0
 
-
 func other_nation(nation_id: GameEnums.BloodlineNation) -> GameEnums.BloodlineNation:
 	return defender if nation_id == attacker else attacker
-
 
 func exhaustion_for(nation_id: GameEnums.BloodlineNation) -> float:
 	return war_exhaustion_a if nation_id == attacker else war_exhaustion_b

@@ -6,7 +6,6 @@ extends RefCounted
 ## static 函式,不會被實例化,lambda 包一層純粹是登記慣例統一,不受 RefCounted 生命
 ## 週期陷阱影響。
 
-
 static func monthly_tick() -> void:
 	_advance_active_battles()
 	_spawn_ready_battles()
@@ -14,11 +13,9 @@ static func monthly_tick() -> void:
 	_apply_random_tension_drift()
 	_run_truce_checks()
 
-
 static func yearly_tick() -> void:
 	WarDiplomacyAi.run_yearly_tick()
 	_decay_peacetime_tension()
-
 
 static func _advance_active_battles() -> void:
 	for war: War in NationRelationStore.wars.values():
@@ -30,7 +27,6 @@ static func _advance_active_battles() -> void:
 			var result := WarBattleSimulation.advance_month(battle)
 			if result != null:
 				NationRelationStore.settle_battle(war, battle, result)
-
 
 ## 只要還沒到 WarBattleSpawner.MAX_CONCURRENT_BATTLES 上限,到了排定的
 ## next_battle_spawn_day 就補一個新戰場——跟戰場結算與否脫鉤,呼應「戰爭期間可能同時
@@ -45,14 +41,12 @@ static func _spawn_ready_battles() -> void:
 		if war.next_battle_spawn_day != -1 and current_day >= war.next_battle_spawn_day:
 			WarBattleSpawner.spawn_battle(war)
 
-
 static func _decay_ended_war_exhaustion() -> void:
 	for war: War in NationRelationStore.wars.values():
 		if war.status != GameEnums.WarStatus.ENDED:
 			continue
 		war.war_exhaustion_a = WarExhaustionRule.decay(war.war_exhaustion_a)
 		war.war_exhaustion_b = WarExhaustionRule.decay(war.war_exhaustion_b)
-
 
 ## 停戰判定改成月度(原本是年度)——戰場結算前最長只有 1~3 個月,年度判定跟不上這個
 ## 時間尺度,會讓戰爭在系統上早就沒有新戰場了卻遲遲不進入停戰狀態。
@@ -63,7 +57,6 @@ static func _run_truce_checks() -> void:
 		var avg := (war.war_exhaustion_a + war.war_exhaustion_b) / 2.0
 		if Util.get_random_float(0.0, 1.0) <= WarTruceRule.truce_probability(avg):
 			NationRelationStore.resolve_truce(war)
-
 
 ## 每個月對每一組沒有進行中戰爭的國家對套用一次 ±MONTHLY_RANDOM_DRIFT_RANGE 的隨機
 ## 波動(邊境衝突/資源爭奪等瑣碎摩擦的簡化版)——沒有這個,WarTension 只會靠
@@ -80,7 +73,6 @@ static func _apply_random_tension_drift() -> void:
 				continue
 			var drift := Util.get_random_float(-WarTensionRule.MONTHLY_RANDOM_DRIFT_RANGE, WarTensionRule.MONTHLY_RANDOM_DRIFT_RANGE)
 			NationRelationStore.modify_war_tension(nation_a, nation_b, drift)
-
 
 ## 只有雙方都沒有進行中戰爭的國家對才會自然衰減 WarTension——正在打仗的兩國,張力靠
 ## 戰場結果推動,不會平白下降。

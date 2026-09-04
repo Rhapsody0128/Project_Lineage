@@ -24,18 +24,14 @@ extends LocationEvent
 ## 之前,先讓呼叫端在新實例上設一次性狀態(例如聯姻結果文字),比照舊版
 ## BaseBuildingPanelContent._reopen() 的 mutate 用法。
 
-
 const BASE_SCENE_PATH := "res://Scenes/Base/base.tscn"
-
 
 static func trigger(building: Building) -> void:
 	var event := BaseBuildingEvent.new()
 	event._start(building)
 
-
 func _start(building: Building) -> void:
 	goto_dialogue(_build_intro(building), "", func(): BaseBuildingEvent.open_action_panel(building))
-
 
 func _build_intro(building: Building) -> Dialogue:
 	var narrator := DialogueSpeaker.new("narrator", "", "", GameEnums.DialogueSide.NARRATOR)
@@ -44,13 +40,11 @@ func _build_intro(building: Building) -> Dialogue:
 	]
 	return Dialogue.new([narrator], lines, GameEnums.base_building_background_path(building.type))
 
-
 static func open_action_panel(building: Building, mutate: Callable = Callable()) -> void:
 	var content := BaseBuildingPanelContent.new(building)
 	if mutate.is_valid():
 		mutate.call(content)
 	ActionPanel.open_custom(building.name, content, func(): BaseBuildingEvent.return_to_base())
-
 
 static func return_to_base() -> void:
 	var tree := Engine.get_main_loop() as SceneTree

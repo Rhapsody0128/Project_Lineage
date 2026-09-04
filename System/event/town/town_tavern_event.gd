@@ -84,11 +84,9 @@ var _return_scene_path: String
 var _bartender_face_path: String
 var _nation: int
 
-
 static func trigger(return_scene_path: String, nation: int) -> void:
 	var event := TownTavernEvent.new()
 	event._start(return_scene_path, nation)
-
 
 func _start(return_scene_path: String, nation: int) -> void:
 	_return_scene_path = return_scene_path
@@ -112,7 +110,6 @@ func _start(return_scene_path: String, nation: int) -> void:
 	# ActionPanel 開告白面板——跟下面 _goto_bartender_after() 開招募面板同一套模式。
 	goto_dialogue(_build_approach(), "", func(): _open_marriage_panel())
 
-
 ## 疊加共用的 Scenes/ActionPanel/action_panel.gd(autoload)顯示告白面板
 ## (MarriageProposalPanel,見 Scenes/Marriage/marriage_proposal_panel.gd)——不切場景,蓋在
 ## 觸發事件當下的對話畫面上。面板內容自己不知道也不需要知道結果要接到哪裡,由這裡傳的
@@ -133,7 +130,6 @@ func _open_marriage_panel() -> void:
 		_on_proposal_result(accepted, self_character, target_character)
 	)
 
-
 ## 單句台詞沒有選項,播完由 goto_dialogue() 的 on_finished 直接接手疊加告白面板(見
 ## _start()/_open_marriage_panel())。
 func _build_approach() -> Dialogue:
@@ -148,7 +144,6 @@ func _build_approach() -> Dialogue:
 	]
 	return Dialogue.new([stranger_speaker, courted_speaker], lines, BACKGROUND_PATH)
 
-
 func _build_no_one_available() -> Dialogue:
 	var stranger_speaker := DialogueSpeaker.new(stranger.id, stranger.name, stranger.face_path, GameEnums.DialogueSide.RIGHT)
 	var lines: Array[DialogueLine] = [
@@ -156,7 +151,6 @@ func _build_no_one_available() -> Dialogue:
 		DialogueLine.new(stranger_speaker.id, "...不好意思,認錯人了。"),
 	]
 	return Dialogue.new([stranger_speaker], lines, BACKGROUND_PATH)
-
 
 ## 告白面板按下「接受」/「婉拒」後呼叫:self_character 是玩家最終選的人(不一定是
 ## courted,見 marriage_proposal_panel.gd 的清單選人邏輯),target_character
@@ -173,7 +167,6 @@ func _on_proposal_result(accepted: bool, self_character: Character, target_chara
 	else:
 		_goto_bartender_after(_build_declined_reaction(courted))
 
-
 ## picked 是否正是 stranger 屬意的 courted,決定告白基礎成功率是 100% 還是 20%
 ## (見 MarriageRule.roll_acceptance())。骰中依 picked 是不是 courted 分兩種成親對話
 ## (courted 本人接受 vs. courted 引薦 picked 上場、stranger 也接受);選了別人反告白
@@ -184,7 +177,6 @@ func _resolve_acceptance(picked: Character, stranger_character: Character) -> vo
 		_play_marriage_reaction(reaction, picked, stranger_character)
 	else:
 		_goto_bartender_after(_build_rejected_reaction(picked, stranger_character))
-
 
 ## 成親反應對話播完(玩家點過去)接著呼叫這裡:不再立刻 marry()/播婚禮 Dialogue,改呼叫
 ## WeddingQueueStore.queue_wedding() 記錄下來,DELAY_DAYS 天後才真正結婚(見
@@ -199,7 +191,6 @@ func _play_marriage_reaction(reaction: Dialogue, picked: Character, stranger_cha
 		_goto_bartender_after(Dialogue.new([], [], BACKGROUND_PATH))
 	)
 
-
 ## picked == courted 這一支的成親收尾:被搭訕的本人親自接受。
 func _build_accepted_reaction(picked: Character, stranger_character: Character) -> Dialogue:
 	var picked_speaker := DialogueSpeaker.new(picked.id, picked.title_full_name, picked.face_path, GameEnums.DialogueSide.LEFT)
@@ -209,8 +200,6 @@ func _build_accepted_reaction(picked: Character, stranger_character: Character) 
 		# DialogueLine.new(stranger_speaker.id, ""),
 	]
 	return Dialogue.new([picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
-
-
 
 ## 玩家選了不是 courted 的人反告白,20% 成功率骰中的收尾:courted 出面引薦 picked,
 ## stranger 也接受了這位替補人選(見 _resolve_acceptance())。
@@ -225,7 +214,6 @@ func _build_change_but_accept_reaction(picked: Character, stranger_character: Ch
 	]
 	return Dialogue.new([courted_speaker, picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
 
-
 ## 玩家選了不是 courted 的人反告白,20% 成功率沒骰中的收尾:stranger 婉拒這位
 ## 替補人選,真的告白失敗,不寫入 mate(見 _resolve_acceptance())。
 func _build_rejected_reaction(picked: Character, stranger_character: Character) -> Dialogue:
@@ -239,14 +227,12 @@ func _build_rejected_reaction(picked: Character, stranger_character: Character) 
 	]
 	return Dialogue.new([courted_speaker, picked_speaker, stranger_speaker], lines, BACKGROUND_PATH)
 
-
 func _build_declined_reaction(self_character: Character) -> Dialogue:
 	var speaker := DialogueSpeaker.new(self_character.id, self_character.title_full_name, self_character.face_path, GameEnums.DialogueSide.LEFT)
 	var lines: Array[DialogueLine] = [
 		DialogueLine.new(speaker.id, "這恐怕有點不合適..."),
 	]
 	return Dialogue.new([speaker], lines, BACKGROUND_PATH)
-
 
 ## 搭訕流程的收尾一律接到這裡:把酒館老闆這位新講者跟他的招呼詞直接接在傳入的
 ## dialogue 後面播,不切場景(dialogue.speakers/lines 只是普通 Array,直接 append
@@ -271,13 +257,11 @@ func _goto_bartender_after(dialogue: Dialogue) -> void:
 	dialogue.lines.append(DialogueLine.new(bartender_speaker.id, BARTENDER_GREETING, choices))
 	goto_dialogue(dialogue, "")
 
-
 ## 招募/委託面板按 × 關閉時呼叫:不離開酒館,重播一次老闆招呼詞(空 Dialogue,等同
 ## _start() 沒遇到搭訕那一支的播法),讓玩家回到「雇用傭兵/詢問委託/離開」三選一,
 ## 可以連續逛好幾種互動,不會逛完一種就被硬送回地點選單。
 func _return_to_bartender() -> void:
 	_goto_bartender_after(Dialogue.new([], [], BACKGROUND_PATH))
-
 
 ## 酒館老闆招呼詞選「雇用傭兵」時呼叫:彈出 ActionPanel 列出 TavernStore 目前這批候補
 ## 英雄供玩家選。清單是整個遊戲共用的同一份(見 TavernStore),同一個月內不管進出酒館
@@ -294,7 +278,6 @@ func _open_recruit_panel() -> void:
 		items.append(_build_recruit_item(hero))
 	ActionPanel.open(RECRUIT_PANEL_TITLE, items, func(): _return_to_bartender())
 
-
 ## already_recruited:這位候補英雄是不是已經在玩家角色列裡——TavernStore 的清單同一個
 ## 月內重複進出酒館都是同一批人,上次已經招募過的要開面板就顯示成 disabled 的「已招募」,
 ## 不能讓玩家看起來還能再按一次(即使真的按了 try_add() 也只是無害地回傳 true,不會重複
@@ -307,7 +290,6 @@ func _build_recruit_item(hero: Character) -> ActionPanelItem:
 	item.disabled_label = RECRUITED_BUTTON_LABEL
 	return item
 
-
 ## 招募改叫共用入口 CharacterRosterStore.try_add()(跟 PartyEdit「新增角色」、小孩
 ## 成年共用同一份「是否已滿」判斷跟提示,見該檔案註解)——角色列已滿時 try_add()
 ## 自己會跳 MessageBar 提示玩家去角色列表解雇,不在這裡另外處理。回傳值直接轉給
@@ -319,7 +301,6 @@ func _on_recruit_hero_selected(hero: Character) -> bool:
 	if added:
 		CharacterPanel.open_for_character(hero)
 	return added
-
 
 ## 特殊推薦這一列跟一般候補英雄清單同一套 already_recruited/disable 慣例,多兩個限制:
 ## _nation 好感度已經是最高評級時不再有更高的評級可探(TavernStore.special_recruit_available()
@@ -335,7 +316,6 @@ func _build_special_recruit_item() -> ActionPanelItem:
 	item.disabled_label = RECRUITED_BUTTON_LABEL
 	return item
 
-
 ## 花錢招募:先確認付得起(付不起跳訊息、不消耗任何動作),再走跟一般招募同一套
 ## try_add() 流程——只有 try_add() 真的成功(角色列沒滿)才真的扣錢,角色列滿的話
 ## try_add() 自己會跳提示,這裡不額外扣錢,讓玩家騰出空位後可以直接再按一次。
@@ -350,7 +330,6 @@ func _on_special_recruit_selected(hero: Character) -> bool:
 		CharacterPanel.open_for_character(hero)
 	return added
 
-
 ## 「詢問委託」選項按下後呼叫:列出 QUEST_OFFER_TYPES 三種委託各一張報價,見
 ## System/quest/quest_library.gd 的 create_offer()——報價不快取,每次開面板都重新抽一輪
 ## (跟 TavernStore 招募清單每月固定不同,委託本來就該常換常新),該國已經有進行中的
@@ -362,7 +341,6 @@ func _open_quest_offer_panel() -> void:
 	for quest_type in QUEST_OFFER_TYPES:
 		items.append(_build_quest_offer_item(quest_type))
 	ActionPanel.open(QUEST_OFFER_PANEL_TITLE, items, func(): _return_to_bartender())
-
 
 ## 委託名稱|說明|難度(RANK)|類型|期限|接受——ActionPanelItem 只有 title/subtitle 兩塊
 ## 文字區,說明/難度/類型/期限合併塞進 subtitle,委託名稱當 title,接受/已受理當按鈕。
@@ -378,7 +356,6 @@ func _build_quest_offer_item(quest_type: int) -> ActionPanelItem:
 	item.disabled_label = QUEST_ACCEPTED_BUTTON_LABEL
 	return item
 
-
 ## disable_after_select 靠這裡的回傳值決定要不要真的變 disabled——按下當下再檢查一次
 ## has_active_quest() 是防呆(面板打開後、按下接受前理論上不會有其他管道插入同種委託,
 ## 但跟 _on_recruit_hero_selected() 同一套「回傳值反映是否真的成功」的慣例,不要假設
@@ -389,7 +366,6 @@ func _on_quest_offer_selected(offer: Quest) -> bool:
 	QuestStore.accept_quest(offer)
 	MessageBar.show_message("接下了委託:%s" % QuestLibrary.title_for(offer))
 	return true
-
 
 func _return_to_map_location() -> void:
 	var tree := Engine.get_main_loop() as SceneTree

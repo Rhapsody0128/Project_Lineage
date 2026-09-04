@@ -47,7 +47,6 @@ var fixed_recipe: WorkshopRecipe
 ## MapObject.territory_polygon 的設計。由 _init() 依 type 自動從 BuildingPositions 查出。
 var territory_polygon: PackedVector2Array
 
-
 func _init(
 	p_type: GameEnums.BuildingType,
 	p_name: String,
@@ -74,15 +73,12 @@ func _init(
 	fixed_recipe = p_fixed_recipe
 	territory_polygon = BuildingPositions.get_polygon(p_type)
 
-
 ## 建造(0→1)算 1 級,之後每個 upgrade_costs 項目再加一級。
 func max_level() -> int:
 	return 1 + upgrade_costs.size()
 
-
 func is_production_building() -> bool:
 	return potential_type != -1
-
 
 ## territory_polygon 的外框中心點(bounding box center),同 MapObject.position 過去的
 ## 算法——沒有 polygon 就回傳原點,呼叫端(目前是 building_visual.gd)自行決定要不要

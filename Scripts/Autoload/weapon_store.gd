@@ -11,9 +11,6 @@ extends Node
 # 不用依賴「WeaponStore 一定要比 CharacterRosterStore 先讀完」這種順序假設。
 # =========================================================
 
-## 裝備變更時發出,讓已經開著的鐵匠鋪 UI 能即時刷新。
-signal changed
-
 var equipped: Dictionary = {}
 
 
@@ -36,7 +33,6 @@ func equip(weapon_type: int, instance: WeaponInstance) -> void:
 	for character in CharacterRosterStore.all_characteres:
 		if character.weapon == weapon_type:
 			sync_character(character)
-	changed.emit()
 
 
 ## 把該角色手持武器類型目前的全域裝備複製一份寫進角色身上——CharacterRosterStore.try_add()
@@ -64,4 +60,3 @@ func load_save_data(data: Dictionary) -> void:
 		var entry: Dictionary = data[key]
 		var stat_points := SaveDataCodec.str_keyed_to_int(entry.get("stat_points", {}))
 		equipped[weapon_type] = WeaponInstance.new(weapon_type, int(entry.get("rank_type", GameEnums.RankType.F)), stat_points)
-	changed.emit()

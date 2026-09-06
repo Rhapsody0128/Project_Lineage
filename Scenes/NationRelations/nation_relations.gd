@@ -283,12 +283,12 @@ func _build_war_relation_table(selected_id: int, others: Array[Nation]) -> Contr
 
 
 func _build_war_status_cell(nation_a: int, nation_b: int) -> Control:
-	var status := NationRelation.get_status(nation_a, nation_b)
+	var status := NationRelationStore.get_war_status(nation_a, nation_b)
 	return _build_stat_value_cell(GameEnums.nation_war_status_label(status), UiStyle.PARCHMENT_TEXT_COLOR)
 
 
 func _build_war_tension_cell(nation_a: int, nation_b: int) -> Control:
-	var tension := NationRelation.get_tension(nation_a, nation_b)
+	var tension := NationRelationStore.get_war_tension(nation_a, nation_b)
 	return _build_stat_value_cell("%.0f%%" % tension, UiStyle.PARCHMENT_TEXT_COLOR)
 
 
@@ -296,7 +296,7 @@ func _build_war_tension_cell(nation_a: int, nation_b: int) -> Control:
 ## 顯示的是「other」這一方的疲憊——讀者視角是「選定國家的這個對手打得多累」,承平狀態
 ## 下直接回傳 0、顯示「0%」,不特別另外顯示「-」(語意上「沒在打就不會累」)。
 func _build_war_exhaustion_cell(selected_id: int, other_id: int) -> Control:
-	var exhaustion := NationRelation.get_exhaustion(selected_id, other_id, other_id)
+	var exhaustion := NationRelationStore.get_war_exhaustion(selected_id, other_id, other_id)
 	return _build_stat_value_cell("%.0f%%" % exhaustion, UiStyle.PARCHMENT_TEXT_COLOR)
 
 

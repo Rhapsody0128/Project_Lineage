@@ -59,8 +59,11 @@ var _title_action_button: Control = null
 func _ready() -> void:
 	root.visible = false
 	UiStyle.apply_parchment_panel(panel_box, 1500.0, 750.0)
-	UiStyle.apply_wood_plaque_button(close_button, 10.0, 4.0)
-	close_button.add_theme_font_size_override("font_size", 18)
+	## content_margin 原本是 (10.0, 4.0)+font 18,量出來的實際點擊區域比觸控建議的最小
+	## 尺寸(約 44px 見方)小上不少——這顆 × 是全專案彈出面板共用、點擊頻率最高的按鈕,
+	## 加大到這裡的數字讓觸控裝置比較好點準,PC 滑鼠點擊不受影響。
+	UiStyle.apply_wood_plaque_button(close_button, 18.0, 12.0)
+	close_button.add_theme_font_size_override("font_size", 20)
 	close_button.pressed.connect(close)
 	UiStyle.apply_parchment_scrollbar(scroll_container)
 

@@ -11,7 +11,8 @@ extends Node
 # 一一對應,不需要另外維護一份 id,見 System/base/building/building.gd 開頭註解。
 #
 # 等級 0 表示尚未建造(DISABLED,查不到 type 時的預設值),1~9 對應 GameEnums.RankType
-# 的 F~SSS。容納工作角色人數 = 等級本身,不用另開容量表。
+# 的 F~SSS。容納工作角色人數 = 等級 + 1(見 get_max_workers()),Lv1 就有 2 個工作格,
+# 避免剛開局工人數量派不完、閒置人力無處可去。
 #
 # 0→1 級叫「建造」(start_construction()),1 級以上叫「升級」(start_upgrade())——兩者
 # 都要花天數,差別是建造完成前 0 級完全不能用,升級中則維持目前等級正常運作/正常派遣
@@ -52,10 +53,14 @@ func is_unlocked(building_type: GameEnums.BuildingType) -> bool:
 
 ## 「廣納賢才」科技線(TechEffectType.MAX_WORKERS_ADD)加在等級上,套用全部 12 棟生產
 ## 建築(含科學研究所,比照「產業精進」——見 BaseProduction.monthly_yield_for_worker()
-## 該節點註解——一併套用全體生產建築的既有慣例)。
+## 該節點註解——一併套用全體生產建築的既有慣例)。基礎容量是等級+1(Lv1 就有 2 格)
+## 而不是直接等於等級,原因是等級本身要撐到 Lv9 才有 9 格太晚,開局工人一多就沒地方派,
+## 削弱「派工人=變強」的早期爽感;未建造(Lv0)維持 0 格,不因此規則多算出 1 格。
 func get_max_workers(building_type: GameEnums.BuildingType) -> int:
-	var base := get_level(building_type)
-	return base + int(TechStore.get_bonus(GameEnums.TechEffectType.MAX_WORKERS_ADD))
+	var level := get_level(building_type)
+	if level <= 0:
+		return 0
+	return level + 1 + int(TechStore.get_bonus(GameEnums.TechEffectType.MAX_WORKERS_ADD))
 
 
 func is_active(building_type: GameEnums.BuildingType) -> bool:

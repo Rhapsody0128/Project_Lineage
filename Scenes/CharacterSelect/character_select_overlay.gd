@@ -73,8 +73,10 @@ func _ready() -> void:
 
 	var close_button := Button.new()
 	close_button.text = "×"
-	UiStyle.apply_wood_plaque_button(close_button, 10.0, 4.0)
-	close_button.add_theme_font_size_override("font_size", 18)
+	## 觸控點擊區域加大,比照 ActionPanel 的 × 鈕(見該檔案同一處註解)——這裡外觀沿用
+	## ActionPanel 視覺語言,尺寸也要一併同步,不要各自漂移。
+	UiStyle.apply_wood_plaque_button(close_button, 18.0, 12.0)
+	close_button.add_theme_font_size_override("font_size", 20)
 	close_button.pressed.connect(close)
 	top_bar.add_child(close_button)
 

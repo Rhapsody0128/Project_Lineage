@@ -125,8 +125,6 @@ enum SkillMechanic {
 	## 「用掉一次就消失」的一次性覆寫機制。
 	GRANT_ARMOR_PIERCE, GRANT_GUARANTEED_CRIT,
 }
-enum ActionType {ATTACK, DAZE, ESCAPE, CONFUSE, SKILL}
-enum Relations {SELF, ALLIES, NEUTRAL, HOSTILE, UNKNOWN}
 enum TraitPolarity {POSITIVE, NEGATIVE, NEUTRAL}
 ## 戰鬥結果:依總大將(Party.leader/BattleCharacter.is_leader)死活判定,見 Battle.result
 enum BattleResultType {SELF_WIN, ENEMY_WIN, DRAW}

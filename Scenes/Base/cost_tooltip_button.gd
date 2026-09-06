@@ -22,10 +22,23 @@ const _WARNING_COLOR := Color(0.95, 0.55, 0.4, 1)
 const _CONTENT_MARGIN_H := 12
 const _CONTENT_MARGIN_V := 8
 
+## 觸控裝置沒有 hover,但這顆按鈕本身「按下去就是建造/升級動作」——不能像
+## MoraleStatusButton 那樣直接把 pressed 接到 UiStyle.show_tap_popover(),否則玩家想看
+## 費用預覽卻不小心真的執行了建造/升級。改成按住超過 LONG_PRESS_SEC 才視為「長按預覽」:
+## 計時器一到就立刻把自己 disable 掉,讓即將到來的放開動作被引擎判定成「點在 disabled
+## 按鈕上」不會觸發 pressed,彈窗關閉時再還原成長按前的 disabled 狀態(可能因為資材不足
+## 本來就是 disabled)。按住時間不到 LONG_PRESS_SEC 正常放開則完全不受影響,維持原本點擊
+## 就執行動作的行為。
+const LONG_PRESS_SEC := 0.45
+
 ## resource_type -> 需要的數量,天數,額外提示行(「市鎮中心等級不足」「資材不足」等)。
 var _cost: Dictionary = {}
 var _days: int = 0
 var _extra_lines: Array[String] = []
+
+var _press_timer: Timer
+var _held := false
+var _disabled_before_preview := false
 
 
 func set_cost_tooltip(cost: Dictionary, days: int, extra_lines: Array[String] = []) -> void:
@@ -34,7 +47,36 @@ func set_cost_tooltip(cost: Dictionary, days: int, extra_lines: Array[String] = 
 	_extra_lines = extra_lines
 
 
+func _ready() -> void:
+	_press_timer = Timer.new()
+	_press_timer.one_shot = true
+	_press_timer.wait_time = LONG_PRESS_SEC
+	add_child(_press_timer)
+	_press_timer.timeout.connect(_on_long_press_timeout)
+	button_down.connect(func():
+		_held = true
+		_press_timer.start()
+	)
+	button_up.connect(func():
+		_held = false
+		_press_timer.stop()
+	)
+
+
+func _on_long_press_timeout() -> void:
+	if not _held:
+		return
+	_disabled_before_preview = disabled
+	disabled = true
+	var popup := UiStyle.show_tap_popover(self, _build_tooltip_content())
+	popup.popup_hide.connect(func(): disabled = _disabled_before_preview)
+
+
 func _make_custom_tooltip(_for_text: String) -> Object:
+	return _build_tooltip_content()
+
+
+func _build_tooltip_content() -> Control:
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", _CONTENT_MARGIN_H)
 	margin.add_theme_constant_override("margin_right", _CONTENT_MARGIN_H)

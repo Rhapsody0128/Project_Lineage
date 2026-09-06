@@ -3,7 +3,7 @@ extends Node
 # =========================================================
 # 根據地「哪棟建築派了哪些角色」的派遣紀錄(autoload,見 project.godot)。跟
 # BaseResourceStore 同一套慣例:session 狀態放這裡,不放 System/。一棟建築最多派
-# BaseBuildingProgressStore.get_max_workers() 位角色(容量=建築等級)、一位角色同一時間
+# BaseBuildingProgressStore.get_max_workers() 位角色(容量=建築等級+1)、一位角色同一時間
 # 只能派 1 棟建築,靠 dispatch() 內先呼叫 undispatch_character() 清掉舊指派來保證。
 #
 # 用 GameEnums.BuildingType(Building.type)當 key,不是字串——18 種建築類型本來就

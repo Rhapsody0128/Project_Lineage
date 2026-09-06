@@ -55,6 +55,13 @@ var _objects: Array[MapObject] = []
 var _dragging := false
 var _mouse_down_pos := Vector2.ZERO
 var _last_dir_name := "Down"
+
+## 雙指縮放狀態(觸控裝置沒有滑鼠滾輪,見 _unhandled_input 的 InputEventScreenTouch/
+## InputEventScreenDrag 分支)。key 是 InputEventScreenTouch.index,value 是該手指目前
+## 螢幕座標;`_pinch_prev_distance` 是上一幀兩指間距,只在恰好兩指同時按著時有意義,
+## 小於兩指時歸零當作「目前沒有在雙指縮放」的旗標。
+var _touch_points: Dictionary = {}
+var _pinch_prev_distance := 0.0
 ## 角色移動時鏡頭是否自動跟隨置中——玩家拖曳畫面或按 WASD 平移鏡頭後關閉,
 ## 直到下一次點地圖發出新的移動指令(_handle_click_to_move())才重新開啟
 ## (見 _process() 的跟隨邏輯與 _drag_camera()/_update_wasd_pan() 的關閉時機)。
@@ -605,6 +612,42 @@ func _unhandled_input(event: InputEvent) -> void:
 		if moved > DRAG_CLICK_THRESHOLD_PX or _dragging:
 			_dragging = true
 			_drag_camera(motion_event.relative)
+	elif event is InputEventScreenTouch:
+		var touch_event := event as InputEventScreenTouch
+		if touch_event.pressed:
+			_touch_points[touch_event.index] = touch_event.position
+			if _touch_points.size() == 2:
+				# 第二指按下當下才真正進入雙指縮放,順便打斷第一指原本被引擎模擬成滑鼠
+				# 拖曳/點擊的判定,避免放開時誤觸點擊移動。
+				_pinch_prev_distance = _touch_points_distance()
+				_dragging = false
+		else:
+			_touch_points.erase(touch_event.index)
+			if _touch_points.size() < 2:
+				_pinch_prev_distance = 0.0
+	elif event is InputEventScreenDrag:
+		var drag_event := event as InputEventScreenDrag
+		if _touch_points.has(drag_event.index):
+			_touch_points[drag_event.index] = drag_event.position
+		if _touch_points.size() == 2 and _pinch_prev_distance > 0.0:
+			var new_distance := _touch_points_distance()
+			if new_distance > 0.0:
+				_apply_zoom(_pinch_prev_distance / new_distance, _touch_points_center())
+				_pinch_prev_distance = new_distance
+
+
+func _touch_points_distance() -> float:
+	var positions := _touch_points.values()
+	return (positions[0] as Vector2).distance_to(positions[1] as Vector2)
+
+
+func _touch_points_center() -> Vector2:
+	var positions := _touch_points.values()
+	return ((positions[0] as Vector2) + (positions[1] as Vector2)) / 2.0
+
+
+func _screen_point_to_world(screen_pos: Vector2) -> Vector2:
+	return get_viewport().canvas_transform.affine_inverse() * screen_pos
 
 
 ## 縮放以滑鼠位置為中心:縮放前先記下滑鼠目前指到的世界座標,套用新 zoom
@@ -613,16 +656,23 @@ func _unhandled_input(event: InputEvent) -> void:
 ## 屬預期行為。
 func _zoom_camera(zoom_in: bool) -> void:
 	var factor := (1.0 / ZOOM_FACTOR_PER_NOTCH) if zoom_in else ZOOM_FACTOR_PER_NOTCH
+	_apply_zoom(factor, get_viewport().get_mouse_position())
+
+
+## 縮放中心改成接受任意螢幕座標(而不是只認滑鼠位置),讓滑鼠滾輪(_zoom_camera)跟
+## 雙指縮放(兩指中點,見 _unhandled_input 的 InputEventScreenDrag 分支)共用同一套
+## 「縮放後讓中心點對應的世界座標維持不動」邏輯。
+func _apply_zoom(factor: float, center_screen_pos: Vector2) -> void:
 	var new_zoom := camera.zoom * factor
 	new_zoom.x = clamp(new_zoom.x, ZOOM_MIN.x, ZOOM_MAX.x)
 	new_zoom.y = clamp(new_zoom.y, ZOOM_MIN.y, ZOOM_MAX.y)
 	if new_zoom == camera.zoom:
 		return
 
-	var mouse_world_before := camera.get_global_mouse_position()
+	var world_before := _screen_point_to_world(center_screen_pos)
 	camera.zoom = new_zoom
-	var mouse_world_after := camera.get_global_mouse_position()
-	camera.position += mouse_world_before - mouse_world_after
+	var world_after := _screen_point_to_world(center_screen_pos)
+	camera.position += world_before - world_after
 
 	_clamp_camera_position()
 

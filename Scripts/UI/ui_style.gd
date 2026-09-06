@@ -179,6 +179,30 @@ static func _set_parchment_style(panel: Control, panel_width: float, panel_heigh
 	panel.add_theme_stylebox_override("panel", style)
 
 
+## 觸控裝置沒有 hover,原本只靠 `_make_custom_tooltip()` 顯示的內容(見
+## `CostTooltipButton`/`MoraleStatusButton`)在觸控上完全看不到——這裡提供一個「點擊/
+## 長按切換顯示」的替代路徑:把呼叫端原本組給 hover tooltip 用的同一份 `Control` 內容
+## 原封不動包進 `PopupPanel`,定位在 `anchor` 正下方。`PopupPanel` 繼承 `Popup`,點擊
+## 外部或按 Esc 會自動關閉(引擎內建行為,不用自己接訊號判斷點擊在框外)。回傳建立好的
+## `PopupPanel` 讓呼叫端可以接 `popup_hide` 做收尾(例如 `CostTooltipButton` 長按預覽期間
+## 暫時 disable 自己、關閉後要還原)。**只適合「點擊本身不會觸發其他遊戲動作」的純資訊
+## 按鈕**(例如 `MoraleStatusButton`)直接在 `pressed` 呼叫這裡;點擊本身就是遊戲動作的
+## 按鈕(例如 `CostTooltipButton` 建造/升級)不能省事直接接 `pressed`,要另外設計長按
+## 判定,避免「想看預覽卻不小心真的執行了動作」。
+static func show_tap_popover(anchor: Control, content: Control) -> PopupPanel:
+	var popup := PopupPanel.new()
+	popup.add_theme_stylebox_override("panel", bordered_panel(
+		Color(0.12, 0.1, 0.08, 0.96), Color(0.4, 0.29, 0.18, 0.9), 1, 8, 12.0, 10.0
+	))
+	popup.add_child(content)
+	anchor.get_viewport().add_child(popup)
+	var anchor_rect := anchor.get_global_rect()
+	popup.position = Vector2i(anchor_rect.position) + Vector2i(0, int(anchor_rect.size.y) + 4)
+	popup.popup()
+	popup.popup_hide.connect(popup.queue_free)
+	return popup
+
+
 ## 分隔線樣式:不套羊皮紙面板,只在單一邊畫一條線分隔相鄰區塊,背景透明——用於「整包內容
 ## 本來就要自然往下長,不需要各自獨立一顆固定尺寸面板」的場合(例如 marriage_proposal_panel.gd/
 ## stronghold_marriage_panel.gd 拿掉 apply_parchment_panel() 之後,左側區塊在右邊畫一條線

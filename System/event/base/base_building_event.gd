@@ -20,9 +20,7 @@ extends LocationEvent
 ## open_action_panel()/return_to_base() 刻意寫成 static(不碰任何實例欄位)——
 ## System/event/base/base_marriage_event.gd 的聯姻 Dialogue 演出結束後,也要用同一套
 ## 「開一份全新 BaseBuildingPanelContent、× 鈕走 _return_to_base()」邏輯跳回城鎮中心
-## 面板,不重寫一份幾乎一樣的程式碼。mutate 選填:新內容 _ready() 觸發 _rebuild_body()
-## 之前,先讓呼叫端在新實例上設一次性狀態(例如聯姻結果文字),比照舊版
-## BaseBuildingPanelContent._reopen() 的 mutate 用法。
+## 面板,不重寫一份幾乎一樣的程式碼。
 
 const BASE_SCENE_PATH := "res://Scenes/Base/base.tscn"
 
@@ -40,10 +38,8 @@ func _build_intro(building: Building) -> Dialogue:
 	]
 	return Dialogue.new([narrator], lines, GameEnums.base_building_background_path(building.type))
 
-static func open_action_panel(building: Building, mutate: Callable = Callable()) -> void:
+static func open_action_panel(building: Building) -> void:
 	var content := BaseBuildingPanelContent.new(building)
-	if mutate.is_valid():
-		mutate.call(content)
 	ActionPanel.open_custom(building.name, content, func(): BaseBuildingEvent.return_to_base())
 
 static func return_to_base() -> void:

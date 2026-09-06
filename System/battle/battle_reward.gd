@@ -32,10 +32,17 @@ static func exp_for_expedition(rank_type: int) -> int:
 ## System/base/base_warehouse.gd,BaseResourceStore.add() 對 GOLD 特殊處理不再封頂),
 ## 曲線比 RANK_EXP 陡許多——遊蕩者難度(等級/人數,見 PartyController.RANK_LEVEL_RANGE/
 ## RANK_PARTY_SIZE_RANGE)越高才值得打,低階遊蕩者金錢報酬刻意壓低,不讓玩家有動機一直
-## 刷最簡單的對手。懲罰抓在同級獎勵的六到七成,輸了會痛但不至於直接傾家蕩產。先用預留
-## 位置數值,之後依遊戲數值調整這兩張表即可,不用動呼叫端。
-const RANK_MONEY_REWARD: Array[int] = [30, 70, 120, 200, 300, 450, 650, 900, 1200]
-const RANK_MONEY_PENALTY: Array[int] = [20, 45, 80, 130, 200, 300, 430, 600, 800]
+## 刷最簡單的對手。懲罰抓在同級獎勵的六到七成,輸了會痛但不至於直接傾家蕩產。
+##
+## 原版頂級(SSS)單場 1200 金,遠超根據地任何單筆花費(建築升級表最貴的單一資源項目
+## 也只到 660,見 System/base/building/building_library.gd 的大本營 Lv9),等於打一場
+## 高階遊蕩者就能秒付根據地經濟半天才能生產出來的東西,根據地經濟(商隊站/黑市)淪為
+## 陪襯——已下修兩輪,頂級壓到 300(約根據地最貴單筆花費的一半),讓玩家不能單靠打怪
+## 就完全繞過種田,根據地經濟仍是主要金流。懲罰依同一套六到七成比例等比例下修,不單獨
+## 調整。若還嫌高,下一輪可以考慮改成「隨遊蕩者難度給經驗但金錢改成極小額」,把戰鬥定位
+## 成純練功管道、金錢徹底交給根據地經濟負責,但那是更大幅的定位調整,先從數值下修開始。
+const RANK_MONEY_REWARD: Array[int] = [8, 18, 30, 50, 75, 110, 160, 225, 300]
+const RANK_MONEY_PENALTY: Array[int] = [5, 12, 20, 33, 50, 73, 107, 150, 200]
 
 static func money_reward_for_rank(rank_type: int) -> int:
 	return RANK_MONEY_REWARD[clampi(rank_type, 0, RANK_MONEY_REWARD.size() - 1)]

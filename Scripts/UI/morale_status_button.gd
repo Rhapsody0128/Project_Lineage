@@ -18,7 +18,18 @@ const _CONTENT_MARGIN_H := 12
 const _CONTENT_MARGIN_V := 8
 
 
+## 點擊本身不會觸發任何遊戲動作(純資訊顯示,見 header_bar.gd 的 _build_morale_display()
+## 註解),可以直接把 pressed 接到觸控替代路徑,不用像 CostTooltipButton 那樣另外判定
+## 長按——見 UiStyle.show_tap_popover() 開頭註解。
+func _ready() -> void:
+	pressed.connect(func(): UiStyle.show_tap_popover(self, _build_tooltip_content()))
+
+
 func _make_custom_tooltip(_for_text: String) -> Object:
+	return _build_tooltip_content()
+
+
+func _build_tooltip_content() -> Control:
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", _CONTENT_MARGIN_H)
 	margin.add_theme_constant_override("margin_right", _CONTENT_MARGIN_H)

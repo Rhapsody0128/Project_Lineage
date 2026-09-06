@@ -1,5 +1,5 @@
 class_name FamilyTreeCanvas
-extends Control
+extends PannableZoomableCanvas
 
 # =========================================================
 # 祖譜樹狀圖本體:render(focus) 呼叫 FamilyTreeBuilder.build() 拿到 FamilyTreeUnit
@@ -14,8 +14,8 @@ extends Control
 # (含百分比計量表,資料來源/配色跟
 # CharacterDetailView._populate_bloodline() 一致;固定只留約 3~4 條的高度,超過用
 # ScrollContainer 內部捲動,不撐高卡片)。沒有配偶時卡片只有一欄、不留空欄——所以
-# 卡片寬度依 unit 是否有 partner 分兩種(CARD_WIDTH_SINGLE/CARD_WIDTH_COUPLE),但
-# 仍統一用同一個 slot pitch(取兩者較寬的 CARD_WIDTH_COUPLE 為準)置中排列,卡片
+# 卡片寬度依 unit 是否有 partner 分兩種(CARD_WIDTH_SINGLE_BASE/CARD_WIDTH_COUPLE_BASE),
+# 但仍統一用同一個 slot pitch(取兩者較寬的 CARD_WIDTH_COUPLE_BASE 為準)置中排列,卡片
 # 幾何中心(_rect_by_unit 存的 Rect2)永遠等於「本人跟配偶之間的中線」(單人卡就是
 # 那一欄本身的中線),連接線直接讀這個中心點,不用另外校正。
 #
@@ -24,65 +24,62 @@ extends Control
 # (樹頂),focus 不一定是世代 1。
 #
 # 點卡片任一欄(整欄都能點,不是只有小頭像)開 CharacterPanel;整個 ScrollContainer
-# 範圍內也能按住拖曳平移(_input() 而非 _gui_input(),見下方拖曳段落)。
+# 範圍內也能按住拖曳平移、雙指縮放(見基底類別 PannableZoomableCanvas)。
 # =========================================================
 
-## CARD_HEIGHT/CARD_WIDTH_*/COLUMN_WIDTH 比原本各拉高/拉寬一截,多留給「稱謂」列
-## (見 _build_person_column())——連接線的置中邏輯(_draw()/render() 的
-## slot_center_x)完全是從這幾個常數即時算出來的,不是寫死座標,這裡調整不需要
-## 另外校正祖譜線。
-const CARD_HEIGHT := 272.0
-const CARD_WIDTH_SINGLE := 260.0
-const CARD_WIDTH_COUPLE := 520.0
-const SLOT_GAP := 70.0
-const ROW_GAP := 90.0
-const CANVAS_MARGIN := 40.0
-const COLUMN_WIDTH := 230.0
+## 所有跟版面/字級相關的常數都是「zoom=1.0 時」的基準值,實際使用一律要乘上
+## `zoom`(見下方 _z() 系列 helper)——縮放不是靠 Control.scale,而是直接用縮放後的
+## 常數重新跑一次版面計算,見 PannableZoomableCanvas 開頭註解。
+const CARD_HEIGHT_BASE := 272.0
+const CARD_WIDTH_SINGLE_BASE := 260.0
+const CARD_WIDTH_COUPLE_BASE := 520.0
+const SLOT_GAP_BASE := 70.0
+const ROW_GAP_BASE := 90.0
+const CANVAS_MARGIN_BASE := 40.0
+const COLUMN_WIDTH_BASE := 230.0
 ## 長寬比 1.1(寬=高),跟 CharacterDetailView.FAMILY_PORTRAIT_SIZE 同一個比例——
 ## 使用者要求頭像加寬,其餘資訊欄照舊排在右邊。
-const PORTRAIT_SIZE := Vector2(96, 96)
+const PORTRAIT_SIZE_BASE := Vector2(96, 96)
 
 const PANEL_BG := Color(0.13, 0.15, 0.21, 0.95)
 const PANEL_BORDER := Color(0.36, 0.4, 0.56, 1)
 const LINE_COLOR := Color(0.95, 0.9, 0.72, 1)
-const LINE_WIDTH := 3.0
+const LINE_WIDTH_BASE := 3.0
 
 ## 稱謂文字色,沿用原本「評級」那一行的金色系,視覺語言統一。
 const TITLE_LABEL_COLOR := Color(1.0, 0.85, 0.3)
 
-const BLOODLINE_BAR_HEIGHT := 8.0
+const BLOODLINE_BAR_HEIGHT_BASE := 8.0
 const BLOODLINE_BAR_FILL := Color(0.75, 0.78, 0.86)
 const BLOODLINE_BAR_BG := Color(0.1, 0.1, 0.12)
 ## 血統清單固定只留約 3~4 條的高度,超過的用 ScrollContainer 內部捲動,不撐高卡片。
-const BLOODLINE_LIST_HEIGHT := 140.0
+const BLOODLINE_LIST_HEIGHT_BASE := 140.0
 
-## 拖曳判定:按住移動超過這個距離(像素)才算「有拖曳」,放開時才不會被
-## _on_person_gui_input 誤判成單純點擊而開錯的 CharacterPanel。
-const DRAG_MOVE_THRESHOLD := 4.0
-
+var _focus: Character = null
 var _units: Array[FamilyTreeUnit] = []
 var _rect_by_unit: Dictionary = {}
 var _next_leaf_slot: float = 0.0
 var _slot_by_unit: Dictionary = {}
 
-var _scroll_container: ScrollContainer
-var _dragging: bool = false
-var _drag_moved: bool = false
-var _drag_distance: float = 0.0
-
-
-func _ready() -> void:
-	_scroll_container = get_parent() as ScrollContainer
-
 
 func render(focus: Character) -> void:
+	_focus = focus
+	zoom = 1.0
+	_rebuild_at_zoom()
+
+
+func _rebuild_at_zoom() -> void:
 	for child in get_children():
 		child.queue_free()
 
-	_units = FamilyTreeBuilder.build(focus)
 	_rect_by_unit.clear()
 	_slot_by_unit.clear()
 	_next_leaf_slot = 0.0
+
+	if _focus == null:
+		queue_redraw()
+		return
+	_units = FamilyTreeBuilder.build(_focus)
 
 	if _units.is_empty():
 		queue_redraw()
@@ -95,18 +92,20 @@ func render(focus: Character) -> void:
 	for root in root_units:
 		_assign_slot(root)
 
-	var pitch := CARD_WIDTH_COUPLE + SLOT_GAP
-	var row_height := CARD_HEIGHT + ROW_GAP
+	var card_width_couple := CARD_WIDTH_COUPLE_BASE * zoom
+	var card_height := CARD_HEIGHT_BASE * zoom
+	var pitch := card_width_couple + SLOT_GAP_BASE * zoom
+	var row_height := card_height + ROW_GAP_BASE * zoom
 	var max_right := 0.0
 	var max_bottom := 0.0
 
 	for unit in _units:
 		var slot: float = _slot_by_unit[unit]
-		var card_width: float = CARD_WIDTH_COUPLE if unit.partner != null else CARD_WIDTH_SINGLE
+		var card_width: float = card_width_couple if unit.partner != null else CARD_WIDTH_SINGLE_BASE * zoom
 		var slot_center_x: float = slot * pitch + pitch / 2.0
 		var rect := Rect2(
 			Vector2(slot_center_x - card_width / 2.0, float(unit.generation - 1) * row_height),
-			Vector2(card_width, CARD_HEIGHT)
+			Vector2(card_width, card_height)
 		)
 		_rect_by_unit[unit] = rect
 
@@ -118,7 +117,7 @@ func render(focus: Character) -> void:
 		max_right = max(max_right, rect.position.x + rect.size.x)
 		max_bottom = max(max_bottom, rect.position.y + rect.size.y)
 
-	custom_minimum_size = Vector2(max_right + CANVAS_MARGIN, max_bottom + CANVAS_MARGIN)
+	custom_minimum_size = Vector2(max_right + CANVAS_MARGIN_BASE * zoom, max_bottom + CANVAS_MARGIN_BASE * zoom)
 	queue_redraw()
 
 
@@ -140,6 +139,8 @@ func _assign_slot(unit: FamilyTreeUnit) -> float:
 
 
 func _draw() -> void:
+	var row_gap := ROW_GAP_BASE * zoom
+	var line_width := LINE_WIDTH_BASE * zoom
 	for unit in _units:
 		if unit.child_units.is_empty():
 			continue
@@ -147,7 +148,7 @@ func _draw() -> void:
 		var parent_rect: Rect2 = _rect_by_unit[unit]
 		var parent_center_x: float = parent_rect.position.x + parent_rect.size.x / 2.0
 		var parent_bottom := Vector2(parent_center_x, parent_rect.position.y + parent_rect.size.y)
-		var bus_y := parent_rect.position.y + parent_rect.size.y + ROW_GAP / 2.0
+		var bus_y := parent_rect.position.y + parent_rect.size.y + row_gap / 2.0
 
 		var min_x: float = parent_center_x
 		var max_x: float = parent_center_x
@@ -157,18 +158,20 @@ func _draw() -> void:
 			min_x = min(min_x, child_x)
 			max_x = max(max_x, child_x)
 
-		draw_line(parent_bottom, Vector2(parent_center_x, bus_y), LINE_COLOR, LINE_WIDTH)
-		draw_line(Vector2(min_x, bus_y), Vector2(max_x, bus_y), LINE_COLOR, LINE_WIDTH)
+		draw_line(parent_bottom, Vector2(parent_center_x, bus_y), LINE_COLOR, line_width)
+		draw_line(Vector2(min_x, bus_y), Vector2(max_x, bus_y), LINE_COLOR, line_width)
 		for child_unit in unit.child_units:
 			var child_rect: Rect2 = _rect_by_unit[child_unit]
 			var child_top := Vector2(child_rect.position.x + child_rect.size.x / 2.0, child_rect.position.y)
-			draw_line(Vector2(child_top.x, bus_y), child_top, LINE_COLOR, LINE_WIDTH)
+			draw_line(Vector2(child_top.x, bus_y), child_top, LINE_COLOR, line_width)
 
 
 func _build_card(unit: FamilyTreeUnit) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.clip_contents = true
-	card.add_theme_stylebox_override("panel", UiStyle.bordered_panel(PANEL_BG, PANEL_BORDER, 2, 10, 12.0, 10.0))
+	card.add_theme_stylebox_override("panel", UiStyle.bordered_panel(
+		PANEL_BG, PANEL_BORDER, maxi(1, roundi(2.0 * zoom)), roundi(10.0 * zoom), 12.0 * zoom, 10.0 * zoom
+	))
 
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
@@ -185,11 +188,11 @@ func _build_card(unit: FamilyTreeUnit) -> PanelContainer:
 ## 整欄(頭像+姓名+年齡+性別+血統)都能點擊開 CharacterPanel,不是只有小頭像那一小塊
 ## ——蓋一層跟欄位等大的透明 click_catcher 疊在最上面當最後一個 child(命中測試從
 ## 後面的 sibling 先測,直接攔截整欄範圍的點擊,底下內容不用逐一設定 mouse_filter)。
-## 用「放開且沒有明顯拖曳過」才觸發開面板(讀 _drag_moved,見 _input()),拖曳平移
-## 放開時不會被誤判成點擊。
+## 用「放開且沒有明顯拖曳過」才觸發開面板(讀 _drag_moved,見基底類別 _input()),拖曳
+## 平移放開時不會被誤判成點擊。
 func _build_person_column(character: Character) -> Control:
 	var wrapper := Control.new()
-	wrapper.custom_minimum_size = Vector2(COLUMN_WIDTH, 0)
+	wrapper.custom_minimum_size = Vector2(COLUMN_WIDTH_BASE * zoom, 0)
 	wrapper.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrapper.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
@@ -205,13 +208,13 @@ func _build_person_column(character: Character) -> Control:
 	content.add_child(top_row)
 
 	var portrait := TextureRect.new()
-	portrait.custom_minimum_size = PORTRAIT_SIZE
+	portrait.custom_minimum_size = PORTRAIT_SIZE_BASE * zoom
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_SCALE
 	# Control 預設 size_flags_vertical 是 SIZE_FILL,HBoxContainer 會把它撐到跟
-	# info_column 一樣高——新增血統評級那列之後 info_column 變得比 PORTRAIT_SIZE 高,
-	# 沒有這行頭像就會被垂直拉伸變形。SHRINK_CENTER 讓它固定維持 PORTRAIT_SIZE 正方形,
-	# 高度不夠的部分置中,不跟著 info_column 撐高。
+	# info_column 一樣高——新增血統評級那列之後 info_column 變得比 PORTRAIT_SIZE_BASE
+	# 高,沒有這行頭像就會被垂直拉伸變形。SHRINK_CENTER 讓它固定維持正方形,高度不夠的
+	# 部分置中,不跟著 info_column 撐高。
 	portrait.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	if not character.face_path.is_empty():
 		portrait.texture = load(character.face_path) as Texture2D
@@ -241,7 +244,7 @@ func _build_person_column(character: Character) -> Control:
 			bloodline_list.add_child(_build_bloodline_entry(entry))
 
 	var bloodline_scroll := ScrollContainer.new()
-	bloodline_scroll.custom_minimum_size = Vector2(0, BLOODLINE_LIST_HEIGHT)
+	bloodline_scroll.custom_minimum_size = Vector2(0, BLOODLINE_LIST_HEIGHT_BASE * zoom)
 	bloodline_scroll.size_flags_vertical = Control.SIZE_FILL
 	bloodline_scroll.add_child(bloodline_list)
 	content.add_child(bloodline_scroll)
@@ -258,7 +261,7 @@ func _build_person_column(character: Character) -> Control:
 
 ## 血統一條「標籤+百分比」列 + 底下一條計量表,資料來源/配色跟
 ## CharacterDetailView._populate_bloodline() 一致(NOBLE 階級文字上色);祖譜卡片
-## 空間有限,計量表縮窄一點(BLOODLINE_BAR_HEIGHT 比 CharacterDetailView 原本小)。
+## 空間有限,計量表縮窄一點(BLOODLINE_BAR_HEIGHT_BASE 比 CharacterDetailView 原本小)。
 func _build_bloodline_entry(entry: Dictionary) -> Control:
 	var nation: int = entry["nation"]
 	var rank: int = entry["rank"]
@@ -274,20 +277,21 @@ func _build_bloodline_entry(entry: Dictionary) -> Control:
 		row.get_child(1).add_theme_color_override("font_color", nation_color)
 	entry_column.add_child(row)
 
+	var bar_height := BLOODLINE_BAR_HEIGHT_BASE * zoom
 	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, BLOODLINE_BAR_HEIGHT)
+	bar.custom_minimum_size = Vector2(0, bar_height)
 	bar.max_value = Bloodline.TOTAL
 	bar.value = percentage
 	bar.show_percentage = false
 
 	var bar_fill := StyleBoxFlat.new()
 	bar_fill.bg_color = BLOODLINE_BAR_FILL
-	bar_fill.set_corner_radius_all(int(BLOODLINE_BAR_HEIGHT / 2.0))
+	bar_fill.set_corner_radius_all(int(bar_height / 2.0))
 	bar.add_theme_stylebox_override("fill", bar_fill)
 
 	var bar_bg := StyleBoxFlat.new()
 	bar_bg.bg_color = BLOODLINE_BAR_BG
-	bar_bg.set_corner_radius_all(int(BLOODLINE_BAR_HEIGHT / 2.0))
+	bar_bg.set_corner_radius_all(int(bar_height / 2.0))
 	bar.add_theme_stylebox_override("background", bar_bg)
 
 	entry_column.add_child(bar)
@@ -296,7 +300,8 @@ func _build_bloodline_entry(entry: Dictionary) -> Control:
 
 ## caption 靠左、value 靠右的兩端對齊列(space between),血統清單跟姓名/年齡/性別
 ## 資訊列共用同一個 helper——後者字級不同(姓名 14 大一點跟年齡/性別區分主次),
-## 所以開放 font_size 覆寫,預設沿用血統列原本的 12。
+## 所以開放 font_size 覆寫,預設沿用血統列原本的 12,傳入的都是 zoom=1.0 基準值,
+## 這裡統一乘上 zoom,呼叫端不用各自處理縮放。
 ##
 ## 注意:expand-fill 要放在 value_label 而不是 caption_label——caption 都是「姓名」
 ## 「年齡」這種固定短字,不需要搶空間;value(尤其姓名)長度不固定,才需要吃剩餘
@@ -304,17 +309,19 @@ func _build_bloodline_entry(entry: Dictionary) -> Control:
 ## 如果沒有另外用 size_flags_horizontal=EXPAND_FILL 讓它分到實際寬度,裁切後寬度就是
 ## 0,文字整個看不見——不是資料不見,是版位被算成 0 寬度,曾經踩過這個雷。
 func _build_stat_row(caption: String, value: String, font_size: int = 12) -> HBoxContainer:
+	var scaled_font_size := maxi(1, int(font_size * zoom))
+
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 
 	var caption_label := Label.new()
 	caption_label.text = caption
-	caption_label.add_theme_font_size_override("font_size", font_size)
+	caption_label.add_theme_font_size_override("font_size", scaled_font_size)
 	row.add_child(caption_label)
 
 	var value_label := Label.new()
 	value_label.text = value
-	value_label.add_theme_font_size_override("font_size", font_size)
+	value_label.add_theme_font_size_override("font_size", scaled_font_size)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	value_label.clip_text = true
@@ -327,31 +334,3 @@ func _on_person_gui_input(input_event: InputEvent, character: Character) -> void
 	if input_event is InputEventMouseButton and input_event.button_index == MOUSE_BUTTON_LEFT and not input_event.pressed:
 		if not _drag_moved:
 			CharacterPanel.open_for_character(character)
-
-
-## 拖曳平移:用 _input() 而不是 _gui_input()——不受卡片/click_catcher 的
-## mouse_filter=STOP 影響,不管從卡片上方或空白處按下都能拖曳,不用另外幫每個子
-## 節點設定 mouse_filter 忽略。按下當下要落在 ScrollContainer 範圍內才開始拖曳
-## (避免從返回鍵等處按下也觸發平移);移動距離超過 DRAG_MOVE_THRESHOLD 才算「有
-## 拖曳」(_drag_moved),放開時 _on_person_gui_input 讀這個旗標判斷是要開面板還是
-## 純粹拖完放開,兩者不會互相誤觸。
-func _input(event: InputEvent) -> void:
-	if _scroll_container == null:
-		return
-
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		if event.pressed:
-			if not _scroll_container.get_global_rect().has_point(event.position):
-				return
-			_dragging = true
-			_drag_moved = false
-			_drag_distance = 0.0
-		else:
-			_dragging = false
-	elif event is InputEventMouseMotion and _dragging:
-		var delta: Vector2 = event.relative
-		_drag_distance += delta.length()
-		if _drag_distance > DRAG_MOVE_THRESHOLD:
-			_drag_moved = true
-		_scroll_container.scroll_horizontal -= int(delta.x)
-		_scroll_container.scroll_vertical -= int(delta.y)

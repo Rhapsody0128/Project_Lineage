@@ -8,8 +8,6 @@ extends Node
 # 刻意分開,不要混在一起(見 CLAUDE.md「國際戰爭」設計理念)。
 # =========================================================
 
-signal changed
-
 const MAX_ACTIVE_WARS_PER_NATION := 1
 
 ## "min_id_max_id" 字串 key(min/max 為 GameEnums.BloodlineNation id)→ WarTension 浮點值。
@@ -51,7 +49,6 @@ func get_war_tension(nation_a: int, nation_b: int) -> float:
 func modify_war_tension(nation_a: int, nation_b: int, amount: float) -> void:
 	var key := _pair_key(nation_a, nation_b)
 	tension[key] = clampf(tension.get(key, 0.0) + amount, 0.0, 100.0)
-	changed.emit()
 
 
 func get_active_war_between(nation_a: int, nation_b: int) -> War:
@@ -102,7 +99,6 @@ func declare_war(attacker: int, defender: int) -> War:
 	]
 	NewsController.post(text, GameEnums.NewsCategory.WAR)
 	MessageBar.show_message(text)
-	changed.emit()
 	return war
 
 
@@ -116,7 +112,6 @@ func settle_battle(war: War, battle: WarBattle, result: BattleResult) -> void:
 	war.war_exhaustion_b = clampf(war.war_exhaustion_b + result.exhaustion_gain_b, 0.0, 100.0)
 	war.active_battles.erase(battle)
 	battle.status = GameEnums.WarBattleStatus.ENDED
-	changed.emit()
 
 
 func resolve_truce(war: War) -> void:
@@ -134,7 +129,6 @@ func resolve_truce(war: War) -> void:
 	]
 	NewsController.post(text, GameEnums.NewsCategory.WAR)
 	MessageBar.show_message(text)
-	changed.emit()
 
 
 ## 戰功換算成實際獎勵的唯一入口,只在停戰當下呼叫一次(見 resolve_truce())。玩家只要有
@@ -216,7 +210,6 @@ func set_player_side(war: War, side: int) -> void:
 	else:
 		text = "你決定支援 %s。" % GameEnums.bloodline_nation_label(side)
 	MessageBar.show_message(text)
-	changed.emit()
 
 
 func get_active_war_battles() -> Array[WarBattle]:
@@ -256,7 +249,6 @@ func load_save_data(data: Dictionary) -> void:
 	var wars_data: Dictionary = data.get("wars", {})
 	for war_id in wars_data:
 		wars[war_id] = _decode_war(wars_data[war_id])
-	changed.emit()
 
 
 func _encode_war(war: War) -> Dictionary:

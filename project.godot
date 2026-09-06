@@ -64,6 +64,7 @@ window/size/viewport_height=918
 window/size/mode=3
 window/size/borderless=true
 window/stretch/mode="canvas_items"
+window/handheld/orientation="landscape"
 
 [gui]
 

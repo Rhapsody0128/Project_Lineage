@@ -202,6 +202,84 @@ session 單例,兩個 autoload 的定位一致——`System/` 底下不會有需
 `CharacterSelectBar`)。呼叫端 `new()` 塞進場景樹、呼叫 `open_picker(...)`,`close()`
 時自己 `queue_free()`——不是 autoload 單例,疊上來時底下的 ActionPanel 內容不受影響。
 
+## UI 共用寫法分類(UiStyle 與各類共用元件)
+
+專案裡「同一種寫法被多個畫面重複使用」大致分成六類,新增畫面前先檢查有沒有對應分類可以
+直接重用,不要重新手刻一份。
+
+- **樣式產生器**(`Scripts/UI/ui_style.gd`,`class_name UiStyle`,純 static func 集合,
+  不是元件、不能 `new()`)——羊皮紙/木牌視覺語言的唯一真相來源,50+ 檔呼叫。
+  `bordered_panel()` 是最底層(四邊等寬邊框+圓角 `StyleBoxFlat`),之上疊了一層「配方」:
+  `apply_parchment_panel()`(羊皮紙木框面板背景,依寬高比裁圖+`resized` 訊號自動重裁)、
+  `apply_wood_plaque_button()`/`style_panel_action_button()`(木牌鐵框按鈕,後者是前者
+  再包一層固定 16px 字+`SIZE_SHRINK_BEGIN`,給面板內操作鈕用)、`parchment_row_style()`
+  (清單/卡片行底色)、`right_border_style()`/`bottom_border_style()`/
+  `transparent_panel_style()`(單邊分隔線/純透明蓋色,給「內容自然往下長、不需要獨立
+  面板」的區塊)、`apply_parchment_scrollbar()`(捲軸配色)。`color_from_seed()`/
+  `family_banner_path()`(依字串決定穩定色相/家徽貼圖)不是樣式,是「暫代美術」的共用
+  亂數種子邏輯,見「祖譜」節。新增羊皮紙/木牌風格畫面一律先查這支檔案有沒有現成配方,
+  不要在場景腳本裡另刻一份 `StyleBoxFlat`/`StyleBoxTexture`。
+- **彈出面板殼**——`ActionPanel`/`CharacterSelectOverlay`(見上文)之外,`ConfirmDialog`
+  (autoload,`ask()`/`notify()` 兩個入口,是否或純通知)、`SkillReplaceDialog`(見
+  「兵營」節)、`SaveSlotPicker`(存/讀檔清單,借 `ActionPanel` 外殼而非自成一層)都屬於
+  同一類「蓋在目前畫面上、關掉不影響底下狀態」的殼,差別只在關閉方式(×/是否/選一個)。
+- **選人/清單元件**——`CharacterAvatarCard`(頭像卡片,`available`/`force_dim` 控制
+  可選/反灰)+`CharacterSelectBar`(排序列+頭像網格,`setup(characters, card_factory,
+  ...)` 灌卡片工廠)+`CharacterSortFilterBar`(排序下拉+武器篩選 CheckBox,被
+  `CharacterSelectBar` 內部使用,也可單獨借用),三者組合成 `CharacterSelectPanel`/
+  `CharacterSelectOverlay`。任何「挑一個/多個角色」的畫面一律拼這三塊。
+- **懸停提示按鈕**(`_make_custom_tooltip()` 慣例)——`CostTooltipButton`/
+  `MoraleStatusButton` 兩處覆寫 `Control._make_custom_tooltip()`(`HeaderBar`/
+  `BaseActionPanel` 其餘的 tooltip 都是純 `tooltip_text` 字串,沒有這層),外層直接吃
+  引擎內建 `TooltipPanel` 底色、不疊自己的底,回傳圖示+文字排版好的 `Control`。兩處都把
+  內容產生邏輯抽成 `_build_tooltip_content()`,hover(`_make_custom_tooltip()`)跟觸控
+  替代路徑共用同一份。觸控替代路徑是 `UiStyle.show_tap_popover(anchor, content)`(點擊/
+  長按彈出同一份內容包在 `PopupPanel` 裡,點外部或 Esc 自動關閉):`MoraleStatusButton`
+  點擊本身不觸發遊戲動作,直接在 `pressed` 呼叫;`CostTooltipButton`
+  點擊本身就是建造/升級動作,不能直接接 `pressed`,改成按住 `LONG_PRESS_SEC`(0.45 秒)
+  才觸發預覽,觸發當下立刻把自己 `disabled=true` 讓即將到來的放開不會被引擎判定成點擊,
+  彈窗關閉時才還原,按住時間不到門檻的正常短按完全不受影響。之後新增同類「花費/數值
+  明細」hover tooltip,一律比照這兩處的 `_build_tooltip_content()` + `show_tap_popover()`
+  寫法,不要只做 hover 版本。
+- **手繪可拖曳/可縮放畫布**(`PannableZoomableCanvas`,`Scripts/UI/`)——
+  `FamilyTreeCanvas`/`TechTreeCanvas` 都是「自己算版面座標、`_draw()` 手畫卡片與連接線、
+  `ScrollContainer` 內可拖曳平移+雙指縮放」的同一種寫法,拖曳平移+雙指縮放判定已經抽成
+  這個共用基底類別(`extends Control`,子類別 `extends PannableZoomableCanvas`,寫法
+  比照 `System/battle/events/` 的 `BattleEvent` 子類別慣例),子類別只要覆寫
+  `_rebuild_at_zoom()`,把原本 `render()` 用到的版面/字級常數(改名成 `_BASE` 後綴)
+  乘上基底類別的 `zoom` 重新算一次。縮放刻意不用 `Control.scale`(會跟 ScrollContainer
+  的捲動範圍打架,見該檔案開頭大段註解),改成每次 zoom 改變就整個重新算版面,
+  `custom_minimum_size` 天生就是縮放後的正確尺寸。只支援觸控雙指縮放,不接桌面滑鼠
+  滾輪(滾輪在這兩個畫面本來就是 `ScrollContainer` 內建垂直捲動,疊上去會互搶)。
+  新增同類手繪版面畫布(自算座標+ `_draw()` 連接線+需要拖曳平移)一律 `extends
+  PannableZoomableCanvas`,不要重新複製一份拖曳判定。`BattleBoard`/`PartyEditBoard`/
+  `BarracksGridExpandPanel` 是另一種「棋盤格」寫法,三者已經共用
+  `BoardTileRenderer.draw_board()`(見「戰鬥系統」節),各自只留 `TILE_SIZE`/
+  `BOARD_ORIGIN` 常數自訂位置與格子大小,是本節唯一「已經正確抽共用、沒有複製貼上」的
+  案例,新增棋盤格畫面比照這個寫法。
+- **角色詳情面板**(`CharacterDetailView`)——分頁式(素質/技能/婚姻/家族)左側詳情
+  面板,`CharacterPanel`/聯姻相關面板共用同一份,見「trait」節。
+
+**手機/PC 通用移植現況**(先鎖橫向為前提的漸進式處理,見下方個別狀態):
+`project.godot` 已加 `window/handheld/orientation="landscape"` 鎖定橫向。
+`world_inner.gd` 的地圖縮放已支援雙指觸控(`InputEventScreenTouch`/
+`InputEventScreenDrag` 追蹤兩指座標算間距變化,`_apply_zoom(factor, center_screen_pos)`
+統一滾輪/雙指縮放的「縮放中心點對應世界座標不動」邏輯,不再各自各寫一份);拖曳平移/
+點擊移動則沿用引擎觸控自動模擬滑鼠事件,未額外改動。上方「懸停提示按鈕」的觸控替代
+路徑已完成。`FamilyTreeCanvas`/`TechTreeCanvas` 已透過 `PannableZoomableCanvas`
+(見上方「手繪可拖曳/可縮放畫布」)補上雙指縮放,原本重複貼上的拖曳邏輯也一併整併。
+**尚未處理**:`BattleBoard`/`PartyEditBoard`/`BarracksGridExpandPanel` 這類棋盤格畫面
+的 `TILE_SIZE`/`BOARD_ORIGIN` 等常數各自獨立一份、互不共用,也沒有全域的「設計基準
+尺寸/最小觸控尺寸」常數表,這幾個棋盤格畫面也還沒有雙指縮放手勢;部分畫面(例如
+`nation_relations.tscn`)用 `layout_mode = 0` 固定 pixel offset 寫死
+版面,且數字(`offset_right=1600`)跟 project.godot 實際視窗寬 1632 對不上,只是碰巧
+視覺上還過得去;`window/stretch/mode` 是 `canvas_items`、`aspect` 未設(引擎預設
+`keep`),遇到跟 16:9 差異大的長寬比只會整體縮放+留黑邊,不會重排版面——鎖橫向情境下
+這點刻意不處理;小型圖示按鈕/CheckBox 的觸控可點擊尺寸還沒逐一抽查。`export_presets.cfg`
+目前只有 Windows/Web 兩個 preset,還沒建立 Android/iOS——這步需要另外在機器上裝
+Android SDK/JDK 並在 Godot 編輯器下載對應版本 export template,是一次性互動式環境
+設置,不是單純改程式碼能完成的。
+
 ## 兵營(System/base + Scenes/Base/barracks_*.gd)
 
 兵營六大項目——傳授/歷練/戰場擴充/戰術格開發(空殼)/隊長訓練/變換隊形——`BarracksPanel`

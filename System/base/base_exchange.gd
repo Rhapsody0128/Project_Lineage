@@ -24,8 +24,10 @@ extends RefCounted
 ## 石材10、鐵礦12、金錢6、工藝品20×2=40(額外拉高)、科研30、贓物15、詛咒60。
 ##
 ## 建築等級加成:見下方 LEVEL_FAIRNESS_SHRINK 開頭註解——不是直接灌到拿到的數量上,
-## 而是讓買賣價「朝公平價值比收斂」但永遠不會跨過那條線,保證不管等級多高,這些交易
-## 對玩家來說都必然是虧錢的(比照 Market.gd 的 MARKUP_BY_RANK 精神)。
+## 而是讓買賣價「朝公平價值比收斂」,Lv1~Lv8 永遠不會跨過那條線(必虧),滿級(Lv9)才
+## 剛好收斂到持平(不虧也不賺)——把「終於練到頂級,不再被交易抽稅」設計成一個明確的
+## 里程碑爽感,同時仍然保證不會出現「倒賺」的無本套利(比照 Market.gd 的 MARKUP_BY_RANK
+## 精神,只是那邊沒有等級概念、永遠是虧)。
 
 class ExchangeOption:
 	## GameEnums.ResourceType,兌換的另一端資源(商隊站的貨幣是金錢、黑市的貨幣是贓物,
@@ -49,9 +51,11 @@ class ExchangeOption:
 ## index 0 = Lv1 ... index 8 = Lv9。舊版直接把這個數字乘在拿到的資源/貨幣數量上,結果
 ## 某些資源(例如毛皮)滿級後買入單價會跌破「公平價值比」(fair,見 buy_unit_price()/
 ## sell_unit_price()),等於玩家穩賺,不再是「买贵卖贱必虧」——已改掉。現在這個數字是
-## 「收斂比例」:1.00 代表 Lv1 原始價差全部保留,數字越小代表買賣價越靠近 fair,但
-## 只要 > 0 就永遠不會真正碰到 fair,買永遠比 fair 貴、賣永遠比 fair 賤。
-const LEVEL_FAIRNESS_SHRINK: Array[float] = [1.00, 0.94, 0.88, 0.82, 0.75, 0.65, 0.55, 0.45, 0.35]
+## 「收斂比例」:1.00 代表 Lv1 原始價差全部保留,數字越小代表買賣價越靠近 fair;Lv1~Lv8
+## 維持 > 0(買貴賣賤必虧),Lv9(index 8)刻意收到剛好 0.0——買賣價在滿級精確等於
+## fair,一買一賣完全打平,不會變成負值讓玩家倒賺套利,但終於不再被抽任何價差,呼應
+## 「練到頂級」的里程碑感。
+const LEVEL_FAIRNESS_SHRINK: Array[float] = [1.00, 0.92, 0.84, 0.74, 0.63, 0.50, 0.36, 0.20, 0.00]
 
 ## Lv1 買入價相對「公平價值比」(fair)的固定加價倍率、Lv1 賣出價相對 fair 的固定折價
 ## 比例——用來從 ExchangeOption 手動調過的整數 buy_cost/buy_output/sell_cost/sell_output
@@ -109,25 +113,31 @@ static func route_count() -> int:
 static func route_capacity(worker_count: int) -> int:
 	return worker_count * TRADE_UNITS_PER_ROUTE_WORKER
 
-## 「買貴賣賤」(Lv1 賣出永遠是 Lv1 買入的一半價值)保證同一棟建築內來回兌換必虧 50%;
-## 金錢↔贓物這組跨商隊站/黑市的雙向迴圈(商隊站買贓物→黑市買金錢、或反過來兩邊都賣)
-## 也因為兩段各自都虧損而複合起來虧更多,不會出現無本套利無限堆疊——買賣價隨等級朝 fair
-## 收斂但不會跨過(見下方兩個函式),這個「必虧」保證不管等級多高都成立。
+## 「買貴賣賤」(Lv1 賣出永遠是 Lv1 買入的一半價值)保證同一棟建築內來回兌換 Lv1~Lv8 必虧
+## 50% 起跳、Lv9 打平;金錢↔贓物這組跨商隊站/黑市的雙向迴圈(商隊站買贓物→黑市買金錢、
+## 或反過來兩邊都賣)也因為兩段各自都不會倒賺而不會出現無本套利無限堆疊——買賣價隨等級
+## 朝 fair 收斂,Lv1~Lv8 不會跨過那條線,Lv9 精確落在 fair 上(見下方兩個函式)。
 
 ## 買入單價(每 1 個資材要付多少貨幣)。fair 是從 Lv1 的 buy_cost/buy_output 反推出的
 ## 「公平價值比」(Lv1 買入價 = fair × BUY_MARKUP_L1);等級越高,實際單價越靠近 fair,
-## 但 LEVEL_FAIRNESS_SHRINK 只要 > 0 就保證恆 > fair,買永遠是虧的。
+## Lv1~Lv8(LEVEL_FAIRNESS_SHRINK > 0)恆 > fair、買是虧的,Lv9(shrink = 0)剛好等於
+## fair、買賣打平,不會低於 fair 讓玩家倒賺。目前沒有任何 TechEffectType 會改動這張表
+## (唯一碰 BaseExchange 的科技是 EXCHANGE_ROUTE_COUNT_ADD,只加路線數量、不碰價格),
+## 但這裡仍手動 clampf(0,1) 保底——比照 BaseBuildingProgressStore.get_upgrade_cost() 對
+## BUILDING_UPGRADE_COST_MULT_SUB 的既有防呆慣例,防止之後有人加一支科技把 shrink 推到
+## 負值,讓 buy 跌破 fair 變成無本套利。
 static func buy_unit_price(option: ExchangeOption, level: int) -> float:
 	var base := float(option.buy_cost) / float(option.buy_output)
 	var fair := base / BUY_MARKUP_L1
-	var shrink := LEVEL_FAIRNESS_SHRINK[clampi(level, 1, LEVEL_FAIRNESS_SHRINK.size()) - 1]
+	var shrink := clampf(LEVEL_FAIRNESS_SHRINK[clampi(level, 1, LEVEL_FAIRNESS_SHRINK.size()) - 1], 0.0, 1.0)
 	return fair + (base - fair) * shrink
 
 ## 賣出單價(每賣 1 個資材拿到多少貨幣)。fair 同樣是從 Lv1 的 sell_cost/sell_output
-## 反推(Lv1 賣出價 = fair × SELL_RATIO_L1);等級越高,實際單價越靠近 fair,但恆 < fair,
-## 賣永遠是虧的。
+## 反推(Lv1 賣出價 = fair × SELL_RATIO_L1);等級越高,實際單價越靠近 fair,Lv1~Lv8 恆
+## < fair、賣是虧的,Lv9 剛好等於 fair,不會超過 fair 讓玩家倒賺。同樣手動 clampf(0,1)
+## 保底,理由見上方 buy_unit_price()。
 static func sell_unit_price(option: ExchangeOption, level: int) -> float:
 	var base := float(option.sell_output) / float(option.sell_cost)
 	var fair := base / SELL_RATIO_L1
-	var shrink := LEVEL_FAIRNESS_SHRINK[clampi(level, 1, LEVEL_FAIRNESS_SHRINK.size()) - 1]
+	var shrink := clampf(LEVEL_FAIRNESS_SHRINK[clampi(level, 1, LEVEL_FAIRNESS_SHRINK.size()) - 1], 0.0, 1.0)
 	return fair - (fair - base) * shrink

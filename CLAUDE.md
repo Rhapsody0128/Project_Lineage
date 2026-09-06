@@ -375,8 +375,7 @@ A(打提示譜)/B(打玩家正確譜)/C(觀看,播提示音)/D(遊玩,不播提�
 `RhythmChartStore` 同一份 JSON 的頂層 key,跟 `regular`/`variation` 同層但不分變體,因為兩個
 變體共用同一份 BGM 素材)描述的是**歌曲本身的樂句/段落分界**,由 E
 (`Scenes/RhythmGame/rhythm_breakpoint_editor_view.gd`,骨架比照 `RhythmRecordView`,聽 BGM
-手動打點存檔)人工標定,也可以先用 `Tools/rhythm/detect_breakpoints.py`(離線 Python 工具,
-librosa 結構分段,預設不覆蓋已有斷點的建築)批次跑出初稿再人工微調。
+手動打點存檔)人工標定
 
 F(`RhythmPlayView` 的 `breakpoint_mode=true`)的正確譜不是存檔資料,改由
 `RhythmBreakpointChartGenerator.generate_hybrid()`(`System/rhythm/

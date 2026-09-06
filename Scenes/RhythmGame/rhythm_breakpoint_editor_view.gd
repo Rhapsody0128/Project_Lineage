@@ -5,8 +5,7 @@ extends Control
 ## 樂句/段落分界處打點,記錄當下時間戳當斷點,存檔寫進 RhythmChartStore.save_break_points()
 ## ——結構完全比照 RhythmRecordView 的「播放+記錄」骨架,差別只在記錄的是斷點而非提示/正確
 ## 譜音符,也不分 variant(斷點是同一份 BGM 素材本身的結構,常規版/變奏版共用)。進畫面時會
-## 先讀出既有斷點(可能是 Tools/rhythm/detect_breakpoints.py 分析出的初稿,或先前人工存過的
-## 版本)顯示筆數,方便設計者知道目前狀態;按「開始」後會清空重新記錄一輪,「儲存」才真正
+## 先讀出既有斷點方便設計者知道目前狀態;按「開始」後會清空重新記錄一輪,「儲存」才真正
 ## 覆蓋寫回。
 
 signal back_requested
